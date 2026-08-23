@@ -1,0 +1,2 @@
+{"type":"session","version":1,"id":"sess-main","createdAt":1754042400000,"cwd":"/home/u/proj"}
+{"type":"assistant/message","seq":2,"time":1754042402000,"data":{"turn":0,"step":0,"message":{"role":"assistant","source":{"kind":"model","model":"deepseek-chat"}},"usage":{"inputTokens":100,"outputTokens":50,"cacheReadTokens":30,"cacheWriteTokens":20,"reasoningTokens":7}}}

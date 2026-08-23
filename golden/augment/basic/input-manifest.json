@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "harness": "augment",
+  "case": "basic",
+  "env": {
+    "AUGMENT_SESSIONS_DIR": "."
+  },
+  "options": {
+    "harnesses": [
+      "augment"
+    ],
+    "tz": "UTC"
+  },
+  "rollups": [
+    "model",
+    "day",
+    "harness"
+  ]
+}

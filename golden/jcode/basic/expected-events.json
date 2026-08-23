@@ -1,0 +1,87 @@
+{
+  "diagnostics": [],
+  "events": [
+    {
+      "harness": "jcode",
+      "messageId": "a1",
+      "model": "jcode-sonnet",
+      "sessionId": "sess-a",
+      "subagent": false,
+      "timestamp": "2026-08-01T10:00:05.000Z",
+      "tokens": {
+        "cacheRead": 300,
+        "cacheWrite": 200,
+        "input": 100,
+        "output": 50,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "jcode",
+      "messageId": "a2",
+      "model": "jcode-sonnet",
+      "sessionId": "sess-a",
+      "subagent": false,
+      "timestamp": "2026-08-01T10:01:05.000Z",
+      "tokens": {
+        "cacheRead": 600,
+        "cacheWrite": 0,
+        "input": 10,
+        "output": 20,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "jcode",
+      "messageId": "a3",
+      "model": "jcode-haiku",
+      "sessionId": "sess-a",
+      "subagent": false,
+      "timestamp": "2026-08-01T10:02:05.000Z",
+      "tokens": {
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "input": 8,
+        "output": 9,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "jcode",
+      "messageId": "b1",
+      "model": "jcode-sonnet",
+      "sessionId": "sess-b",
+      "subagent": false,
+      "timestamp": "2026-08-02T09:00:05.000Z",
+      "tokens": {
+        "cacheRead": 400,
+        "cacheWrite": 900,
+        "input": 1000,
+        "output": 500,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "jcode",
+      "messageId": "b2",
+      "model": "jcode-sonnet",
+      "sessionId": "sess-b",
+      "subagent": false,
+      "timestamp": "2026-08-02T09:01:05.000Z",
+      "tokens": {
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "input": 11,
+        "output": 6,
+        "reasoning": 0
+      },
+      "turn": true
+    }
+  ],
+  "schema_version": 1,
+  "skipped": {}
+}

@@ -1,0 +1,37 @@
+---
+// Inline brand mark for a harness, rendered monochrome in `currentColor` so it
+// inherits the surrounding ink token and adapts to the dark/light theme. Sized
+// to the text it accompanies (~1em) and vertically centred. Decorative: the
+// harness name sits beside it, so the mark is aria-hidden.
+import { harnessIconPaths, type HarnessIconSlug } from "./harness-icons";
+
+interface Props {
+  slug: HarnessIconSlug;
+}
+
+const { slug } = Astro.props;
+const inner = harnessIconPaths[slug];
+---
+
+{
+  inner && (
+    <svg
+      class="harness-icon"
+      viewBox="0 0 24 24"
+      fill="currentColor"
+      aria-hidden="true"
+      set:html={inner}
+    />
+  )
+}
+
+<style>
+  .harness-icon {
+    width: 1em;
+    height: 1em;
+    flex: 0 0 auto;
+    vertical-align: -0.125em;
+    margin-inline-end: 0.5em;
+    color: var(--ink-2);
+  }
+</style>

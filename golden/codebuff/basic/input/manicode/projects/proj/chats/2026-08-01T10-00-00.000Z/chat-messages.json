@@ -1,0 +1,1 @@
+[{"role":"user","content":"hi"},{"id":"msg-1","role":"assistant","metadata":{"usage":{"inputTokens":12,"promptTokensDetails":{"cachedTokens":3}},"runState":{"sessionState":{"mainAgentState":{"messageHistory":[{"role":"assistant","providerOptions":{"usage":{"completionTokens":8},"codebuff":{"model":"claude-opus-4-6"}}}]}}}}},{"role":"assistant","metadata":{"usage":{}}}]

@@ -1,0 +1,110 @@
+---
+title: Rollup pricing vs per-event pricing
+description: How the two pricing entry points differ in handling context-sensitive (tiered) models.
+---
+
+import { Tabs, TabItem } from "@astrojs/starlight/components";
+
+Both entry points turn usage into USD. They differ in how they handle context-sensitive (tiered) models.
+
+## Cost modes on priceRollups
+
+`priceRollups` picks the single `usd` on each row from the pricing `mode`:
+
+- `calculate` (default) always recomputes from tokens × catalog rates. A rollup whose model is unpriced has no `usd`.
+- `display` reports the harness-recorded cost (summed on the rollup) or `0`, ignoring token math.
+- `auto` prefers the recorded cost when present and falls back to the calculated one, so a recorded cost appears even for an unpriced model.
+
+The recorded cost comes from each event's `costUsd`, populated only by the Claude and OpenCode readers. For rollups with no recorded cost, `auto` behaves like `calculate` while `display` reports `0`.
+
+## Why priceRollups can overbill tiered models
+
+`priceRollups` prices the tokens already summed onto each rollup. That is exact for flat-rate models. A tiered model is context-sensitive, so summing several events (or one event that already aggregates multiple calls, `calls > 1`) before selecting a tier can push the combined context across a threshold none of the individual calls reached, overbilling the group.
+
+Rather than misprice silently, such a row is flagged `pricing.tieredAggregate: true` so a caller can catch the exposure. The flag applies in `calculate` mode, or `auto` with no recorded cost, the modes that apply the token math.
+
+## priceEvents is the correct path for tiered models
+
+<Tabs syncKey="lang">
+  <TabItem label="TypeScript">
+    ```ts frame="code"
+    const priced = await pricing.priceEvents(events, { by: "model" });
+    ```
+
+  </TabItem>
+  <TabItem label="Python">
+    ```python frame="code"
+    priced = pricing.price_events(events, "model")
+    ```
+
+  </TabItem>
+  <TabItem label="Rust">
+    ```rust frame="code"
+    use skopli_core::rollup::{RollupBy, RollupOptions};
+
+    let priced = pricing.price_events(&events, &RollupOptions::new(RollupBy::Model));
+    ```
+
+  </TabItem>
+  <TabItem label="Ruby">
+    ```ruby frame="code"
+    priced = pricing.price_events(events, :model)
+    ```
+
+  </TabItem>
+  <TabItem label="Java">
+    ```java frame="code"
+    List<PricedRollup> priced = pricing.priceEvents(events, RollupOptions.by(RollupBy.MODEL));
+    ```
+
+  </TabItem>
+  <TabItem label="C#">
+    ```csharp frame="code"
+    IReadOnlyList<PricedRollup> priced =
+        pricing.PriceEvents(events, new RollupOptions { By = RollupBy.Model });
+    ```
+
+  </TabItem>
+  <TabItem label="Go">
+    ```go frame="code"
+    priced, _ := pricing.PriceEvents(events, skopli.RollupOptions{By: skopli.ByModel})
+    ```
+
+  </TabItem>
+  <TabItem label="Swift">
+    ```swift frame="code"
+    let priced = try pricing.priceEvents(events: events, by: .model)
+    ```
+
+  </TabItem>
+  <TabItem label="C/C++">
+    ```c frame="code"
+    #include <string.h>
+    #include "skopli.h"
+
+    // pricing is an AgPricing* from ag_pricing_new; events_json / events_len
+    // are a serialized UsageEvent[] from ag_read_usage.
+    AgBuf out = {0};
+    const char *group_opts = "{\"by\":\"model\"}";
+    AgStatus st = ag_pricing_price_events(pricing, events_json, events_len, group_opts, strlen(group_opts), &out);
+    ```
+
+  </TabItem>
+</Tabs>
+
+It prices each event at its own context, so tier selection is per-event, with the full tiered and 5m/1h cache-write logic. It then aggregates the per-event costs into groups keyed exactly like `rollup(events, { by, tz })`.
+
+Two 150k-context Claude events each price on the base rates, instead of summing to 300k and crossing the 200k long-context tier as `priceRollups` on the summed rollup would.
+
+A group prices only when every member model prices. If any member is unpriced, the whole group reports `priced: false`, so a partial sum is never presented as the whole.
+
+## Modes and provenance under aggregation
+
+`mode` applies per event before summing, so a group mixing recorded-cost and calculated-cost events is exact. Each event contributes `recorded ?? calculated` under `auto`, its recorded cost or `0` under `display`, or its calculated cost under `calculate`.
+
+Provenance stays honest about mixing:
+
+- A group whose events all share one model returns a `PriceHit` carrying that real model plus its `key`, `price`, `source`, and `fetchedAt`.
+- A group spanning several models (possible when grouping by session, day, harness, or workspace) returns an `AggregatePriceHit` (`{ priced: true, usd, models }`) that lists the contributing models rather than claiming one model's rate.
+
+A single-model group whose events aggregate multiple model calls (`calls > 1`) on a tiered model is still flagged `tieredAggregate: true`, because `priceEvents` prices per event and per-call token breakdowns are not available to separate.

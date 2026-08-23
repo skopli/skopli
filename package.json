@@ -1,0 +1,70 @@
+{
+  "name": "skopli",
+  "version": "1.0.0",
+  "description": "Read real AI coding-agent usage (tokens, sessions, calls) from local harness state, aggregate it, and price it against market catalogs like OpenRouter and LiteLLM.",
+  "keywords": [
+    "agent",
+    "ai",
+    "claude-code",
+    "cli-agents",
+    "codex",
+    "coding-agents",
+    "copilot",
+    "cost",
+    "gemini-cli",
+    "litellm",
+    "opencode",
+    "openrouter",
+    "pricing",
+    "sdk",
+    "token-usage",
+    "tokens",
+    "usage"
+  ],
+  "homepage": "https://docs.skopli.com/skopli/",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/skopli/skopli"
+  },
+  "files": [
+    "dist",
+    "native/index.cjs",
+    "native/index.d.ts",
+    "native/*.node",
+    "llms.txt"
+  ],
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "clean": "node -e \"fs.rmSync('dist',{recursive:true,force:true})\"",
+    "build:native": "napi build --platform --release -o native --js index.cjs --package skopli-node --manifest-path crates/skopli-node/Cargo.toml",
+    "build": "napi build --platform --release -o native --js index.cjs --package skopli-node --manifest-path crates/skopli-node/Cargo.toml && pnpm run clean && tsc -p tsconfig.build.json",
+    "prepare": "pnpm run clean && tsc -p tsconfig.build.json",
+    "lint": "oxlint",
+    "format": "oxfmt --check .",
+    "format:write": "oxfmt .",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "check": "pnpm run lint && pnpm run format && pnpm run typecheck && pnpm run test"
+  },
+  "devDependencies": {
+    "@napi-rs/cli": "^3.8.6",
+    "@types/node": "^26.1.2",
+    "oxfmt": "^0.62.0",
+    "oxlint": "^1.77.0",
+    "typescript": "^7.0.2",
+    "vitest": "^4.1.10"
+  },
+  "engines": {
+    "node": ">=24"
+  },
+  "packageManager": "pnpm@10.34.4"
+}

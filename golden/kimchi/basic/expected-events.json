@@ -1,0 +1,33 @@
+{
+  "schema_version": 1,
+  "events": [
+    {
+      "harness": "kimchi",
+      "timestamp": "2026-08-01T10:00:00.000Z",
+      "sessionId": "session",
+      "messageId": "message",
+      "turn": true,
+      "subagent": false,
+      "model": "gpt-5",
+      "tokens": {
+        "input": 12,
+        "output": 4,
+        "cacheRead": 9,
+        "cacheWrite": 3,
+        "reasoning": 0
+      }
+    }
+  ],
+  "diagnostics": [
+    {
+      "severity": "warning",
+      "message": "skipping malformed kimchi usage kimchi/agent/sessions/2026-08-01T10-00-00_session.jsonl:4",
+      "harness": "kimchi"
+    }
+  ],
+  "skipped": {
+    "kimchi": [
+      "kimchi/agent/sessions/2026-08-01T10-00-00_session.jsonl:4"
+    ]
+  }
+}

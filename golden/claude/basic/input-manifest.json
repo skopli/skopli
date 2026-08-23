@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "harness": "claude",
+  "case": "basic",
+  "env": {
+    "CLAUDE_CONFIG_DIR": "."
+  },
+  "options": {
+    "harnesses": [
+      "claude"
+    ],
+    "tz": "UTC"
+  },
+  "rollups": [
+    "model",
+    "day",
+    "harness"
+  ]
+}

@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "harness": "zed",
+  "case": "basic",
+  "env": {
+    "ZED_DATA_DIR": "."
+  },
+  "options": {
+    "harnesses": [
+      "zed"
+    ],
+    "tz": "UTC"
+  },
+  "rollups": [
+    "model",
+    "day",
+    "harness"
+  ]
+}

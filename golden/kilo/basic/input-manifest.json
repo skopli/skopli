@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "harness": "kilo",
+  "case": "basic",
+  "env": {
+    "KILO_DATA_DIR": "."
+  },
+  "options": {
+    "harnesses": [
+      "kilo"
+    ],
+    "tz": "UTC"
+  },
+  "rollups": [
+    "model",
+    "day",
+    "harness"
+  ]
+}

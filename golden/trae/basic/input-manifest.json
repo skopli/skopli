@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "harness": "trae",
+  "case": "basic",
+  "cwd": ".",
+  "options": {
+    "harnesses": [
+      "trae"
+    ],
+    "tz": "UTC"
+  },
+  "rollups": [
+    "model",
+    "day",
+    "harness"
+  ]
+}

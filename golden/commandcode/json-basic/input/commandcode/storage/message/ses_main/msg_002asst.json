@@ -1,0 +1,16 @@
+{
+  "id": "msg_002asst",
+  "sessionID": "ses_main",
+  "role": "assistant",
+  "time": { "created": 1769900000200, "completed": 1769900000900 },
+  "parentID": "msg_001user",
+  "providerID": "commandcode",
+  "modelID": "big-pickle",
+  "cost": 0,
+  "tokens": {
+    "input": 1000,
+    "output": 200,
+    "reasoning": 30,
+    "cache": { "read": 4000, "write": 500 }
+  }
+}

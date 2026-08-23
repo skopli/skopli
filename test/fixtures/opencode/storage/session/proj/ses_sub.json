@@ -1,0 +1,8 @@
+{
+  "id": "ses_sub",
+  "projectID": "proj",
+  "parentID": "ses_main",
+  "directory": "C:\\Users\\Dev\\Repos\\Skopli\\",
+  "title": "Main session",
+  "time": { "created": 1769900050000, "updated": 1769900090000 }
+}

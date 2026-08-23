@@ -1,0 +1,9 @@
+// Module map exposing the skopli C ABI to Swift. The header is referenced
+// in place from the capi crate's committed include/ dir (NOT copied), so the
+// Swift build always sees the current generated header - the header IS the
+// binding. Path is relative to this module map:
+//   sdks/swift/Sources/CSkopli/  ->  crates/skopli-capi/include/
+module CSkopli {
+    header "../../../../crates/skopli-capi/include/skopli.h"
+    export *
+}

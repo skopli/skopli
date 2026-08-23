@@ -1,0 +1,78 @@
+[
+  {
+    "name": "utc-near-midnight",
+    "tz": "UTC",
+    "timestamps": [
+      "2026-08-01T23:30:00.000Z",
+      "2026-08-02T00:30:00.000Z"
+    ],
+    "expected": [
+      { "key": "2026-08-01", "events": 1 },
+      { "key": "2026-08-02", "events": 1 }
+    ]
+  },
+  {
+    "name": "tokyo-rolls-forward",
+    "tz": "Asia/Tokyo",
+    "timestamps": [
+      "2026-08-01T23:30:00.000Z",
+      "2026-08-02T00:30:00.000Z"
+    ],
+    "expected": [
+      { "key": "2026-08-02", "events": 2 }
+    ]
+  },
+  {
+    "name": "los-angeles-rolls-back",
+    "tz": "America/Los_Angeles",
+    "timestamps": [
+      "2026-08-01T23:30:00.000Z",
+      "2026-08-02T05:00:00.000Z"
+    ],
+    "expected": [
+      { "key": "2026-08-01", "events": 2 }
+    ]
+  },
+  {
+    "name": "kolkata-half-hour-offset",
+    "tz": "Asia/Kolkata",
+    "timestamps": [
+      "2026-01-01T18:45:00.000Z"
+    ],
+    "expected": [
+      { "key": "2026-01-02", "events": 1 }
+    ]
+  },
+  {
+    "name": "new-york-dst-spring-forward",
+    "tz": "America/New_York",
+    "timestamps": [
+      "2026-03-08T06:30:00.000Z",
+      "2026-03-08T07:30:00.000Z"
+    ],
+    "expected": [
+      { "key": "2026-03-08", "events": 2 }
+    ]
+  },
+  {
+    "name": "new-york-dst-fall-back",
+    "tz": "America/New_York",
+    "timestamps": [
+      "2026-11-01T05:30:00.000Z",
+      "2026-11-01T06:30:00.000Z"
+    ],
+    "expected": [
+      { "key": "2026-11-01", "events": 2 }
+    ]
+  },
+  {
+    "name": "unknown-zone-falls-back-to-utc",
+    "tz": "Not/AZone",
+    "timestamps": [
+      "2026-08-01T23:30:00.000Z"
+    ],
+    "expected": [
+      { "key": "2026-08-01", "events": 1 }
+    ]
+  }
+]

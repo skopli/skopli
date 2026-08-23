@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "harness": "fx",
+  "case": "basic",
+  "home": ".",
+  "options": {
+    "harnesses": [
+      "fx"
+    ],
+    "tz": "UTC"
+  },
+  "rollups": [
+    "model",
+    "day",
+    "harness"
+  ]
+}

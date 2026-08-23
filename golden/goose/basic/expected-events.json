@@ -1,0 +1,49 @@
+{
+  "schema_version": 1,
+  "events": [
+    {
+      "harness": "goose",
+      "timestamp": "2026-08-01T00:00:00.000Z",
+      "sessionId": "sess-1",
+      "messageId": "sess-1",
+      "turn": false,
+      "subagent": false,
+      "model": "databricks/goose-o1",
+      "tokens": {
+        "input": 90,
+        "output": 20,
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "reasoning": 10
+      }
+    },
+    {
+      "harness": "goose",
+      "timestamp": "2026-08-01T12:00:00.000Z",
+      "sessionId": "sess-2",
+      "messageId": "sess-2",
+      "turn": false,
+      "subagent": false,
+      "model": "goose-lite",
+      "tokens": {
+        "input": 10,
+        "output": 5,
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "reasoning": 0
+      }
+    }
+  ],
+  "diagnostics": [
+    {
+      "severity": "warning",
+      "message": "skipping malformed goose session data/sessions/sessions.db:sess-3",
+      "harness": "goose"
+    }
+  ],
+  "skipped": {
+    "goose": [
+      "data/sessions/sessions.db:sess-3"
+    ]
+  }
+}

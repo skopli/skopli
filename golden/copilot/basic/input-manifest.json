@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "harness": "copilot",
+  "case": "basic",
+  "env": {
+    "COPILOT_OTEL_FILE_EXPORTER_PATH": "."
+  },
+  "options": {
+    "harnesses": [
+      "copilot"
+    ],
+    "tz": "UTC"
+  },
+  "rollups": [
+    "model",
+    "day",
+    "harness"
+  ]
+}

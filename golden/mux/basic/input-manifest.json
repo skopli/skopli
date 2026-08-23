@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "harness": "mux",
+  "case": "basic",
+  "env": {
+    "MUX_SESSIONS_DIR": "."
+  },
+  "options": {
+    "harnesses": [
+      "mux"
+    ],
+    "tz": "UTC"
+  },
+  "rollups": [
+    "model",
+    "day",
+    "harness"
+  ]
+}

@@ -1,0 +1,173 @@
+{
+  "schema_version": 1,
+  "events": [
+    {
+      "harness": "codex",
+      "timestamp": "2026-08-01T09:00:10.000Z",
+      "sessionId": "rollout-2026-08-01T09-00-00-abc",
+      "messageId": "sessions/2026/08/01/rollout-2026-08-01T09-00-00-abc.jsonl:2",
+      "turn": true,
+      "subagent": false,
+      "model": "gpt-5.1-codex",
+      "tokens": {
+        "input": 600,
+        "output": 80,
+        "cacheRead": 400,
+        "cacheWrite": 0,
+        "reasoning": 20
+      }
+    },
+    {
+      "harness": "codex",
+      "timestamp": "2026-08-01T09:00:20.000Z",
+      "sessionId": "rollout-2026-08-01T09-00-00-abc",
+      "messageId": "sessions/2026/08/01/rollout-2026-08-01T09-00-00-abc.jsonl:3",
+      "turn": false,
+      "subagent": false,
+      "model": "gpt-5.1-codex",
+      "tokens": {
+        "input": 200,
+        "output": 120,
+        "cacheRead": 300,
+        "cacheWrite": 0,
+        "reasoning": 30
+      }
+    },
+    {
+      "harness": "codex",
+      "timestamp": "2026-08-01T09:01:10.000Z",
+      "sessionId": "rollout-2026-08-01T09-00-00-abc",
+      "messageId": "sessions/2026/08/01/rollout-2026-08-01T09-00-00-abc.jsonl:5",
+      "turn": true,
+      "subagent": false,
+      "model": "gpt-5.1-codex",
+      "tokens": {
+        "input": 150,
+        "output": 35,
+        "cacheRead": 50,
+        "cacheWrite": 0,
+        "reasoning": 5
+      }
+    },
+    {
+      "harness": "codex",
+      "timestamp": "2026-08-01T09:05:10.000Z",
+      "sessionId": "codex-sess-2",
+      "messageId": "sessions/2026/08/01/rollout-2026-08-01T09-05-00-replay.jsonl:5",
+      "turn": true,
+      "subagent": false,
+      "model": "gpt-5.1-codex",
+      "tokens": {
+        "input": 200,
+        "output": 60,
+        "cacheRead": 100,
+        "cacheWrite": 0,
+        "reasoning": 20
+      }
+    },
+    {
+      "harness": "codex",
+      "timestamp": "2026-08-01T10:00:05.000Z",
+      "sessionId": "codex-sess-3",
+      "messageId": "sessions/2026/08/01/rollout-2026-08-01T10-30-00-valid.jsonl:3",
+      "turn": true,
+      "subagent": false,
+      "model": "gpt-5.1-codex",
+      "tokens": {
+        "input": 50,
+        "output": 10,
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "reasoning": 0
+      }
+    },
+    {
+      "harness": "codex",
+      "timestamp": "2026-08-01T14:00:10.000Z",
+      "sessionId": "codex-sess-cachewrite",
+      "messageId": "sessions/2026/08/01/rollout-2026-08-01T14-00-00-cachewrite.jsonl:3",
+      "turn": true,
+      "subagent": false,
+      "model": "gpt-5.1-codex",
+      "tokens": {
+        "input": 500,
+        "output": 80,
+        "cacheRead": 200,
+        "cacheWrite": 300,
+        "reasoning": 20
+      }
+    },
+    {
+      "harness": "codex",
+      "timestamp": "2026-08-01T14:00:20.000Z",
+      "sessionId": "codex-sess-cachewrite",
+      "messageId": "sessions/2026/08/01/rollout-2026-08-01T14-00-00-cachewrite.jsonl:4",
+      "turn": false,
+      "subagent": false,
+      "model": "gpt-5.1-codex",
+      "tokens": {
+        "input": 200,
+        "output": 120,
+        "cacheRead": 300,
+        "cacheWrite": 200,
+        "reasoning": 30
+      }
+    },
+    {
+      "harness": "codex",
+      "timestamp": "2026-08-02T11:00:10.000Z",
+      "sessionId": "codex-sess-multi",
+      "messageId": "sessions/2026/08/02/rollout-2026-08-02T11-00-00-multimodel.jsonl:3",
+      "turn": true,
+      "subagent": false,
+      "model": "gpt-5.1-codex",
+      "tokens": {
+        "input": 100,
+        "output": 30,
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "reasoning": 0
+      }
+    },
+    {
+      "harness": "codex",
+      "timestamp": "2026-08-02T11:01:10.000Z",
+      "sessionId": "codex-sess-multi",
+      "messageId": "sessions/2026/08/02/rollout-2026-08-02T11-00-00-multimodel.jsonl:6",
+      "turn": true,
+      "subagent": false,
+      "model": "gpt-5.1-codex-mini",
+      "tokens": {
+        "input": 200,
+        "output": 50,
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "reasoning": 0
+      }
+    }
+  ],
+  "diagnostics": [
+    {
+      "severity": "warning",
+      "message": "codex session without turn_context model: sessions/2026/08/01/rollout-2026-08-01T10-00-00-nomodel.jsonl",
+      "harness": "codex"
+    },
+    {
+      "severity": "warning",
+      "message": "codex session without turn_context model: sessions/2026/08/01/rollout-2026-08-01T12-00-00-nomodel-replayed.jsonl",
+      "harness": "codex"
+    },
+    {
+      "severity": "warning",
+      "message": "codex session without turn_context model: sessions/2026/08/01/rollout-2026-08-01T13-00-00-nomodel-notokens.jsonl",
+      "harness": "codex"
+    }
+  ],
+  "skipped": {
+    "codex": [
+      "sessions/2026/08/01/rollout-2026-08-01T10-00-00-nomodel.jsonl",
+      "sessions/2026/08/01/rollout-2026-08-01T12-00-00-nomodel-replayed.jsonl",
+      "sessions/2026/08/01/rollout-2026-08-01T13-00-00-nomodel-notokens.jsonl"
+    ]
+  }
+}

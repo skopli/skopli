@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "harness": "codebuddy",
+  "case": "basic",
+  "env": {
+    "CODEBUDDY_CONFIG_DIR": "."
+  },
+  "options": {
+    "harnesses": [
+      "codebuddy"
+    ],
+    "tz": "UTC"
+  },
+  "rollups": [
+    "model",
+    "day",
+    "harness"
+  ]
+}

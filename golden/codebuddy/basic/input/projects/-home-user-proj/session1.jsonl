@@ -1,0 +1,5 @@
+{"type":"user","sessionId":"cb-sess-1","uuid":"u1","timestamp":"2026-08-01T10:00:00.000Z","message":{"role":"user","content":"hello"}}
+{"type":"assistant","sessionId":"cb-sess-1","uuid":"a1","requestId":"req_1","timestamp":"2026-08-01T10:00:05.000Z","cwd":"/home/user/proj","message":{"id":"cb_a1","model":"codebuddy-sonnet","usage":{"input_tokens":120,"output_tokens":60,"cache_creation_input_tokens":250,"cache_read_input_tokens":340}}}
+{"type":"user","sessionId":"cb-sess-1","uuid":"u2","timestamp":"2026-08-01T10:01:00.000Z","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"t1","content":"ok"}]}}
+{"type":"assistant","sessionId":"cb-sess-1","uuid":"a2","requestId":"req_2","timestamp":"2026-08-01T10:01:05.000Z","message":{"id":"cb_a2","model":"codebuddy-sonnet","usage":{"input_tokens":15,"output_tokens":25,"cache_creation_input_tokens":0,"cache_read_input_tokens":500}}}
+{"type":"assistant","sessionId":"cb-sess-1","uuid":"a3","requestId":"req_3","timestamp":"2026-08-01T10:02:05.000Z","message":{"id":"cb_a3","model":"codebuddy-haiku","usage":{"input_tokens":8,"output_tokens":9}}}

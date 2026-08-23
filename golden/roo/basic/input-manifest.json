@@ -1,0 +1,18 @@
+{
+  "schema_version": 1,
+  "harness": "roo",
+  "case": "basic",
+  "env": {},
+  "home": ".",
+  "options": {
+    "harnesses": [
+      "roo"
+    ],
+    "tz": "UTC"
+  },
+  "rollups": [
+    "model",
+    "day",
+    "harness"
+  ]
+}

@@ -1,0 +1,24 @@
+[package]
+name = "skopli"
+version = "0.0.0"
+edition.workspace = true
+rust-version.workspace = true
+homepage.workspace = true
+documentation.workspace = true
+repository.workspace = true
+publish = false
+
+[lib]
+# rb-sys native extension: a cdylib loaded by Ruby via `require "skopli/skopli"`.
+name = "skopli"
+crate-type = ["cdylib"]
+
+[dependencies]
+skopli-core = { path = "../skopli-core" }
+skopli-wire = { path = "../skopli-wire" }
+serde = { workspace = true }
+serde_json = { workspace = true }
+# magnus 0.8 (modern API, Ruby 3.0+); rb-sys for the raw
+# `rb_thread_call_without_gvl` used to release the GVL around core work.
+magnus = { version = "0.8", features = ["rb-sys"] }
+rb-sys = "0.9"

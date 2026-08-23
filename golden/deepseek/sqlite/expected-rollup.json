@@ -1,0 +1,63 @@
+{
+  "by": {
+    "day": [
+      {
+        "calls": 4,
+        "events": 4,
+        "key": "2025-08-01",
+        "tokens": {
+          "cacheRead": 30,
+          "cacheWrite": 20,
+          "input": 351,
+          "output": 167,
+          "reasoning": 37
+        },
+        "turns": 4
+      }
+    ],
+    "harness": [
+      {
+        "calls": 4,
+        "events": 4,
+        "key": "deepseek",
+        "tokens": {
+          "cacheRead": 30,
+          "cacheWrite": 20,
+          "input": 351,
+          "output": 167,
+          "reasoning": 37
+        },
+        "turns": 4
+      }
+    ],
+    "model": [
+      {
+        "calls": 2,
+        "events": 2,
+        "key": "deepseek-chat",
+        "tokens": {
+          "cacheRead": 30,
+          "cacheWrite": 20,
+          "input": 111,
+          "output": 72,
+          "reasoning": 7
+        },
+        "turns": 2
+      },
+      {
+        "calls": 2,
+        "events": 2,
+        "key": "deepseek-reasoner",
+        "tokens": {
+          "cacheRead": 0,
+          "cacheWrite": 0,
+          "input": 240,
+          "output": 95,
+          "reasoning": 30
+        },
+        "turns": 2
+      }
+    ]
+  },
+  "schema_version": 1
+}

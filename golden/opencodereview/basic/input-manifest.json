@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "harness": "opencodereview",
+  "case": "basic",
+  "home": ".",
+  "options": {
+    "harnesses": [
+      "opencodereview"
+    ],
+    "tz": "UTC"
+  },
+  "rollups": [
+    "model",
+    "day",
+    "harness"
+  ]
+}

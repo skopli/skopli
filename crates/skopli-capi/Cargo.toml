@@ -1,0 +1,29 @@
+[package]
+name = "skopli-capi"
+version = "0.0.0"
+edition.workspace = true
+rust-version.workspace = true
+homepage.workspace = true
+documentation.workspace = true
+repository.workspace = true
+publish = false
+
+[lib]
+name = "skopli"
+crate-type = ["cdylib", "staticlib", "rlib"]
+
+[features]
+net = ["skopli-core/net"]
+
+[dependencies]
+skopli-core = { path = "../skopli-core" }
+skopli-wire = { path = "../skopli-wire" }
+serde = { workspace = true }
+serde_json = { workspace = true }
+
+[build-dependencies]
+cbindgen = { workspace = true }
+csbindgen = { workspace = true }
+
+[dev-dependencies]
+jiff = { workspace = true }

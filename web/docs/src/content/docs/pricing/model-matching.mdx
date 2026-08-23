@@ -1,0 +1,33 @@
+---
+title: Model matching
+description: How Skopli resolves a model name to a catalog price through a tier ladder of matching rules.
+---
+
+Prices are USD per million tokens. Skopli resolves a model name to a catalog price through a ladder of matching rules.
+
+## The tier ladder
+
+Model names match in tiers:
+
+1. **Exact key.**
+2. **Provider-prefix strip.** `openai/gpt-5` → `gpt-5`.
+3. **Family aliases.** Some platforms carry a model line under their own route prefix. For example, Amazon Bedrock's cross-region `us.anthropic.claude-opus-4-6-20260115-v1:0` strips its `us.` route prefix and rebrands to `claude-opus-4.6`, so those names price as the underlying Claude model.
+4. **Separator and date-stamp normalization.** `claude-sonnet-4.5` ~ `claude-sonnet-4-5` ~ `claude-sonnet-4-5-20250929`.
+5. **Provider-prefixed family forms** so provider-keyed catalogs match. `claude-opus-4.6` → `anthropic/claude-opus-4.6`, how OpenRouter keys Claude.
+6. **Alias table**, hand-maintained, for names the mechanical tiers miss.
+
+An unmatched model returns `{ priced: false, attempted: [...] }` and never a guess.
+
+## Zero-cost entries
+
+Catalog entries whose every rate is 0 are placeholders, not prices. The match skips them and falls through to the next source. When only zero-cost entries match, the lookup returns:
+
+```ts
+{ priced: false, reason: "zeroCost", key: "..." }
+```
+
+Overrides are exempt. An explicit `$0` override is intentional and stays `priced: true`.
+
+## Source priority
+
+The default priority is **overrides > OpenRouter > LiteLLM > models.dev**, with one exception. After overrides, any tier-bearing match outranks a flat (tier-less) match from a higher-priority source, so long-context tiers are not lost to a flat source above them. In practice, the tiered LiteLLM catalog beats flat OpenRouter. Explicit overrides always win. See [Long-context tiers](/skopli/pricing/long-context-tiers/).

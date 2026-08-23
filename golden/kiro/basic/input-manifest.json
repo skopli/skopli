@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "harness": "kiro",
+  "case": "basic",
+  "home": ".",
+  "options": {
+    "harnesses": [
+      "kiro"
+    ],
+    "tz": "UTC"
+  },
+  "rollups": [
+    "model",
+    "day",
+    "harness"
+  ]
+}

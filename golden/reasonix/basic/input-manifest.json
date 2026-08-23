@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "harness": "reasonix",
+  "case": "basic",
+  "env": {
+    "REASONIX_HOME": "."
+  },
+  "options": {
+    "harnesses": [
+      "reasonix"
+    ],
+    "tz": "UTC"
+  },
+  "rollups": [
+    "model",
+    "day",
+    "harness"
+  ]
+}

@@ -1,0 +1,10 @@
+{"type":"user","sessionId":"sess-1","uuid":"u1","timestamp":"2026-08-01T10:00:00.000Z","message":{"role":"user","content":"hello"}}
+{"type":"assistant","sessionId":"sess-1","uuid":"a1","requestId":"req_1","timestamp":"2026-08-01T10:00:05.000Z","message":{"id":"msg_a1","model":"claude-sonnet-4-5-20250929","usage":{"input_tokens":100,"output_tokens":50,"cache_creation_input_tokens":200,"cache_read_input_tokens":300}}}
+{"type":"assistant","sessionId":"sess-1","uuid":"a1-dup","requestId":"req_1","timestamp":"2026-08-01T10:00:06.000Z","message":{"id":"msg_a1","model":"claude-sonnet-4-5-20250929","usage":{"input_tokens":100,"output_tokens":50,"cache_creation_input_tokens":200,"cache_read_input_tokens":300}}}
+{"type":"user","sessionId":"sess-1","uuid":"u2","timestamp":"2026-08-01T10:01:00.000Z","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"t1","content":"ok"}]}}
+{"type":"assistant","sessionId":"sess-1","uuid":"a2","requestId":"req_2","timestamp":"2026-08-01T10:01:05.000Z","costUSD":0.0123,"message":{"id":"msg_a2","model":"claude-sonnet-4-5-20250929","usage":{"input_tokens":10,"output_tokens":20,"cache_creation_input_tokens":0,"cache_read_input_tokens":600}}}
+not valid json at all
+{"type":"user","sessionId":"sess-1","uuid":"u3","timestamp":"2026-08-01T10:02:00.000Z","message":{"role":"user","content":"next question"}}
+{"type":"assistant","sessionId":"sess-1","uuid":"a3","requestId":"req_3","timestamp":"2026-08-01T10:02:05.000Z","message":{"id":"msg_a3","model":"claude-haiku-4-5-20251001","usage":{"input_tokens":5,"output_tokens":7,"cache_creation_input_tokens":0,"cache_read_input_tokens":0}}}
+{"type":"assistant","sessionId":"sess-1","uuid":"a4","requestId":"req_4","timestamp":"2026-08-01T10:03:05.000Z","message":{"id":"msg_a4","model":"claude-haiku-4-5-20251001","usage":{"input_tokens":5,"output_tokens":"bad","cache_creation_input_tokens":0,"cache_read_input_tokens":0}}}
+{"type":"assistant","sessionId":"sess-1","uuid":"a5","requestId":"req_5","timestamp":"2026-08-01T10:04:05.000Z","message":{"id":"msg_a5","model":"claude-haiku-4-5-20251001","usage":{"input_tokens":8,"output_tokens":9}}}

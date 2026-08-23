@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "harness": "codex",
+  "case": "archived",
+  "env": {
+    "CODEX_HOME": "."
+  },
+  "options": {
+    "harnesses": [
+      "codex"
+    ],
+    "tz": "UTC"
+  },
+  "rollups": [
+    "model",
+    "day",
+    "harness"
+  ]
+}

@@ -1,0 +1,210 @@
+---
+title: Reading usage
+description: The Read layer parses local session state into normalized usage events, entirely offline.
+---
+
+import { Tabs, TabItem } from "@astrojs/starlight/components";
+
+The Read layer parses local session state into normalized usage events. It never touches the network.
+
+<Tabs syncKey="lang">
+  <TabItem label="TypeScript">
+    ```ts frame="code"
+    const { events, diagnostics, skipped } = await readUsage({
+      harnesses: ["claude"], // default: all detected
+      since: "2026-08-01", // inclusive lower bound
+      until: "2026-09-01", // exclusive upper bound
+      tz: "America/Los_Angeles", // timezone for date-only bounds; default: system timezone
+      subagents: "include", // "include" (default) | "exclude"
+      home: "/custom/home", // optional PathResolver injection
+      env: { CLAUDE_CONFIG_DIR: "/synced/claude" },
+    });
+    ```
+
+  </TabItem>
+  <TabItem label="Python">
+    ```python frame="code"
+    result = skopli.read_usage(
+        harnesses=["claude"],            # default: all detected
+        since="2026-08-01",              # inclusive lower bound
+        until="2026-09-01",              # exclusive upper bound
+        tz="America/Los_Angeles",        # timezone for date-only bounds; default: system timezone
+        subagents="include",             # "include" (default) | "exclude"
+        home="/custom/home",             # optional PathResolver injection
+        env={"CLAUDE_CONFIG_DIR": "/synced/claude"},
+    )
+    events, diagnostics, skipped = result.events, result.diagnostics, result.skipped
+    ```
+
+  </TabItem>
+  <TabItem label="Rust">
+    `skopli-core` has no `read_usage` facade. It exposes the reader one level lower: drive a harness `Reader` with a `ReaderContext` (home directory plus env overrides) and read a `ReaderResult`. The host-language facades add detection, `since`/`until`/`tz`/`subagents` filtering, and the canonical event sort on top.
+
+    ```rust frame="code"
+    use skopli_core::readers::{registered_reader, ReaderContext};
+
+    let ctx = ReaderContext::new("/home/you")
+        .with_env("CLAUDE_CONFIG_DIR", "/synced/claude");
+
+    if let Some(reader) = registered_reader("claude") {
+        let result = reader.read(&ctx); // ReaderResult { events, skipped, warnings }
+        let (events, skipped, warnings) = (result.events, result.skipped, result.warnings);
+        let _ = (events, skipped, warnings);
+    }
+    ```
+
+  </TabItem>
+  <TabItem label="Ruby">
+    ```ruby frame="code"
+    result = Skopli.read_usage(
+      harnesses: ["claude"],           # default: all detected
+      since: "2026-08-01",             # inclusive lower bound
+      until_: "2026-09-01",            # exclusive upper bound
+      tz: "America/Los_Angeles",       # timezone for date-only bounds; default: system timezone
+      subagents: "include",            # "include" (default) | "exclude"
+      home: "/custom/home",            # optional PathResolver injection
+      env: { "CLAUDE_CONFIG_DIR" => "/synced/claude" }
+    )
+    events, diagnostics, skipped = result.events, result.diagnostics, result.skipped
+    ```
+
+  </TabItem>
+  <TabItem label="Java">
+    ```java frame="code"
+    ReadUsageResult result = Skopli.readUsage(ReadUsageOptions.builder()
+        .harness(Harness.CLAUDE)                 // default: all detected
+        .since("2026-08-01")                     // inclusive lower bound
+        .until("2026-09-01")                     // exclusive upper bound
+        .tz("America/Los_Angeles")               // timezone for date-only bounds
+        .excludeSubagents(false)                 // false (default) includes subagents
+        .home("/custom/home")                    // optional PathResolver injection
+        .env("CLAUDE_CONFIG_DIR", "/synced/claude")
+        .build());
+    List<UsageEvent> events = result.events();
+    List<Diagnostic> diagnostics = result.diagnostics();
+    ```
+
+  </TabItem>
+  <TabItem label="C#">
+    ```csharp frame="code"
+    ReadUsageResult result = SkopliClient.ReadUsage(new ReadUsageOptions {
+        Harnesses = new[] { "claude" },          // default: all detected
+        Since = "2026-08-01",                    // inclusive lower bound
+        Until = "2026-09-01",                    // exclusive upper bound
+        Tz = "America/Los_Angeles",              // timezone for date-only bounds
+        Subagents = SubagentMode.Include,        // Include (default) | Exclude
+        Home = "/custom/home",                   // optional PathResolver injection
+        Env = new Dictionary<string, string> { ["CLAUDE_CONFIG_DIR"] = "/synced/claude" },
+    });
+    IReadOnlyList<UsageEvent> events = result.Events;
+    ```
+
+  </TabItem>
+  <TabItem label="Go">
+    ```go frame="code"
+    result, _ := skopli.ReadUsage(skopli.ReadUsageOptions{
+        Harnesses: []skopli.Harness{skopli.HarnessClaude}, // default: all detected
+        Since:     "2026-08-01",                           // inclusive lower bound
+        Until:     "2026-09-01",                           // exclusive upper bound
+        TZ:        "America/Los_Angeles",                  // timezone for date-only bounds
+        Subagents: "include",                              // "include" (default) | "exclude"
+        Options: skopli.Options{
+            Home: "/custom/home", // optional PathResolver injection
+            Env:  map[string]string{"CLAUDE_CONFIG_DIR": "/synced/claude"},
+        },
+    })
+    events, diagnostics, skipped := result.Events, result.Diagnostics, result.Skipped
+    ```
+
+  </TabItem>
+  <TabItem label="Swift">
+    ```swift frame="code"
+    let result = try Skopli.readUsage(options: ReadUsageOptions(
+        home: "/custom/home",                    // optional PathResolver injection
+        env: ["CLAUDE_CONFIG_DIR": "/synced/claude"],
+        harnesses: [.claude],                    // default: all detected
+        since: "2026-08-01",                     // inclusive lower bound
+        until: "2026-09-01",                     // exclusive upper bound
+        tz: "America/Los_Angeles",               // timezone for date-only bounds
+        subagents: "include"))                   // "include" (default) | "exclude"
+    let (events, diagnostics, skipped) = (result.events, result.diagnostics, result.skipped)
+    ```
+
+  </TabItem>
+  <TabItem label="C/C++">
+    The C ABI exchanges JSON buffers. Pass the read options as a JSON object and free the returned buffer:
+
+    ```c frame="code"
+    #include <stdio.h>
+    #include <string.h>
+    #include "skopli.h"
+
+    const char *opts =
+        "{\"harnesses\":[\"claude\"],\"since\":\"2026-08-01\","
+        "\"until\":\"2026-09-01\",\"tz\":\"America/Los_Angeles\","
+        "\"subagents\":\"include\"}";
+    AgBuf out = {0};
+    AgStatus st = ag_read_usage(opts, strlen(opts), &out);
+    if (st == AG_STATUS_OK) {
+        fwrite(out.ptr, 1, out.len, stdout); // { events, diagnostics, skipped } as JSON
+        ag_buf_free(out);
+    }
+    ```
+
+  </TabItem>
+</Tabs>
+
+## Date and timezone semantics
+
+`tz` interprets date-only `since` and `until` strings (`YYYY-MM-DD`). It defaults to the system timezone. `since` means midnight at the start of that day. `until` means the exclusive end of that day.
+
+Full ISO timestamps apply exactly as given.
+
+This keeps filters and day rollups consistent west of UTC. With `tz: "America/Los_Angeles"`, `since: "2026-08-01"` excludes an event at `2026-08-01T00:30Z` (17:30 on Jul 31 in Los Angeles), and the day rollup buckets that event under Jul 31 local, so the two agree.
+
+The native core buckets rollup days in the same IANA timezone on every path (see [Rollups](/skopli/guide/rollups/)), so a `tz`-scoped filter and a `tz` day rollup agree at the UTC boundary in every SDK. An unknown zone name falls back to UTC.
+
+## Event fields
+
+Every event carries:
+
+- `harness`: the harness id.
+- `timestamp`: ISO timestamp.
+- `sessionId`, `messageId`.
+- `turn`: turn flag.
+- `subagent`: subagent flag (see [Subagents](#subagents)).
+- `model`: model name.
+- `tokens`: token counts. `input`, `output`, `cacheRead`, `cacheWrite`, optional `cacheWrite1h` (the 1h-TTL portion of the `cacheWrite` total when the source reports the split), and `reasoning`.
+- `calls`: optional count for sources that aggregate multiple model calls per record.
+- `costUsd`: optional harness-recorded cost when the source reports one. The Claude reader populates it from the jsonl `costUSD` field. The OpenCode reader populates it from a nonzero `cost`. Other readers leave it absent.
+- `workspace`: optional normalized project directory path. OpenCode records it from its session directory, Claude Code from each record's `cwd`. Readers without the concept leave it undefined. Workspace paths are normalized cross-platform (forward slashes, no trailing separator, case-folded on Windows) so one repository is one key.
+- `title`: optional session title. OpenCode records it from its session title. Readers without the concept leave it undefined.
+
+:::tip[Disjoint token buckets]
+`cacheWrite1h` is a portion of the `cacheWrite` total, not additive to it. Readers subtract reasoning-inclusive output at the source, so `output + reasoning` reconstructs the source's raw output count and nothing bills twice.
+:::
+
+## Subagents
+
+Subagent (child) sessions are real spend, so Skopli includes and tags them by default rather than dropping them. Pass `subagents: "exclude"` to drop them uniformly across every harness.
+
+`event.subagent` is `true` when the harness's native marker says the event came from a subagent:
+
+- **OpenCode**: the session has a non-null `parent_id` or `parentID` (SQLite and legacy JSON stores).
+- **claude**: the JSONL entry has `isSidechain === true`.
+- **pi** and **omp**: the session's `rlmDepth` is greater than 0.
+- **deepseek**: the session has a parent session, an `origin` of `subagent`, or a delegation depth above 0 (both the JSONL and SQLite backends).
+- **codex**: always `false` for now. codex exposes no reliable per-event subagent marker today.
+- every other harness: always `false`, since they have no subagent concept.
+
+## Diagnostics
+
+The SDK never writes to stdio. Problems (malformed lines, unreadable files, unusable timestamps) come back as structured `diagnostics`, and skipped source files per harness come back in `skipped`.
+
+Other reader behavior:
+
+- The reader drops zero-token rows regardless of vendor-reported cost.
+- Unusable timestamps warn and skip, never epoch-0.
+- `calls` aggregation uses the reported count only when finite, else 1 per event.
+- Cross-store dedup: the authoritative store suppresses its mirror per harness (OpenCode and zcode SQLite over jsonl, devin CLI SQLite over the Desktop `.ndjson` store, cline's extension store over its CLI session store, deepseek's default JSONL event log over its optional SQLite backend, keyed on `session_id` and `seq`).
+- Codex cache-write tokens come from `cache_write_input_tokens` (a 2026-07 protocol addition), a disjoint subset of `input_tokens` like cache reads. The reader subtracts them from input (`input = raw_input - cacheRead - cacheWrite`) and emits them as `tokens.cacheWrite`. Older session files that lack the field count as 0.

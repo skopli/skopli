@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "harness": "grok",
+  "case": "basic",
+  "env": {
+    "GROK_HOME": "."
+  },
+  "options": {
+    "harnesses": [
+      "grok"
+    ],
+    "tz": "UTC"
+  },
+  "rollups": [
+    "model",
+    "day",
+    "harness"
+  ]
+}

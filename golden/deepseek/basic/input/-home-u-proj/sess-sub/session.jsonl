@@ -1,0 +1,2 @@
+{"type":"session","version":1,"id":"sess-sub","createdAt":1754046000000,"cwd":"/home/u/proj","parentSession":"sess-main","origin":"subagent","delegationDepth":1}
+{"type":"assistant/message","seq":1,"time":1754046001000,"data":{"message":{"source":{"model":"deepseek-reasoner"}},"usage":{"inputTokens":200,"outputTokens":80,"reasoningTokens":30}}}

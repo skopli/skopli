@@ -1,0 +1,1 @@
+{"sessionId":"dup","cwd":"/home/u/proj","model":"deepseek-chat","title":"latest snapshot","createdAt":"2026-08-03T07:00:00Z","updatedAt":"2026-08-03T08:30:00Z","status":{"cumulative":{"promptTokens":500,"completionTokens":200,"reasoningTokens":40,"cacheHitTokens":100,"cacheMissTokens":400}}}

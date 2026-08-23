@@ -1,0 +1,39 @@
+{
+  "read": [
+    {
+      "name": "integral-ms",
+      "stamp": "2026-08-01T00:00:00.000Z",
+      "epochMs": 1785542400000
+    },
+    {
+      "name": "zero-ms-short-form",
+      "stamp": "2026-08-01T00:00:00Z",
+      "epochMs": 1785542400000
+    },
+    {
+      "name": "microseconds-truncated",
+      "stamp": "2026-08-01T00:00:00.123456Z",
+      "epochMs": 1785542400123
+    },
+    {
+      "name": "pre-epoch",
+      "stamp": "1969-12-31T23:59:59.000Z",
+      "epochMs": -1000
+    },
+    {
+      "name": "offset-equals-midnight-z",
+      "stamp": "2026-08-01T01:00:00.000+01:00",
+      "epochMs": 1785542400000
+    },
+    {
+      "name": "garbage",
+      "stamp": "not-a-timestamp",
+      "epochMs": null
+    }
+  ],
+  "write": [
+    1785542400000,
+    0,
+    1000000000000
+  ]
+}

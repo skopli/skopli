@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "harness": "junie",
+  "case": "basic",
+  "env": {
+    "JUNIE_SESSIONS_DIR": "."
+  },
+  "options": {
+    "harnesses": [
+      "junie"
+    ],
+    "tz": "UTC"
+  },
+  "rollups": [
+    "model",
+    "day",
+    "harness"
+  ]
+}

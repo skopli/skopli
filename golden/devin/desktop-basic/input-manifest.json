@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "harness": "devin",
+  "case": "desktop-basic",
+  "env": {
+    "DEVIN_DESKTOP_DIR": "."
+  },
+  "options": {
+    "harnesses": [
+      "devin"
+    ],
+    "tz": "UTC"
+  },
+  "rollups": [
+    "model",
+    "day",
+    "harness"
+  ]
+}

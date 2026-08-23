@@ -1,0 +1,56 @@
+{
+  "diagnostics": [],
+  "events": [
+    {
+      "harness": "codebuddy",
+      "messageId": "cb_a1",
+      "model": "codebuddy-sonnet",
+      "sessionId": "cb-sess-1",
+      "subagent": false,
+      "timestamp": "2026-08-01T10:00:05.000Z",
+      "tokens": {
+        "cacheRead": 340,
+        "cacheWrite": 250,
+        "input": 120,
+        "output": 60,
+        "reasoning": 0
+      },
+      "turn": true,
+      "workspace": "/home/user/proj"
+    },
+    {
+      "harness": "codebuddy",
+      "messageId": "cb_a2",
+      "model": "codebuddy-sonnet",
+      "sessionId": "cb-sess-1",
+      "subagent": false,
+      "timestamp": "2026-08-01T10:01:05.000Z",
+      "tokens": {
+        "cacheRead": 500,
+        "cacheWrite": 0,
+        "input": 15,
+        "output": 25,
+        "reasoning": 0
+      },
+      "turn": false
+    },
+    {
+      "harness": "codebuddy",
+      "messageId": "cb_a3",
+      "model": "codebuddy-haiku",
+      "sessionId": "cb-sess-1",
+      "subagent": false,
+      "timestamp": "2026-08-01T10:02:05.000Z",
+      "tokens": {
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "input": 8,
+        "output": 9,
+        "reasoning": 0
+      },
+      "turn": false
+    }
+  ],
+  "schema_version": 1,
+  "skipped": {}
+}

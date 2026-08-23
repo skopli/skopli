@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "harness": "jcode",
+  "case": "basic",
+  "env": {
+    "JCODE_HOME": "."
+  },
+  "options": {
+    "harnesses": [
+      "jcode"
+    ],
+    "tz": "UTC"
+  },
+  "rollups": [
+    "model",
+    "day",
+    "harness"
+  ]
+}

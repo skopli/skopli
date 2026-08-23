@@ -1,0 +1,33 @@
+{
+  "schema_version": 1,
+  "events": [
+    {
+      "harness": "codebuff",
+      "timestamp": "2026-08-01T10:00:00.000Z",
+      "sessionId": "manicode/proj/2026-08-01T10-00-00.000Z",
+      "messageId": "msg-1",
+      "turn": true,
+      "subagent": false,
+      "model": "claude-opus-4-6",
+      "tokens": {
+        "input": 12,
+        "output": 8,
+        "cacheRead": 3,
+        "cacheWrite": 0,
+        "reasoning": 0
+      }
+    }
+  ],
+  "diagnostics": [
+    {
+      "severity": "warning",
+      "message": "skipping unreadable file manicode/projects/proj/chats/2026-08-02T10-00-00.000Z/chat-messages.json",
+      "harness": "codebuff"
+    }
+  ],
+  "skipped": {
+    "codebuff": [
+      "manicode/projects/proj/chats/2026-08-02T10-00-00.000Z/chat-messages.json"
+    ]
+  }
+}

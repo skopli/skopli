@@ -1,0 +1,2 @@
+{"notification":{"sessionUpdate":"session_info_update","title":"Desktop session A"}}
+{"notification":{"sessionUpdate":"usage_update","timestamp":"2026-08-01T00:00:00.000Z","_meta":{"cognition.ai/inputTokens":200,"cognition.ai/outputTokens":40,"cognition.ai/cachedReadTokens":50,"cognition.ai/cachedWriteTokens":10,"cognition.ai/model":"claude-opus-4-6"}}}

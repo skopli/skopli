@@ -1,0 +1,75 @@
+{
+  "schema_version": 1,
+  "events": [
+    {
+      "harness": "hermes",
+      "timestamp": "2026-01-31T22:53:20.000Z",
+      "sessionId": "root-only",
+      "messageId": "root-only",
+      "turn": false,
+      "subagent": false,
+      "model": "nous/hermes-mini",
+      "tokens": {
+        "input": 8,
+        "output": 2,
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "reasoning": 0
+      },
+      "calls": 4
+    },
+    {
+      "harness": "hermes",
+      "timestamp": "2026-01-31T22:53:20.000Z",
+      "sessionId": "s1",
+      "messageId": "s1",
+      "turn": false,
+      "subagent": false,
+      "model": "nous/hermes-4",
+      "tokens": {
+        "input": 20,
+        "output": 8,
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "reasoning": 0
+      },
+      "calls": 9
+    },
+    {
+      "harness": "hermes",
+      "timestamp": "2026-01-31T22:53:20.000Z",
+      "sessionId": "s1",
+      "messageId": "s1",
+      "turn": false,
+      "subagent": false,
+      "model": "nous/hermes-tool",
+      "tokens": {
+        "input": 10,
+        "output": 4,
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "reasoning": 0
+      },
+      "calls": 0
+    },
+    {
+      "harness": "hermes",
+      "timestamp": "2026-01-31T22:53:20.000Z",
+      "sessionId": "s2",
+      "messageId": "s2",
+      "turn": false,
+      "subagent": false,
+      "model": "nous/hermes-mini",
+      "tokens": {
+        "input": 8,
+        "output": 2,
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "reasoning": 0
+      },
+      "calls": 4
+    }
+  ],
+  "diagnostics": [],
+  "skipped": {}
+}

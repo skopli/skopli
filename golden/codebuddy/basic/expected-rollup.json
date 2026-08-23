@@ -1,0 +1,63 @@
+{
+  "by": {
+    "day": [
+      {
+        "calls": 3,
+        "events": 3,
+        "key": "2026-08-01",
+        "tokens": {
+          "cacheRead": 840,
+          "cacheWrite": 250,
+          "input": 143,
+          "output": 94,
+          "reasoning": 0
+        },
+        "turns": 1
+      }
+    ],
+    "harness": [
+      {
+        "calls": 3,
+        "events": 3,
+        "key": "codebuddy",
+        "tokens": {
+          "cacheRead": 840,
+          "cacheWrite": 250,
+          "input": 143,
+          "output": 94,
+          "reasoning": 0
+        },
+        "turns": 1
+      }
+    ],
+    "model": [
+      {
+        "calls": 1,
+        "events": 1,
+        "key": "codebuddy-haiku",
+        "tokens": {
+          "cacheRead": 0,
+          "cacheWrite": 0,
+          "input": 8,
+          "output": 9,
+          "reasoning": 0
+        },
+        "turns": 0
+      },
+      {
+        "calls": 2,
+        "events": 2,
+        "key": "codebuddy-sonnet",
+        "tokens": {
+          "cacheRead": 840,
+          "cacheWrite": 250,
+          "input": 135,
+          "output": 85,
+          "reasoning": 0
+        },
+        "turns": 1
+      }
+    ]
+  },
+  "schema_version": 1
+}

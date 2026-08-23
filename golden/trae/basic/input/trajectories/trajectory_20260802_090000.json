@@ -1,0 +1,25 @@
+{
+  "task": "add tests",
+  "start_time": "2026-08-02T09:00:00",
+  "provider": "openai",
+  "model": "trae-haiku",
+  "llm_interactions": [
+    {
+      "timestamp": "2026-08-02T09:00:05",
+      "provider": "openai",
+      "model": "trae-haiku",
+      "response": {
+        "model": "trae-haiku",
+        "usage": {
+          "input_tokens": 1000,
+          "output_tokens": 500,
+          "cache_creation_input_tokens": 900,
+          "cache_read_input_tokens": 400,
+          "reasoning_tokens": 0
+        }
+      }
+    }
+  ],
+  "agent_steps": [],
+  "success": true
+}

@@ -1,0 +1,39 @@
+{
+  "diagnostics": [],
+  "events": [
+    {
+      "harness": "cherrystudio",
+      "messageId": "msg-agg1",
+      "model": "openai/gpt-4o",
+      "sessionId": "agg1",
+      "subagent": false,
+      "timestamp": "2025-06-15T15:06:40.000Z",
+      "tokens": {
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "input": 1000,
+        "output": 500,
+        "reasoning": 0
+      },
+      "turn": false
+    },
+    {
+      "harness": "cherrystudio",
+      "messageId": "msg-inv1",
+      "model": "anthropic/claude-sonnet-4-5",
+      "sessionId": "inv1",
+      "subagent": false,
+      "timestamp": "2025-08-01T10:00:00.000Z",
+      "tokens": {
+        "cacheRead": 20,
+        "cacheWrite": 8,
+        "input": 100,
+        "output": 40,
+        "reasoning": 10
+      },
+      "turn": false
+    }
+  ],
+  "schema_version": 1,
+  "skipped": {}
+}

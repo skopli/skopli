@@ -1,0 +1,2 @@
+{"type":"session","id":"subagent","parentSession":"session","rlmDepth":1}
+{"type":"message","id":"subagent-message","timestamp":"2026-08-01T10:01:00.000Z","message":{"role":"assistant","model":"gpt-5","usage":{"input":10,"output":2,"cacheRead":0,"cacheWrite":0}}}

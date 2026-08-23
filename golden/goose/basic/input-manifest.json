@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "harness": "goose",
+  "case": "basic",
+  "env": {
+    "GOOSE_PATH_ROOT": "."
+  },
+  "options": {
+    "harnesses": [
+      "goose"
+    ],
+    "tz": "UTC"
+  },
+  "rollups": [
+    "model",
+    "day",
+    "harness"
+  ]
+}

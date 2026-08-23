@@ -1,0 +1,33 @@
+{
+  "schema_version": 1,
+  "events": [
+    {
+      "harness": "omp",
+      "timestamp": "2026-08-01T10:00:00.000Z",
+      "sessionId": "session",
+      "messageId": "message",
+      "turn": true,
+      "subagent": false,
+      "model": "gpt-5",
+      "tokens": {
+        "input": 10,
+        "output": 2,
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "reasoning": 0
+      }
+    }
+  ],
+  "diagnostics": [
+    {
+      "severity": "warning",
+      "message": "skipping malformed omp usage .omp/agent/sessions/session.jsonl:4",
+      "harness": "omp"
+    }
+  ],
+  "skipped": {
+    "omp": [
+      ".omp/agent/sessions/session.jsonl:4"
+    ]
+  }
+}

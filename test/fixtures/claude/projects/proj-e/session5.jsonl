@@ -1,0 +1,2 @@
+{"type":"user","sessionId":"sess-5","uuid":"eu1","timestamp":"2026-08-04T09:00:00.000Z","message":{"role":"user","content":"spawn"}}
+{"type":"assistant","sessionId":"sess-5","isSidechain":true,"uuid":"ea1","requestId":"req_e1","timestamp":"2026-08-04T09:00:05.000Z","message":{"id":"msg_e1","model":"claude-sonnet-4-5-20250929","usage":{"input_tokens":11,"output_tokens":22,"cache_creation_input_tokens":0,"cache_read_input_tokens":0}}}

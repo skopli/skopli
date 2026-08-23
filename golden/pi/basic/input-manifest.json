@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "harness": "pi",
+  "case": "basic",
+  "env": {
+    "PI_AGENT_DIR": "."
+  },
+  "options": {
+    "harnesses": [
+      "pi"
+    ],
+    "tz": "UTC"
+  },
+  "rollups": [
+    "model",
+    "day",
+    "harness"
+  ]
+}

@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "harness": "droid",
+  "case": "basic",
+  "env": {
+    "DROID_SESSIONS_DIR": "."
+  },
+  "options": {
+    "harnesses": [
+      "droid"
+    ],
+    "tz": "UTC"
+  },
+  "rollups": [
+    "model",
+    "day",
+    "harness"
+  ]
+}

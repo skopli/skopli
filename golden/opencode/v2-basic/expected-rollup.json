@@ -1,0 +1,50 @@
+{
+  "schema_version": 1,
+  "by": {
+    "model": [
+      {
+        "key": "openai/gpt-5",
+        "tokens": {
+          "input": 109,
+          "output": 101,
+          "cacheRead": 3,
+          "cacheWrite": 4,
+          "reasoning": 0
+        },
+        "events": 2,
+        "turns": 1,
+        "calls": 2
+      }
+    ],
+    "day": [
+      {
+        "key": "2026-01-31",
+        "tokens": {
+          "input": 109,
+          "output": 101,
+          "cacheRead": 3,
+          "cacheWrite": 4,
+          "reasoning": 0
+        },
+        "events": 2,
+        "turns": 1,
+        "calls": 2
+      }
+    ],
+    "harness": [
+      {
+        "key": "opencode",
+        "tokens": {
+          "input": 109,
+          "output": 101,
+          "cacheRead": 3,
+          "cacheWrite": 4,
+          "reasoning": 0
+        },
+        "events": 2,
+        "turns": 1,
+        "calls": 2
+      }
+    ]
+  }
+}

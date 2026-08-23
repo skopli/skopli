@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "harness": "gemini",
+  "case": "basic",
+  "env": {
+    "GEMINI_DATA_DIR": "."
+  },
+  "options": {
+    "harnesses": [
+      "gemini"
+    ],
+    "tz": "UTC"
+  },
+  "rollups": [
+    "model",
+    "day",
+    "harness"
+  ]
+}

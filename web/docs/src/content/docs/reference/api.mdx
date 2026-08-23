@@ -1,0 +1,796 @@
+---
+title: API reference
+description: The Skopli API in every language. Read, Rollup, and Price layers, model matching, and semantics, with the same pricing operations across every facade.
+---
+
+import { Tabs, TabItem } from "@astrojs/starlight/components";
+
+Skopli reads AI coding-agent usage (tokens, sessions, turns, calls) from local harness state, aggregates it, and prices it against market catalogs (OpenRouter, LiteLLM, models.dev). Every language calls into one Rust core, so the layers, options, and return shapes are the same everywhere. Only naming conventions differ. TypeScript, Java, C#, and Swift use camelCase. Python, Ruby, and Rust use snake_case. C# and Go use PascalCase methods. C uses a JSON-buffer ABI. The TypeScript package is ESM only and requires Node >= 24.
+
+:::note[Full pricing parity across every facade]
+The Read, Rollup, and Price layers expose the same operations and return shapes in every language. The seven handle-based facades (TypeScript, Python, Ruby, Java, C#, Go, Swift) each expose the full pricing set: `createPricing`, plus `lookupModel`, `priceRollups`, `priceEvents`, and `catalogs`. `priceTokens` is a convenience on the TypeScript, Python, and Ruby handles. The others cover it through `priceRollups` and `priceEvents`. The constructor options are shared but not byte-identical: the other six facades (Python, Ruby, Java, C#, Go, Swift) accept explicit pre-fetched `catalogs`, while TypeScript covers the same need through its `sources` plus an injectable `fetch`. Those seven run the same built-in fetch and cache lifecycle: sources on by default in priority order OpenRouter, LiteLLM, models.dev, a byte-compatible disk cache, and TTL, refresh, offline, and stale-fallback. In the FFI ones (Java, C#, Go, Swift) the fetch runs facade-side, since the embedded `libskopli` opens no socket by default. Rust (`skopli-core`) has no `createPricing`: you build a `Pricing` from injected catalogs and call `lookup_model`, `price_rollups`, or `price_events`, with `cost_usd` and `match_model` as lower-level free functions. The bare C ABI has no host lifecycle: the default `libskopli` prices against the pre-fetched `catalogs` you pass to `ag_pricing_new`, and built-in sources return an error unless the library is built with `net` as `libskopli-full`.
+:::
+
+Option keys follow each language's convention: `camelCase` in TypeScript, Java, C#, and Swift (`cacheDir`, `ttlMs`), `snake_case` in Python, Ruby, and Rust (`cache_dir`, `ttl_ms`), and JSON keys in the C ABI. The semantics are identical, only the spelling changes. Each section's table describes an option once, and the tabs show the per-language spelling.
+
+## Layers
+
+### 1. Read (offline)
+
+`detectHarnesses` reports which harnesses have local data. `readUsage` parses that data into normalized `UsageEvent`s and returns `{ events, diagnostics, skipped }`. It never touches the network.
+
+<Tabs syncKey="lang">
+  <TabItem label="TypeScript">
+    ```ts frame="code"
+    detectHarnesses(): { supported, unsupported };
+
+    readUsage(options?: {
+      harnesses?: string[];   // default: all detected
+      since?: string;         // inclusive lower bound
+      until?: string;         // exclusive upper bound
+      tz?: string;            // timezone for date-only bounds
+      subagents?: "include" | "exclude"; // default "include"
+      home?: string;          // optional PathResolver injection
+      env?: Record<string, string>;
+    }): Promise<{ events: UsageEvent[]; diagnostics: Diagnostic[]; skipped: Skipped[] }>;
+    ```
+
+  </TabItem>
+  <TabItem label="Python">
+    ```python frame="code"
+    skopli.detect_harnesses()  # -> Detection(supported, unsupported)
+
+    skopli.read_usage(
+        harnesses=None,        # list[str] | None; default: all detected
+        since=None,            # inclusive lower bound
+        until=None,            # exclusive upper bound
+        tz=None,               # timezone for date-only bounds
+        subagents="include",   # "include" (default) | "exclude"
+        home=None,             # optional PathResolver injection
+        env=None,              # dict[str, str] | None
+    )  # -> ReadResult(events, diagnostics, skipped)
+    ```
+
+  </TabItem>
+  <TabItem label="Rust">
+    `skopli-core` has no `read_usage` facade. It exposes the reader one level lower: each harness has a `Reader` you drive with a `ReaderContext` (a home directory plus env overrides), and each `read` returns a `ReaderResult` of events, skipped paths, and warnings. The host-language facades add detection, filtering (`since`/`until`/`tz`/`subagents`), and the canonical event sort on top.
+
+    ```rust frame="code"
+    use skopli_core::readers::{registered_reader, registered_readers, Reader, ReaderContext};
+
+    // resolve a context from a home dir, with optional env overrides
+    let ctx = ReaderContext::new("/home/you").with_env("CLAUDE_CONFIG_DIR", "/synced/claude");
+
+    // one harness by id, or iterate every registered reader
+    if let Some(reader) = registered_reader("claude") {
+        let result = reader.read(&ctx); // ReaderResult { events, skipped, warnings }
+        let _ = result.events;
+    }
+    for reader in registered_readers() {
+        let _ = reader.harness_id();
+    }
+    ```
+
+  </TabItem>
+  <TabItem label="Ruby">
+    ```ruby frame="code"
+    Skopli.detect_harnesses # -> Detection(supported, unsupported)
+
+    Skopli.read_usage(
+      harnesses: nil,        # Array(String) | nil; default: all detected
+      since: nil,            # inclusive lower bound
+      until_: nil,           # exclusive upper bound
+      tz: nil,               # timezone for date-only bounds
+      subagents: "include",  # "include" (default) | "exclude"
+      home: nil,             # optional PathResolver injection
+      env: nil               # Hash(String => String) | nil
+    ) # -> ReadResult with #events, #diagnostics, #skipped
+    ```
+
+  </TabItem>
+  <TabItem label="Java">
+    ```java frame="code"
+    Detection detection = Skopli.detectHarnesses(DetectOptions.defaults());
+
+    ReadUsageResult result = Skopli.readUsage(ReadUsageOptions.builder()
+        .harness(Harness.CLAUDE)          // repeatable; default: all detected
+        .since("2026-08-01")              // inclusive lower bound
+        .until("2026-09-01")              // exclusive upper bound
+        .tz("America/Los_Angeles")        // timezone for date-only bounds
+        .excludeSubagents(false)          // false (default) includes subagents
+        .home("/custom/home")             // optional PathResolver injection
+        .env("CLAUDE_CONFIG_DIR", "/synced/claude")
+        .build());
+    List<UsageEvent> events = result.events();
+    List<Diagnostic> diagnostics = result.diagnostics();
+    ```
+
+  </TabItem>
+  <TabItem label="C#">
+    ```csharp frame="code"
+    Detection detection = SkopliClient.DetectHarnesses();
+
+    ReadUsageResult result = SkopliClient.ReadUsage(new ReadUsageOptions {
+        Harnesses = new[] { "claude" },   // default: all detected
+        Since = "2026-08-01",             // inclusive lower bound
+        Until = "2026-09-01",             // exclusive upper bound
+        Tz = "America/Los_Angeles",       // timezone for date-only bounds
+        Subagents = SubagentMode.Include, // Include (default) | Exclude
+        Home = "/custom/home",            // optional PathResolver injection
+        Env = new Dictionary<string, string> { ["CLAUDE_CONFIG_DIR"] = "/synced/claude" },
+    });
+    IReadOnlyList<UsageEvent> events = result.Events;
+    ```
+
+  </TabItem>
+  <TabItem label="Go">
+    ```go frame="code"
+    detection, _ := skopli.DetectHarnesses(nil)
+
+    result, _ := skopli.ReadUsage(skopli.ReadUsageOptions{
+        Harnesses: []skopli.Harness{skopli.HarnessClaude}, // default: all detected
+        Since:     "2026-08-01",                           // inclusive lower bound
+        Until:     "2026-09-01",                           // exclusive upper bound
+        TZ:        "America/Los_Angeles",                  // timezone for date-only bounds
+        Subagents: "include",                              // "include" (default) | "exclude"
+        Options: skopli.Options{
+            Home: "/custom/home", // optional PathResolver injection
+            Env:  map[string]string{"CLAUDE_CONFIG_DIR": "/synced/claude"},
+        },
+    })
+    events, diagnostics, skipped := result.Events, result.Diagnostics, result.Skipped
+    ```
+
+  </TabItem>
+  <TabItem label="Swift">
+    ```swift frame="code"
+    let detection = try Skopli.detectHarnesses()
+
+    let result = try Skopli.readUsage(options: ReadUsageOptions(
+        home: "/custom/home",             // optional PathResolver injection
+        env: ["CLAUDE_CONFIG_DIR": "/synced/claude"],
+        harnesses: [.claude],             // default: all detected
+        since: "2026-08-01",              // inclusive lower bound
+        until: "2026-09-01",              // exclusive upper bound
+        tz: "America/Los_Angeles",        // timezone for date-only bounds
+        subagents: "include"))            // "include" (default) | "exclude"
+    let (events, diagnostics, skipped) = (result.events, result.diagnostics, result.skipped)
+    ```
+
+  </TabItem>
+  <TabItem label="C/C++">
+    The C ABI exchanges JSON buffers. Pass the read options as a JSON object and free the returned buffer:
+
+    ```c frame="code"
+    #include <stdio.h>
+    #include <string.h>
+    #include "skopli.h"
+
+    const char *opts =
+        "{\"harnesses\":[\"claude\"],\"since\":\"2026-08-01\","
+        "\"until\":\"2026-09-01\",\"tz\":\"America/Los_Angeles\","
+        "\"subagents\":\"include\"}";
+    AgBuf out = {0};
+    AgStatus st = ag_read_usage(opts, strlen(opts), &out);
+    if (st == AG_STATUS_OK) {
+        fwrite(out.ptr, 1, out.len, stdout); // { events, diagnostics, skipped } as JSON
+        ag_buf_free(out);
+    }
+    ```
+
+  </TabItem>
+</Tabs>
+
+The return shape is the same across languages. Python, Ruby, and Rust use `snake_case` field names. The C ABI JSON keeps the camelCase wire keys shown below, for example `cacheRead`, `cacheWrite1h`, `costUsd`, and `fetchedAt`. `UsageEvent`:
+
+```ts
+{
+  harness,
+  timestamp,
+  sessionId,
+  messageId,
+  turn,
+  subagent,
+  model,
+  tokens: { input, output, cacheRead, cacheWrite, cacheWrite1h?, reasoning },
+  calls?,
+  costUsd?,
+  workspace?,
+  title?,
+}
+```
+
+- `cacheWrite` is the total. `cacheWrite1h` is the 1h-TTL portion when the source reports the split (claude).
+- `costUsd` is the harness-recorded cost (claude jsonl `costUSD`, OpenCode nonzero `cost`), absent otherwise.
+- `workspace` (normalized project dir, cross-platform: forward slashes, no trailing sep, case-folded on Windows) and `title` come from the OpenCode session directory and title and from claude `cwd`, absent otherwise.
+- Subagent (child-session or sidechain) events are included and tagged `subagent: true` by default. `subagents: "exclude"` drops them uniformly. `subagent` is set from each harness's native marker: OpenCode non-null `parent_id` or `parentID`, claude strict `isSidechain === true`, pi and omp `rlmDepth > 0`, deepseek a parent session, `origin` of `subagent`, or delegation depth above 0 (both the JSONL and SQLite backends), codex and all other harnesses always `false`.
+- The SDK never writes to stdio. Problems are structured diagnostics.
+
+See [Reading usage](/skopli/guide/reading/) for the full guide.
+
+### 2. Rollup (offline)
+
+`rollup` groups events by `model`, `day`, `session`, `harness`, `workspace`, or `block` and returns a sorted `Rollup[]`. It never touches the network.
+
+<Tabs syncKey="lang">
+  <TabItem label="TypeScript">
+    ```ts frame="code"
+    rollup(
+      events: UsageEvent[],
+      options: {
+        by: "model" | "day" | "session" | "harness" | "workspace" | "block";
+        tz?: string;
+        blockMs?: number; // block width for by: "block" (default 18000000)
+      },
+    ): Rollup[];
+    ```
+
+  </TabItem>
+  <TabItem label="Python">
+    ```python frame="code"
+    skopli.rollup(
+        events,                # list[UsageEvent]
+        by,                    # "model" | "day" | "session" | "harness" | "workspace" | "block"
+        tz=None,               # timezone for day bucketing / block anchoring
+        block_ms=None,         # block width for by="block" (default 18000000)
+    )  # -> list[Rollup], sorted
+    ```
+
+  </TabItem>
+  <TabItem label="Rust">
+    ```rust frame="code"
+    use skopli_core::rollup::{rollup, RollupBy, RollupOptions};
+
+    // RollupBy: Model | Day | Session | Harness | Workspace | Block
+    rollup(&events, &RollupOptions::new(RollupBy::Model)) -> Vec<Rollup>;
+    rollup(&events, &RollupOptions { by: RollupBy::Day, tz: Some("Asia/Tokyo".into()), block_ms: None });
+    rollup(&events, &RollupOptions { by: RollupBy::Block, tz: None, block_ms: Some(3_600_000) });
+    ```
+
+  </TabItem>
+  <TabItem label="Ruby">
+    ```ruby frame="code"
+    Skopli.rollup(
+      events,                # Array(UsageEvent)
+      by,                    # :model | :day | :session | :harness | :workspace | :block
+      tz: nil,               # timezone for day bucketing / block anchoring
+      block_ms: nil          # block width for by: :block (default 18000000)
+    ) # -> Array(Rollup), sorted
+    ```
+
+  </TabItem>
+  <TabItem label="Java">
+    ```java frame="code"
+    // RollupBy: MODEL | DAY | SESSION | HARNESS | WORKSPACE | BLOCK
+    List<Rollup> byModel = Skopli.rollup(events, RollupOptions.by(RollupBy.MODEL));
+    List<Rollup> byDay = Skopli.rollup(events, RollupOptions.by(RollupBy.DAY, "Asia/Tokyo"));
+    List<Rollup> byBlock = Skopli.rollup(events, RollupOptions.block(3_600_000L));
+    ```
+
+  </TabItem>
+  <TabItem label="C#">
+    ```csharp frame="code"
+    // RollupBy: Model | Day | Session | Harness | Workspace | Block
+    IReadOnlyList<Rollup> byModel =
+        SkopliClient.Rollup(events, new RollupOptions { By = RollupBy.Model });
+    IReadOnlyList<Rollup> byDay =
+        SkopliClient.Rollup(events, new RollupOptions { By = RollupBy.Day, Tz = "Asia/Tokyo" });
+    IReadOnlyList<Rollup> byBlock =
+        SkopliClient.Rollup(events, new RollupOptions { By = RollupBy.Block, BlockMs = 3_600_000 });
+    ```
+
+  </TabItem>
+  <TabItem label="Go">
+    ```go frame="code"
+    // By: ByModel | ByDay | BySession | ByHarness | ByWorkspace | ByBlock
+    byModel, _ := skopli.Rollup(events, skopli.RollupOptions{By: skopli.ByModel})
+    byDay, _ := skopli.Rollup(events, skopli.RollupOptions{By: skopli.ByDay, TZ: "Asia/Tokyo"})
+    byBlock, _ := skopli.Rollup(events, skopli.RollupOptions{By: skopli.ByBlock, BlockMs: 3_600_000})
+    ```
+
+  </TabItem>
+  <TabItem label="Swift">
+    ```swift frame="code"
+    // by: .model | .day | .session | .harness | .workspace | .block
+    let byModel = try Skopli.rollup(events: events, by: .model)
+    let byDay = try Skopli.rollup(events: events, by: .day, tz: "Asia/Tokyo")
+    let byBlock = try Skopli.rollup(events: events, by: .block, blockMs: 3_600_000)
+    ```
+
+  </TabItem>
+  <TabItem label="C/C++">
+    The C ABI exchanges JSON buffers. Pass the rollup options as a JSON object and free the returned buffer:
+
+    ```c frame="code"
+    #include <stdio.h>
+    #include <string.h>
+    #include "skopli.h"
+
+    // events_json / events_len are a serialized UsageEvent[] from ag_read_usage.
+    AgBuf out = {0};
+    const char *group_opts = "{\"by\":\"model\"}";
+    // block windows: {"by":"block","blockMs":18000000}
+    AgStatus st = ag_rollup(events_json, events_len, group_opts, strlen(group_opts), &out);
+    if (st == AG_STATUS_OK) {
+        fwrite(out.ptr, 1, out.len, stdout); // Rollup[] as JSON
+        ag_buf_free(out);
+    }
+    ```
+
+  </TabItem>
+</Tabs>
+
+Each `Rollup` has summed tokens, events, turns, calls, and `costUsd` (summed recorded cost, present only when an event carried one). Workspace bucketing folds events without a workspace under the `"(unknown)"` sentinel.
+
+`by: "block"` groups events into rolling session windows that approximate a provider usage-quota window, for example Claude subscription five-hour blocks. It is a convenience view of your own recorded usage, not official provider accounting. A block opens at the first event floored to the hour in `tz` and spans `blockMs` (default `18000000`, five hours). Events in `[start, start + blockMs)` join it, and the first event at or past `start + blockMs` opens a new block. Each row's `key` is the ISO-8601 block-start instant, and rows come back in ascending start order. The library never reads the clock, so flag the still-open block by comparing its `end` (`start + blockMs`) against the current time caller-side.
+
+The `tz` option buckets days in an IANA timezone on every rollup path. The TypeScript implementation formats each timestamp with `Intl.DateTimeFormat` under `timeZone: tz` (`src/rollup.ts`). The native core (`skopli-core`) and every facade that calls it (Python, Ruby, Java, C#, Go, Swift, and the C ABI) bucket days in the same zone, DST transitions and sub-hour offsets included, so all paths agree bucket for bucket. A non-UTC `tz` shifts the day boundary consistently, so a day rollup agrees with a `tz`-scoped `since` and `until` filter east or west of UTC. An unknown zone name falls back to UTC.
+
+See [Rollups](/skopli/guide/rollups/).
+
+### 3. Price (network, opt-in)
+
+The Price layer is the only layer that touches the network, and only when you opt in. It fetches catalogs, caches them, and reads from cache when offline. Every facade exposes the same operations.
+
+#### 3a. Pricing constructor
+
+The seven handle-based facades (TypeScript, Python, Ruby, Java, C#, Go, Swift) construct a full pricing handle with `createPricing`. The FFI ones (Java, C#, Go, Swift) run the fetch facade-side in the host language and hand pre-fetched catalogs to the network-free `libskopli`. Those handles are closeable. Rust exposes the pricing primitives directly and has no constructor. The bare C ABI's `ag_pricing_new` takes injected `catalogs` (or overrides) in its options JSON. The default `libskopli` fetches nothing, and built-in sources require the `net` build (`libskopli-full`).
+
+<Tabs syncKey="lang">
+  <TabItem label="TypeScript">
+    ```ts frame="code"
+    createPricing(options?: {
+      sources?: PricingSource[]; // priority order; default OpenRouter, LiteLLM, models.dev
+      overrides?: PriceOverride[]; // highest priority
+      mode?: "calculate" | "display" | "auto"; // default "calculate"
+      cacheDir?: string;         // default: platform cache dir
+      offline?: boolean;         // cache only, never fetch
+      ttlMs?: number;            // cache freshness window
+      refresh?: boolean;         // one fresh fetch per source, bypassing fresh caches
+      fetch?: typeof fetch;      // injectable for tests/proxies
+    }): Pricing;
+    // Pricing: { lookupModel, priceTokens, priceRollups, priceEvents, catalogs }
+    ```
+
+  </TabItem>
+  <TabItem label="Python">
+    ```python frame="code"
+    skopli.create_pricing(
+        sources=None,          # priority order; default OpenRouter, LiteLLM, models.dev
+        overrides=None,        # highest priority
+        mode="calculate",      # "calculate" (default) | "display" | "auto"
+        cache_dir=None,        # default: platform cache dir
+        offline=False,         # cache only, never fetch
+        ttl_ms=None,           # cache freshness window
+        refresh=False,         # one fresh fetch per source, bypassing fresh caches
+    )  # -> Pricing with lookup_model, price_tokens, price_rollups, price_events, catalogs
+    ```
+
+  </TabItem>
+  <TabItem label="Rust">
+    `skopli-core` has no `create_pricing` facade. You build a `Pricing` from injected catalogs in priority order and call its methods, or drop lower still to the free primitives `match_model` and `cost_usd`.
+
+    ```rust frame="code"
+    use skopli_core::pricing::{cost_usd, ModelPrice, Pricing, PricingMode};
+    use skopli_core::types::TokenCounts;
+
+    // catalogs: Vec<PricingCatalog> in priority order (override first, if any).
+    // The second arg is the override catalog's index, if you injected one.
+    let pricing = Pricing::new(catalogs, None, PricingMode::Calculate);
+    let lookup = pricing.lookup_model("openai/gpt-5"); // PriceLookup::Hit | Miss
+
+    let tokens = TokenCounts { input: 1_000, output: 500, ..Default::default() };
+    let usd = cost_usd(&tokens, &ModelPrice::flat(1.25, 10.0)); // USD per million tokens
+    ```
+
+  </TabItem>
+  <TabItem label="Ruby">
+    ```ruby frame="code"
+    Skopli.create_pricing(
+      sources: nil,          # priority order; default OpenRouter, LiteLLM, models.dev
+      overrides: nil,        # highest priority
+      mode: "calculate",     # "calculate" (default) | "display" | "auto"
+      cache_dir: nil,        # default: platform cache dir
+      offline: false,        # cache only, never fetch
+      ttl_ms: nil,           # cache freshness window
+      refresh: false         # one fresh fetch per source, bypassing fresh caches
+    ) # -> Pricing with #lookup_model, #price_tokens, #price_rollups, #price_events, #catalogs
+    ```
+
+  </TabItem>
+  <TabItem label="Java">
+    The fetch runs facade-side, and the facade hands the catalogs to the network-free core. `Pricing` is `AutoCloseable`. It exposes `lookupModel`, `priceRollups`, `priceEvents`, and `catalogs`.
+
+    ```java frame="code"
+    try (Pricing pricing = Skopli.createPricing(PricingOptions.builder()
+        .mode(PricingMode.CALCULATE)                             // CALCULATE (default) | DISPLAY | AUTO
+        .override(PriceOverride.flat("my-fine-tune", 5.0, 15.0)) // highest priority
+        .source(Sources.openRouter(Sources.OPENROUTER_URL))      // facade-side sources, priority order
+        .fetch(myFetcher)                                        // injectable getter for those sources
+        .build())) {
+        // pricing.lookupModel(...), pricing.priceRollups(...), pricing.priceEvents(...), pricing.catalogs()
+    }
+    ```
+
+  </TabItem>
+  <TabItem label="C#">
+    The fetch runs facade-side, and the facade hands the catalogs to the network-free core. `Pricing` is `IDisposable`. It exposes `LookupModel`, `PriceRollups`, `PriceEvents`, and `Catalogs`.
+
+    ```csharp frame="code"
+    using Pricing pricing = SkopliClient.CreatePricing(new PricingOptions {
+        Mode = PricingMode.Calculate,                             // Calculate (default) | Display | Auto
+        Overrides = new[] { new PriceOverride {                   // highest priority
+            Model = "my-fine-tune", Input = 5, Output = 15 } },
+        Sources = new[] { PricingSource.OpenRouter() },           // facade-side, priority order
+        Fetch = myFetch,                                          // injectable getter for those sources
+    });
+    // pricing.LookupModel(...), pricing.PriceRollups(...), pricing.PriceEvents(...), pricing.Catalogs()
+    ```
+
+  </TabItem>
+  <TabItem label="Go">
+    The fetch runs facade-side, and the facade hands the catalogs to the network-free core. Close the handle when done. It exposes `LookupModel`, `PriceRollups`, `PriceEvents`, and `Catalogs`.
+
+    ```go frame="code"
+    pricing, _ := skopli.NewPricing(skopli.PricingOptions{
+        Mode: skopli.ModeCalculate, // ModeCalculate (default) | ModeDisplay | ModeAuto
+        Overrides: []skopli.Override{ // highest priority
+            {Model: "my-fine-tune", Input: 5, Output: 15},
+        },
+        Sources: []skopli.PricingSource{skopli.OpenRouterSource(skopli.OpenRouterURL)}, // facade-side, priority order
+        Fetch:   myFetch,                                    // injectable getter for those sources
+    })
+    defer pricing.Close()
+    // pricing.LookupModel(...), pricing.PriceRollups(...), pricing.PriceEvents(...), pricing.Catalogs()
+    ```
+
+  </TabItem>
+  <TabItem label="Swift">
+    The fetch runs facade-side, and the facade hands the catalogs to the network-free core. Close the handle when done. It exposes `lookupModel`, `priceRollups`, `priceEvents`, and `catalogs`.
+
+    ```swift frame="code"
+    let pricing = try Skopli.createPricing(options: PricingOptions(
+        mode: .calculate,                                     // .calculate (default) | .display | .auto
+        overrides: [Override(model: "my-fine-tune", input: 5, output: 15)], // highest priority
+        sources: [openRouterSource()],                        // facade-side sources, priority order
+        fetch: myFetch))                                      // injectable getter for those sources
+    defer { pricing.close() }
+    // pricing.lookupModel(...), pricing.priceRollups(...), pricing.priceEvents(...), pricing.catalogs()
+    ```
+
+  </TabItem>
+  <TabItem label="C/C++">
+    The C ABI exchanges JSON buffers. Create a pricing handle from options JSON, then free it with `ag_pricing_free`. It exposes the full pipeline: `ag_pricing_lookup_model`, `ag_pricing_price_rollups`, `ag_pricing_price_events`, and `ag_pricing_catalog_info`. The default `libskopli` opens no socket, so pass pre-fetched catalogs and keep `builtinSources:false`.
+
+    ```c frame="code"
+    #include <string.h>
+    #include "skopli.h"
+
+    AgPricing *pricing = NULL;
+    const char *opts = "{\"mode\":\"calculate\",\"builtinSources\":false}";
+    ag_pricing_new(opts, strlen(opts), &pricing);
+    // ... ag_pricing_lookup_model / ag_pricing_price_rollups / ag_pricing_price_events ...
+    ag_pricing_free(pricing);
+    ```
+
+  </TabItem>
+</Tabs>
+
+The options carry the same semantics in every language, only the key spelling changes (`cacheDir`/`cache_dir`, `ttlMs`/`ttl_ms`, `PricingMode.Calculate`/`"calculate"`/`.calculate`). One option differs by facade: `catalogs` is accepted by the six non-TypeScript handle facades (Python, Ruby, Java, C#, Go, Swift) and the C ABI, while TypeScript covers the same need through `sources`. `sources` and `fetch` are on all seven handle facades. Use `catalogs` to hand in pre-fetched catalogs, or `sources` plus `fetch` to drive the built-in fetch lifecycle.
+
+| Option      | Meaning                                                                                                                                                           |
+| ----------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `sources`   | Catalog sources in priority order. Default: OpenRouter, LiteLLM, models.dev. On all seven handle facades, the TypeScript-side alternative to explicit `catalogs`. |
+| `catalogs`  | Explicit pre-fetched catalogs, in priority order after overrides. (All facades except TypeScript.)                                                                |
+| `overrides` | Your own rates. Highest priority, beats every market source. An explicit `$0` counts.                                                                             |
+| `mode`      | `calculate` (default), `display`, or `auto`. See below.                                                                                                           |
+| `cacheDir`  | Disk cache location. Default: the platform cache dir.                                                                                                             |
+| `offline`   | Read cache only, never fetch.                                                                                                                                     |
+| `ttlMs`     | Cache freshness window.                                                                                                                                           |
+| `refresh`   | Attempt one fresh fetch per source, bypassing fresh caches. Stale cache is still used on failure.                                                                 |
+| `fetch`     | Injectable getter for the built-in sources, for tests and proxies. On all seven handle facades.                                                                   |
+
+**Priority:** overrides > explicit catalogs > OpenRouter > LiteLLM > models.dev, with one exception. After overrides, any tier-bearing match outranks a flat (tier-less) match from a higher-priority source, so long-context tiers are not lost to a higher-priority flat source (in practice, tiered LiteLLM beating flat OpenRouter).
+
+**`mode`** picks each priced row's `usd`: `calculate` recomputes from tokens, `display` uses the recorded cost or `0`, `auto` prefers recorded then calculated.
+
+#### 3b. lookupModel and priceTokens
+
+`lookupModel` matches a model name against the loaded catalogs and returns a `PriceHit` or a miss. `priceTokens` prices a token bundle at a resolved price. `lookupModel` belongs to every pricing handle. In Rust it is a method on `Pricing` (`pricing.lookup_model(model)`), and `cost_usd` is a free function that prices a token bundle at a `ModelPrice`. `priceTokens` is a convenience on the TypeScript, Python, and Ruby handles (Rust uses `cost_usd`). The FFI facades cover it through `priceRollups` and `priceEvents`, which match and price in one call.
+
+<Tabs syncKey="lang">
+  <TabItem label="TypeScript">
+    ```ts frame="code"
+    const hit = await pricing.lookupModel("openai/gpt-5");
+    // { priced: true, key: "gpt-5", price: {...}, source: "litellm", fetchedAt: "..." }
+    const result = await pricing.priceTokens("openai/gpt-5", { input: 1000, output: 500 });
+    if (result.priced) console.log(result.usd);
+    ```
+
+  </TabItem>
+  <TabItem label="Python">
+    ```python frame="code"
+    hit = pricing.lookup_model("openai/gpt-5")
+    # { priced: True, key: "gpt-5", price: {...}, source: "litellm", fetched_at: "..." }
+    usd = pricing.price_tokens({"input": 1000, "output": 500}, "openai/gpt-5")
+    # -> float USD (a miss costs 0.0)
+    ```
+
+  </TabItem>
+  <TabItem label="Rust">
+    ```rust frame="code"
+    use skopli_core::pricing::{cost_usd, ModelPrice, PriceLookup};
+    use skopli_core::types::TokenCounts;
+
+    // pricing: a Pricing built from injected catalogs (see 3a)
+    if let PriceLookup::Hit(hit) = pricing.lookup_model("openai/gpt-5") {
+        let tokens = TokenCounts { input: 1_000, output: 500, ..Default::default() };
+        let usd = cost_usd(&tokens, &hit.price);
+        let _ = usd;
+    }
+    ```
+
+  </TabItem>
+  <TabItem label="Ruby">
+    ```ruby frame="code"
+    hit = pricing.lookup_model("openai/gpt-5")
+    # { priced: true, key: "gpt-5", price: {...}, source: "litellm", fetched_at: "..." }
+    usd = pricing.price_tokens({ input: 1000, output: 500 }, "openai/gpt-5")
+    # -> float USD (a miss costs 0.0)
+    ```
+
+  </TabItem>
+  <TabItem label="Java">
+    ```java frame="code"
+    PriceLookup hit = pricing.lookupModel("openai/gpt-5");
+    // PriceHit { priced=true, key="gpt-5", source="litellm", ... } or a PriceMiss
+    ```
+
+    `priceTokens` has no standalone method. Price through `priceRollups` or `priceEvents`, which match and price in one call.
+
+  </TabItem>
+  <TabItem label="C#">
+    ```csharp frame="code"
+    PriceLookup hit = pricing.LookupModel("openai/gpt-5");
+    // PriceHit { Priced=true, Key="gpt-5", Source="litellm", ... } or a PriceMiss
+    ```
+
+    `PriceTokens` has no standalone method. Price through `PriceRollups` or `PriceEvents`, which match and price in one call.
+
+  </TabItem>
+  <TabItem label="Go">
+    ```go frame="code"
+    hit, _ := pricing.LookupModel("openai/gpt-5")
+    // PriceLookup{ Priced: true, Key: "gpt-5", Source: "litellm", ... } or a miss
+    ```
+
+    `PriceTokens` has no standalone method. Price through `PriceRollups` or `PriceEvents`, which match and price in one call.
+
+  </TabItem>
+  <TabItem label="Swift">
+    ```swift frame="code"
+    let hit = try pricing.lookupModel("openai/gpt-5")
+    // .hit(PriceHit(priced: true, key: "gpt-5", source: "litellm", ...)) or a miss
+    ```
+
+    `priceTokens` has no standalone method. Price through `priceRollups` or `priceEvents`, which match and price in one call.
+
+  </TabItem>
+  <TabItem label="C/C++">
+    ```c frame="code"
+    #include <string.h>
+    #include "skopli.h"
+
+    // pricing is an AgPricing* from ag_pricing_new (see 3a).
+    AgBuf out = {0};
+    const char *model = "openai/gpt-5";
+    AgStatus st = ag_pricing_lookup_model(pricing, model, strlen(model), &out);
+    // out holds a single PriceLookup JSON object (hit or miss)
+    ```
+
+    There is no standalone token pricer. Price through `ag_pricing_price_rollups` or `ag_pricing_price_events`, which match and price in one call.
+
+  </TabItem>
+</Tabs>
+
+A miss returns `{ priced: false, attempted }` (or `{ priced: false, reason: "zeroCost", key }` when only zero-cost placeholders matched) rather than a guess. See [Model matching](/skopli/pricing/model-matching/).
+
+#### 3c. priceRollups
+
+`priceRollups(rollups)` prices already-summed tokens. It is exact for flat-rate models. For a tiered model whose rollup aggregated more than one event (or a single event that itself aggregates multiple calls, `calls > 1`), the summed context can cross a tier the individual calls never reached, overbilling. That row is flagged `pricing.tieredAggregate: true` (calculate mode, or auto without a recorded cost), so it is never a silent misprice.
+
+`priceRollups` is on every pricing handle. For tiered models, prefer `priceEvents`, which prices each event at its own context.
+
+<Tabs syncKey="lang">
+  <TabItem label="TypeScript">
+    ```ts frame="code"
+    const priced = await pricing.priceRollups(byModel); // -> PricedRollup[]
+    ```
+
+  </TabItem>
+  <TabItem label="Python">
+    ```python frame="code"
+    priced = pricing.price_rollups(by_model)  # -> list[PricedRollup]
+    ```
+
+  </TabItem>
+  <TabItem label="Rust">
+    Call `price_rollups` on the handle, or compose the primitives yourself: `lookup_model` each rollup key, then `cost_usd` on its summed `TokenCounts`. For tiered models prefer per-event pricing.
+
+    ```rust frame="code"
+    use skopli_core::pricing::{cost_usd, PriceLookup};
+
+    let priced = pricing.price_rollups(&by_model); // Vec<PricedRollup>
+    // or by hand:
+    for r in &by_model {
+        if let PriceLookup::Hit(hit) = pricing.lookup_model(&r.key) {
+            let usd = cost_usd(&r.tokens, &hit.price);
+            let _ = usd;
+        }
+    }
+    ```
+
+  </TabItem>
+  <TabItem label="Ruby">
+    ```ruby frame="code"
+    priced = pricing.price_rollups(by_model) # -> Array(PricedRollup)
+    ```
+
+  </TabItem>
+  <TabItem label="Java">
+    ```java frame="code"
+    List<PricedRollup> priced = pricing.priceRollups(byModel); // -> List<PricedRollup>
+    ```
+
+  </TabItem>
+  <TabItem label="C#">
+    ```csharp frame="code"
+    IReadOnlyList<PricedRollup> priced = pricing.PriceRollups(byModel);
+    ```
+
+  </TabItem>
+  <TabItem label="Go">
+    ```go frame="code"
+    priced, _ := pricing.PriceRollups(byModel) // -> []PricedRollup
+    ```
+
+  </TabItem>
+  <TabItem label="Swift">
+    ```swift frame="code"
+    let priced = try pricing.priceRollups(rollups: byModel) // -> [PricedRollup]
+    ```
+
+  </TabItem>
+  <TabItem label="C/C++">
+    ```c frame="code"
+    #include "skopli.h"
+
+    // pricing is an AgPricing* from ag_pricing_new; rollups_json / rollups_len
+    // are a serialized Rollup[] from ag_rollup.
+    AgBuf out = {0};
+    AgStatus st = ag_pricing_price_rollups(pricing, rollups_json, rollups_len, &out);
+    // out holds a PricedRollup[] JSON buffer; free it with ag_buf_free
+    ```
+
+  </TabItem>
+</Tabs>
+
+#### 3d. priceEvents
+
+`priceEvents(events, { by, tz? })` returns `PricedEventGroup[]` and is the correct path for tiered models. It prices each event at its own context (per-event tier selection) with the full tiered and 1h-split logic, applies `mode` per event, then aggregates per group with the same keys as `rollup`. A group prices only when every member model priced. Every language exposes it, the FFI facades included.
+
+<Tabs syncKey="lang">
+  <TabItem label="TypeScript">
+    ```ts frame="code"
+    const priced = await pricing.priceEvents(events, { by: "model", tz: "Asia/Tokyo" });
+    ```
+
+  </TabItem>
+  <TabItem label="Python">
+    ```python frame="code"
+    priced = pricing.price_events(events, "model", tz="Asia/Tokyo")
+    ```
+
+  </TabItem>
+  <TabItem label="Rust">
+    ```rust frame="code"
+    use skopli_core::rollup::{RollupBy, RollupOptions};
+
+    let priced = pricing.price_events(&events, &RollupOptions::new(RollupBy::Model));
+    ```
+
+  </TabItem>
+  <TabItem label="Ruby">
+    ```ruby frame="code"
+    priced = pricing.price_events(events, :model, tz: "Asia/Tokyo")
+    ```
+
+  </TabItem>
+  <TabItem label="Java">
+    ```java frame="code"
+    List<PricedRollup> priced = pricing.priceEvents(events, RollupOptions.by(RollupBy.MODEL));
+    ```
+
+  </TabItem>
+  <TabItem label="C#">
+    ```csharp frame="code"
+    IReadOnlyList<PricedRollup> priced =
+        pricing.PriceEvents(events, new RollupOptions { By = RollupBy.Model });
+    ```
+
+  </TabItem>
+  <TabItem label="Go">
+    ```go frame="code"
+    priced, _ := pricing.PriceEvents(events, skopli.RollupOptions{By: skopli.ByModel})
+    ```
+
+  </TabItem>
+  <TabItem label="Swift">
+    ```swift frame="code"
+    let priced = try pricing.priceEvents(events: events, by: .model)
+    ```
+
+  </TabItem>
+  <TabItem label="C/C++">
+    ```c frame="code"
+    #include <stdio.h>
+    #include <string.h>
+    #include "skopli.h"
+
+    // pricing is an AgPricing* from ag_pricing_new; events_json / events_len
+    // are a serialized UsageEvent[] from ag_read_usage.
+    AgBuf out = {0};
+    const char *group_opts = "{\"by\":\"model\"}";
+    AgStatus st = ag_pricing_price_events(pricing, events_json, events_len, group_opts, strlen(group_opts), &out);
+    if (st == AG_STATUS_OK) {
+        fwrite(out.ptr, 1, out.len, stdout); // PricedEventGroup[] as JSON
+        ag_buf_free(out);
+    }
+    ```
+
+  </TabItem>
+</Tabs>
+
+**Provenance:** a single-model group returns a `PriceHit` (its real model, key, price, source). A multi-model group (possible when grouping by session, day, harness, or workspace) returns `AggregatePriceHit` (`{ priced: true, usd, models }`) instead of claiming one model's rate. A single-model group whose events aggregate multiple calls (`calls > 1`) on a tiered model is still flagged `tieredAggregate: true`, since per-call tokens are not separable.
+
+See [Rollup pricing vs per-event pricing](/skopli/pricing/rollups-vs-events/) for when each path is safe.
+
+#### 3e. catalogs and cache
+
+Per-source disk cache (~1h TTL, atomic writes, stale fallback at any age). `refresh: true` attempts one fresh fetch per source, bypassing fresh caches, falling back to stale on failure. Default fetches abort after 10s. Results carry source attribution and `fetchedAt`. Prices are USD per million tokens.
+
+`catalogs()` reports the loaded sources (source, `fetchedAt`, model count), so you can tell when every market source failed and lookups can only miss. It is on every pricing handle that has one (`catalogs` in TypeScript/Python/Ruby, `Catalogs()` in Java/C#/Go, `catalogs()` in Swift). In Rust the equivalent is `Pricing::catalog_infos`, which reports the catalogs you injected.
+
+See [Pricing basics](/skopli/guide/pricing-basics/) and the [pricing deep dive](/skopli/pricing/model-matching/).
+
+## Diagnostics and error shapes
+
+The SDK never writes to stdio. Problems come back as structured values, and unmatched models as misses, never guesses.
+
+- **`diagnostics`**: malformed lines, unreadable files, and unusable timestamps from the Read layer. **`skipped`**: source files skipped per harness. Both are returned alongside `events` from `readUsage`.
+- **Pricing misses**: `lookupModel` and a group in `priceEvents`/`priceRollups` return `{ priced: false, attempted }` (the sources tried) when no rate is found, or `{ priced: false, reason: "zeroCost", key }` when only zero-cost placeholders matched.
+- **`tieredAggregate: true`**: a priced row where summed context may have crossed a tier boundary the individual calls never reached (see 3c and 3d).
+- **C ABI status**: every `ag_*` call returns an `AgStatus`. `AG_STATUS_OK` means the `AgBuf` holds a JSON result to read and then free with `ag_buf_free`. Non-OK statuses carry the error rather than writing to stdio.
+
+These shapes are the same across languages, in each language's field-name convention. Python, Ruby, and Rust use `fetched_at`. Every other facade uses `fetchedAt`, the C ABI JSON wire keys included.
+
+## Model matching
+
+Tiered: exact → provider-prefix strip (`openai/gpt-5` → `gpt-5`) → family aliases (some platforms carry a model line under their own route prefix, for example Amazon Bedrock's cross-region `us.anthropic.claude-opus-4-6-20260115-v1:0` → `claude-opus-4.6`, so those names price as the underlying Claude model) → separator and date-stamp normalization (`claude-sonnet-4.5` ~ `claude-sonnet-4-5` ~ `claude-sonnet-4-5-20250929`) → provider-prefixed family forms (`claude-opus-4.6` → `anthropic/claude-opus-4.6`, how OpenRouter keys Claude) → alias table (hand-maintained, for names the mechanical tiers miss).
+
+A miss returns `{ priced: false, attempted }` instead of a guess. Zero-cost catalog entries count as placeholders and skip, so matching falls through to the next source. When only zero-cost entries match, the result is `{ priced: false, reason: "zeroCost", key }`. An explicit `$0` in `overrides` is honored as a real price, not skipped.
+
+See [Model matching](/skopli/pricing/model-matching/).
+
+## Semantics
+
+- Date-only since and until strings (`YYYY-MM-DD`) are interpreted in `tz` (default: system timezone): since = start of day, until = exclusive end of day. Full ISO timestamps apply exactly as given. West of UTC this matters for filtering: with `tz America/Los_Angeles`, since `"2026-08-01"` excludes an event at `2026-08-01T00:30Z` (17:30 Jul 31 local). Day rollups bucket in the same `tz` on every path, so a day rollup never shows a `"2026-07-31"` row and filtering and day rollups agree at the UTC boundary across all SDKs (an unknown zone name falls back to UTC).
+- The reader drops zero-token rows regardless of vendor-reported cost.
+- Unusable timestamps warn and skip, never epoch-0.
+- `calls` aggregation uses the reported count only when finite, else 1 per event.
+- Reasoning tokens bill as output. Cache price tiers fall back to the input rate when a catalog omits them.
+- Codex, Grok, and ZCode report reasoning inside their output count, so the reader subtracts reasoning from output (`output + reasoning` reconstructs the source's raw output). Copilot OTel is the deliberate exception: the OTel GenAI conventions do not state whether `output_tokens` includes reasoning, so the reader assumes they are disjoint and does not subtract. If Copilot output turns out to be reasoning-inclusive, its reasoning would be double-billed.
+- Codex cache-write tokens come from `cache_write_input_tokens` (a 2026-07 protocol addition), a disjoint subset of `input_tokens` like cache reads, so the reader subtracts them from input (`input = raw_input - cacheRead - cacheWrite`) and emits them as `tokens.cacheWrite`. Older session files that lack the field count as 0.
+- 1h cache writes (`tokens.cacheWrite1h`) bill at the catalog above-1hr rate (LiteLLM `cache_creation_input_token_cost_above_1hr`) when present, else input × 2.0. The rest of cacheWrite bills at the base cacheWrite rate. Source priority is per-model, not per-field.
+- Long-context tiers (LiteLLM only): the tier is chosen by total context (`input + cacheRead + cacheWrite`), with marginal billing by default and whole-request repricing for claude models. The cacheWrite 5m/1h split composes per tier: the 1h portion bills at the selected level's 1h rate, the 5m remainder at its cacheWrite rate.
+- Cross-store dedup: the authoritative store suppresses its mirror per harness (OpenCode and zcode sqlite over jsonl, devin CLI sqlite over the Desktop `.ndjson` store, cline's extension store over its CLI session store, deepseek's default JSONL event log over its optional SQLite backend, keyed on `session_id` and `seq`).

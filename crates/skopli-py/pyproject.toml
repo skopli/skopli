@@ -1,0 +1,29 @@
+[build-system]
+requires = ["maturin>=1.7,<2.0"]
+build-backend = "maturin"
+
+[project]
+name = "skopli"
+version = "0.0.0"
+description = "Read, roll up, and price AI coding-agent token usage - native (PyO3) binding over skopli-core."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+classifiers = [
+  "Programming Language :: Rust",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: Implementation :: CPython",
+  "Typing :: Typed",
+]
+
+[project.urls]
+Homepage = "https://docs.skopli.com/skopli/"
+Documentation = "https://docs.skopli.com/skopli/"
+Repository = "https://github.com/skopli/skopli"
+
+[tool.maturin]
+# Mixed layout: the native extension `_skopli` plus the pure-Python typed
+# facade package `skopli` (dataclasses / enums / unions / exception tree).
+python-source = "python"
+module-name = "skopli._skopli"
+features = ["pyo3/extension-module"]

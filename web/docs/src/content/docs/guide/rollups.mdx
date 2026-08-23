@@ -1,0 +1,208 @@
+---
+title: Rollups
+description: The Rollup layer groups usage events by model, day, session, harness, workspace, or billing block, offline.
+---
+
+import { Tabs, TabItem } from "@astrojs/starlight/components";
+
+The Rollup layer groups events. Like the Read layer, it never touches the network.
+
+## What a rollup is
+
+`rollup(events, { by, tz? })` returns a sorted `Rollup[]` with summed tokens, events, turns, calls, and `costUsd` (the summed recorded cost, present only when an event carried one). Group along whichever axis your report needs:
+
+<Tabs syncKey="lang">
+  <TabItem label="TypeScript">
+    ```ts frame="code"
+    rollup(events, { by: "model" });
+    rollup(events, { by: "day", tz: "Asia/Tokyo" }); // timezone-aware day bucketing
+    rollup(events, { by: "session" });
+    rollup(events, { by: "harness" });
+    rollup(events, { by: "workspace" }); // events without a workspace group under "(unknown)"
+    ```
+
+  </TabItem>
+  <TabItem label="Python">
+    ```python frame="code"
+    skopli.rollup(events, "model")
+    skopli.rollup(events, "day", tz="Asia/Tokyo")  # timezone-aware day bucketing
+    skopli.rollup(events, "session")
+    skopli.rollup(events, "harness")
+    skopli.rollup(events, "workspace")  # events without a workspace group under "(unknown)"
+    ```
+
+  </TabItem>
+  <TabItem label="Rust">
+    ```rust frame="code"
+    use skopli_core::rollup::{rollup, RollupBy, RollupOptions};
+
+    rollup(&events, &RollupOptions::new(RollupBy::Model));
+    rollup(&events, &RollupOptions { by: RollupBy::Day, tz: Some("Asia/Tokyo".into()), block_ms: None }); // timezone-aware day bucketing
+    rollup(&events, &RollupOptions::new(RollupBy::Session));
+    rollup(&events, &RollupOptions::new(RollupBy::Harness));
+    rollup(&events, &RollupOptions::new(RollupBy::Workspace)); // no-workspace events under "(unknown)"
+    ```
+
+  </TabItem>
+  <TabItem label="Ruby">
+    ```ruby frame="code"
+    Skopli.rollup(events, :model)
+    Skopli.rollup(events, :day, tz: "Asia/Tokyo") # timezone-aware day bucketing
+    Skopli.rollup(events, :session)
+    Skopli.rollup(events, :harness)
+    Skopli.rollup(events, :workspace) # events without a workspace group under "(unknown)"
+    ```
+
+  </TabItem>
+  <TabItem label="Java">
+    ```java frame="code"
+    Skopli.rollup(events, RollupOptions.by(RollupBy.MODEL));
+    Skopli.rollup(events, RollupOptions.by(RollupBy.DAY, "Asia/Tokyo")); // timezone-aware day bucketing
+    Skopli.rollup(events, RollupOptions.by(RollupBy.SESSION));
+    Skopli.rollup(events, RollupOptions.by(RollupBy.HARNESS));
+    Skopli.rollup(events, RollupOptions.by(RollupBy.WORKSPACE)); // no-workspace events under "(unknown)"
+    ```
+
+  </TabItem>
+  <TabItem label="C#">
+    ```csharp frame="code"
+    SkopliClient.Rollup(events, new RollupOptions { By = RollupBy.Model });
+    SkopliClient.Rollup(events, new RollupOptions { By = RollupBy.Day, Tz = "Asia/Tokyo" }); // timezone-aware day bucketing
+    SkopliClient.Rollup(events, new RollupOptions { By = RollupBy.Session });
+    SkopliClient.Rollup(events, new RollupOptions { By = RollupBy.Harness });
+    SkopliClient.Rollup(events, new RollupOptions { By = RollupBy.Workspace }); // no-workspace under "(unknown)"
+    ```
+
+  </TabItem>
+  <TabItem label="Go">
+    ```go frame="code"
+    skopli.Rollup(events, skopli.RollupOptions{By: skopli.ByModel})
+    skopli.Rollup(events, skopli.RollupOptions{By: skopli.ByDay, TZ: "Asia/Tokyo"}) // timezone-aware day bucketing
+    skopli.Rollup(events, skopli.RollupOptions{By: skopli.BySession})
+    skopli.Rollup(events, skopli.RollupOptions{By: skopli.ByHarness})
+    skopli.Rollup(events, skopli.RollupOptions{By: skopli.ByWorkspace}) // no-workspace under "(unknown)"
+    ```
+
+  </TabItem>
+  <TabItem label="Swift">
+    ```swift frame="code"
+    try Skopli.rollup(events: events, by: .model)
+    try Skopli.rollup(events: events, by: .day, tz: "Asia/Tokyo") // timezone-aware day bucketing
+    try Skopli.rollup(events: events, by: .session)
+    try Skopli.rollup(events: events, by: .harness)
+    try Skopli.rollup(events: events, by: .workspace) // no-workspace events under "(unknown)"
+    ```
+
+  </TabItem>
+  <TabItem label="C/C++">
+    The C ABI exchanges JSON buffers. Pass the rollup options as a JSON object and free the returned buffer:
+
+    ```c frame="code"
+    #include <stdio.h>
+    #include <string.h>
+    #include "skopli.h"
+
+    // events_json / events_len are a serialized UsageEvent[] from ag_read_usage.
+    AgBuf out = {0};
+    const char *group_opts = "{\"by\":\"model\"}";
+    AgStatus st = ag_rollup(events_json, events_len, group_opts, strlen(group_opts), &out);
+    if (st == AG_STATUS_OK) {
+        fwrite(out.ptr, 1, out.len, stdout); // Rollup[] as JSON
+        ag_buf_free(out);
+    }
+    ```
+
+  </TabItem>
+</Tabs>
+
+- **`tz` buckets days in an IANA timezone on every path.** The TypeScript implementation uses `Intl.DateTimeFormat`. The native core (`skopli-core`) and every facade that calls it (Python, Ruby, Java, C#, Go, Swift, and the C ABI) bucket days in the same zone, DST transitions and sub-hour offsets included, so all SDKs agree bucket for bucket. An unknown zone name falls back to UTC. See the [date and timezone semantics](/skopli/guide/reading/#date-and-timezone-semantics) for how `tz` maps events to day buckets.
+- **Workspace bucketing** folds events without a workspace under the `"(unknown)"` sentinel.
+
+## Billing blocks
+
+`by: "block"` groups events into rolling session windows that approximate a provider's usage-quota window, for example Claude subscription five-hour blocks. It is a convenience view of your own recorded usage, not official provider accounting, and will not reproduce a provider's exact quota bookkeeping.
+
+A block opens at the first event's timestamp floored to the hour (in `tz`, or the system timezone when `tz` is omitted) and spans `blockMs` (default five hours, `18000000`). Events in `[start, start + blockMs)` join that block. The first event at or past `start + blockMs` opens a new block, so an idle gap of `blockMs` or longer starts a fresh window. Each row's `key` is the ISO-8601 block-start instant. Events are ordered by timestamp before windowing, and rows come back in ascending start order.
+
+<Tabs syncKey="lang">
+  <TabItem label="TypeScript">
+    ```ts frame="code"
+    rollup(events, { by: "block" }); // default five-hour blocks, system timezone
+    rollup(events, { by: "block", blockMs: 3_600_000, tz: "Asia/Tokyo" }); // one-hour blocks anchored in Tokyo
+    ```
+
+  </TabItem>
+  <TabItem label="Python">
+    ```python frame="code"
+    skopli.rollup(events, "block")  # default five-hour blocks, system timezone
+    skopli.rollup(events, "block", block_ms=3_600_000, tz="Asia/Tokyo")  # one-hour blocks anchored in Tokyo
+    ```
+
+  </TabItem>
+  <TabItem label="Rust">
+    ```rust frame="code"
+    use skopli_core::rollup::{rollup, RollupBy, RollupOptions};
+
+    rollup(&events, &RollupOptions::new(RollupBy::Block)); // default five-hour blocks
+    rollup(&events, &RollupOptions { by: RollupBy::Block, tz: Some("Asia/Tokyo".into()), block_ms: Some(3_600_000) });
+    ```
+
+  </TabItem>
+  <TabItem label="Ruby">
+    ```ruby frame="code"
+    Skopli.rollup(events, :block) # default five-hour blocks, system timezone
+    Skopli.rollup(events, :block, block_ms: 3_600_000, tz: "Asia/Tokyo") # one-hour blocks anchored in Tokyo
+    ```
+
+  </TabItem>
+  <TabItem label="Java">
+    ```java frame="code"
+    Skopli.rollup(events, RollupOptions.block(RollupOptions.DEFAULT_BLOCK_MS));
+    Skopli.rollup(events, RollupOptions.block(3_600_000L, "Asia/Tokyo")); // one-hour blocks anchored in Tokyo
+    ```
+
+  </TabItem>
+  <TabItem label="C#">
+    ```csharp frame="code"
+    SkopliClient.Rollup(events, new RollupOptions { By = RollupBy.Block });
+    SkopliClient.Rollup(events, new RollupOptions { By = RollupBy.Block, BlockMs = 3_600_000, Tz = "Asia/Tokyo" });
+    ```
+
+  </TabItem>
+  <TabItem label="Go">
+    ```go frame="code"
+    skopli.Rollup(events, skopli.RollupOptions{By: skopli.ByBlock})
+    skopli.Rollup(events, skopli.RollupOptions{By: skopli.ByBlock, BlockMs: 3_600_000, TZ: "Asia/Tokyo"})
+    ```
+
+  </TabItem>
+  <TabItem label="Swift">
+    ```swift frame="code"
+    try Skopli.rollup(events: events, by: .block)
+    try Skopli.rollup(events: events, by: .block, tz: "Asia/Tokyo", blockMs: 3_600_000)
+    ```
+
+  </TabItem>
+  <TabItem label="C/C++">
+    ```c frame="code"
+    const char *block_opts = "{\"by\":\"block\",\"blockMs\":18000000}";
+    AgBuf out = {0};
+    AgStatus st = ag_rollup(events_json, events_len, block_opts, strlen(block_opts), &out);
+    ```
+
+  </TabItem>
+</Tabs>
+
+The library never reads the clock, so it does not mark a block active for you. To flag the still-open block, compare its `end` (`start + blockMs`) against the current time caller-side.
+
+## How to price rollups
+
+To turn a rollup into USD, hand it to the Price layer. `priceRollups` prices the tokens already summed onto each rollup, exact for flat-rate models.
+
+See [Pricing basics](/skopli/guide/pricing-basics/) for how matching, cost math, and cost modes work.
+
+## When to use events instead
+
+For tiered (context-sensitive) models, prefer `priceEvents`. It prices each event at its own context before aggregating, so summing several events never pushes the combined context across a tier boundary none of them reached.
+
+See [Rollup pricing vs per-event pricing](/skopli/pricing/rollups-vs-events/) for the full comparison.

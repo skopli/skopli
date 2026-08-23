@@ -1,0 +1,4 @@
+{"type":"session","session_id":"sess-a"}
+{"type":"message","message":{"id":"a1","timestamp":"2026-08-01T10:00:05.000Z","model":"jcode-sonnet","usage":{"input_tokens":100,"output_tokens":50,"cache_read_input_tokens":300,"cache_creation_input_tokens":200}}}
+{"type":"message","message":{"id":"a2","timestamp":"2026-08-01T10:01:05.000Z","model":"jcode-sonnet","usage":{"input_tokens":10,"output_tokens":20,"cache_read_input_tokens":600}}}
+{"type":"message","message":{"id":"a3","timestamp":"2026-08-01T10:02:05.000Z","model":"jcode-haiku","usage":{"input_tokens":8,"output_tokens":9}}}

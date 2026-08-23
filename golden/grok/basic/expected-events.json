@@ -1,0 +1,33 @@
+{
+  "schema_version": 1,
+  "events": [
+    {
+      "harness": "grok",
+      "timestamp": "2026-01-31T22:53:21.000Z",
+      "sessionId": "covered",
+      "messageId": "logs/unified.jsonl:1",
+      "turn": true,
+      "subagent": false,
+      "model": "grok-4",
+      "tokens": {
+        "input": 60,
+        "output": 20,
+        "cacheRead": 40,
+        "cacheWrite": 0,
+        "reasoning": 10
+      }
+    }
+  ],
+  "diagnostics": [
+    {
+      "severity": "warning",
+      "message": "skipping malformed line logs/unified.jsonl:3",
+      "harness": "grok"
+    }
+  ],
+  "skipped": {
+    "grok": [
+      "logs/unified.jsonl:3"
+    ]
+  }
+}

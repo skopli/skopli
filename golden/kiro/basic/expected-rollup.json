@@ -1,0 +1,76 @@
+{
+  "by": {
+    "day": [
+      {
+        "calls": 2,
+        "events": 2,
+        "key": "2026-08-01",
+        "tokens": {
+          "cacheRead": 0,
+          "cacheWrite": 0,
+          "input": 30,
+          "output": 50,
+          "reasoning": 0
+        },
+        "turns": 2
+      },
+      {
+        "calls": 1,
+        "events": 1,
+        "key": "2026-08-02",
+        "tokens": {
+          "cacheRead": 0,
+          "cacheWrite": 0,
+          "input": 10,
+          "output": 10,
+          "reasoning": 0
+        },
+        "turns": 1
+      }
+    ],
+    "harness": [
+      {
+        "calls": 3,
+        "events": 3,
+        "key": "kiro",
+        "tokens": {
+          "cacheRead": 0,
+          "cacheWrite": 0,
+          "input": 40,
+          "output": 60,
+          "reasoning": 0
+        },
+        "turns": 3
+      }
+    ],
+    "model": [
+      {
+        "calls": 1,
+        "events": 1,
+        "key": "amazon-q-default",
+        "tokens": {
+          "cacheRead": 0,
+          "cacheWrite": 0,
+          "input": 10,
+          "output": 10,
+          "reasoning": 0
+        },
+        "turns": 1
+      },
+      {
+        "calls": 2,
+        "events": 2,
+        "key": "claude-sonnet-4-5",
+        "tokens": {
+          "cacheRead": 0,
+          "cacheWrite": 0,
+          "input": 30,
+          "output": 50,
+          "reasoning": 0
+        },
+        "turns": 2
+      }
+    ]
+  },
+  "schema_version": 1
+}

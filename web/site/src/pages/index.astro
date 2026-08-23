@@ -1,0 +1,386 @@
+---
+import Base from '../layouts/Base.astro';
+import HarnessIcon from '../components/HarnessIcon.astro';
+---
+<Base>
+
+<a class="skip" href="#main">Skip to content</a>
+
+<header class="topnav">
+  <div class="wrap topnav-in">
+    <a class="brand" href="/"><svg class="brand-mark" viewBox="0 0 24 24" fill="currentColor" fill-rule="evenodd" aria-hidden="true"><path d="M12 1 A11 11 0 1 0 12 23 A11 11 0 1 0 12 1 Z M12 3.6 A8.4 8.4 0 1 1 12 20.4 A8.4 8.4 0 1 1 12 3.6 Z"/><rect x="7.3" y="8.6" width="3.6" height="2.2"/><rect x="7.3" y="12.7" width="7.4" height="2.2"/></svg><span class="brand-word">Skopli<span class="dot">.</span></span></a>
+    <nav aria-label="Primary">
+      <a href="#languages">Languages</a>
+      <a href="#layers">Layers</a>
+      <a href="#quickstart">Quickstart</a>
+      <a href="https://docs.skopli.com">Docs</a>
+      <a class="icon-link" href="https://github.com/skopli/skopli" aria-label="GitHub">
+        <svg class="chrome-icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"/></svg>
+      </a>
+      <button class="theme-toggle" id="themeToggle" type="button" aria-label="Toggle colour theme">
+        <svg class="chrome-icon t-light" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4.5"/><path d="M12 2v2.5M12 19.5V22M4.22 4.22l1.77 1.77M18.01 18.01l1.77 1.77M2 12h2.5M19.5 12H22M4.22 19.78l1.77-1.77M18.01 5.99l1.77-1.77"/></svg>
+        <svg class="chrome-icon t-dark" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M20.5 14.2a8.5 8.5 0 0 1-10.7-10.7 0.7 0.7 0 0 0-0.9-0.9 9.5 9.5 0 1 0 12.5 12.5 0.7 0.7 0 0 0-0.9-0.9z"/></svg>
+      </button>
+    </nav>
+  </div>
+</header>
+
+<main id="main">
+
+<section class="hero wrap">
+  <h1>Know what your coding agents cost.</h1>
+  <p class="hero-line">Skopli reads the usage 40 agent harnesses write to disk, prices it against live catalogs, and hands your code the total. Offline. No account.</p>
+  <div class="hero-actions">
+    <a class="btn btn-primary" href="https://docs.skopli.com">Get started</a>
+    <a class="btn" href="https://github.com/skopli/skopli"><svg class="btn-icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"/></svg>GitHub</a>
+  </div>
+  <p class="hero-tag">MIT&#8202;·&#8202;Rust core, 9 language facades</p>
+
+  <figure class="hero-fig">
+    <div class="ledger-frame" role="group" aria-label="Example output table">
+      <div class="code-head">
+        <span class="file">rollup(events, {'{'} by: "model" {'}'})</span>
+        <span class="reg">USD</span>
+      </div>
+      <table class="ledger">
+        <caption class="visually-hidden">Example output: agent usage rolled up by model and priced. One model has no catalog match and is left unpriced.</caption>
+        <thead>
+          <tr>
+            <th>Model</th>
+            <th class="n hide-s">Input</th>
+            <th class="n hide-s">Cache read</th>
+            <th class="n hide-s">Cache write</th>
+            <th class="n">Output</th>
+            <th class="n">USD</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><span class="model" title="anthropic/claude-opus-4.8">claude-opus-4.8</span></td>
+            <td class="n hide-s">8,412,006</td>
+            <td class="n hide-s">31,004,998</td>
+            <td class="n hide-s">1,786,114</td>
+            <td class="n">1,864,442</td>
+            <td class="n usd priced">$115.34</td>
+          </tr>
+          <tr>
+            <td><span class="model" title="openai/gpt-5.6-terra">gpt-5.6-terra</span></td>
+            <td class="n hide-s">5,120,338</td>
+            <td class="n hide-s">13,204,500</td>
+            <td class="n hide-s">615,177</td>
+            <td class="n">922,378</td>
+            <td class="n usd priced">$25.49</td>
+          </tr>
+          <tr>
+            <td><span class="model" title="google/gemini-3.1-pro-preview">gemini-3.1-pro-preview</span></td>
+            <td class="n hide-s">9,887,412</td>
+            <td class="n hide-s">16,902,776</td>
+            <td class="n hide-s">761,716</td>
+            <td class="n">1,103,266</td>
+            <td class="n usd priced">$36.68</td>
+          </tr>
+          <tr class="miss">
+            <td>
+              <span class="model" title="local-fine-tune">local-fine-tune</span>
+              <span class="sources">attempted: openrouter · litellm · models.dev</span>
+            </td>
+            <td class="n hide-s">4,002,118</td>
+            <td class="n hide-s">2,100,140</td>
+            <td class="n hide-s">230,152</td>
+            <td class="n">401,092</td>
+            <td class="n"><span class="miss-tag">priced: false</span></td>
+          </tr>
+        </tbody>
+        <tfoot>
+          <tr>
+            <td>4 models · 1 miss</td>
+            <td class="n hide-s">27,421,874</td>
+            <td class="n hide-s">63,212,414</td>
+            <td class="n hide-s">3,393,159</td>
+            <td class="n">4,291,178</td>
+            <td class="n">$177.51</td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+    <p class="fig-foot">The unpriced model stays out of the total. Skopli returns <span class="mono">priced: false</span> with the catalogs it tried, never a made-up rate.</p>
+  </figure>
+</section>
+
+<section class="section wrap" id="languages">
+  <h2>The same numbers in every language you ship.</h2>
+  <div class="install-grid">
+    <div class="install-row"><span class="ln">TypeScript</span><code>npm install skopli</code><span class="pm-alts"><button class="pm-chip" type="button" data-copy="pnpm add skopli" aria-label="Copy pnpm install command for TypeScript">pnpm</button><button class="pm-chip" type="button" data-copy="bun add skopli" aria-label="Copy bun install command for TypeScript">bun</button></span><button class="copy-btn" type="button" data-copy="npm install skopli" aria-label="Copy install command for TypeScript"></button></div>
+    <div class="install-row"><span class="ln">Python</span><code>pip install skopli</code><button class="copy-btn" type="button" data-copy="pip install skopli" aria-label="Copy install command for Python"></button></div>
+    <div class="install-row"><span class="ln">Rust</span><code>cargo add skopli-core</code><button class="copy-btn" type="button" data-copy="cargo add skopli-core" aria-label="Copy install command for Rust"></button></div>
+    <div class="install-row"><span class="ln">Ruby</span><code>gem install skopli</code><button class="copy-btn" type="button" data-copy="gem install skopli" aria-label="Copy install command for Ruby"></button></div>
+    <div class="install-row"><span class="ln">Java</span><code>com.skopli:skopli</code><button class="copy-btn" type="button" data-copy="com.skopli:skopli" aria-label="Copy Maven coordinate for Java"></button></div>
+    <div class="install-row"><span class="ln">C#</span><code>dotnet add package Skopli</code><button class="copy-btn" type="button" data-copy="dotnet add package Skopli" aria-label="Copy install command for C#"></button></div>
+    <div class="install-row"><span class="ln">Go</span><code>go get github.com/skopli/skopli/sdks/go</code><button class="copy-btn" type="button" data-copy="go get github.com/skopli/skopli/sdks/go" aria-label="Copy install command for Go"></button></div>
+    <div class="install-row"><span class="ln">Swift</span><code>https://github.com/skopli/skopli</code><button class="copy-btn" type="button" data-copy="https://github.com/skopli/skopli" aria-label="Copy Swift Package Manager URL"></button></div>
+    <div class="install-row"><span class="ln">C ABI</span><code>cc app.c -lskopli</code><button class="copy-btn" type="button" data-copy="cc app.c -lskopli" aria-label="Copy link command for C ABI"></button></div>
+  </div>
+  <p class="note">Eight SDKs and a C ABI call one Rust core. A rollup in Python and a rollup in Go run the same code and return the same total.</p>
+</section>
+
+<section class="section wrap" id="layers">
+  <h2>Three layers you can take one at a time.</h2>
+  <div class="layers">
+    <div class="layer">
+      <h3>read</h3>
+      <p>Parse local session state from 40 harnesses into one normalized event shape. Disk only, never the network. A file that will not parse returns a structured diagnostic, not a silent gap.</p>
+    </div>
+    <div class="layer">
+      <h3>rollup</h3>
+      <p>Aggregate events by model, session, harness, workspace, or day. Feed the result straight into pricing.</p>
+    </div>
+    <div class="layer">
+      <h3>price</h3>
+      <p>Match models against OpenRouter, LiteLLM, and models.dev, then compute USD. Long-context tiers and Claude's 5-minute and 1-hour cache writes each bill at their own rate. An unmatched model returns <code>priced: false</code>, never a guess.</p>
+    </div>
+  </div>
+</section>
+
+<section class="section band" id="quickstart">
+  <div class="wrap">
+    <h2>Four calls, local files to a priced total.</h2>
+    <div class="quickstart">
+      <div class="tabstrip" role="tablist" aria-label="Quickstart language" data-strip="quick">
+        <button role="tab" aria-selected="true" data-lang="ts">TypeScript</button>
+        <button role="tab" aria-selected="false" data-lang="py">Python</button>
+        <button role="tab" aria-selected="false" data-lang="rs">Rust</button>
+        <button role="tab" aria-selected="false" data-lang="rb">Ruby</button>
+        <button role="tab" aria-selected="false" data-lang="java">Java</button>
+        <button role="tab" aria-selected="false" data-lang="cs">C#</button>
+        <button role="tab" aria-selected="false" data-lang="go">Go</button>
+        <button role="tab" aria-selected="false" data-lang="swift">Swift</button>
+        <button role="tab" aria-selected="false" data-lang="c">C/C++</button>
+      </div>
+      <div class="panels" data-panels="quick">
+        <div class="panel" data-lang="ts" data-open="true"><div class="code"><div class="code-head"><span class="file">quickstart.ts</span><span class="reg">TypeScript</span></div><pre><code><span class="kw">import</span> {'{'} <span class="fn">readUsage</span><span class="pn">,</span> <span class="fn">rollup</span><span class="pn">,</span> <span class="fn">createPricing</span> {'}'} <span class="kw">from</span> <span class="str">"skopli"</span><span class="pn">;</span>
+
+<span class="cm">// read local harness state into normalized events</span>
+<span class="kw">const</span> {'{'} events {'}'} <span class="pn">=</span> <span class="kw">await</span> <span class="fn">readUsage</span><span class="pn">(</span>{'{'} since<span class="pn">:</span> <span class="str">"2026-08-01"</span> {'}'}<span class="pn">)</span><span class="pn">;</span>
+<span class="kw">const</span> byModel <span class="pn">=</span> <span class="fn">rollup</span><span class="pn">(</span>events<span class="pn">,</span> {'{'} by<span class="pn">:</span> <span class="str">"model"</span> {'}'}<span class="pn">)</span><span class="pn">;</span>
+<span class="kw">const</span> priced <span class="pn">=</span> <span class="kw">await</span> <span class="fn">createPricing</span><span class="pn">(</span><span class="pn">)</span><span class="pn">.</span><span class="fn">priceRollups</span><span class="pn">(</span>byModel<span class="pn">)</span><span class="pn">;</span>
+<span class="cm">// misses carry no usd, so they stay out of the total</span>
+<span class="kw">const</span> total <span class="pn">=</span> priced<span class="pn">.</span><span class="fn">reduce</span><span class="pn">(</span><span class="pn">(</span>t<span class="pn">,</span> r<span class="pn">)</span> <span class="pn">=&gt;</span> t <span class="pn">+</span> <span class="pn">(</span>r<span class="pn">.</span>pricing<span class="pn">.</span>priced <span class="pn">?</span> r<span class="pn">.</span>pricing<span class="pn">.</span>usd <span class="pn">:</span> <span class="no">0</span><span class="pn">)</span><span class="pn">,</span> <span class="no">0</span><span class="pn">)</span><span class="pn">;</span>
+<span class="fn">console</span><span class="pn">.</span><span class="fn">log</span><span class="pn">(</span>total<span class="pn">)</span><span class="pn">;</span> <span class="cm">// 177.51</span></code></pre></div></div>
+        <div class="panel" data-lang="py"><div class="code"><div class="code-head"><span class="file">quickstart.py</span><span class="reg">Python</span></div><pre><code><span class="kw">import</span> skopli
+
+result <span class="pn">=</span> skopli<span class="pn">.</span><span class="fn">read_usage</span><span class="pn">(</span>since<span class="pn">=</span><span class="str">"2026-08-01"</span><span class="pn">)</span>
+by_model <span class="pn">=</span> skopli<span class="pn">.</span><span class="fn">rollup</span><span class="pn">(</span>result<span class="pn">.</span>events<span class="pn">,</span> <span class="str">"model"</span><span class="pn">)</span>
+priced <span class="pn">=</span> skopli<span class="pn">.</span><span class="fn">create_pricing</span><span class="pn">(</span><span class="pn">)</span><span class="pn">.</span><span class="fn">price_rollups</span><span class="pn">(</span>by_model<span class="pn">)</span>
+total <span class="pn">=</span> <span class="fn">sum</span><span class="pn">(</span>r<span class="pn">.</span>usd <span class="kw">for</span> r <span class="kw">in</span> priced <span class="kw">if</span> r<span class="pn">.</span>pricing<span class="pn">.</span>priced<span class="pn">)</span>
+<span class="fn">print</span><span class="pn">(</span><span class="fn">round</span><span class="pn">(</span>total<span class="pn">,</span> <span class="no">2</span><span class="pn">)</span><span class="pn">)</span>  <span class="cm"># 177.51</span></code></pre></div></div>
+        <div class="panel" data-lang="rs"><div class="code"><div class="code-head"><span class="file">main.rs</span><span class="reg">Rust</span></div><pre><code><span class="kw">use</span> skopli_core<span class="pn">::</span>rollup<span class="pn">::</span>{'{'}rollup<span class="pn">,</span> RollupBy<span class="pn">,</span> RollupOptions{'}'}<span class="pn">;</span>
+<span class="kw">use</span> skopli_core<span class="pn">::</span>pricing<span class="pn">::</span>{'{'}Pricing<span class="pn">,</span> PricingMode<span class="pn">,</span> RollupPricing{'}'}<span class="pn">;</span>
+
+<span class="cm">// the core takes pre-fetched catalogs; it never opens a socket itself</span>
+<span class="kw">let</span> by_model <span class="pn">=</span> <span class="fn">rollup</span><span class="pn">(</span>&amp;events<span class="pn">,</span> &amp;RollupOptions<span class="pn">::</span><span class="fn">new</span><span class="pn">(</span>RollupBy<span class="pn">::</span>Model<span class="pn">)</span><span class="pn">)</span><span class="pn">;</span>
+<span class="kw">let</span> pricing <span class="pn">=</span> Pricing<span class="pn">::</span><span class="fn">new</span><span class="pn">(</span>catalogs<span class="pn">,</span> <span class="fn">None</span><span class="pn">,</span> PricingMode<span class="pn">::</span>Calculate<span class="pn">)</span><span class="pn">;</span>
+<span class="cm">// misses carry no usd, so they stay out of the total</span>
+<span class="kw">let</span> total<span class="pn">:</span> <span class="kw">f64</span> <span class="pn">=</span> pricing<span class="pn">.</span><span class="fn">price_rollups</span><span class="pn">(</span>&amp;by_model<span class="pn">)</span><span class="pn">.</span><span class="fn">iter</span><span class="pn">(</span><span class="pn">)</span>
+    <span class="pn">.</span><span class="fn">filter_map</span><span class="pn">(</span><span class="pn">|</span>r<span class="pn">|</span> <span class="kw">match</span> r<span class="pn">.</span>pricing {'{'} RollupPricing<span class="pn">::</span>Hit {'{'} usd<span class="pn">,</span> <span class="pn">..</span> {'}'} <span class="pn">=&gt;</span> <span class="fn">Some</span><span class="pn">(</span>usd<span class="pn">)</span><span class="pn">,</span> _ <span class="pn">=&gt;</span> <span class="fn">None</span> {'}'}<span class="pn">)</span>
+    <span class="pn">.</span><span class="fn">sum</span><span class="pn">(</span><span class="pn">)</span><span class="pn">;</span>
+<span class="fn">println!</span><span class="pn">(</span><span class="str">"{'{'}total:.2{'}'}"</span><span class="pn">)</span><span class="pn">;</span> <span class="cm">// 177.51</span></code></pre></div></div>
+        <div class="panel" data-lang="rb"><div class="code"><div class="code-head"><span class="file">quickstart.rb</span><span class="reg">Ruby</span></div><pre><code><span class="kw">require</span> <span class="str">"skopli"</span>
+
+result <span class="pn">=</span> Skopli<span class="pn">.</span><span class="fn">read_usage</span><span class="pn">(</span>since<span class="pn">:</span> <span class="str">"2026-08-01"</span><span class="pn">)</span>
+by_model <span class="pn">=</span> Skopli<span class="pn">.</span><span class="fn">rollup</span><span class="pn">(</span>result<span class="pn">.</span>events<span class="pn">,</span> <span class="str">:model</span><span class="pn">)</span>
+priced <span class="pn">=</span> Skopli<span class="pn">.</span><span class="fn">create_pricing</span><span class="pn">.</span><span class="fn">price_rollups</span><span class="pn">(</span>by_model<span class="pn">)</span>
+total <span class="pn">=</span> priced<span class="pn">.</span><span class="fn">select</span> {'{'} <span class="pn">|</span>r<span class="pn">|</span> r<span class="pn">.</span>pricing<span class="pn">.</span><span class="fn">priced</span> {'}'}<span class="pn">.</span><span class="fn">sum</span><span class="pn">(</span>&amp;<span class="str">:usd</span><span class="pn">)</span>
+<span class="fn">puts</span> total<span class="pn">.</span><span class="fn">round</span><span class="pn">(</span><span class="no">2</span><span class="pn">)</span>  <span class="cm"># 177.51</span></code></pre></div></div>
+        <div class="panel" data-lang="java"><div class="code"><div class="code-head"><span class="file">Quickstart.java</span><span class="reg">Java</span></div><pre><code><span class="kw">import</span> com<span class="pn">.</span>skopli<span class="pn">.</span><span class="pn">*</span><span class="pn">;</span>
+
+<span class="kw">var</span> result <span class="pn">=</span> Skopli<span class="pn">.</span><span class="fn">readUsage</span><span class="pn">(</span>ReadUsageOptions<span class="pn">.</span><span class="fn">builder</span><span class="pn">(</span><span class="pn">)</span><span class="pn">.</span><span class="fn">since</span><span class="pn">(</span><span class="str">"2026-08-01"</span><span class="pn">)</span><span class="pn">.</span><span class="fn">build</span><span class="pn">(</span><span class="pn">)</span><span class="pn">)</span><span class="pn">;</span>
+<span class="kw">var</span> byModel <span class="pn">=</span> Skopli<span class="pn">.</span><span class="fn">rollup</span><span class="pn">(</span>result<span class="pn">.</span><span class="fn">events</span><span class="pn">(</span><span class="pn">)</span><span class="pn">,</span> RollupOptions<span class="pn">.</span><span class="fn">by</span><span class="pn">(</span>RollupBy<span class="pn">.</span>MODEL<span class="pn">)</span><span class="pn">)</span><span class="pn">;</span>
+<span class="kw">try</span> <span class="pn">(</span><span class="kw">var</span> pricing <span class="pn">=</span> Skopli<span class="pn">.</span><span class="fn">createPricing</span><span class="pn">(</span>PricingOptions<span class="pn">.</span><span class="fn">builder</span><span class="pn">(</span><span class="pn">)</span><span class="pn">.</span><span class="fn">build</span><span class="pn">(</span><span class="pn">)</span><span class="pn">)</span><span class="pn">)</span> {'{'}
+    <span class="kw">double</span> total <span class="pn">=</span> <span class="no">0</span><span class="pn">;</span>
+    <span class="kw">for</span> <span class="pn">(</span><span class="kw">var</span> row <span class="pn">:</span> pricing<span class="pn">.</span><span class="fn">priceRollups</span><span class="pn">(</span>byModel<span class="pn">)</span><span class="pn">)</span>
+        total <span class="pn">+=</span> row<span class="pn">.</span><span class="fn">pricing</span><span class="pn">(</span><span class="pn">)</span><span class="pn">.</span><span class="fn">usd</span><span class="pn">(</span><span class="pn">)</span><span class="pn">.</span><span class="fn">orElse</span><span class="pn">(</span><span class="no">0</span><span class="pn">)</span><span class="pn">;</span>
+    System<span class="pn">.</span>out<span class="pn">.</span><span class="fn">printf</span><span class="pn">(</span><span class="str">"%.2f%n"</span><span class="pn">,</span> total<span class="pn">)</span><span class="pn">;</span> <span class="cm">// 177.51</span>
+{'}'}</code></pre></div></div>
+        <div class="panel" data-lang="cs"><div class="code"><div class="code-head"><span class="file">Quickstart.cs</span><span class="reg">C#</span></div><pre><code><span class="kw">using</span> Skopli<span class="pn">;</span>
+
+<span class="kw">var</span> usage <span class="pn">=</span> SkopliClient<span class="pn">.</span><span class="fn">ReadUsage</span><span class="pn">(</span><span class="kw">new</span> ReadUsageOptions {'{'} Since <span class="pn">=</span> <span class="str">"2026-08-01"</span> {'}'}<span class="pn">)</span><span class="pn">;</span>
+<span class="kw">var</span> byModel <span class="pn">=</span> SkopliClient<span class="pn">.</span><span class="fn">Rollup</span><span class="pn">(</span>usage<span class="pn">.</span>Events<span class="pn">,</span> <span class="kw">new</span> RollupOptions {'{'} By <span class="pn">=</span> RollupBy<span class="pn">.</span>Model {'}'}<span class="pn">)</span><span class="pn">;</span>
+<span class="kw">using</span> <span class="kw">var</span> pricing <span class="pn">=</span> SkopliClient<span class="pn">.</span><span class="fn">CreatePricing</span><span class="pn">(</span><span class="kw">new</span> PricingOptions<span class="pn">(</span><span class="pn">)</span><span class="pn">)</span><span class="pn">;</span>
+<span class="kw">double</span> total <span class="pn">=</span> pricing<span class="pn">.</span><span class="fn">PriceRollups</span><span class="pn">(</span>byModel<span class="pn">)</span>
+    <span class="pn">.</span><span class="fn">Sum</span><span class="pn">(</span>r <span class="pn">=&gt;</span> r<span class="pn">.</span>Pricing <span class="kw">is</span> PriceHit h <span class="pn">?</span> h<span class="pn">.</span>Usd <span class="pn">:</span> <span class="no">0</span><span class="pn">)</span><span class="pn">;</span>
+Console<span class="pn">.</span><span class="fn">WriteLine</span><span class="pn">(</span>total<span class="pn">.</span><span class="fn">ToString</span><span class="pn">(</span><span class="str">"F2"</span><span class="pn">)</span><span class="pn">)</span><span class="pn">;</span> <span class="cm">// 177.51</span></code></pre></div></div>
+        <div class="panel" data-lang="go"><div class="code"><div class="code-head"><span class="file">main.go</span><span class="reg">Go</span></div><pre><code><span class="kw">import</span> <span class="str">"github.com/skopli/skopli/sdks/go/skopli"</span>
+
+usage<span class="pn">,</span> _ <span class="pn">:=</span> skopli<span class="pn">.</span><span class="fn">ReadUsage</span><span class="pn">(</span>skopli<span class="pn">.</span>ReadUsageOptions{'{'}Since<span class="pn">:</span> <span class="str">"2026-08-01"</span>{'}'}<span class="pn">)</span>
+byModel<span class="pn">,</span> _ <span class="pn">:=</span> skopli<span class="pn">.</span><span class="fn">Rollup</span><span class="pn">(</span>usage<span class="pn">.</span>Events<span class="pn">,</span> skopli<span class="pn">.</span>RollupOptions{'{'}By<span class="pn">:</span> skopli<span class="pn">.</span>ByModel{'}'}<span class="pn">)</span>
+pricing<span class="pn">,</span> _ <span class="pn">:=</span> skopli<span class="pn">.</span><span class="fn">NewPricing</span><span class="pn">(</span>skopli<span class="pn">.</span>PricingOptions{'{'}{'}'}<span class="pn">)</span>
+<span class="kw">defer</span> pricing<span class="pn">.</span><span class="fn">Close</span><span class="pn">(</span><span class="pn">)</span>
+priced<span class="pn">,</span> _ <span class="pn">:=</span> pricing<span class="pn">.</span><span class="fn">PriceRollups</span><span class="pn">(</span>byModel<span class="pn">)</span>
+<span class="kw">var</span> total <span class="kw">float64</span>
+<span class="kw">for</span> _<span class="pn">,</span> r <span class="pn">:=</span> <span class="kw">range</span> priced {'{'}
+    <span class="kw">if</span> r<span class="pn">.</span>Pricing<span class="pn">.</span>Priced {'{'} total <span class="pn">+=</span> <span class="pn">*</span>r<span class="pn">.</span>Pricing<span class="pn">.</span>USD {'}'}
+{'}'}
+fmt<span class="pn">.</span><span class="fn">Printf</span><span class="pn">(</span><span class="str">"%.2f\n"</span><span class="pn">,</span> total<span class="pn">)</span> <span class="cm">// 177.51</span></code></pre></div></div>
+        <div class="panel" data-lang="swift"><div class="code"><div class="code-head"><span class="file">Quickstart.swift</span><span class="reg">Swift</span></div><pre><code><span class="kw">import</span> Skopli
+
+<span class="kw">let</span> result <span class="pn">=</span> <span class="kw">try</span> Skopli<span class="pn">.</span><span class="fn">readUsage</span><span class="pn">(</span>options<span class="pn">:</span> <span class="fn">ReadUsageOptions</span><span class="pn">(</span>since<span class="pn">:</span> <span class="str">"2026-08-01"</span><span class="pn">)</span><span class="pn">)</span>
+<span class="kw">let</span> byModel <span class="pn">=</span> <span class="kw">try</span> Skopli<span class="pn">.</span><span class="fn">rollup</span><span class="pn">(</span>events<span class="pn">:</span> result<span class="pn">.</span>events<span class="pn">,</span> by<span class="pn">:</span> <span class="pn">.</span>model<span class="pn">)</span>
+<span class="kw">let</span> pricing <span class="pn">=</span> <span class="kw">try</span> Skopli<span class="pn">.</span><span class="fn">createPricing</span><span class="pn">(</span><span class="pn">)</span>
+<span class="kw">defer</span> {'{'} pricing<span class="pn">.</span><span class="fn">close</span><span class="pn">(</span><span class="pn">)</span> {'}'}
+<span class="kw">let</span> priced <span class="pn">=</span> <span class="kw">try</span> pricing<span class="pn">.</span><span class="fn">priceRollups</span><span class="pn">(</span>rollups<span class="pn">:</span> byModel<span class="pn">)</span>
+<span class="kw">let</span> total <span class="pn">=</span> priced<span class="pn">.</span><span class="fn">reduce</span><span class="pn">(</span><span class="no">0</span><span class="pn">)</span> {'{'} $0 <span class="pn">+</span> <span class="pn">(</span>$1<span class="pn">.</span>pricing<span class="pn">.</span>usd <span class="pn">??</span> <span class="no">0</span><span class="pn">)</span> {'}'}
+<span class="fn">print</span><span class="pn">(</span><span class="fn">String</span><span class="pn">(</span>format<span class="pn">:</span> <span class="str">"%.2f"</span><span class="pn">,</span> total<span class="pn">)</span><span class="pn">)</span> <span class="cm">// 177.51</span></code></pre></div></div>
+        <div class="panel" data-lang="c"><div class="code"><div class="code-head"><span class="file">quickstart.c</span><span class="reg">C / C++</span></div><pre><code><span class="cm">#include</span> <span class="str">&lt;stdio.h&gt;</span>
+<span class="cm">#include</span> <span class="str">&lt;string.h&gt;</span>
+<span class="cm">#include</span> <span class="str">"skopli.h"</span>
+
+<span class="cm">/* default libskopli opens no socket; hand it pre-fetched prices */</span>
+AgPricing <span class="pn">*</span>p <span class="pn">=</span> <span class="fn">NULL</span><span class="pn">;</span>
+<span class="kw">const</span> <span class="kw">char</span> <span class="pn">*</span>opts <span class="pn">=</span> <span class="str">"{'{'}\"builtinSources\":false,\"overrides\":"</span>
+    <span class="str">"[{'{'}\"model\":\"openai/gpt-5\",\"input\":1.25,\"output\":10{'}'}]{'}'}"</span><span class="pn">;</span>
+<span class="kw">if</span> <span class="pn">(</span><span class="fn">ag_pricing_new</span><span class="pn">(</span>opts<span class="pn">,</span> <span class="fn">strlen</span><span class="pn">(</span>opts<span class="pn">)</span><span class="pn">,</span> &amp;p<span class="pn">)</span> <span class="pn">!=</span> AG_STATUS_OK<span class="pn">)</span> <span class="kw">return</span> <span class="no">1</span><span class="pn">;</span>
+AgBuf out <span class="pn">=</span> {'{'}<span class="no">0</span>{'}'}<span class="pn">;</span>
+AgStatus st <span class="pn">=</span> <span class="fn">ag_pricing_price_rollups</span><span class="pn">(</span>p<span class="pn">,</span> rollups_json<span class="pn">,</span> rollups_len<span class="pn">,</span> &amp;out<span class="pn">)</span><span class="pn">;</span>
+<span class="kw">if</span> <span class="pn">(</span>st <span class="pn">==</span> AG_STATUS_OK<span class="pn">)</span> {'{'}
+    <span class="fn">fwrite</span><span class="pn">(</span>out<span class="pn">.</span>ptr<span class="pn">,</span> <span class="no">1</span><span class="pn">,</span> out<span class="pn">.</span>len<span class="pn">,</span> stdout<span class="pn">)</span><span class="pn">;</span> <span class="cm">/* PricedRollup[] JSON */</span>
+    <span class="fn">ag_buf_free</span><span class="pn">(</span>out<span class="pn">)</span><span class="pn">;</span>
+{'}'}
+<span class="fn">ag_pricing_free</span><span class="pn">(</span>p<span class="pn">)</span><span class="pn">;</span></code></pre></div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section band" id="harnesses">
+  <div class="wrap">
+    <h2>Forty harnesses, read where they already write.</h2>
+    <ul class="harness-list">
+      <li><HarnessIcon slug="claude" />Claude Code</li><li><HarnessIcon slug="opencode" />OpenCode</li><li><HarnessIcon slug="codex" />Codex CLI</li><li><HarnessIcon slug="gemini" />Gemini CLI</li>
+      <li><HarnessIcon slug="copilot" />Copilot CLI</li><li><HarnessIcon slug="amp" />Amp</li><li><HarnessIcon slug="qwen" />Qwen Code</li><li><HarnessIcon slug="goose" />Goose</li>
+      <li><HarnessIcon slug="cline" />Cline</li><li><HarnessIcon slug="roocode" />Roo Code</li><li><HarnessIcon slug="zed" />Zed Agent</li><li><HarnessIcon slug="grok" />Grok CLI</li>
+      <li><HarnessIcon slug="kilocode" />Kilo Code CLI</li><li><HarnessIcon slug="junie" />Junie</li><li><HarnessIcon slug="devin" />Devin CLI</li><li class="more">and 25 more</li>
+    </ul>
+    <p class="note">Nothing to install into the harness. No plugin, no proxy, no exporter. Skopli parses the session state each one keeps on disk.</p>
+  </div>
+</section>
+
+<section class="section wrap" id="honest">
+  <div class="refuse-grid">
+    <div class="refuse-copy">
+      <h2>What Skopli refuses to do.</h2>
+      <p class="note">Four of them. A wrong number is worse than a gap you can see.</p>
+      <dl class="refuse">
+        <div><dt>Guess a price</dt><dd>An unmatched model returns <code>priced: false</code> with the catalogs it checked, and stays out of the total.</dd></div>
+        <div><dt>Send telemetry</dt><dd>No telemetry or analytics calls, ever. It measures your agents, not you. Pricing fetches market catalogs only when you opt into the Price layer, and caches what it fetches.</dd></div>
+        <div><dt>Require an account</dt><dd>Nothing to sign up for. It runs offline against files you already have.</dd></div>
+        <div><dt>Double-count tokens</dt><dd>Input, output, and cache tokens stay in separate buckets. Claude's 5-minute and 1-hour cache writes are split and priced apart.</dd></div>
+      </dl>
+    </div>
+    <figure class="miss-card">
+      <div class="code">
+        <div class="code-head"><span class="file">an unmatched model, reported in full</span><span class="reg">Skopli</span></div>
+        <pre><code>{'{'}
+  model<span class="pn">:</span> <span class="str">"local-fine-tune"</span><span class="pn">,</span>
+  tokens<span class="pn">:</span> {'{'} input<span class="pn">:</span> <span class="no">6332410</span><span class="pn">,</span> output<span class="pn">:</span> <span class="no">401092</span> {'}'}<span class="pn">,</span>
+  priced<span class="pn">:</span> <span class="bad">false</span><span class="pn">,</span>
+  attempted<span class="pn">:</span> <span class="pn">[</span><span class="str">"openrouter"</span><span class="pn">,</span> <span class="str">"litellm"</span><span class="pn">,</span> <span class="str">"models.dev"</span><span class="pn">]</span>
+  <span class="cm">// no rate found, so none invented</span>
+{'}'}</code></pre>
+      </div>
+    </figure>
+  </div>
+</section>
+
+<section class="section" id="prior-art">
+  <div class="wrap prior">
+    <h2>Why a library.</h2>
+    <p>Skopli ships read, rollup, and price as a library, so what you build on top is yours: a dashboard, a nightly report, a CI budget check, a billing reconciliation. Reach for Skopli when you need these numbers inside your own code.</p>
+  </div>
+</section>
+
+</main>
+
+<footer class="foot">
+  <div class="wrap foot-in">
+    <a class="brand" href="/"><svg class="brand-mark" viewBox="0 0 24 24" fill="currentColor" fill-rule="evenodd" aria-hidden="true"><path d="M12 1 A11 11 0 1 0 12 23 A11 11 0 1 0 12 1 Z M12 3.6 A8.4 8.4 0 1 1 12 20.4 A8.4 8.4 0 1 1 12 3.6 Z"/><rect x="7.3" y="8.6" width="3.6" height="2.2"/><rect x="7.3" y="12.7" width="7.4" height="2.2"/></svg><span class="brand-word">Skopli<span class="dot">.</span></span></a>
+    <nav aria-label="Footer">
+      <a href="https://docs.skopli.com">Docs</a>
+      <a href="https://github.com/skopli/skopli">GitHub</a>
+      <a href="https://github.com/skopli/skopli/blob/main/LICENSE">MIT License</a>
+    </nav>
+  </div>
+  <div class="wrap"><p class="foot-meta">MIT open source · reads offline · no account, no telemetry</p></div>
+  <div class="wrap">
+    <p class="foot-meta">
+      All product names, logos, and brands are property of their respective owners and are used
+      for identification only. Their use is nominative and does not imply endorsement of or
+      affiliation with Skopli.
+    </p>
+  </div>
+</footer>
+
+<script is:inline>
+(function () {
+  var root = document.documentElement;
+
+  // Theme toggle. Persist under skopli-theme (pre-paint script sets initial)
+  var toggle = document.getElementById("themeToggle");
+  if (toggle) {
+    toggle.addEventListener("click", function () {
+      var next = root.getAttribute("data-theme") === "dark" ? "light" : "dark";
+      root.setAttribute("data-theme", next);
+      try { localStorage.setItem("skopli-theme", next); } catch (e) {}
+    });
+  }
+
+  // Language tab strip. Switch panels, persist under skopli-lang, keyboard-accessible
+  var LANG_KEY = "skopli-lang";
+  function selectLang(lang, focusBtn) {
+    document.querySelectorAll(".tabstrip").forEach(function (strip) {
+      strip.querySelectorAll("button").forEach(function (b) {
+        var on = b.dataset.lang === lang;
+        b.setAttribute("aria-selected", on ? "true" : "false");
+        b.tabIndex = on ? 0 : -1;
+        if (on && focusBtn) b.focus();
+      });
+    });
+    document.querySelectorAll(".panels").forEach(function (group) {
+      group.querySelectorAll(".panel").forEach(function (p) {
+        p.setAttribute("data-open", p.dataset.lang === lang ? "true" : "false");
+      });
+    });
+    try { localStorage.setItem(LANG_KEY, lang); } catch (e) {}
+  }
+
+  // Install command copy buttons
+  document.querySelectorAll(".copy-btn, .pm-chip").forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      navigator.clipboard.writeText(btn.dataset.copy).then(function () {
+        btn.setAttribute("data-copied", "true");
+        setTimeout(function () { btn.removeAttribute("data-copied"); }, 1600);
+      });
+    });
+  });
+
+  var start = null;
+  try { start = localStorage.getItem(LANG_KEY); } catch (e) {}
+  if (start) selectLang(start, false);
+
+  document.querySelectorAll(".tabstrip").forEach(function (strip) {
+    var btns = Array.prototype.slice.call(strip.querySelectorAll("button"));
+    btns.forEach(function (btn, i) {
+      btn.addEventListener("click", function () { selectLang(btn.dataset.lang, false); });
+      btn.addEventListener("keydown", function (e) {
+        var next = null;
+        if (e.key === "ArrowRight") next = btns[(i + 1) % btns.length];
+        else if (e.key === "ArrowLeft") next = btns[(i - 1 + btns.length) % btns.length];
+        else if (e.key === "Home") next = btns[0];
+        else if (e.key === "End") next = btns[btns.length - 1];
+        if (next) { e.preventDefault(); selectLang(next.dataset.lang, true); }
+      });
+    });
+  });
+})();
+</script>
+
+</Base>

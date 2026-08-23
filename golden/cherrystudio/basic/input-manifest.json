@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "harness": "cherrystudio",
+  "case": "basic",
+  "home": ".",
+  "options": {
+    "harnesses": [
+      "cherrystudio"
+    ],
+    "tz": "UTC"
+  },
+  "rollups": [
+    "model",
+    "day",
+    "harness"
+  ]
+}

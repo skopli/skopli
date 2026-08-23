@@ -1,0 +1,31 @@
+---
+import Default from "@astrojs/starlight/components/Footer.astro";
+---
+
+<Default><slot /></Default>
+<footer class="skopli-footer">
+  <p>Released under the MIT License.</p>
+  <p>Copyright © Skopli</p>
+  <p class="skopli-footer__marks">
+    All product names, logos, and brands are property of their respective owners and are used for
+    identification only. Their use is nominative and does not imply endorsement of or affiliation
+    with Skopli.
+  </p>
+</footer>
+
+<style>
+  .skopli-footer {
+    margin-top: 1.5rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--sl-color-hairline);
+    color: var(--sl-color-gray-3);
+    font-size: var(--sl-text-sm);
+  }
+  .skopli-footer p {
+    margin: 0;
+  }
+  .skopli-footer__marks {
+    margin-top: 0.5rem;
+    font-size: var(--sl-text-xs);
+  }
+</style>

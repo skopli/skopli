@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "harness": "codebuff",
+  "case": "basic",
+  "env": {
+    "CODEBUFF_DATA_DIR": "manicode/projects"
+  },
+  "options": {
+    "harnesses": [
+      "codebuff"
+    ],
+    "tz": "UTC"
+  },
+  "rollups": [
+    "model",
+    "day",
+    "harness"
+  ]
+}

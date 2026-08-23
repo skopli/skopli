@@ -1,0 +1,77 @@
+{
+  "schema_version": 1,
+  "events": [
+    {
+      "harness": "gemini",
+      "timestamp": "2026-08-02T12:00:05.000Z",
+      "sessionId": "gem-session-1",
+      "messageId": "gm-1",
+      "turn": true,
+      "subagent": false,
+      "model": "gemini-2.5-pro",
+      "tokens": {
+        "input": 625,
+        "output": 150,
+        "cacheRead": 400,
+        "cacheWrite": 0,
+        "reasoning": 60
+      }
+    },
+    {
+      "harness": "gemini",
+      "timestamp": "2026-08-02T12:01:00.000Z",
+      "sessionId": "gem-session-1",
+      "messageId": "gm-2",
+      "turn": false,
+      "subagent": false,
+      "model": "gemini-2.5-pro",
+      "tokens": {
+        "input": 300,
+        "output": 90,
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "reasoning": 0
+      }
+    },
+    {
+      "harness": "gemini",
+      "timestamp": "2026-08-03T08:00:05.000Z",
+      "sessionId": "tmp/hash1/chats/stream.jsonl",
+      "messageId": "jm-1",
+      "turn": true,
+      "subagent": false,
+      "model": "gemini-3-flash",
+      "tokens": {
+        "input": 400,
+        "output": 40,
+        "cacheRead": 100,
+        "cacheWrite": 0,
+        "reasoning": 10
+      }
+    }
+  ],
+  "diagnostics": [
+    {
+      "severity": "warning",
+      "message": "skipping malformed gemini record tmp/hash1/chats/session-1.json:4",
+      "harness": "gemini"
+    },
+    {
+      "severity": "warning",
+      "message": "skipping malformed line tmp/hash1/chats/stream.jsonl:3",
+      "harness": "gemini"
+    },
+    {
+      "severity": "warning",
+      "message": "skipping unreadable gemini chat tmp/hash1/chats/broken.json",
+      "harness": "gemini"
+    }
+  ],
+  "skipped": {
+    "gemini": [
+      "tmp/hash1/chats/broken.json",
+      "tmp/hash1/chats/session-1.json:4",
+      "tmp/hash1/chats/stream.jsonl:3"
+    ]
+  }
+}

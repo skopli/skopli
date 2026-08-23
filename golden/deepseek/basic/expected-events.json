@@ -1,0 +1,85 @@
+{
+  "diagnostics": [
+    {
+      "harness": "deepseek",
+      "message": "skipping malformed deepseek file -home-u-proj/sess-bad/session.jsonl.zstd",
+      "severity": "warning"
+    }
+  ],
+  "events": [
+    {
+      "harness": "deepseek",
+      "messageId": "-home-u-proj/sess-main/session.jsonl:2",
+      "model": "deepseek-chat",
+      "sessionId": "sess-main",
+      "subagent": false,
+      "timestamp": "2025-08-01T10:00:02.000Z",
+      "tokens": {
+        "cacheRead": 30,
+        "cacheWrite": 20,
+        "input": 100,
+        "output": 50,
+        "reasoning": 7
+      },
+      "turn": true,
+      "workspace": "/home/u/proj"
+    },
+    {
+      "harness": "deepseek",
+      "messageId": "-home-u-proj/sess-main/session.jsonl:3",
+      "model": "deepseek-chat",
+      "sessionId": "sess-main",
+      "subagent": false,
+      "timestamp": "2025-08-01T10:00:03.000Z",
+      "tokens": {
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "input": 10,
+        "output": 20,
+        "reasoning": 0
+      },
+      "turn": true,
+      "workspace": "/home/u/proj"
+    },
+    {
+      "harness": "deepseek",
+      "messageId": "-home-u-proj/sess-sub/session.jsonl:1",
+      "model": "deepseek-reasoner",
+      "sessionId": "sess-sub",
+      "subagent": true,
+      "timestamp": "2025-08-01T11:00:01.000Z",
+      "tokens": {
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "input": 200,
+        "output": 80,
+        "reasoning": 30
+      },
+      "turn": true,
+      "workspace": "/home/u/proj"
+    },
+    {
+      "harness": "deepseek",
+      "messageId": "-home-u-proj/sess-zstd/session.jsonl.zstd:1",
+      "model": "deepseek-chat",
+      "sessionId": "sess-zstd",
+      "subagent": false,
+      "timestamp": "2025-08-01T12:00:01.000Z",
+      "tokens": {
+        "cacheRead": 1,
+        "cacheWrite": 0,
+        "input": 5,
+        "output": 6,
+        "reasoning": 0
+      },
+      "turn": true,
+      "workspace": "/home/u/proj"
+    }
+  ],
+  "schema_version": 1,
+  "skipped": {
+    "deepseek": [
+      "-home-u-proj/sess-bad/session.jsonl.zstd"
+    ]
+  }
+}

@@ -1,0 +1,24 @@
+[package]
+name = "skopli-node"
+version = "0.0.0"
+edition.workspace = true
+rust-version.workspace = true
+homepage.workspace = true
+documentation.workspace = true
+repository.workspace = true
+publish = false
+
+[lib]
+name = "skopli_node"
+crate-type = ["cdylib"]
+
+[dependencies]
+skopli-core = { path = "../skopli-core" }
+skopli-wire = { path = "../skopli-wire" }
+serde = { workspace = true }
+serde_json = { workspace = true }
+napi = { version = "3", default-features = false, features = ["napi9", "async"] }
+napi-derive = "3"
+
+[build-dependencies]
+napi-build = "2"

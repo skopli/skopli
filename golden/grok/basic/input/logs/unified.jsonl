@@ -1,0 +1,3 @@
+{"msg":"model changed","sid":"covered","ctx":{"model":"grok-4"},"ts":1769900000000}
+{"msg":"shell.turn.inference_done","sid":"covered","ts":1769900001000,"ctx":{"prompt_tokens":100,"completion_tokens":30,"cached_prompt_tokens":40,"reasoning_tokens":10,"loop_index":1}}
+not-json

@@ -1,0 +1,4 @@
+# Java SDK build output (plain javac/java + Gradle)
+/build/
+/.gradle/
+*.class

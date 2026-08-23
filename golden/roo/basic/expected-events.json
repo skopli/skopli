@@ -1,0 +1,33 @@
+{
+  "schema_version": 1,
+  "events": [
+    {
+      "harness": "roo",
+      "timestamp": "2026-01-31T22:53:21.000Z",
+      "sessionId": "task-1",
+      "messageId": "roo:task-1:0",
+      "turn": false,
+      "subagent": false,
+      "model": "anthropic/claude-opus-4-6",
+      "tokens": {
+        "input": 100,
+        "output": 20,
+        "cacheRead": 15,
+        "cacheWrite": 5,
+        "reasoning": 0
+      }
+    }
+  ],
+  "diagnostics": [
+    {
+      "severity": "warning",
+      "message": "skipping unreadable roo task .config/Code/User/globalStorage/rooveterinaryinc.roo-cline/tasks/task-2/ui_messages.json",
+      "harness": "roo"
+    }
+  ],
+  "skipped": {
+    "roo": [
+      ".config/Code/User/globalStorage/rooveterinaryinc.roo-cline/tasks/task-2/ui_messages.json"
+    ]
+  }
+}

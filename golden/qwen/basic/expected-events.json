@@ -1,0 +1,49 @@
+{
+  "schema_version": 1,
+  "events": [
+    {
+      "harness": "qwen",
+      "timestamp": "2026-08-01T10:00:00.000Z",
+      "sessionId": "projects-chat",
+      "messageId": "projects/project/chat.jsonl:0",
+      "turn": false,
+      "subagent": false,
+      "model": "gpt-5",
+      "tokens": {
+        "input": 10,
+        "output": 2,
+        "cacheRead": 4,
+        "cacheWrite": 0,
+        "reasoning": 0
+      }
+    },
+    {
+      "harness": "qwen",
+      "timestamp": "2026-08-01T10:00:01.000Z",
+      "sessionId": "projects-chat",
+      "messageId": "projects/project/chat.jsonl:1",
+      "turn": false,
+      "subagent": false,
+      "model": "unknown",
+      "tokens": {
+        "input": 6,
+        "output": 3,
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "reasoning": 0
+      }
+    }
+  ],
+  "diagnostics": [
+    {
+      "severity": "warning",
+      "message": "skipping malformed qwen record projects/project/chat.jsonl:3",
+      "harness": "qwen"
+    }
+  ],
+  "skipped": {
+    "qwen": [
+      "projects/project/chat.jsonl:3"
+    ]
+  }
+}
