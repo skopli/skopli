@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://skopli.com/sitemap-index.xml

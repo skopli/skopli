@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <RootNamespace>Skopli</RootNamespace>
+    <!-- The managed assembly is Skopli.Sdk to avoid a filename collision
+         with the native cdylib (skopli.dll) on case-insensitive Windows. -->
+    <AssemblyName>Skopli.Sdk</AssemblyName>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+    <Description>Idiomatic C# facade over the skopli C ABI (csbindgen P/Invoke).</Description>
+    <PackageProjectUrl>https://docs.skopli.com/skopli/</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/skopli/skopli</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Skopli.Tests" />
+  </ItemGroup>
+
+</Project>

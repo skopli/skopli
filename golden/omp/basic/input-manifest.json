@@ -1,0 +1,18 @@
+{
+  "schema_version": 1,
+  "harness": "omp",
+  "case": "basic",
+  "env": {},
+  "home": ".",
+  "options": {
+    "harnesses": [
+      "omp"
+    ],
+    "tz": "UTC"
+  },
+  "rollups": [
+    "model",
+    "day",
+    "harness"
+  ]
+}

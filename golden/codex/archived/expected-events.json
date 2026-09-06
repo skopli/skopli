@@ -1,0 +1,23 @@
+{
+  "schema_version": 1,
+  "events": [
+    {
+      "harness": "codex",
+      "timestamp": "2026-08-01T08:00:10.000Z",
+      "sessionId": "rollout-2026-08-01T08-00-00-old",
+      "messageId": "archived_sessions/rollout-2026-08-01T08-00-00-old.jsonl:2",
+      "turn": true,
+      "subagent": false,
+      "model": "gpt-5.1-codex",
+      "tokens": {
+        "input": 10,
+        "output": 5,
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "reasoning": 0
+      }
+    }
+  ],
+  "diagnostics": [],
+  "skipped": {}
+}

@@ -1,0 +1,5 @@
+{"type":"session_start","timestamp":"2026-08-01T10:00:00Z","model":"ocr-sonnet","cwd":"/home/user/projA"}
+{"type":"llm_response","model":"ocr-sonnet","duration_ms":1200,"filePath":"main.go","taskType":"review","usage":{"prompt_tokens":100,"completion_tokens":50,"cache_read_tokens":300,"cache_write_tokens":200}}
+{"type":"llm_response","model":"ocr-sonnet","usage":{"prompt_tokens":10,"completion_tokens":20,"cache_read_tokens":600}}
+{"type":"llm_response","usage":{"prompt_tokens":8,"completion_tokens":9}}
+{"type":"session_end","summary":{"total_tokens":99999,"prompt_tokens":99999,"completion_tokens":99999,"cache_read_tokens":99999,"cache_write_tokens":99999}}

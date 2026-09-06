@@ -1,0 +1,205 @@
+[
+  {
+    "name": "anchors-to-the-hour",
+    "tz": "UTC",
+    "blockMs": 18000000,
+    "timestamps": [
+      "2026-01-01T09:17:00.000Z",
+      "2026-01-01T11:00:00.000Z"
+    ],
+    "expected": [
+      { "key": "2026-01-01T09:00:00.000Z", "events": 2 }
+    ]
+  },
+  {
+    "name": "splits-after-window",
+    "tz": "UTC",
+    "blockMs": 18000000,
+    "timestamps": [
+      "2026-01-01T09:00:00.000Z",
+      "2026-01-01T14:30:00.000Z"
+    ],
+    "expected": [
+      { "key": "2026-01-01T09:00:00.000Z", "events": 1 },
+      { "key": "2026-01-01T14:00:00.000Z", "events": 1 }
+    ]
+  },
+  {
+    "name": "boundary-event-opens-next-block",
+    "tz": "UTC",
+    "blockMs": 18000000,
+    "timestamps": [
+      "2026-01-01T09:00:00.000Z",
+      "2026-01-01T14:00:00.000Z"
+    ],
+    "expected": [
+      { "key": "2026-01-01T09:00:00.000Z", "events": 1 },
+      { "key": "2026-01-01T14:00:00.000Z", "events": 1 }
+    ]
+  },
+  {
+    "name": "idle-gap-larger-than-window",
+    "tz": "UTC",
+    "blockMs": 18000000,
+    "timestamps": [
+      "2026-01-01T09:00:00.000Z",
+      "2026-01-01T10:30:00.000Z",
+      "2026-01-02T20:45:00.000Z"
+    ],
+    "expected": [
+      { "key": "2026-01-01T09:00:00.000Z", "events": 2 },
+      { "key": "2026-01-02T20:00:00.000Z", "events": 1 }
+    ]
+  },
+  {
+    "name": "custom-one-hour-width",
+    "tz": "UTC",
+    "blockMs": 3600000,
+    "timestamps": [
+      "2026-01-01T09:17:00.000Z",
+      "2026-01-01T10:05:00.000Z"
+    ],
+    "expected": [
+      { "key": "2026-01-01T09:00:00.000Z", "events": 1 },
+      { "key": "2026-01-01T10:00:00.000Z", "events": 1 }
+    ]
+  },
+  {
+    "name": "unsorted-input-is-ordered",
+    "tz": "UTC",
+    "blockMs": 18000000,
+    "timestamps": [
+      "2026-01-01T14:30:00.000Z",
+      "2026-01-01T09:00:00.000Z"
+    ],
+    "expected": [
+      { "key": "2026-01-01T09:00:00.000Z", "events": 1 },
+      { "key": "2026-01-01T14:00:00.000Z", "events": 1 }
+    ]
+  },
+  {
+    "name": "kolkata-floors-local-hour",
+    "tz": "Asia/Kolkata",
+    "blockMs": 18000000,
+    "timestamps": [
+      "2026-01-01T09:17:00.000Z"
+    ],
+    "expected": [
+      { "key": "2026-01-01T08:30:00.000Z", "events": 1 }
+    ]
+  },
+  {
+    "name": "fall-back-first-occurrence-anchors-earlier-hour",
+    "tz": "America/New_York",
+    "blockMs": 3600000,
+    "timestamps": [
+      "2026-11-01T05:30:00.000Z"
+    ],
+    "expected": [
+      { "key": "2026-11-01T05:00:00.000Z", "events": 1 }
+    ]
+  },
+  {
+    "name": "fall-back-second-occurrence-anchors-later-hour",
+    "tz": "America/New_York",
+    "blockMs": 3600000,
+    "timestamps": [
+      "2026-11-01T06:30:00.000Z"
+    ],
+    "expected": [
+      { "key": "2026-11-01T06:00:00.000Z", "events": 1 }
+    ]
+  },
+  {
+    "name": "fall-back-both-occurrences-separate-blocks",
+    "tz": "America/New_York",
+    "blockMs": 3600000,
+    "timestamps": [
+      "2026-11-01T05:30:00.000Z",
+      "2026-11-01T06:30:00.000Z"
+    ],
+    "expected": [
+      { "key": "2026-11-01T05:00:00.000Z", "events": 1 },
+      { "key": "2026-11-01T06:00:00.000Z", "events": 1 }
+    ]
+  },
+  {
+    "name": "spring-forward-floors-local-hour",
+    "tz": "America/New_York",
+    "blockMs": 3600000,
+    "timestamps": [
+      "2026-03-08T06:30:00.000Z",
+      "2026-03-08T07:30:00.000Z"
+    ],
+    "expected": [
+      { "key": "2026-03-08T06:00:00.000Z", "events": 1 },
+      { "key": "2026-03-08T07:00:00.000Z", "events": 1 }
+    ]
+  },
+  {
+    "name": "three-consecutive-gaps",
+    "tz": "UTC",
+    "blockMs": 3600000,
+    "timestamps": [
+      "2026-01-01T09:00:00.000Z",
+      "2026-01-01T11:30:00.000Z",
+      "2026-01-01T14:15:00.000Z",
+      "2026-01-01T17:45:00.000Z"
+    ],
+    "expected": [
+      { "key": "2026-01-01T09:00:00.000Z", "events": 1 },
+      { "key": "2026-01-01T11:00:00.000Z", "events": 1 },
+      { "key": "2026-01-01T14:00:00.000Z", "events": 1 },
+      { "key": "2026-01-01T17:00:00.000Z", "events": 1 }
+    ]
+  },
+  {
+    "name": "zero-block-ms-falls-back-to-default",
+    "tz": "UTC",
+    "blockMs": 0,
+    "timestamps": [
+      "2026-01-01T09:17:00.000Z",
+      "2026-01-01T11:00:00.000Z"
+    ],
+    "expected": [
+      { "key": "2026-01-01T09:00:00.000Z", "events": 2 }
+    ]
+  },
+  {
+    "name": "negative-block-ms-falls-back-to-default",
+    "tz": "UTC",
+    "blockMs": -1000,
+    "timestamps": [
+      "2026-01-01T09:17:00.000Z",
+      "2026-01-01T11:00:00.000Z"
+    ],
+    "expected": [
+      { "key": "2026-01-01T09:00:00.000Z", "events": 2 }
+    ]
+  },
+  {
+    "name": "non-canonical-slash-timestamp-is-invalid",
+    "tz": "UTC",
+    "blockMs": 18000000,
+    "timestamps": [
+      "2026-01-01T09:00:00.000Z",
+      "2026/01/01 09:30:00"
+    ],
+    "expected": [
+      { "key": "2026-01-01T09:00:00.000Z", "events": 1 },
+      { "key": "invalid-date", "events": 1 }
+    ]
+  },
+  {
+    "name": "offsetless-datetime-is-utc-on-both-sides",
+    "tz": "UTC",
+    "blockMs": 18000000,
+    "timestamps": [
+      "2026-01-01T09:00:00",
+      "2026-01-01T11:00:00"
+    ],
+    "expected": [
+      { "key": "2026-01-01T09:00:00.000Z", "events": 2 }
+    ]
+  }
+]

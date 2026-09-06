@@ -1,0 +1,68 @@
+{
+  "diagnostics": [
+    {
+      "harness": "kiro",
+      "message": "skipping malformed kiro record .kiro/data.sqlite3:conversations:1",
+      "severity": "warning"
+    }
+  ],
+  "events": [
+    {
+      "harness": "kiro",
+      "messageId": "home/u/proj:0",
+      "model": "claude-sonnet-4-5",
+      "sessionId": "/home/u/proj",
+      "subagent": false,
+      "timestamp": "2026-08-01T10:00:00.000Z",
+      "tokens": {
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "input": 10,
+        "output": 20,
+        "reasoning": 0
+      },
+      "turn": true,
+      "workspace": "/home/u/proj"
+    },
+    {
+      "harness": "kiro",
+      "messageId": "home/u/proj:1",
+      "model": "claude-sonnet-4-5",
+      "sessionId": "/home/u/proj",
+      "subagent": false,
+      "timestamp": "2026-08-01T10:05:00.000Z",
+      "tokens": {
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "input": 20,
+        "output": 30,
+        "reasoning": 0
+      },
+      "turn": true,
+      "workspace": "/home/u/proj"
+    },
+    {
+      "harness": "kiro",
+      "messageId": "home/u/other:0",
+      "model": "amazon-q-default",
+      "sessionId": "/home/u/other",
+      "subagent": false,
+      "timestamp": "2026-08-02T09:30:00.000Z",
+      "tokens": {
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "input": 10,
+        "output": 10,
+        "reasoning": 0
+      },
+      "turn": true,
+      "workspace": "/home/u/other"
+    }
+  ],
+  "schema_version": 1,
+  "skipped": {
+    "kiro": [
+      ".kiro/data.sqlite3:conversations:1"
+    ]
+  }
+}

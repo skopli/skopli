@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "harness": "gajae",
+  "case": "basic",
+  "env": {
+    "GJC_CODING_AGENT_DIR": "agent"
+  },
+  "options": {
+    "harnesses": [
+      "gajae"
+    ],
+    "tz": "UTC"
+  },
+  "rollups": [
+    "model",
+    "day",
+    "harness"
+  ]
+}

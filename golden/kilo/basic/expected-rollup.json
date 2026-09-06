@@ -1,0 +1,50 @@
+{
+  "schema_version": 1,
+  "by": {
+    "model": [
+      {
+        "key": "gpt-5",
+        "tokens": {
+          "input": 20,
+          "output": 4,
+          "cacheRead": 8,
+          "cacheWrite": 6,
+          "reasoning": 2
+        },
+        "events": 2,
+        "turns": 1,
+        "calls": 2
+      }
+    ],
+    "day": [
+      {
+        "key": "1970-01-01",
+        "tokens": {
+          "input": 20,
+          "output": 4,
+          "cacheRead": 8,
+          "cacheWrite": 6,
+          "reasoning": 2
+        },
+        "events": 2,
+        "turns": 1,
+        "calls": 2
+      }
+    ],
+    "harness": [
+      {
+        "key": "kilo",
+        "tokens": {
+          "input": 20,
+          "output": 4,
+          "cacheRead": 8,
+          "cacheWrite": 6,
+          "reasoning": 2
+        },
+        "events": 2,
+        "turns": 1,
+        "calls": 2
+      }
+    ]
+  }
+}

@@ -1,0 +1,63 @@
+---
+title: Supported harnesses
+description: The 40 supported harnesses and their ids, plus harnesses detected but unsupported.
+---
+
+import HarnessIcon from "../../../components/HarnessIcon.astro";
+
+40 supported. The id is what you pass in `readUsage({ harnesses: [...] })`.
+
+| Harness                                                                              | id               |
+| ------------------------------------------------------------------------------------ | ---------------- |
+| <span class="harness-name"><HarnessIcon slug="claude" />Claude Code</span>           | `claude`         |
+| <span class="harness-name"><HarnessIcon slug="opencode" />OpenCode</span>            | `opencode`       |
+| <span class="harness-name">MiMo Code</span>                                          | `mimocode`       |
+| <span class="harness-name">Command Code</span>                                       | `commandcode`    |
+| <span class="harness-name"><HarnessIcon slug="codex" />Codex CLI</span>              | `codex`          |
+| <span class="harness-name"><HarnessIcon slug="gemini" />Gemini CLI</span>            | `gemini`         |
+| <span class="harness-name"><HarnessIcon slug="copilot" />Copilot CLI (OTel)</span>   | `copilot`        |
+| <span class="harness-name"><HarnessIcon slug="amp" />Amp</span>                      | `amp`            |
+| <span class="harness-name">Droid</span>                                              | `droid`          |
+| <span class="harness-name"><HarnessIcon slug="qwen" />Qwen Code</span>               | `qwen`           |
+| <span class="harness-name">Pi</span>                                                 | `pi`             |
+| <span class="harness-name">OMP</span>                                                | `omp`            |
+| <span class="harness-name">Prime Agent</span>                                        | `prime`          |
+| <span class="harness-name">gajae-code</span>                                         | `gajae`          |
+| <span class="harness-name">Kimchi Coding</span>                                      | `kimchi`         |
+| <span class="harness-name"><HarnessIcon slug="kilocode" />Kilo Code CLI</span>       | `kilo`           |
+| <span class="harness-name"><HarnessIcon slug="goose" />Goose</span>                  | `goose`          |
+| <span class="harness-name">Hermes</span>                                             | `hermes`         |
+| <span class="harness-name"><HarnessIcon slug="kimi" />Kimi CLI</span>                | `kimi`           |
+| <span class="harness-name"><HarnessIcon slug="openclaw" />OpenClaw</span>            | `openclaw`       |
+| <span class="harness-name"><HarnessIcon slug="junie" />Junie</span>                  | `junie`          |
+| <span class="harness-name"><HarnessIcon slug="grok" />Grok CLI</span>                | `grok`           |
+| <span class="harness-name">Augment</span>                                            | `augment`        |
+| <span class="harness-name">Codebuff</span>                                           | `codebuff`       |
+| <span class="harness-name">CodeBuddy Code</span>                                     | `codebuddy`      |
+| <span class="harness-name">jcode</span>                                              | `jcode`          |
+| <span class="harness-name">Mux</span>                                                | `mux`            |
+| <span class="harness-name"><HarnessIcon slug="zed" />Zed Agent</span>                | `zed`            |
+| <span class="harness-name">Cherry Studio</span>                                      | `cherrystudio`   |
+| <span class="harness-name"><HarnessIcon slug="zcode" />ZCode</span>                  | `zcode`          |
+| <span class="harness-name"><HarnessIcon slug="devin" />Devin CLI</span>              | `devin`          |
+| <span class="harness-name"><HarnessIcon slug="roocode" />Roo Code</span>             | `roo`            |
+| <span class="harness-name"><HarnessIcon slug="cline" />Cline</span>                  | `cline`          |
+| <span class="harness-name"><HarnessIcon slug="kilocode" />Kilo Code (VS Code)</span> | `kilocode`       |
+| <span class="harness-name">OpenCodeReview</span>                                     | `opencodereview` |
+| <span class="harness-name">Trae Agent</span>                                         | `trae`           |
+| <span class="harness-name">DeepSeek Harness</span>                                   | `deepseek`       |
+| <span class="harness-name">Reasonix</span> [^reasonix-session]                       | `reasonix`       |
+| <span class="harness-name">Kiro CLI</span> [^kiro-estimated]                         | `kiro`           |
+| <span class="harness-name">fx.sh</span> [^fx-aggregate]                              | `fx`             |
+
+[^reasonix-session]: Reasonix persists only a per-session cumulative usage total (in the session's `.acp.json` metadata sidecar), so it reports one event per session, not one per turn. Sessions whose totals are marked estimated are still included.
+
+[^kiro-estimated]: Kiro CLI persists full conversation text but no provider token counts, so its token counts are estimated from the stored message length (about four characters per token). Treat Kiro totals as estimates, not billed usage.
+
+[^fx-aggregate]: fx.sh persists real provider token counts per session in a `usage-v2.json` sidecar, aggregated per model rather than per turn, so it reports one event per model per session. Every session is read regardless of its billing state; the recorded counts are the applied totals in all states.
+
+## Detected but unsupported
+
+These are detected but have no reliable local token data: **Cursor, aider, Crush, GitLab Duo CLI**.
+
+`detectHarnesses()` reports them separately so you can tell users why they are missing.

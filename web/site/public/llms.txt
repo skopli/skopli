@@ -1,0 +1,14 @@
+# Skopli
+
+> An open-source SDK that reads AI coding-agent usage from 40 harnesses locally, rolls it up, and prices it against live market catalogs. 9 languages, one Rust core. MIT.
+
+Skopli reads real usage (tokens, sessions, turns, calls) from the local state
+each coding agent already keeps on disk. No accounts, no telemetry, no sockets:
+detection and reading are fully offline, and pricing against market catalogs is
+a separate, opt-in step.
+
+## Links
+
+- [Documentation](https://docs.skopli.com/skopli/): guides and reference, with per-page Markdown variants (append .md), /llms.txt, and /llms-full.txt
+- [GitHub](https://github.com/skopli/skopli): source, issues, releases
+- Install: npm (skopli), PyPI (skopli), crates.io (skopli-core), RubyGems (skopli), NuGet (Skopli), Maven Central (com.skopli), Go modules (github.com/skopli/skopli/sdks/go), Swift Package Manager (repo URL)

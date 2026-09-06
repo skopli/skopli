@@ -1,0 +1,50 @@
+{
+  "schema_version": 1,
+  "by": {
+    "model": [
+      {
+        "key": "claude-opus-4-6",
+        "tokens": {
+          "input": 50,
+          "output": 10,
+          "cacheRead": 7,
+          "cacheWrite": 0,
+          "reasoning": 0
+        },
+        "events": 1,
+        "turns": 1,
+        "calls": 1
+      }
+    ],
+    "day": [
+      {
+        "key": "2026-08-01",
+        "tokens": {
+          "input": 50,
+          "output": 10,
+          "cacheRead": 7,
+          "cacheWrite": 0,
+          "reasoning": 0
+        },
+        "events": 1,
+        "turns": 1,
+        "calls": 1
+      }
+    ],
+    "harness": [
+      {
+        "key": "augment",
+        "tokens": {
+          "input": 50,
+          "output": 10,
+          "cacheRead": 7,
+          "cacheWrite": 0,
+          "reasoning": 0
+        },
+        "events": 1,
+        "turns": 1,
+        "calls": 1
+      }
+    ]
+  }
+}

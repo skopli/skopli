@@ -1,0 +1,76 @@
+{
+  "by": {
+    "day": [
+      {
+        "calls": 3,
+        "events": 3,
+        "key": "2026-08-01",
+        "tokens": {
+          "cacheRead": 900,
+          "cacheWrite": 200,
+          "input": 118,
+          "output": 79,
+          "reasoning": 0
+        },
+        "turns": 3
+      },
+      {
+        "calls": 2,
+        "events": 2,
+        "key": "2026-08-02",
+        "tokens": {
+          "cacheRead": 400,
+          "cacheWrite": 900,
+          "input": 1011,
+          "output": 506,
+          "reasoning": 0
+        },
+        "turns": 2
+      }
+    ],
+    "harness": [
+      {
+        "calls": 5,
+        "events": 5,
+        "key": "jcode",
+        "tokens": {
+          "cacheRead": 1300,
+          "cacheWrite": 1100,
+          "input": 1129,
+          "output": 585,
+          "reasoning": 0
+        },
+        "turns": 5
+      }
+    ],
+    "model": [
+      {
+        "calls": 1,
+        "events": 1,
+        "key": "jcode-haiku",
+        "tokens": {
+          "cacheRead": 0,
+          "cacheWrite": 0,
+          "input": 8,
+          "output": 9,
+          "reasoning": 0
+        },
+        "turns": 1
+      },
+      {
+        "calls": 4,
+        "events": 4,
+        "key": "jcode-sonnet",
+        "tokens": {
+          "cacheRead": 1300,
+          "cacheWrite": 1100,
+          "input": 1121,
+          "output": 576,
+          "reasoning": 0
+        },
+        "turns": 4
+      }
+    ]
+  },
+  "schema_version": 1
+}

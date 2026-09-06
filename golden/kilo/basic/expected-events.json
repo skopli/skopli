@@ -1,0 +1,49 @@
+{
+  "schema_version": 1,
+  "events": [
+    {
+      "harness": "kilo",
+      "timestamp": "1970-01-01T00:33:20.000Z",
+      "sessionId": "session",
+      "messageId": "first",
+      "turn": true,
+      "subagent": false,
+      "model": "gpt-5",
+      "tokens": {
+        "input": 10,
+        "output": 2,
+        "cacheRead": 4,
+        "cacheWrite": 3,
+        "reasoning": 1
+      }
+    },
+    {
+      "harness": "kilo",
+      "timestamp": "1970-01-01T00:50:00.000Z",
+      "sessionId": "session",
+      "messageId": "second",
+      "turn": false,
+      "subagent": false,
+      "model": "gpt-5",
+      "tokens": {
+        "input": 10,
+        "output": 2,
+        "cacheRead": 4,
+        "cacheWrite": 3,
+        "reasoning": 1
+      }
+    }
+  ],
+  "diagnostics": [
+    {
+      "severity": "warning",
+      "message": "skipping malformed kilo message kilo.db:bad",
+      "harness": "kilo"
+    }
+  ],
+  "skipped": {
+    "kilo": [
+      "kilo.db:bad"
+    ]
+  }
+}

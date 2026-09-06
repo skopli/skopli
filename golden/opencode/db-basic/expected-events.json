@@ -1,0 +1,65 @@
+{
+  "schema_version": 1,
+  "events": [
+    {
+      "harness": "opencode",
+      "timestamp": "2026-01-31T22:53:21.000Z",
+      "sessionId": "main",
+      "messageId": "assistant-a",
+      "turn": true,
+      "subagent": false,
+      "model": "anthropic/claude-opus-4",
+      "tokens": {
+        "input": 10,
+        "output": 2,
+        "cacheRead": 3,
+        "cacheWrite": 4,
+        "reasoning": 0
+      }
+    },
+    {
+      "harness": "opencode",
+      "timestamp": "2026-01-31T22:53:22.000Z",
+      "sessionId": "main",
+      "messageId": "assistant-b",
+      "turn": false,
+      "subagent": false,
+      "model": "openai/gpt-5",
+      "tokens": {
+        "input": 10,
+        "output": 2,
+        "cacheRead": 3,
+        "cacheWrite": 4,
+        "reasoning": 0
+      }
+    },
+    {
+      "harness": "opencode",
+      "timestamp": "2026-01-31T22:53:24.000Z",
+      "sessionId": "subagent",
+      "messageId": "subagent-assistant",
+      "turn": false,
+      "subagent": true,
+      "model": "anthropic/claude-opus-4",
+      "tokens": {
+        "input": 10,
+        "output": 2,
+        "cacheRead": 3,
+        "cacheWrite": 4,
+        "reasoning": 0
+      }
+    }
+  ],
+  "diagnostics": [
+    {
+      "severity": "warning",
+      "message": "skipping malformed opencode message opencode.db:malformed",
+      "harness": "opencode"
+    }
+  ],
+  "skipped": {
+    "opencode": [
+      "opencode.db:malformed"
+    ]
+  }
+}

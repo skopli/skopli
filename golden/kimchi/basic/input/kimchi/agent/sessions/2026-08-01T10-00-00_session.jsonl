@@ -1,0 +1,4 @@
+{"type":"session","version":1,"id":"session","timestamp":"2026-08-01T10:00:00.000Z","cwd":"/repo"}
+{"type":"message","message":{"role":"user"}}
+{"type":"message","id":"message","timestamp":"2026-08-01T10:00:00.000Z","message":{"role":"assistant","model":"gpt-5","usage":{"input":12,"output":4,"cacheRead":9,"cacheWrite":3}}}
+{"type":"message","id":"broken","timestamp":"2026-08-01T10:00:01.000Z","message":{"role":"assistant","model":"gpt-5","usage":{"input":1,"output":1,"cacheRead":0}}}

@@ -1,0 +1,2 @@
+{"timestamp":"2026-08-01T09:00:01.000Z","type":"event_msg","payload":{"type":"user_message","message":"do a thing"}}
+{"timestamp":"2026-08-01T09:00:10.000Z","type":"event_msg","payload":{"type":"token_count","info":{"total_token_usage":{"input_tokens":1000,"cached_input_tokens":400,"output_tokens":100,"reasoning_output_tokens":20,"total_tokens":1100},"last_token_usage":{"input_tokens":1000,"cached_input_tokens":400,"output_tokens":100,"reasoning_output_tokens":20,"total_tokens":1100}}}}

@@ -1,0 +1,33 @@
+{
+  "schema_version": 1,
+  "events": [
+    {
+      "harness": "augment",
+      "timestamp": "2026-08-01T00:00:00.000Z",
+      "sessionId": "sess",
+      "messageId": "augment:sess:req:req-1",
+      "turn": true,
+      "subagent": false,
+      "model": "claude-opus-4-6",
+      "tokens": {
+        "input": 50,
+        "output": 10,
+        "cacheRead": 7,
+        "cacheWrite": 0,
+        "reasoning": 0
+      }
+    }
+  ],
+  "diagnostics": [
+    {
+      "severity": "warning",
+      "message": "skipping unreadable file broken.json",
+      "harness": "augment"
+    }
+  ],
+  "skipped": {
+    "augment": [
+      "broken.json"
+    ]
+  }
+}

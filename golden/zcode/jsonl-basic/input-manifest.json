@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "harness": "zcode",
+  "case": "jsonl-basic",
+  "env": {
+    "ZCODE_DATA_DIR": "."
+  },
+  "options": {
+    "harnesses": [
+      "zcode"
+    ],
+    "tz": "UTC"
+  },
+  "rollups": [
+    "model",
+    "day",
+    "harness"
+  ]
+}

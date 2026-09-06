@@ -1,0 +1,8 @@
+golden/** text eol=lf
+# SQLite databases built at export time are binary; the general golden/** text
+# rule above must not apply eol conversion to them or the files corrupt.
+*.db binary
+golden/**/*.db binary
+# csbindgen writes LF; pin it so the zero-diff regeneration check is stable
+# regardless of the platform's checkout EOL setting.
+sdks/csharp/Skopli/Native/NativeMethods.g.cs text eol=lf

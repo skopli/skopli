@@ -1,0 +1,27 @@
+---
+title: Coverage
+description: What Skopli reads today, and the tools it cannot read locally yet with the reason for each.
+---
+
+Skopli reads local session state from 40 coding agents. See [Supported harnesses](/skopli/reference/harnesses/) for the full list and their ids.
+
+Some agents keep their token data cloud-side, store it without token counts, or have no stable local file to read. Skopli cannot read those locally today. The reason differs per tool, so each is listed below.
+
+## Tools not readable locally yet
+
+| Tool            | Why it is not readable locally                                                                                                        |
+| --------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| Cursor          | Token usage is only available in the vendor dashboard, not on disk.                                                                   |
+| Warp            | The local database stores conversations but no token counts.                                                                          |
+| MiniMax Code    | The desktop app has no documented local file or schema for token counts. Diagnostics are uploaded to the vendor.                      |
+| Synthetic       | The local database stores session history but no provider token counts.                                                               |
+| Freebuff        | Local files store messages only. Token usage is credit-based and fetched from the vendor.                                             |
+| Antigravity     | Token usage is quota-based and shown in a dashboard. No documented local usage-log path or token schema is available.                 |
+| Antigravity CLI | No documented local file records provider token counts.                                                                               |
+| Sakana Fugu     | A hosted model API rather than a local agent, so no session or token data is stored on disk.                                          |
+| Senpi           | No local file that records provider token counts could be identified.                                                                 |
+| WorkBuddy       | No local file that records provider token counts could be identified.                                                                 |
+| Trae IDE        | The IDE keeps token usage quota-based in a dashboard, with no documented local token file or schema. The trae-agent CLI is supported. |
+| Crush           | Usage files are project-local with no stable discovery location.                                                                      |
+
+This list changes as tools ship durable local token logs. When a tool starts recording provider token counts in a stable local file, it moves to the supported list.

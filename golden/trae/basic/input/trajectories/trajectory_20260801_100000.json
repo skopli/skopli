@@ -1,0 +1,68 @@
+{
+  "task": "fix bug",
+  "start_time": "2026-08-01T10:00:00",
+  "end_time": "2026-08-01T10:05:00",
+  "provider": "anthropic",
+  "model": "traj-default",
+  "max_steps": 200,
+  "llm_interactions": [
+    {
+      "timestamp": "2026-08-01T10:00:05",
+      "provider": "anthropic",
+      "model": "trae-sonnet",
+      "response": {
+        "model": "trae-sonnet",
+        "finish_reason": "tool_calls",
+        "usage": {
+          "input_tokens": 100,
+          "output_tokens": 50,
+          "cache_creation_input_tokens": 200,
+          "cache_read_input_tokens": 300,
+          "reasoning_tokens": 40
+        }
+      }
+    },
+    {
+      "timestamp": "2026-08-01T10:01:05",
+      "provider": "anthropic",
+      "model": "trae-sonnet",
+      "response": {
+        "model": "trae-sonnet",
+        "finish_reason": "stop",
+        "usage": {
+          "input_tokens": 10,
+          "output_tokens": 20,
+          "cache_creation_input_tokens": null,
+          "cache_read_input_tokens": 600,
+          "reasoning_tokens": null
+        }
+      }
+    },
+    {
+      "timestamp": "2026-08-01T10:02:05",
+      "provider": "anthropic",
+      "response": {
+        "usage": {
+          "input_tokens": 8,
+          "output_tokens": 9
+        }
+      }
+    }
+  ],
+  "agent_steps": [
+    {
+      "step_number": 1,
+      "timestamp": "2026-08-01T10:00:05",
+      "state": "thinking",
+      "llm_response": {
+        "model": "trae-sonnet",
+        "usage": {
+          "input_tokens": 99999,
+          "output_tokens": 99999
+        }
+      }
+    }
+  ],
+  "success": true,
+  "execution_time": 300.0
+}

@@ -1,0 +1,28 @@
+---
+title: Skopli
+description: An SDK that reads AI coding-agent usage from 40 harnesses offline and prices it against market catalogs.
+---
+
+Skopli is an open-source SDK that reads the session state your AI coding agents store on local disk, aggregates it, and prices it against market catalogs. It is an SDK, not a CLI. You build the dashboards, reports, and billing checks on top. No accounts, no telemetry.
+
+## What Skopli is
+
+Skopli reads the session state your harnesses keep on disk (tokens, sessions, turns, calls), normalizes it, aggregates it, and prices it. The readers never touch the network. Only pricing fetches, and it is opt-in, cached, and reads from cache when offline. The same API ships in TypeScript, Python, Rust, Ruby, Java, C#, Go, Swift, and C, all calling one Rust core.
+
+## The three layers
+
+Read, rollup, and price are independent. Use any subset.
+
+- **Read** parses local session state from 40 harnesses into normalized usage events, with structured diagnostics. See [Reading usage](/skopli/guide/reading/).
+- **Rollup** groups events by model, day, session, harness, or workspace. See [Rollups](/skopli/guide/rollups/).
+- **Price** matches models against market catalogs and computes USD costs, and reports an unmatched model as a miss rather than a guess. See [Pricing basics](/skopli/guide/pricing-basics/).
+
+## Pricing that admits what it does not know
+
+Per-event tiered pricing, cache-write splits, and long-context tier rates. An unmatched model returns `priced: false` with the sources it tried, never an invented rate. A miss is a result, not a hidden gap.
+
+## Where to start
+
+- [Getting started](/skopli/guide/getting-started/): install and a four-call quickstart in every language.
+- [Supported harnesses](/skopli/reference/harnesses/): the full table of harness ids.
+- [API reference](/skopli/reference/api/): the functions and types across the facades.

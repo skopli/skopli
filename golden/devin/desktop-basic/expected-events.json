@@ -1,0 +1,23 @@
+{
+  "schema_version": 1,
+  "events": [
+    {
+      "harness": "devin",
+      "timestamp": "2026-08-01T00:00:00.000Z",
+      "sessionId": "session-a",
+      "messageId": "devin-desktop:/session-a.ndjson:usage",
+      "turn": false,
+      "subagent": false,
+      "model": "devin/claude-opus-4-6",
+      "tokens": {
+        "input": 150,
+        "output": 40,
+        "cacheRead": 50,
+        "cacheWrite": 10,
+        "reasoning": 0
+      }
+    }
+  ],
+  "diagnostics": [],
+  "skipped": {}
+}

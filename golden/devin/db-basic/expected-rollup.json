@@ -1,0 +1,50 @@
+{
+  "schema_version": 1,
+  "by": {
+    "model": [
+      {
+        "key": "devin/claude-opus-4-6",
+        "tokens": {
+          "input": 150,
+          "output": 30,
+          "cacheRead": 30,
+          "cacheWrite": 40,
+          "reasoning": 0
+        },
+        "events": 2,
+        "turns": 2,
+        "calls": 2
+      }
+    ],
+    "day": [
+      {
+        "key": "2026-01-31",
+        "tokens": {
+          "input": 150,
+          "output": 30,
+          "cacheRead": 30,
+          "cacheWrite": 40,
+          "reasoning": 0
+        },
+        "events": 2,
+        "turns": 2,
+        "calls": 2
+      }
+    ],
+    "harness": [
+      {
+        "key": "devin",
+        "tokens": {
+          "input": 150,
+          "output": 30,
+          "cacheRead": 30,
+          "cacheWrite": 40,
+          "reasoning": 0
+        },
+        "events": 2,
+        "turns": 2,
+        "calls": 2
+      }
+    ]
+  }
+}

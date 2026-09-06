@@ -1,0 +1,30 @@
+{
+  "name": "skopli-docs-site",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "astro dev",
+    "start": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
+    "astro": "astro",
+    "lint": "oxlint",
+    "format": "oxfmt --check .",
+    "format:write": "oxfmt .",
+    "typecheck": "astro check",
+    "check": "pnpm run lint && pnpm run format && pnpm run typecheck"
+  },
+  "dependencies": {
+    "@astrojs/starlight": "^0.36.0",
+    "astro": "^5.14.1",
+    "sharp": "^0.34.4"
+  },
+  "devDependencies": {
+    "@astrojs/check": "^0.9.10",
+    "@shikijs/themes": "3.23.0",
+    "oxfmt": "^0.63.0",
+    "oxlint": "^1.78.0",
+    "typescript": "^5.9.3"
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "harness": "mimocode",
+  "case": "json-basic",
+  "env": {
+    "MIMOCODE_HOME": "."
+  },
+  "options": {
+    "harnesses": [
+      "mimocode"
+    ],
+    "tz": "UTC"
+  },
+  "rollups": [
+    "model",
+    "day",
+    "harness"
+  ]
+}

@@ -1,0 +1,4 @@
+{"type":"session","id":"session"}
+{"type":"message","message":{"role":"user"}}
+{"type":"message","id":"message","timestamp":"2026-08-01T10:00:00.000Z","message":{"role":"assistant","model":"gpt-5","usage":{"input":10,"output":2,"cacheRead":4,"cacheWrite":6},"child_usage_attributed":{"input":100,"output":200,"cacheRead":300,"cacheWrite":400}}}
+{"type":"message","id":"broken","timestamp":"2026-08-01T10:00:01.000Z","message":{"role":"assistant","model":"gpt-5","usage":{"input":1,"output":1,"cacheRead":0}}}

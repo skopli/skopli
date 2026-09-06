@@ -1,0 +1,49 @@
+{
+  "schema_version": 1,
+  "events": [
+    {
+      "harness": "amp",
+      "timestamp": "2026-02-01T00:00:00Z",
+      "sessionId": "thread",
+      "messageId": "1",
+      "turn": true,
+      "subagent": false,
+      "model": "gpt-5",
+      "tokens": {
+        "input": 10,
+        "output": 2,
+        "cacheRead": 30,
+        "cacheWrite": 40,
+        "reasoning": 0
+      }
+    },
+    {
+      "harness": "amp",
+      "timestamp": "2026-02-02T00:00:00Z",
+      "sessionId": "thread",
+      "messageId": "ledger-only",
+      "turn": false,
+      "subagent": false,
+      "model": "gpt-5-mini",
+      "tokens": {
+        "input": 3,
+        "output": 4,
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "reasoning": 0
+      }
+    }
+  ],
+  "diagnostics": [
+    {
+      "severity": "warning",
+      "message": "skipping malformed amp thread threads/T-bad.json",
+      "harness": "amp"
+    }
+  ],
+  "skipped": {
+    "amp": [
+      "threads/T-bad.json"
+    ]
+  }
+}

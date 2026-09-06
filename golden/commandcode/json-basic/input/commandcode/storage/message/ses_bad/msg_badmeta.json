@@ -1,0 +1,13 @@
+{
+  "id": "msg_badmeta",
+  "role": "assistant",
+  "providerID": "commandcode",
+  "modelID": "big-pickle",
+  "time": { "created": 1769900000300 },
+  "tokens": {
+    "input": 100,
+    "output": 20,
+    "reasoning": 0,
+    "cache": { "read": 0, "write": 0 }
+  }
+}

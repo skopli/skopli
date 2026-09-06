@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "harness": "opencode",
+  "case": "db-basic",
+  "env": {
+    "OPENCODE_DATA_DIR": "."
+  },
+  "options": {
+    "harnesses": [
+      "opencode"
+    ],
+    "tz": "UTC"
+  },
+  "rollups": [
+    "model",
+    "day",
+    "harness"
+  ]
+}

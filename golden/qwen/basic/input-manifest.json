@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "harness": "qwen",
+  "case": "basic",
+  "env": {
+    "QWEN_DATA_DIR": "."
+  },
+  "options": {
+    "harnesses": [
+      "qwen"
+    ],
+    "tz": "UTC"
+  },
+  "rollups": [
+    "model",
+    "day",
+    "harness"
+  ]
+}

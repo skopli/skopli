@@ -1,0 +1,49 @@
+{
+  "schema_version": 1,
+  "events": [
+    {
+      "harness": "droid",
+      "timestamp": "2026-08-01T10:00:00.000Z",
+      "sessionId": "session",
+      "messageId": "session",
+      "turn": false,
+      "subagent": false,
+      "model": "claude-opus-4-5-thinking-0",
+      "tokens": {
+        "input": 30,
+        "output": 4,
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "reasoning": 0
+      }
+    },
+    {
+      "harness": "droid",
+      "timestamp": "2026-08-01T10:05:00.000Z",
+      "sessionId": "fallback",
+      "messageId": "fallback",
+      "turn": false,
+      "subagent": false,
+      "model": "claude-sonnet-4",
+      "tokens": {
+        "input": 1,
+        "output": 2,
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "reasoning": 0
+      }
+    }
+  ],
+  "diagnostics": [
+    {
+      "severity": "warning",
+      "message": "skipping malformed droid session broken.settings.json",
+      "harness": "droid"
+    }
+  ],
+  "skipped": {
+    "droid": [
+      "broken.settings.json"
+    ]
+  }
+}

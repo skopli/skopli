@@ -1,0 +1,26 @@
+{
+  "sources": [
+    {
+      "name": "openrouter",
+      "format": "openrouter",
+      "url": "https://openrouter.ai/api/v1/models",
+      "cacheFileName": "pricing-openrouter.json"
+    },
+    {
+      "name": "litellm",
+      "format": "litellm",
+      "url": "https://raw.githubusercontent.com/BerriAI/litellm/main/model_prices_and_context_window.json",
+      "cacheFileName": "pricing-litellm.json"
+    },
+    {
+      "name": "models-dev",
+      "format": "modelsdev",
+      "url": "https://models.dev/api.json",
+      "cacheFileName": "pricing-models-dev.json"
+    }
+  ],
+  "priorityOrder": ["openrouter", "litellm", "models-dev"],
+  "defaultTtlMs": 3600000,
+  "fetchTimeoutMs": 10000,
+  "cacheFileNamePattern": "pricing-{name}.json"
+}

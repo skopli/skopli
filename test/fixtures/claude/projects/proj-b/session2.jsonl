@@ -1,0 +1,2 @@
+{"type":"user","sessionId":"sess-2","uuid":"bu1","timestamp":"2026-08-02T09:00:00.000Z","message":{"role":"user","content":"hi"}}
+{"type":"assistant","sessionId":"sess-2","uuid":"ba1","requestId":"req_b1","timestamp":"2026-08-02T09:00:05.000Z","message":{"id":"msg_b1","model":"mystery-model-x","usage":{"input_tokens":42,"output_tokens":17,"cache_creation_input_tokens":0,"cache_read_input_tokens":0}}}

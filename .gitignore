@@ -1,0 +1,58 @@
+# Node
+node_modules/
+dist/
+coverage/
+
+# Rust
+target/
+
+# napi build output (prebuilds are built in CI, never committed)
+/native/
+*.node
+
+# Local working notes (never published)
+.scratch/
+
+# Ruby / gem build artifacts
+*.gem
+*.bundle
+*.so
+*.dll
+Gemfile.lock
+crates/skopli-ruby/lib/skopli/skopli.*
+crates/skopli-ruby/tmp/
+
+# Python build artifacts
+*.pyd
+*.pdb
+__pycache__/
+.venv/
+.mypy_cache/
+.pytest_cache/
+
+# .NET build artifacts
+sdks/csharp/**/bin/
+sdks/csharp/**/obj/
+
+# Java / Gradle build artifacts
+sdks/java/build/
+sdks/java/.gradle/
+
+# Swift build artifacts
+sdks/swift/.build/
+
+# Astro
+.astro/
+
+# Playwright verification artifacts
+.playwright-mcp/
+
+# Environment files (never commit secrets)
+.env
+.env.*
+!.env.example
+*.local
+
+# OS noise
+.DS_Store
+Thumbs.db

@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "harness": "kimchi",
+  "case": "basic",
+  "env": {
+    "KIMCHI_CONFIG_PATH": "kimchi"
+  },
+  "options": {
+    "harnesses": [
+      "kimchi"
+    ],
+    "tz": "UTC"
+  },
+  "rollups": [
+    "model",
+    "day",
+    "harness"
+  ]
+}

@@ -1,0 +1,33 @@
+{
+  "schema_version": 1,
+  "events": [
+    {
+      "harness": "kilocode",
+      "timestamp": "2026-01-31T22:53:21.000Z",
+      "sessionId": "task-1",
+      "messageId": "kilocode:task-1:0",
+      "turn": false,
+      "subagent": false,
+      "model": "openai/gpt-5",
+      "tokens": {
+        "input": 80,
+        "output": 12,
+        "cacheRead": 4,
+        "cacheWrite": 0,
+        "reasoning": 0
+      }
+    }
+  ],
+  "diagnostics": [
+    {
+      "severity": "warning",
+      "message": "skipping unreadable kilocode task .config/Code/User/globalStorage/kilocode.kilo-code/tasks/task-2/ui_messages.json",
+      "harness": "kilocode"
+    }
+  ],
+  "skipped": {
+    "kilocode": [
+      ".config/Code/User/globalStorage/kilocode.kilo-code/tasks/task-2/ui_messages.json"
+    ]
+  }
+}

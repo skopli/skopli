@@ -1,0 +1,2 @@
+{"type":"session_start","timestamp":"2026-08-02T09:00:00Z","model":"ocr-haiku","cwd":"/home/user/projB"}
+{"type":"llm_response","model":"ocr-haiku","usage":{"prompt_tokens":1000,"completion_tokens":500,"cache_read_tokens":400,"cache_write_tokens":900}}

@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "harness": "amp",
+  "case": "basic",
+  "env": {
+    "AMP_DATA_DIR": "."
+  },
+  "options": {
+    "harnesses": [
+      "amp"
+    ],
+    "tz": "UTC"
+  },
+  "rollups": [
+    "model",
+    "day",
+    "harness"
+  ]
+}

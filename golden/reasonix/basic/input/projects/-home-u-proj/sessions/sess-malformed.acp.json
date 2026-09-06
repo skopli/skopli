@@ -1,0 +1,1 @@
+{"sessionId":"sess-malformed","cwd":"/home/u/proj","model":"deepseek-chat","title":"inconsistent snapshot","createdAt":"2026-08-05T09:55:00Z","updatedAt":"2026-08-05T10:00:00Z","status":{"cumulative":{"promptTokens":300,"completionTokens":40,"reasoningTokens":90,"cacheMissTokens":100}}}

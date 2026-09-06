@@ -1,0 +1,10 @@
+{
+  "ignorePatterns": [
+    "test/fixtures/**",
+    "golden/**",
+    "native/**",
+    "**/bin/**",
+    "**/obj/**",
+    "**/.venv/**"
+  ]
+}

@@ -1,0 +1,33 @@
+{
+  "schema_version": 1,
+  "events": [
+    {
+      "harness": "zcode",
+      "timestamp": "2026-08-01T00:00:01.000Z",
+      "sessionId": "sess-1",
+      "messageId": "zcode:sess-1:0",
+      "turn": true,
+      "subagent": false,
+      "model": "zhipu/glm-5.2",
+      "tokens": {
+        "input": 55,
+        "output": 20,
+        "cacheRead": 40,
+        "cacheWrite": 5,
+        "reasoning": 10
+      }
+    }
+  ],
+  "diagnostics": [
+    {
+      "severity": "warning",
+      "message": "skipping malformed zcode usage projects/sess-1.jsonl:3",
+      "harness": "zcode"
+    }
+  ],
+  "skipped": {
+    "zcode": [
+      "projects/sess-1.jsonl:3"
+    ]
+  }
+}

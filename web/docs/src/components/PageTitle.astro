@@ -1,0 +1,33 @@
+---
+import PageActions from "./PageActions.astro";
+
+// Quiet header: the H1 (verbatim Starlight markup/id `_top`) followed by the
+// hand-rolled Copy-page / Markdown / LLM action row, OpenRouter-style.
+// `_top` is Starlight's PAGE_TITLE_ID; the /constants entry is not a public
+// export in 0.36, so it is inlined.
+---
+
+<div class="page-title-row">
+  <h1 id="_top">{Astro.locals.starlightRoute.entry.data.title}</h1>
+  <PageActions />
+</div>
+
+<style>
+  @layer starlight.core {
+    .page-title-row {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: var(--s-3) var(--s-4);
+    }
+    h1 {
+      flex: 1 1 auto;
+      margin-top: 0;
+      font-size: var(--sl-text-h1);
+      line-height: var(--sl-line-height-headings);
+      font-weight: 600;
+      color: var(--sl-color-white);
+    }
+  }
+</style>

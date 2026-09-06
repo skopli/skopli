@@ -1,0 +1,58 @@
+{
+  "sessionId": "gem-session-1",
+  "projectHash": "hash1",
+  "startTime": "2026-08-02T12:00:00.000Z",
+  "messages": [
+    {
+      "id": "gu-1",
+      "type": "user",
+      "timestamp": "2026-08-02T12:00:01.000Z",
+      "content": "first question"
+    },
+    {
+      "id": "gm-1",
+      "type": "gemini",
+      "model": "gemini-2.5-pro",
+      "timestamp": "2026-08-02T12:00:05.000Z",
+      "tokens": {
+        "input": 1000,
+        "output": 150,
+        "cached": 400,
+        "thoughts": 60,
+        "tool": 25,
+        "total": 1235
+      }
+    },
+    {
+      "id": "gm-2",
+      "type": "gemini",
+      "model": "gemini-2.5-pro",
+      "timestamp": "2026-08-02T12:01:00.000Z",
+      "tokens": {
+        "input": 300,
+        "output": 90,
+        "cached": 0,
+        "thoughts": 0,
+        "tool": 0,
+        "total": 390
+      }
+    },
+    {
+      "id": "gm-bad",
+      "type": "gemini",
+      "model": "gemini-2.5-pro",
+      "timestamp": "2026-08-02T12:02:00.000Z",
+      "tokens": {
+        "input": 100,
+        "output": "bad",
+        "cached": 0
+      }
+    },
+    {
+      "id": "gi-1",
+      "type": "info",
+      "timestamp": "2026-08-02T12:03:00.000Z",
+      "content": "compressing context"
+    }
+  ]
+}

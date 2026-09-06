@@ -1,0 +1,89 @@
+{
+  "diagnostics": [
+    {
+      "harness": "reasonix",
+      "message": "skipping malformed reasonix file projects/-home-u-proj/sessions/sess-malformed.acp.json",
+      "severity": "warning"
+    }
+  ],
+  "events": [
+    {
+      "harness": "reasonix",
+      "messageId": "projects/-home-u-proj/sessions/sess-a.acp.json",
+      "model": "deepseek-chat",
+      "sessionId": "sess-a",
+      "subagent": false,
+      "timestamp": "2026-08-01T10:00:00.000Z",
+      "title": "first session",
+      "tokens": {
+        "cacheRead": 30,
+        "cacheWrite": 0,
+        "input": 70,
+        "output": 40,
+        "reasoning": 10
+      },
+      "turn": true,
+      "workspace": "/home/u/proj"
+    },
+    {
+      "harness": "reasonix",
+      "messageId": "projects/-home-u-proj/sessions/sess-b.acp.json",
+      "model": "deepseek-reasoner",
+      "sessionId": "sess-b",
+      "subagent": false,
+      "timestamp": "2026-08-02T09:00:00.000Z",
+      "title": "estimated session",
+      "tokens": {
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "input": 800,
+        "output": 200,
+        "reasoning": 100
+      },
+      "turn": true,
+      "workspace": "/home/u/proj"
+    },
+    {
+      "harness": "reasonix",
+      "messageId": "projects/-home-u-proj/sessions/dup-new.acp.json",
+      "model": "deepseek-chat",
+      "sessionId": "dup",
+      "subagent": false,
+      "timestamp": "2026-08-03T08:30:00.000Z",
+      "title": "latest snapshot",
+      "tokens": {
+        "cacheRead": 100,
+        "cacheWrite": 0,
+        "input": 400,
+        "output": 160,
+        "reasoning": 40
+      },
+      "turn": true,
+      "workspace": "/home/u/proj"
+    },
+    {
+      "harness": "reasonix",
+      "messageId": "projects/-home-u-proj/sessions/sess-c.acp.json",
+      "model": "deepseek-chat",
+      "sessionId": "sess-c",
+      "subagent": false,
+      "timestamp": "2026-08-04T10:00:00.000Z",
+      "title": "all-cached session",
+      "tokens": {
+        "cacheRead": 500,
+        "cacheWrite": 0,
+        "input": 0,
+        "output": 100,
+        "reasoning": 20
+      },
+      "turn": true,
+      "workspace": "/home/u/proj"
+    }
+  ],
+  "schema_version": 1,
+  "skipped": {
+    "reasonix": [
+      "projects/-home-u-proj/sessions/sess-malformed.acp.json"
+    ]
+  }
+}

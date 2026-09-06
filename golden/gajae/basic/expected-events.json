@@ -1,0 +1,33 @@
+{
+  "schema_version": 1,
+  "events": [
+    {
+      "harness": "gajae",
+      "timestamp": "2026-08-01T10:00:00.000Z",
+      "sessionId": "session",
+      "messageId": "message",
+      "turn": true,
+      "subagent": false,
+      "model": "gpt-5",
+      "tokens": {
+        "input": 8,
+        "output": 3,
+        "cacheRead": 5,
+        "cacheWrite": 7,
+        "reasoning": 0
+      }
+    }
+  ],
+  "diagnostics": [
+    {
+      "severity": "warning",
+      "message": "skipping malformed gajae usage agent/sessions/2026-08-01T10-00-00_session.jsonl:4",
+      "harness": "gajae"
+    }
+  ],
+  "skipped": {
+    "gajae": [
+      "agent/sessions/2026-08-01T10-00-00_session.jsonl:4"
+    ]
+  }
+}

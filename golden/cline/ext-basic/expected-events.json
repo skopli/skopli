@@ -1,0 +1,33 @@
+{
+  "schema_version": 1,
+  "events": [
+    {
+      "harness": "cline",
+      "timestamp": "2026-01-31T22:53:21.000Z",
+      "sessionId": "task-1",
+      "messageId": "cline:task-1:0",
+      "turn": false,
+      "subagent": false,
+      "model": "anthropic/claude-opus-4-6",
+      "tokens": {
+        "input": 100,
+        "output": 20,
+        "cacheRead": 15,
+        "cacheWrite": 5,
+        "reasoning": 0
+      }
+    }
+  ],
+  "diagnostics": [
+    {
+      "severity": "warning",
+      "message": "skipping unreadable cline task .config/Code/User/globalStorage/saoudrizwan.claude-dev/tasks/task-2/ui_messages.json",
+      "harness": "cline"
+    }
+  ],
+  "skipped": {
+    "cline": [
+      ".config/Code/User/globalStorage/saoudrizwan.claude-dev/tasks/task-2/ui_messages.json"
+    ]
+  }
+}

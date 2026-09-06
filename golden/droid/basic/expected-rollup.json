@@ -1,0 +1,63 @@
+{
+  "schema_version": 1,
+  "by": {
+    "model": [
+      {
+        "key": "claude-opus-4-5-thinking-0",
+        "tokens": {
+          "input": 30,
+          "output": 4,
+          "cacheRead": 0,
+          "cacheWrite": 0,
+          "reasoning": 0
+        },
+        "events": 1,
+        "turns": 0,
+        "calls": 1
+      },
+      {
+        "key": "claude-sonnet-4",
+        "tokens": {
+          "input": 1,
+          "output": 2,
+          "cacheRead": 0,
+          "cacheWrite": 0,
+          "reasoning": 0
+        },
+        "events": 1,
+        "turns": 0,
+        "calls": 1
+      }
+    ],
+    "day": [
+      {
+        "key": "2026-08-01",
+        "tokens": {
+          "input": 31,
+          "output": 6,
+          "cacheRead": 0,
+          "cacheWrite": 0,
+          "reasoning": 0
+        },
+        "events": 2,
+        "turns": 0,
+        "calls": 2
+      }
+    ],
+    "harness": [
+      {
+        "key": "droid",
+        "tokens": {
+          "input": 31,
+          "output": 6,
+          "cacheRead": 0,
+          "cacheWrite": 0,
+          "reasoning": 0
+        },
+        "events": 2,
+        "turns": 0,
+        "calls": 2
+      }
+    ]
+  }
+}

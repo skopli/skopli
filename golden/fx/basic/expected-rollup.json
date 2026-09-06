@@ -1,0 +1,67 @@
+{
+  "by": {
+    "day": [
+      {
+        "calls": 4,
+        "costUsd": 0.08,
+        "events": 4,
+        "key": "2026-02-02",
+        "tokens": {
+          "cacheRead": 6,
+          "cacheWrite": 3,
+          "input": 55,
+          "output": 21,
+          "reasoning": 4
+        },
+        "turns": 0
+      }
+    ],
+    "harness": [
+      {
+        "calls": 4,
+        "costUsd": 0.08,
+        "events": 4,
+        "key": "fx",
+        "tokens": {
+          "cacheRead": 6,
+          "cacheWrite": 3,
+          "input": 55,
+          "output": 21,
+          "reasoning": 4
+        },
+        "turns": 0
+      }
+    ],
+    "model": [
+      {
+        "calls": 2,
+        "costUsd": 0.04,
+        "events": 2,
+        "key": "anthropic/claude-sonnet-4-5",
+        "tokens": {
+          "cacheRead": 2,
+          "cacheWrite": 1,
+          "input": 25,
+          "output": 9,
+          "reasoning": 0
+        },
+        "turns": 0
+      },
+      {
+        "calls": 2,
+        "costUsd": 0.04,
+        "events": 2,
+        "key": "openai/gpt-5.4",
+        "tokens": {
+          "cacheRead": 4,
+          "cacheWrite": 2,
+          "input": 30,
+          "output": 12,
+          "reasoning": 4
+        },
+        "turns": 0
+      }
+    ]
+  },
+  "schema_version": 1
+}

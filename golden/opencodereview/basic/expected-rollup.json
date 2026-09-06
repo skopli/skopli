@@ -1,0 +1,76 @@
+{
+  "by": {
+    "day": [
+      {
+        "calls": 3,
+        "events": 3,
+        "key": "2026-08-01",
+        "tokens": {
+          "cacheRead": 900,
+          "cacheWrite": 200,
+          "input": 118,
+          "output": 79,
+          "reasoning": 0
+        },
+        "turns": 3
+      },
+      {
+        "calls": 1,
+        "events": 1,
+        "key": "2026-08-02",
+        "tokens": {
+          "cacheRead": 400,
+          "cacheWrite": 900,
+          "input": 1000,
+          "output": 500,
+          "reasoning": 0
+        },
+        "turns": 1
+      }
+    ],
+    "harness": [
+      {
+        "calls": 4,
+        "events": 4,
+        "key": "opencodereview",
+        "tokens": {
+          "cacheRead": 1300,
+          "cacheWrite": 1100,
+          "input": 1118,
+          "output": 579,
+          "reasoning": 0
+        },
+        "turns": 4
+      }
+    ],
+    "model": [
+      {
+        "calls": 1,
+        "events": 1,
+        "key": "ocr-haiku",
+        "tokens": {
+          "cacheRead": 400,
+          "cacheWrite": 900,
+          "input": 1000,
+          "output": 500,
+          "reasoning": 0
+        },
+        "turns": 1
+      },
+      {
+        "calls": 3,
+        "events": 3,
+        "key": "ocr-sonnet",
+        "tokens": {
+          "cacheRead": 900,
+          "cacheWrite": 200,
+          "input": 118,
+          "output": 79,
+          "reasoning": 0
+        },
+        "turns": 3
+      }
+    ]
+  },
+  "schema_version": 1
+}

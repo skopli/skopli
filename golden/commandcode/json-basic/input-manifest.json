@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "harness": "commandcode",
+  "case": "json-basic",
+  "env": {
+    "XDG_DATA_HOME": "."
+  },
+  "options": {
+    "harnesses": [
+      "commandcode"
+    ],
+    "tz": "UTC"
+  },
+  "rollups": [
+    "model",
+    "day",
+    "harness"
+  ]
+}

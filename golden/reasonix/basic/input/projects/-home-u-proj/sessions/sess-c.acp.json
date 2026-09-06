@@ -1,0 +1,1 @@
+{"sessionId":"sess-c","cwd":"/home/u/proj","model":"deepseek-chat","title":"all-cached session","createdAt":"2026-08-04T09:55:00Z","updatedAt":"2026-08-04T10:00:00Z","status":{"cumulative":{"promptTokens":500,"completionTokens":120,"reasoningTokens":20,"cacheHitTokens":500,"cacheMissTokens":0}}}

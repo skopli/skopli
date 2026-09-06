@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "harness": "kimi",
+  "case": "basic",
+  "env": {
+    "KIMI_DATA_DIR": "."
+  },
+  "options": {
+    "harnesses": [
+      "kimi"
+    ],
+    "tz": "UTC"
+  },
+  "rollups": [
+    "model",
+    "day",
+    "harness"
+  ]
+}

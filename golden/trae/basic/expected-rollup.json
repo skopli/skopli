@@ -1,0 +1,89 @@
+{
+  "by": {
+    "day": [
+      {
+        "calls": 3,
+        "events": 3,
+        "key": "2026-08-01",
+        "tokens": {
+          "cacheRead": 900,
+          "cacheWrite": 200,
+          "input": 118,
+          "output": 79,
+          "reasoning": 40
+        },
+        "turns": 3
+      },
+      {
+        "calls": 1,
+        "events": 1,
+        "key": "2026-08-02",
+        "tokens": {
+          "cacheRead": 400,
+          "cacheWrite": 900,
+          "input": 1000,
+          "output": 500,
+          "reasoning": 0
+        },
+        "turns": 1
+      }
+    ],
+    "harness": [
+      {
+        "calls": 4,
+        "events": 4,
+        "key": "trae",
+        "tokens": {
+          "cacheRead": 1300,
+          "cacheWrite": 1100,
+          "input": 1118,
+          "output": 579,
+          "reasoning": 40
+        },
+        "turns": 4
+      }
+    ],
+    "model": [
+      {
+        "calls": 1,
+        "events": 1,
+        "key": "trae-haiku",
+        "tokens": {
+          "cacheRead": 400,
+          "cacheWrite": 900,
+          "input": 1000,
+          "output": 500,
+          "reasoning": 0
+        },
+        "turns": 1
+      },
+      {
+        "calls": 2,
+        "events": 2,
+        "key": "trae-sonnet",
+        "tokens": {
+          "cacheRead": 900,
+          "cacheWrite": 200,
+          "input": 110,
+          "output": 70,
+          "reasoning": 40
+        },
+        "turns": 2
+      },
+      {
+        "calls": 1,
+        "events": 1,
+        "key": "traj-default",
+        "tokens": {
+          "cacheRead": 0,
+          "cacheWrite": 0,
+          "input": 8,
+          "output": 9,
+          "reasoning": 0
+        },
+        "turns": 1
+      }
+    ]
+  },
+  "schema_version": 1
+}

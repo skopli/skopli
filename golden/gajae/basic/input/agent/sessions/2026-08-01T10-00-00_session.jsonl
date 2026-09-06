@@ -1,0 +1,4 @@
+{"type":"session","id":"session"}
+{"type":"message","message":{"role":"user"}}
+{"type":"message","id":"message","timestamp":"2026-08-01T10:00:00.000Z","message":{"role":"assistant","model":"gpt-5","usage":{"input":8,"output":3,"cacheRead":5,"cacheWrite":7}}}
+{"type":"message","id":"broken","timestamp":"2026-08-01T10:00:01.000Z","message":{"role":"assistant","model":"gpt-5","usage":{"input":1,"output":1,"cacheWrite":0}}}

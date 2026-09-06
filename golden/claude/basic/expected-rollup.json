@@ -1,0 +1,121 @@
+{
+  "schema_version": 1,
+  "by": {
+    "model": [
+      {
+        "key": "claude-haiku-4-5-20251001",
+        "tokens": {
+          "input": 13,
+          "output": 16,
+          "cacheRead": 0,
+          "cacheWrite": 0,
+          "reasoning": 0
+        },
+        "events": 2,
+        "turns": 1,
+        "calls": 2
+      },
+      {
+        "key": "claude-sonnet-4-5-20250929",
+        "tokens": {
+          "input": 1167,
+          "output": 618,
+          "cacheRead": 1300,
+          "cacheWrite": 1240,
+          "cacheWrite1h": 320,
+          "reasoning": 0
+        },
+        "events": 8,
+        "turns": 3,
+        "calls": 8,
+        "costUsd": 0.0123
+      },
+      {
+        "key": "mystery-model-x",
+        "tokens": {
+          "input": 42,
+          "output": 17,
+          "cacheRead": 0,
+          "cacheWrite": 0,
+          "reasoning": 0
+        },
+        "events": 1,
+        "turns": 1,
+        "calls": 1
+      }
+    ],
+    "day": [
+      {
+        "key": "2026-08-01",
+        "tokens": {
+          "input": 123,
+          "output": 86,
+          "cacheRead": 900,
+          "cacheWrite": 200,
+          "reasoning": 0
+        },
+        "events": 4,
+        "turns": 2,
+        "calls": 4,
+        "costUsd": 0.0123
+      },
+      {
+        "key": "2026-08-02",
+        "tokens": {
+          "input": 42,
+          "output": 17,
+          "cacheRead": 0,
+          "cacheWrite": 0,
+          "reasoning": 0
+        },
+        "events": 1,
+        "turns": 1,
+        "calls": 1
+      },
+      {
+        "key": "2026-08-03",
+        "tokens": {
+          "input": 1046,
+          "output": 526,
+          "cacheRead": 400,
+          "cacheWrite": 1040,
+          "cacheWrite1h": 320,
+          "reasoning": 0
+        },
+        "events": 5,
+        "turns": 1,
+        "calls": 5
+      },
+      {
+        "key": "2026-08-04",
+        "tokens": {
+          "input": 11,
+          "output": 22,
+          "cacheRead": 0,
+          "cacheWrite": 0,
+          "reasoning": 0
+        },
+        "events": 1,
+        "turns": 1,
+        "calls": 1
+      }
+    ],
+    "harness": [
+      {
+        "key": "claude",
+        "tokens": {
+          "input": 1222,
+          "output": 651,
+          "cacheRead": 1300,
+          "cacheWrite": 1240,
+          "cacheWrite1h": 320,
+          "reasoning": 0
+        },
+        "events": 11,
+        "turns": 5,
+        "calls": 11,
+        "costUsd": 0.0123
+      }
+    ]
+  }
+}

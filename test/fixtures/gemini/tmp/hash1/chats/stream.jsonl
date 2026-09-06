@@ -1,0 +1,3 @@
+{"id":"ju-1","type":"user","timestamp":"2026-08-03T08:00:00.000Z","content":"question"}
+{"id":"jm-1","type":"gemini","model":"gemini-3-flash","timestamp":"2026-08-03T08:00:05.000Z","tokens":{"input":500,"output":40,"cached":100,"thoughts":10,"tool":0,"total":550}}
+this line is not json

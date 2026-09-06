@@ -1,0 +1,71 @@
+{
+  "diagnostics": [],
+  "events": [
+    {
+      "harness": "opencodereview",
+      "messageId": ".opencodereview/sessions/-home-user-projA/sess-a.jsonl:1",
+      "model": "ocr-sonnet",
+      "sessionId": "sess-a",
+      "subagent": false,
+      "timestamp": "2026-08-01T10:00:00.000Z",
+      "tokens": {
+        "cacheRead": 300,
+        "cacheWrite": 200,
+        "input": 100,
+        "output": 50,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "opencodereview",
+      "messageId": ".opencodereview/sessions/-home-user-projA/sess-a.jsonl:2",
+      "model": "ocr-sonnet",
+      "sessionId": "sess-a",
+      "subagent": false,
+      "timestamp": "2026-08-01T10:00:00.000Z",
+      "tokens": {
+        "cacheRead": 600,
+        "cacheWrite": 0,
+        "input": 10,
+        "output": 20,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "opencodereview",
+      "messageId": ".opencodereview/sessions/-home-user-projA/sess-a.jsonl:3",
+      "model": "ocr-sonnet",
+      "sessionId": "sess-a",
+      "subagent": false,
+      "timestamp": "2026-08-01T10:00:00.000Z",
+      "tokens": {
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "input": 8,
+        "output": 9,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "opencodereview",
+      "messageId": ".opencodereview/sessions/-home-user-projB/sess-b.jsonl:1",
+      "model": "ocr-haiku",
+      "sessionId": "sess-b",
+      "subagent": false,
+      "timestamp": "2026-08-02T09:00:00.000Z",
+      "tokens": {
+        "cacheRead": 400,
+        "cacheWrite": 900,
+        "input": 1000,
+        "output": 500,
+        "reasoning": 0
+      },
+      "turn": true
+    }
+  ],
+  "schema_version": 1,
+  "skipped": {}
+}

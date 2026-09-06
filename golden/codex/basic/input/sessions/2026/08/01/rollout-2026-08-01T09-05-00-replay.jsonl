@@ -1,0 +1,6 @@
+{"timestamp":"2026-08-01T09:00:00.000Z","type":"session_meta","payload":{"id":"codex-sess-2"}}
+{"timestamp":"2026-08-01T09:00:00.500Z","type":"turn_context","payload":{"model":"gpt-5.1-codex","cwd":"/tmp"}}
+{"timestamp":"2026-08-01T09:00:01.000Z","type":"event_msg","payload":{"type":"user_message","message":"do a thing"}}
+{"timestamp":"2026-08-01T09:00:10.000Z","type":"event_msg","payload":{"type":"token_count","info":{"total_token_usage":{"input_tokens":1000,"cached_input_tokens":400,"output_tokens":100,"reasoning_output_tokens":20,"total_tokens":1100}}}}
+{"timestamp":"2026-08-01T09:05:00.000Z","type":"event_msg","payload":{"type":"user_message","message":"continue in subagent"}}
+{"timestamp":"2026-08-01T09:05:10.000Z","type":"event_msg","payload":{"type":"token_count","info":{"total_token_usage":{"input_tokens":1300,"cached_input_tokens":500,"output_tokens":180,"reasoning_output_tokens":40,"total_tokens":1480}}}}

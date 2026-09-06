@@ -1,0 +1,49 @@
+{
+  "schema_version": 1,
+  "events": [
+    {
+      "harness": "devin",
+      "timestamp": "2026-01-31T22:53:15.000Z",
+      "sessionId": "sess-1",
+      "messageId": "devin-cli:sess-1:1",
+      "turn": true,
+      "subagent": false,
+      "model": "devin/claude-opus-4-6",
+      "tokens": {
+        "input": 100,
+        "output": 20,
+        "cacheRead": 30,
+        "cacheWrite": 40,
+        "reasoning": 0
+      }
+    },
+    {
+      "harness": "devin",
+      "timestamp": "2026-01-31T22:55:00.000Z",
+      "sessionId": "sess-1",
+      "messageId": "devin-cli:sess-1:2",
+      "turn": true,
+      "subagent": false,
+      "model": "devin/claude-opus-4-6",
+      "tokens": {
+        "input": 50,
+        "output": 10,
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "reasoning": 0
+      }
+    }
+  ],
+  "diagnostics": [
+    {
+      "severity": "warning",
+      "message": "skipping malformed devin message cli/sessions.db:3",
+      "harness": "devin"
+    }
+  ],
+  "skipped": {
+    "devin": [
+      "cli/sessions.db:3"
+    ]
+  }
+}

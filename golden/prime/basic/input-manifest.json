@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "harness": "prime",
+  "case": "basic",
+  "env": {
+    "PRIME_AGENT_SESSION_DIR": "sessions"
+  },
+  "options": {
+    "harnesses": [
+      "prime"
+    ],
+    "tz": "UTC"
+  },
+  "rollups": [
+    "model",
+    "day",
+    "harness"
+  ]
+}

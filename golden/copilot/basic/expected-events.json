@@ -1,0 +1,33 @@
+{
+  "schema_version": 1,
+  "events": [
+    {
+      "harness": "copilot",
+      "timestamp": "2026-08-01T10:00:00.000Z",
+      "sessionId": "trace",
+      "messageId": "trace:span",
+      "turn": false,
+      "subagent": false,
+      "model": "gpt-5",
+      "tokens": {
+        "input": 10,
+        "output": 20,
+        "cacheRead": 0,
+        "cacheWrite": 4,
+        "reasoning": 0
+      }
+    }
+  ],
+  "diagnostics": [
+    {
+      "severity": "warning",
+      "message": "skipping malformed copilot OTel usage record otel.jsonl:3",
+      "harness": "copilot"
+    }
+  ],
+  "skipped": {
+    "copilot": [
+      "otel.jsonl:3"
+    ]
+  }
+}

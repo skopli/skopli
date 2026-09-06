@@ -1,0 +1,224 @@
+---
+title: Pricing basics
+description: How Skopli's Price layer works at a glance, and where to go deeper.
+---
+
+import { Tabs, TabItem } from "@astrojs/starlight/components";
+
+The Price layer matches models against market catalogs and computes USD costs. It is the only layer that touches the network, and only when you opt in. It caches what it fetches and works offline from that cache. Prices are USD per million tokens.
+
+The seven handle-based facades (TypeScript, Python, Ruby, Java, C#, Go, Swift) run the same lifecycle. Built-in sources are on by default in priority order OpenRouter, LiteLLM, then models.dev, unless you pass your own `sources`. To make the handle network-free without `offline`, pass an empty `sources` list (`sources: []` in TypeScript, Ruby, and Swift, `sources=[]` in Python, an empty `sources(...)` in Java, `Sources = []` in C#, empty `Sources` in Go), which disables every built-in source. Each source caches to disk under `cacheDir` (default: the platform cache directory, shared byte-for-byte across facades) as `pricing-<source>.json` (`pricing-openrouter.json`, `pricing-litellm.json`, `pricing-models-dev.json`). A source is served from cache within `ttlMs` (default 1 hour), from cache alone under `offline`, and stale rather than failing when a fetch fails. A long-lived handle reloads its sources once the in-memory `ttlMs` window elapses, picking up refreshed prices on a later query. `refresh` is one-shot and applies only to the first load, not to those TTL reloads. In the four FFI facades (Java, C#, Go, Swift) the fetch and cache run in the host language, since the embedded `libskopli` opens no socket by default, and the results match the direct-core facades.
+
+The bare C ABI has no host-language lifecycle. The default `libskopli` prices only against the `catalogs` (or `overrides`) you inject into `ag_pricing_new`, fetches nothing, and keeps no cache. The optional `net` build (`libskopli-full`) turns built-in sources on and runs the fetch, TTL cache, refresh, offline, and stale-fallback lifecycle inside Rust.
+
+<Tabs syncKey="lang">
+  <TabItem label="TypeScript">
+    ```ts frame="code"
+    const pricing = createPricing({
+      // priority order; defaults shown
+      sources: [openRouterSource(), liteLlmSource(), modelsDevSource()],
+      // highest priority, beats every market source
+      overrides: [{ model: "my-fine-tune", input: 5, output: 15 }],
+      mode: "calculate", // "calculate" (default) | "display" | "auto"
+      cacheDir: "/custom/cache", // default: platform cache dir
+      offline: true, // cache only, never fetch
+      ttlMs: 3_600_000, // cache freshness window
+      refresh: true, // attempt one fresh fetch per source, bypassing fresh caches (stale cache still used if the fetch fails)
+      fetch: myFetch, // injectable for tests/proxies
+    });
+
+    const hit = await pricing.lookupModel("openai/gpt-5");
+    // { priced: true, key: "gpt-5", price: {...}, source: "litellm", fetchedAt: "..." }
+    ```
+
+  </TabItem>
+  <TabItem label="Python">
+    ```python frame="code"
+    pricing = skopli.create_pricing(
+        # priority order; defaults shown
+        sources=[  # BuiltinSource(name, format, url); pass sources=[] for no network
+            skopli.BuiltinSource("openrouter", "openrouter", skopli.OPENROUTER_URL),
+            skopli.BuiltinSource("litellm", "litellm", skopli.LITELLM_URL),
+            skopli.BuiltinSource("models-dev", "modelsdev", skopli.MODELS_DEV_URL),
+        ],
+        # highest priority, beats every market source
+        overrides=[{"model": "my-fine-tune", "input": 5, "output": 15}],
+        mode="calculate",       # "calculate" (default) | "display" | "auto"
+        cache_dir="/custom/cache",  # default: platform cache dir
+        offline=True,           # cache only, never fetch
+        ttl_ms=3_600_000,       # cache freshness window
+        refresh=True,           # one fresh fetch per source, bypassing fresh caches
+    )
+
+    hit = pricing.lookup_model("openai/gpt-5")
+    # { priced: True, key: "gpt-5", price: {...}, source: "litellm", fetched_at: "..." }
+    ```
+
+  </TabItem>
+  <TabItem label="Rust">
+    `skopli-core` has no `create_pricing` facade. Build a `Pricing` from injected catalogs and call its methods, with `cost_usd` as a free function:
+
+    ```rust frame="code"
+    use skopli_core::pricing::{cost_usd, ModelPrice, PriceLookup, Pricing, PricingMode};
+    use skopli_core::types::TokenCounts;
+
+    // catalogs: Vec<PricingCatalog> in priority order; None = no override catalog
+    let pricing = Pricing::new(catalogs, None, PricingMode::Calculate);
+
+    // match a model name against the injected catalogs (see the tier ladder)
+    let lookup = pricing.lookup_model("openai/gpt-5"); // PriceLookup::Hit | Miss
+    let _ = matches!(lookup, PriceLookup::Hit(_));
+
+    // price a token bundle at a flat rate (USD per million tokens)
+    let tokens = TokenCounts { input: 1_000, output: 500, ..Default::default() };
+    let usd = cost_usd(&tokens, &ModelPrice::flat(1.25, 10.0));
+    ```
+
+  </TabItem>
+  <TabItem label="Ruby">
+    ```ruby frame="code"
+    pricing = Skopli.create_pricing(
+      # priority order; defaults shown
+      sources: [ # BuiltinSource.new(name, format, url); pass sources: [] for no network
+        Skopli::BuiltinSource.new("openrouter", "openrouter", Skopli::OPENROUTER_URL),
+        Skopli::BuiltinSource.new("litellm", "litellm", Skopli::LITELLM_URL),
+        Skopli::BuiltinSource.new("models-dev", "modelsdev", Skopli::MODELS_DEV_URL)
+      ],
+      # highest priority, beats every market source
+      overrides: [{ model: "my-fine-tune", input: 5, output: 15 }],
+      mode: "calculate",         # "calculate" (default) | "display" | "auto"
+      cache_dir: "/custom/cache", # default: platform cache dir
+      offline: true,             # cache only, never fetch
+      ttl_ms: 3_600_000,         # cache freshness window
+      refresh: true              # one fresh fetch per source, bypassing fresh caches
+    )
+
+    hit = pricing.lookup_model("openai/gpt-5")
+    # { priced: true, key: "gpt-5", price: {...}, source: "litellm", fetched_at: "..." }
+    ```
+
+  </TabItem>
+  <TabItem label="Java">
+    The fetch runs facade-side, and the facade hands the catalogs to the network-free core. Configure a handle and price a batch:
+
+    ```java frame="code"
+    try (Pricing pricing = Skopli.createPricing(PricingOptions.builder()
+        .mode(PricingMode.CALCULATE)                              // CALCULATE (default) | DISPLAY | AUTO
+        .override(PriceOverride.flat("my-fine-tune", 5.0, 15.0))  // highest priority
+        .source(Sources.openRouter(Sources.OPENROUTER_URL))       // facade-side sources, in priority order
+        .fetch(myFetcher)                                         // injectable getter for those sources
+        .build())) {
+        PriceLookup hit = pricing.lookupModel("openai/gpt-5");
+        // PriceHit { priced=true, key="gpt-5", source="litellm", ... } or a PriceMiss
+    }
+    ```
+
+  </TabItem>
+  <TabItem label="C#">
+    The fetch runs facade-side, and the facade hands the catalogs to the network-free core. Configure a handle and price a batch:
+
+    ```csharp frame="code"
+    using Pricing pricing = SkopliClient.CreatePricing(new PricingOptions {
+        Mode = PricingMode.Calculate,                              // Calculate (default) | Display | Auto
+        Overrides = new[] { new PriceOverride {                    // highest priority
+            Model = "my-fine-tune", Input = 5, Output = 15 } },
+        Sources = new[] { PricingSource.OpenRouter() },            // facade-side, priority order
+        Fetch = myFetch,                                           // injectable getter for those sources
+    });
+    PriceLookup hit = pricing.LookupModel("openai/gpt-5");
+    // PriceHit { Priced=true, Key="gpt-5", Source="litellm", ... } or a PriceMiss
+    ```
+
+  </TabItem>
+  <TabItem label="Go">
+    The fetch runs facade-side, and the facade hands the catalogs to the network-free core. Configure a handle and price a batch:
+
+    ```go frame="code"
+    pricing, _ := skopli.NewPricing(skopli.PricingOptions{
+        Mode: skopli.ModeCalculate, // ModeCalculate (default) | ModeDisplay | ModeAuto
+        Overrides: []skopli.Override{ // highest priority
+            {Model: "my-fine-tune", Input: 5, Output: 15},
+        },
+        Sources: []skopli.PricingSource{skopli.OpenRouterSource(skopli.OpenRouterURL)}, // facade-side, priority order
+        Fetch:   myFetch,                                    // injectable getter for those sources
+    })
+    defer pricing.Close()
+    hit, _ := pricing.LookupModel("openai/gpt-5")
+    // PriceLookup{ Priced: true, Key: "gpt-5", Source: "litellm", ... } or a miss
+    ```
+
+  </TabItem>
+  <TabItem label="Swift">
+    The fetch runs facade-side, and the facade hands the catalogs to the network-free core. Configure a handle and price a batch:
+
+    ```swift frame="code"
+    let pricing = try Skopli.createPricing(options: PricingOptions(
+        mode: .calculate,                                     // .calculate (default) | .display | .auto
+        overrides: [Override(model: "my-fine-tune", input: 5, output: 15)], // highest priority
+        sources: [openRouterSource()],                        // facade-side sources, priority order
+        fetch: myFetch))                                      // injectable getter for those sources
+    defer { pricing.close() }
+    let hit = try pricing.lookupModel("openai/gpt-5")
+    // PriceLookup(priced: true, key: "gpt-5", source: "litellm", ...) or a miss
+    ```
+
+  </TabItem>
+  <TabItem label="C/C++">
+    The C ABI exchanges JSON buffers. Create a pricing handle from options JSON, price an event array, then free the handle and buffer:
+
+    ```c frame="code"
+    #include <stdio.h>
+    #include <string.h>
+    #include "skopli.h"
+
+    AgPricing *pricing = NULL;
+    const char *opts = "{\"mode\":\"calculate\",\"builtinSources\":false}";
+    ag_pricing_new(opts, strlen(opts), &pricing);
+
+    // events_json / events_len are a serialized UsageEvent[] from ag_read_usage.
+    AgBuf out = {0};
+    const char *group_opts = "{\"by\":\"model\"}";
+    AgStatus st = ag_pricing_price_events(pricing, events_json, events_len, group_opts, strlen(group_opts), &out);
+    if (st == AG_STATUS_OK) {
+        fwrite(out.ptr, 1, out.len, stdout); // PricedEventGroup[] as JSON
+        ag_buf_free(out);
+    }
+    ag_pricing_free(pricing);
+    ```
+
+  </TabItem>
+</Tabs>
+
+Each section below is a one-line summary that links to the page owning the detail.
+
+## How a model matches a price
+
+Model names resolve to a catalog price through a tier ladder (exact key, provider-prefix strip, family aliases, separator and date normalization, alias table). An unmatched model returns `{ priced: false, attempted: [...] }` and never a guess.
+
+See [Model matching](/skopli/pricing/model-matching/) for the full ladder, zero-cost handling, and source priority.
+
+## How costs are computed
+
+Reasoning tokens bill at the output rate, token buckets are disjoint so nothing bills twice, and Claude's 5m/1h cache-write split bills at the correct per-TTL rates.
+
+See [Cost math & cache-write splits](/skopli/pricing/cost-math/) for the base math and a worked cache-write example.
+
+## Long-context tiers
+
+Long-context tier rates (128k to 512k boundaries, LiteLLM catalog) are selected per request, with marginal billing by default and whole-request repricing for Anthropic models.
+
+See [Long-context tiers](/skopli/pricing/long-context-tiers/) for the tier boundaries and how they compose with cache writes.
+
+## Rollup pricing vs per-event pricing
+
+`priceRollups` prices summed rollups, exact for flat-rate models. `priceEvents` prices each event at its own context, which is the correct path for tiered models.
+
+See [Rollup pricing vs per-event pricing](/skopli/pricing/rollups-vs-events/) for when each is safe.
+
+## Cost modes
+
+Three cost modes: `calculate` (default) recomputes from tokens × rates, `display` reports the harness-recorded cost, and `auto` prefers recorded and falls back to calculated.
+
+## Offline and cache
+
+Each catalog caches on disk (default 1 hour TTL, atomic writes) under `cacheDir`, which defaults to the platform cache directory. Every facade resolves the same `defaultCacheDir`, so the cache is shared, and the file format is byte-compatible, so a cache written by one facade is read by any other. Each source writes one `pricing-<source>.json` file. A cached source is used at any age when a fetch fails or `offline` is set, so pricing keeps working offline. `refresh` attempts one fresh fetch per source, bypassing a fresh cache, falling back to stale on failure. It is one-shot and applies only to the first load. A long-lived handle reloads its sources once the in-memory TTL window elapses, so a later query picks up refreshed prices. `pricing.catalogs()` reports what loaded (source, `fetchedAt`, model count).

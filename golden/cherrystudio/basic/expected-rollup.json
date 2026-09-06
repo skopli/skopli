@@ -1,0 +1,76 @@
+{
+  "by": {
+    "day": [
+      {
+        "calls": 1,
+        "events": 1,
+        "key": "2025-06-15",
+        "tokens": {
+          "cacheRead": 0,
+          "cacheWrite": 0,
+          "input": 1000,
+          "output": 500,
+          "reasoning": 0
+        },
+        "turns": 0
+      },
+      {
+        "calls": 1,
+        "events": 1,
+        "key": "2025-08-01",
+        "tokens": {
+          "cacheRead": 20,
+          "cacheWrite": 8,
+          "input": 100,
+          "output": 40,
+          "reasoning": 10
+        },
+        "turns": 0
+      }
+    ],
+    "harness": [
+      {
+        "calls": 2,
+        "events": 2,
+        "key": "cherrystudio",
+        "tokens": {
+          "cacheRead": 20,
+          "cacheWrite": 8,
+          "input": 1100,
+          "output": 540,
+          "reasoning": 10
+        },
+        "turns": 0
+      }
+    ],
+    "model": [
+      {
+        "calls": 1,
+        "events": 1,
+        "key": "anthropic/claude-sonnet-4-5",
+        "tokens": {
+          "cacheRead": 20,
+          "cacheWrite": 8,
+          "input": 100,
+          "output": 40,
+          "reasoning": 10
+        },
+        "turns": 0
+      },
+      {
+        "calls": 1,
+        "events": 1,
+        "key": "openai/gpt-4o",
+        "tokens": {
+          "cacheRead": 0,
+          "cacheWrite": 0,
+          "input": 1000,
+          "output": 500,
+          "reasoning": 0
+        },
+        "turns": 0
+      }
+    ]
+  },
+  "schema_version": 1
+}

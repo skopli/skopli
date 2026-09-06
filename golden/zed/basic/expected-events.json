@@ -1,0 +1,50 @@
+{
+  "schema_version": 1,
+  "events": [
+    {
+      "harness": "zed",
+      "timestamp": "2026-08-01T10:00:00.000Z",
+      "sessionId": "thread-hosted",
+      "messageId": "thread-hosted",
+      "turn": false,
+      "subagent": false,
+      "model": "zed.dev/claude-sonnet-4",
+      "tokens": {
+        "input": 160,
+        "output": 60,
+        "cacheRead": 10,
+        "cacheWrite": 5,
+        "reasoning": 0
+      },
+      "calls": 2
+    },
+    {
+      "harness": "zed",
+      "timestamp": "2026-08-02T08:00:00.000Z",
+      "sessionId": "thread-cumulative",
+      "messageId": "thread-cumulative",
+      "turn": false,
+      "subagent": false,
+      "model": "zed.dev/gpt-5",
+      "tokens": {
+        "input": 200,
+        "output": 80,
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "reasoning": 0
+      }
+    }
+  ],
+  "diagnostics": [
+    {
+      "severity": "warning",
+      "message": "skipping malformed zed thread threads/threads.db:thread-bad",
+      "harness": "zed"
+    }
+  ],
+  "skipped": {
+    "zed": [
+      "threads/threads.db:thread-bad"
+    ]
+  }
+}

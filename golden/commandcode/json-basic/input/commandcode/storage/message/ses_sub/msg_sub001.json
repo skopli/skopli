@@ -1,0 +1,14 @@
+{
+  "id": "msg_sub001",
+  "sessionID": "ses_sub",
+  "role": "assistant",
+  "time": { "created": 1769900050100 },
+  "providerID": "commandcode",
+  "modelID": "big-pickle",
+  "tokens": {
+    "input": 999,
+    "output": 999,
+    "reasoning": 0,
+    "cache": { "read": 0, "write": 0 }
+  }
+}

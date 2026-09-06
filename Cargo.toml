@@ -1,0 +1,28 @@
+[workspace]
+resolver = "3"
+members = [
+  "crates/skopli-core",
+  "crates/skopli-wire",
+  "crates/skopli-capi",
+  "crates/skopli-node",
+  "crates/skopli-py",
+  "crates/skopli-ruby",
+]
+
+[workspace.package]
+edition = "2024"
+rust-version = "1.88"
+homepage = "https://docs.skopli.com/skopli/"
+documentation = "https://docs.skopli.com/skopli/"
+repository = "https://github.com/skopli/skopli"
+
+[workspace.dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+jiff = { version = "0.2", features = ["tzdb-bundle-always"] }
+walkdir = "2"
+rusqlite = { version = "0.40", features = ["bundled"] }
+ruzstd = "0.9"
+ureq = { version = "3", default-features = false, features = ["rustls", "json"] }
+cbindgen = "0.29"
+csbindgen = "1"

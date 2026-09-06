@@ -1,0 +1,102 @@
+{
+  "by": {
+    "day": [
+      {
+        "calls": 1,
+        "events": 1,
+        "key": "2026-08-01",
+        "tokens": {
+          "cacheRead": 30,
+          "cacheWrite": 0,
+          "input": 70,
+          "output": 40,
+          "reasoning": 10
+        },
+        "turns": 1
+      },
+      {
+        "calls": 1,
+        "events": 1,
+        "key": "2026-08-02",
+        "tokens": {
+          "cacheRead": 0,
+          "cacheWrite": 0,
+          "input": 800,
+          "output": 200,
+          "reasoning": 100
+        },
+        "turns": 1
+      },
+      {
+        "calls": 1,
+        "events": 1,
+        "key": "2026-08-03",
+        "tokens": {
+          "cacheRead": 100,
+          "cacheWrite": 0,
+          "input": 400,
+          "output": 160,
+          "reasoning": 40
+        },
+        "turns": 1
+      },
+      {
+        "calls": 1,
+        "events": 1,
+        "key": "2026-08-04",
+        "tokens": {
+          "cacheRead": 500,
+          "cacheWrite": 0,
+          "input": 0,
+          "output": 100,
+          "reasoning": 20
+        },
+        "turns": 1
+      }
+    ],
+    "harness": [
+      {
+        "calls": 4,
+        "events": 4,
+        "key": "reasonix",
+        "tokens": {
+          "cacheRead": 630,
+          "cacheWrite": 0,
+          "input": 1270,
+          "output": 500,
+          "reasoning": 170
+        },
+        "turns": 4
+      }
+    ],
+    "model": [
+      {
+        "calls": 3,
+        "events": 3,
+        "key": "deepseek-chat",
+        "tokens": {
+          "cacheRead": 630,
+          "cacheWrite": 0,
+          "input": 470,
+          "output": 300,
+          "reasoning": 70
+        },
+        "turns": 3
+      },
+      {
+        "calls": 1,
+        "events": 1,
+        "key": "deepseek-reasoner",
+        "tokens": {
+          "cacheRead": 0,
+          "cacheWrite": 0,
+          "input": 800,
+          "output": 200,
+          "reasoning": 100
+        },
+        "turns": 1
+      }
+    ]
+  },
+  "schema_version": 1
+}

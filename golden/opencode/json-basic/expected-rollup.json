@@ -1,0 +1,53 @@
+{
+  "schema_version": 1,
+  "by": {
+    "model": [
+      {
+        "key": "opencode/big-pickle",
+        "tokens": {
+          "input": 2049,
+          "output": 1279,
+          "cacheRead": 9000,
+          "cacheWrite": 500,
+          "reasoning": 30
+        },
+        "events": 3,
+        "turns": 1,
+        "calls": 3,
+        "costUsd": 0.0044
+      }
+    ],
+    "day": [
+      {
+        "key": "2026-01-31",
+        "tokens": {
+          "input": 2049,
+          "output": 1279,
+          "cacheRead": 9000,
+          "cacheWrite": 500,
+          "reasoning": 30
+        },
+        "events": 3,
+        "turns": 1,
+        "calls": 3,
+        "costUsd": 0.0044
+      }
+    ],
+    "harness": [
+      {
+        "key": "opencode",
+        "tokens": {
+          "input": 2049,
+          "output": 1279,
+          "cacheRead": 9000,
+          "cacheWrite": 500,
+          "reasoning": 30
+        },
+        "events": 3,
+        "turns": 1,
+        "calls": 3,
+        "costUsd": 0.0044
+      }
+    ]
+  }
+}

@@ -1,0 +1,4 @@
+{"type":"llm.request","model":"kimi-code/kimi-k2"}
+{"type":"usage.record","usageScope":"turn","time":1769900001000,"usage":{"input_other":100,"output":20,"input_cache_read":15,"input_cache_creation":5}}
+{"type":"usage.record","usageScope":"session","time":1769900002000,"usage":{"input_other":999,"output":999}}
+not-json

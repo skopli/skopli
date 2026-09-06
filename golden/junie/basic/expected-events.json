@@ -1,0 +1,33 @@
+{
+  "schema_version": 1,
+  "events": [
+    {
+      "harness": "junie",
+      "timestamp": "2026-01-31T22:53:21.000Z",
+      "sessionId": "sess-1",
+      "messageId": "sess-1/events.jsonl:1:0",
+      "turn": true,
+      "subagent": false,
+      "model": "claude-opus-4-6",
+      "tokens": {
+        "input": 100,
+        "output": 20,
+        "cacheRead": 15,
+        "cacheWrite": 5,
+        "reasoning": 3
+      }
+    }
+  ],
+  "diagnostics": [
+    {
+      "severity": "warning",
+      "message": "skipping malformed line sess-1/events.jsonl:3",
+      "harness": "junie"
+    }
+  ],
+  "skipped": {
+    "junie": [
+      "sess-1/events.jsonl:3"
+    ]
+  }
+}

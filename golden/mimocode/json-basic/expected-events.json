@@ -1,0 +1,78 @@
+{
+  "schema_version": 1,
+  "events": [
+    {
+      "harness": "mimocode",
+      "timestamp": "2026-01-31T22:53:20.200Z",
+      "sessionId": "ses_main",
+      "messageId": "msg_002asst",
+      "turn": true,
+      "subagent": false,
+      "model": "mimocode/big-pickle",
+      "tokens": {
+        "input": 1000,
+        "output": 200,
+        "cacheRead": 4000,
+        "cacheWrite": 500,
+        "reasoning": 30
+      },
+      "workspace": "c:/users/dev/repos/skopli",
+      "title": "Main session"
+    },
+    {
+      "harness": "mimocode",
+      "timestamp": "2026-01-31T22:53:21.000Z",
+      "sessionId": "ses_main",
+      "messageId": "msg_003asst",
+      "turn": false,
+      "subagent": false,
+      "model": "mimocode/big-pickle",
+      "tokens": {
+        "input": 50,
+        "output": 80,
+        "cacheRead": 5000,
+        "cacheWrite": 0,
+        "reasoning": 0
+      },
+      "costUsd": 0.0044,
+      "workspace": "c:/users/dev/repos/skopli",
+      "title": "Main session"
+    },
+    {
+      "harness": "mimocode",
+      "timestamp": "2026-01-31T22:54:10.100Z",
+      "sessionId": "ses_sub",
+      "messageId": "msg_sub001",
+      "turn": false,
+      "subagent": true,
+      "model": "mimocode/big-pickle",
+      "tokens": {
+        "input": 999,
+        "output": 999,
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "reasoning": 0
+      },
+      "workspace": "c:/users/dev/repos/skopli",
+      "title": "Main session"
+    }
+  ],
+  "diagnostics": [
+    {
+      "severity": "warning",
+      "message": "skipping malformed mimocode message data/storage/message/ses_main/msg_004bad.json",
+      "harness": "mimocode"
+    },
+    {
+      "severity": "warning",
+      "message": "skipping malformed mimocode session metadata data/storage/session/proj/ses_bad.json",
+      "harness": "mimocode"
+    }
+  ],
+  "skipped": {
+    "mimocode": [
+      "data/storage/message/ses_main/msg_004bad.json",
+      "data/storage/session/proj/ses_bad.json"
+    ]
+  }
+}
