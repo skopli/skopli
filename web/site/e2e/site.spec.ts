@@ -113,10 +113,16 @@ test("section nav lives in the header on wide viewports and in a row below it el
   await expect(page).toHaveURL(/#harnesses$/);
   await expect(page.locator("#harnesses")).toBeInViewport();
   if (isDesktop(page)) return;
-  await expect(nav.getByRole("link", { name: "Harnesses" })).toHaveAttribute("aria-current", "location");
+  await expect(nav.getByRole("link", { name: "Harnesses" })).toHaveAttribute(
+    "aria-current",
+    "location",
+  );
   await expect(nav).toBeInViewport();
   await page.evaluate(() => document.getElementById("layers")!.scrollIntoView());
-  await expect(nav.getByRole("link", { name: "Layers" })).toHaveAttribute("aria-current", "location");
+  await expect(nav.getByRole("link", { name: "Layers" })).toHaveAttribute(
+    "aria-current",
+    "location",
+  );
   await expect(nav.getByRole("link", { name: "Harnesses" })).not.toHaveAttribute("aria-current");
   await expect(nav).toBeInViewport();
 });

@@ -75,7 +75,7 @@ fn total(events: &[UsageEvent], openrouter: &serde_json::Value) -> f64 {
             _ => 0.0,
         })
         .sum()
-}`,,
+}`,
   },
   {
     label: "Ruby",
@@ -219,6 +219,6 @@ AgStatus price_by_model(const char *events_json, uintptr_t events_len,
     ag_buf_free(rollups);
     free(opts);
     return st;
-}`,,
+}`,
   },
 ];

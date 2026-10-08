@@ -171,10 +171,14 @@ const { copy } = Astro.props;
     }
   }
   @media (max-width: 47.99rem) {
+    th,
+    td {
+      padding-inline: var(--s-2);
+    }
     .ledger__wide {
       display: none;
     }
-    .ledger__model {
+    td:first-child {
       white-space: normal;
     }
   }
