@@ -1,0 +1,46 @@
+---
+interface Props {
+  id: string;
+  title: string;
+  body?: string;
+  wide?: boolean;
+}
+
+const { id, title, body, wide = false } = Astro.props;
+---
+
+<section class:list={["section", { "section--wide": wide }]} id={id} aria-labelledby={`${id}-title`}>
+  <div class="section__head">
+    <h2 id={`${id}-title`}>{title}</h2>
+    {body && <p class="section__body">{body}</p>}
+  </div>
+  <slot />
+</section>
+
+<style>
+  .section {
+    max-width: var(--page-max);
+    margin: 0 auto;
+    padding: var(--s-8) var(--s-5);
+    border-top: var(--hair) solid var(--rule-1);
+  }
+  .section__head {
+    max-width: var(--content-width);
+    margin-bottom: var(--s-6);
+  }
+  .section__head h2 {
+    margin: 0 0 var(--s-3);
+    font-size: var(--fs-h1);
+    line-height: var(--lh-tight);
+  }
+  .section__body {
+    margin: 0;
+    color: var(--ink-1);
+    font-size: var(--fs-body);
+  }
+  @media (max-width: 47.99rem) {
+    .section {
+      padding: var(--s-7) var(--s-4);
+    }
+  }
+</style>

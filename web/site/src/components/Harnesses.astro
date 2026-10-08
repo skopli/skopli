@@ -1,0 +1,47 @@
+---
+import HarnessName from "@skopli/ui/components/HarnessName.astro";
+import { harnesses } from "@skopli/ui/data/harnesses.ts";
+import { docsUrl } from "../site.ts";
+---
+
+<ul class="harnesses">
+  {
+    harnesses.map((h) => (
+      <li data-harness={h.id}>
+        <HarnessName id={h.id} />
+        <code>{h.id}</code>
+      </li>
+    ))
+  }
+</ul>
+<p class="harnesses__more">
+  <a href={`${docsUrl}reference/harnesses`}>Full table with footnotes</a>
+</p>
+
+<style>
+  .harnesses {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr));
+    gap: 0 var(--s-5);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .harnesses li {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--s-3);
+    min-height: var(--target);
+    border-bottom: var(--hair) solid var(--rule-1);
+    font-size: var(--fs-sm);
+  }
+  .harnesses code {
+    color: var(--ink-3);
+    font-size: var(--fs-xs);
+  }
+  .harnesses__more {
+    margin: var(--s-5) 0 0;
+    font-size: var(--fs-sm);
+  }
+</style>

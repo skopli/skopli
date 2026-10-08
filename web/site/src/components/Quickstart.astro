@@ -1,0 +1,39 @@
+---
+import Tab from "@skopli/ui/components/Tab.astro";
+import Tabs from "@skopli/ui/components/Tabs.astro";
+import { shikiFrame } from "@skopli/ui/markdown/shiki-frame.ts";
+import { Code } from "astro:components";
+import { samples } from "../data/samples.ts";
+
+interface Props {
+  field: "code" | "install";
+}
+
+const { field } = Astro.props;
+const transformers = [shikiFrame()];
+---
+
+<Tabs syncKey="lang">
+  {
+    samples.map((s) => (
+      <Tab label={s.label}>
+        {field === "code" ? (
+          <Code
+            code={s.code}
+            lang={s.lang as "ts"}
+            theme="css-variables"
+            meta={`title="${s.file}"`}
+            transformers={transformers}
+          />
+        ) : (
+          <Code
+            code={s.install}
+            lang={s.installLang as "sh"}
+            theme="css-variables"
+            transformers={transformers}
+          />
+        )}
+      </Tab>
+    ))
+  }
+</Tabs>

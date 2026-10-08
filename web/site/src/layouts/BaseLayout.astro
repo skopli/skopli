@@ -1,0 +1,96 @@
+---
+import "@skopli/ui/tokens.css";
+import "@skopli/ui/base.css";
+import "@skopli/ui/prose.css";
+import "@skopli/ui/shiki.css";
+import Analytics from "@skopli/ui/components/Analytics.astro";
+import Fonts from "@skopli/ui/components/Fonts.astro";
+import TabsInit from "@skopli/ui/components/TabsInit.astro";
+import ThemeScript from "@skopli/ui/components/ThemeScript.astro";
+import { defaultLocale, type Locale, translator } from "@skopli/ui/i18n";
+import { absoluteHref, locales } from "../lib/i18n.ts";
+import { licenseUrl, repoUrl } from "../site.ts";
+
+interface Props {
+  locale: Locale;
+  title: string;
+  description: string;
+  path: string;
+  noindex?: boolean;
+}
+
+const { locale, title, description, path, noindex = false } = Astro.props;
+const canonical = absoluteHref(path, locale);
+const jsonLd = {
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "WebSite",
+      "@id": `${Astro.site}#website`,
+      url: String(Astro.site),
+      name: "Skopli",
+      inLanguage: locale,
+      publisher: { "@type": "Organization", name: "Skopli", url: repoUrl },
+    },
+    {
+      "@type": "SoftwareSourceCode",
+      name: "Skopli",
+      description,
+      codeRepository: repoUrl,
+      license: licenseUrl,
+      programmingLanguage: ["TypeScript", "Python", "Rust", "Ruby", "Java", "C#", "Go", "Swift", "C"],
+      runtimePlatform: "Node.js >= 24",
+      isAccessibleForFree: true,
+      url: String(Astro.site),
+    },
+  ],
+};
+---
+
+<!doctype html>
+<html lang={locale} dir="ltr" data-copy-label={translator(locale)("copyCode")}>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <link rel="canonical" href={canonical} />
+    {noindex && <meta name="robots" content="noindex" />}
+    {
+      locales.length > 1 &&
+        locales.map((alt) => <link rel="alternate" hreflang={alt} href={absoluteHref(path, alt)} />)
+    }
+    {
+      locales.length > 1 && (
+        <link rel="alternate" hreflang="x-default" href={absoluteHref(path, defaultLocale)} />
+      )
+    }
+    <link rel="sitemap" href="/sitemap-index.xml" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Skopli" />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonical} />
+    <meta property="og:locale" content={locale.replace("-", "_")} />
+    <meta name="twitter:card" content="summary" />
+    <meta name="color-scheme" content="dark light" />
+    <meta name="theme-color" content="#0b0b0c" media="(prefers-color-scheme: dark)" />
+    <meta name="theme-color" content="#f5f5f6" media="(prefers-color-scheme: light)" />
+    <ThemeScript />
+    <TabsInit />
+    <Fonts />
+    <script is:inline type="application/ld+json" set:html={JSON.stringify(jsonLd)} />
+    <Analytics />
+  </head>
+  <body>
+    <slot />
+    <script>
+      import { initCopyCode } from "@skopli/ui/markdown/copy-code.ts";
+      import { initTableOverflow } from "@skopli/ui/markdown/table-overflow.ts";
+
+      initCopyCode(document.documentElement.dataset.copyLabel ?? "Copy code");
+      initTableOverflow();
+    </script>
+  </body>
+</html>

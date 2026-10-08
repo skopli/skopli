@@ -1,0 +1,64 @@
+---
+import Button from "@skopli/ui/components/Button.astro";
+import type { Copy } from "../copy.ts";
+import Ledger from "./Ledger.astro";
+import { docsUrl, repoUrl } from "../site.ts";
+
+interface Props {
+  copy: Copy;
+}
+
+const { copy } = Astro.props;
+---
+
+<section class="hero" aria-labelledby="hero-title">
+  <div class="hero__text">
+    <h1 id="hero-title">{copy.hero.title}</h1>
+    <p class="hero__lede">{copy.hero.lede}</p>
+    <p class="hero__facts">{copy.hero.facts}</p>
+    <div class="hero__actions">
+      <Button href={docsUrl} variant="primary">{copy.hero.getStarted}</Button>
+      <Button href={repoUrl}>{copy.hero.github}</Button>
+    </div>
+  </div>
+  <Ledger copy={copy.ledger} />
+</section>
+
+<style>
+  .hero {
+    max-width: var(--page-max);
+    margin: 0 auto;
+    padding: var(--s-9) var(--s-5) var(--s-8);
+  }
+  .hero__text {
+    max-width: var(--content-width-wide);
+  }
+  h1 {
+    margin: 0 0 var(--s-5);
+    font-size: var(--fs-hero);
+    line-height: var(--lh-tight);
+    letter-spacing: var(--tracking-heading);
+  }
+  .hero__lede {
+    max-width: var(--content-width);
+    margin: 0 0 var(--s-4);
+    color: var(--ink-1);
+    font-size: 1.15rem;
+    line-height: 1.5;
+  }
+  .hero__facts {
+    margin: 0 0 var(--s-6);
+    color: var(--ink-2);
+    font-size: var(--fs-sm);
+  }
+  .hero__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--s-3);
+  }
+  @media (max-width: 47.99rem) {
+    .hero {
+      padding: var(--s-7) var(--s-4) var(--s-7);
+    }
+  }
+</style>

@@ -1,0 +1,45 @@
+---
+import type { Copy } from "../copy.ts";
+
+interface Props {
+  copy: Copy["refuses"];
+}
+
+const { copy } = Astro.props;
+---
+
+<dl class="refuses">
+  {
+    copy.items.map((item) => (
+      <div class="refuse">
+        <dt>{item.title}</dt>
+        <dd>{item.body}</dd>
+      </div>
+    ))
+  }
+</dl>
+
+<style>
+  .refuses {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--s-6) var(--s-7);
+    margin: 0;
+  }
+  dt {
+    margin-bottom: var(--s-2);
+    font-size: var(--fs-h3);
+    font-weight: var(--fw-heading);
+  }
+  dd {
+    margin: 0;
+    color: var(--ink-1);
+    font-size: var(--fs-sm);
+    line-height: var(--lh-body);
+  }
+  @media (max-width: 63.99rem) {
+    .refuses {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>

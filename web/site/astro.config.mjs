@@ -1,7 +1,23 @@
-import { defineConfig } from "astro/config";
+// @ts-check
 import sitemap from "@astrojs/sitemap";
+import { configuredLocales, defaultLocale } from "@skopli/ui/i18n";
+import { defineConfig } from "astro/config";
+import { pseudoLocaleEnabled, siteOrigin } from "./src/site.ts";
+
+const locales = configuredLocales(pseudoLocaleEnabled);
 
 export default defineConfig({
-  site: "https://skopli.com",
-  integrations: [sitemap()],
+  site: siteOrigin,
+  i18n: {
+    locales,
+    defaultLocale,
+    routing: { prefixDefaultLocale: false, redirectToDefaultLocale: false },
+  },
+  integrations: [
+    sitemap({
+      filter: (page) => !page.endsWith("/404/"),
+      i18n: { defaultLocale, locales: Object.fromEntries(locales.map((l) => [l, l])) },
+    }),
+  ],
+  vite: { build: { assetsInlineLimit: 0 }, server: { fs: { allow: [".."] } } },
 });

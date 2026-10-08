@@ -1,0 +1,82 @@
+---
+import type { Copy } from "../copy.ts";
+
+interface Props {
+  copy: Copy["layers"];
+}
+
+const { copy } = Astro.props;
+const layers = [
+  { ...copy.read, network: "Never" },
+  { ...copy.rollup, network: "Never" },
+  { ...copy.price, network: "Fetches, caches, offline from cache" },
+];
+---
+
+<ol class="layers">
+  {
+    layers.map((layer, i) => (
+      <li class="layer">
+        <span class="layer__index tabular">0{i + 1}</span>
+        <h3 class="layer__name">{layer.name}</h3>
+        <p class="layer__body">{layer.body}</p>
+        <p class="layer__net">
+          <span class="layer__net-label">Network</span> {layer.network}
+        </p>
+      </li>
+    ))
+  }
+</ol>
+
+<style>
+  .layers {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: var(--s-5);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .layer {
+    display: grid;
+    grid-template-rows: auto auto 1fr auto;
+    gap: var(--s-3);
+    padding: var(--s-5);
+    border: var(--hair) solid var(--rule-1);
+    border-radius: var(--r-3);
+    background: var(--ground-1);
+  }
+  .layer__index {
+    color: var(--ink-3);
+    font-size: var(--fs-xs);
+    letter-spacing: var(--tracking-caps);
+  }
+  .layer__name {
+    margin: 0;
+    font-size: var(--fs-h2);
+  }
+  .layer__body {
+    margin: 0;
+    color: var(--ink-1);
+    font-size: var(--fs-sm);
+    line-height: var(--lh-body);
+  }
+  .layer__net {
+    margin: 0;
+    padding-top: var(--s-3);
+    border-top: var(--hair) solid var(--rule-1);
+    color: var(--ink-2);
+    font-size: var(--fs-sm);
+  }
+  .layer__net-label {
+    color: var(--ink-3);
+    font-size: var(--fs-xs);
+    letter-spacing: var(--tracking-caps);
+    text-transform: uppercase;
+  }
+  @media (max-width: 63.99rem) {
+    .layers {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>

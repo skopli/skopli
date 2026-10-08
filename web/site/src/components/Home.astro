@@ -1,0 +1,104 @@
+---
+import Footer from "@skopli/ui/components/Footer.astro";
+import Header from "@skopli/ui/components/Header.astro";
+import LocaleSwitch from "@skopli/ui/components/LocaleSwitch.astro";
+import SkipLink from "@skopli/ui/components/SkipLink.astro";
+import { localeNames, type Locale } from "@skopli/ui/i18n";
+import { copyFor } from "../copy.ts";
+import BaseLayout from "../layouts/BaseLayout.astro";
+import { href, locales, t } from "../lib/i18n.ts";
+import { docsUrl, licenseUrl, releasesUrl, repoUrl } from "../site.ts";
+import Harnesses from "./Harnesses.astro";
+import Hero from "./Hero.astro";
+import Layers from "./Layers.astro";
+import Quickstart from "./Quickstart.astro";
+import Refuses from "./Refuses.astro";
+import Section from "./Section.astro";
+
+interface Props {
+  locale: Locale;
+}
+
+const { locale } = Astro.props;
+const copy = copyFor(locale);
+const tr = t(locale);
+const navItems = Object.entries(copy.nav) as [keyof typeof copy.nav, string][];
+const localeOptions = locales.map((code) => ({
+  code,
+  name: localeNames[code],
+  href: href("/", code),
+  current: code === locale,
+}));
+---
+
+<BaseLayout locale={locale} title={copy.title} description={copy.description} path="/">
+  <SkipLink t={tr} />
+  <Header t={tr} homeHref={href("/", locale)} githubUrl={repoUrl}>
+    <Fragment slot="nav">
+      {navItems.map(([id, label]) => <a href={`#${id}`}>{label}</a>)}
+      <a href={docsUrl}>{tr("docs")}</a>
+    </Fragment>
+    <Fragment slot="actions">
+      {locales.length > 1 && <LocaleSwitch t={tr} options={localeOptions} />}
+    </Fragment>
+  </Header>
+  <main id="main" tabindex="-1">
+    <Hero copy={copy} />
+    <Section id="install" title={copy.install.title} body={copy.install.body}>
+      <Quickstart field="install" />
+    </Section>
+    <Section id="layers" title={copy.layers.title}>
+      <Layers copy={copy.layers} />
+    </Section>
+    <Section id="quickstart" title={copy.quickstart.title} body={copy.quickstart.body}>
+      <Quickstart field="code" />
+    </Section>
+    <Section id="harnesses" title={copy.harnesses.title} body={copy.harnesses.body}>
+      <Harnesses />
+    </Section>
+    <Section id="refuses" title={copy.refuses.title} body={copy.refuses.body}>
+      <Refuses copy={copy.refuses} />
+    </Section>
+    <Section id="library" title={copy.library.title} body={copy.library.body}>
+      <p class="library__links">
+        <a href={docsUrl}>{copy.library.docs}</a>
+        <a href={releasesUrl}>{copy.library.releases}</a>
+      </p>
+    </Section>
+    <p class="trademark">{copy.trademark}</p>
+  </main>
+  <Footer t={tr}>
+    <a href={docsUrl}>{copy.footer.docs}</a>
+    <a href={repoUrl} rel="noopener">{copy.footer.github}</a>
+    <a href={licenseUrl} rel="noopener">{copy.footer.license}</a>
+  </Footer>
+</BaseLayout>
+
+<style>
+  main:focus {
+    outline: none;
+  }
+  .library__links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--s-4);
+    margin: 0;
+  }
+  .library__links a {
+    display: inline-flex;
+    align-items: center;
+    min-height: var(--target);
+  }
+  .trademark {
+    max-width: var(--page-max);
+    margin: 0 auto;
+    padding: 0 var(--s-5) var(--s-7);
+    color: var(--ink-3);
+    font-size: var(--fs-xs);
+  }
+  @media (max-width: 47.99rem) {
+    .trademark {
+      padding: 0 var(--s-4) var(--s-6);
+    }
+  }
+</style>

@@ -1,0 +1,13 @@
+---
+import { defaultLocale } from "@skopli/ui/i18n";
+import Home from "../../components/Home.astro";
+import { locales, resolveLocale } from "../../lib/i18n.ts";
+
+export function getStaticPaths() {
+  return locales.filter((l) => l !== defaultLocale).map((locale) => ({ params: { locale } }));
+}
+
+const locale = resolveLocale(Astro.params.locale);
+---
+
+<Home locale={locale} />

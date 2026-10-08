@@ -1,0 +1,66 @@
+---
+import Button from "@skopli/ui/components/Button.astro";
+import Footer from "@skopli/ui/components/Footer.astro";
+import Header from "@skopli/ui/components/Header.astro";
+import SkipLink from "@skopli/ui/components/SkipLink.astro";
+import { copyFor } from "../copy.ts";
+import BaseLayout from "../layouts/BaseLayout.astro";
+import { href, t } from "../lib/i18n.ts";
+import { docsUrl, repoUrl } from "../site.ts";
+
+const locale = "en";
+const copy = copyFor(locale);
+const tr = t(locale);
+---
+
+<BaseLayout
+  locale={locale}
+  title={`${copy.notFound.title}: Skopli`}
+  description={copy.notFound.body}
+  path="/404"
+  noindex
+>
+  <SkipLink t={tr} />
+  <Header t={tr} homeHref={href("/", locale)} githubUrl={repoUrl}>
+    <a slot="nav" href={docsUrl}>{tr("docs")}</a>
+  </Header>
+  <main id="main" tabindex="-1" class="not-found">
+    <p class="not-found__code tabular">404</p>
+    <h1>{copy.notFound.title}</h1>
+    <p>{copy.notFound.body}</p>
+    <Button href={href("/", locale)} variant="primary">{copy.notFound.home}</Button>
+  </main>
+  <Footer t={tr}>
+    <a href={docsUrl}>{copy.footer.docs}</a>
+    <a href={repoUrl} rel="noopener">{copy.footer.github}</a>
+  </Footer>
+</BaseLayout>
+
+<style>
+  .not-found {
+    max-width: var(--page-max);
+    min-height: calc(100vh - var(--header-h) - 12rem);
+    margin: 0 auto;
+    padding: var(--s-9) var(--s-5);
+  }
+  .not-found:focus {
+    outline: none;
+  }
+  .not-found__code {
+    margin: 0 0 var(--s-3);
+    color: var(--ink-3);
+    font-size: var(--fs-sm);
+    letter-spacing: var(--tracking-caps);
+  }
+  h1 {
+    margin: 0 0 var(--s-4);
+    font-size: var(--fs-h1);
+  }
+  p {
+    max-width: var(--content-width);
+    color: var(--ink-1);
+  }
+  .not-found :global(.button) {
+    margin-top: var(--s-5);
+  }
+</style>
