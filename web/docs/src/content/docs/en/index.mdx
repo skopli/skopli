@@ -3,114 +3,16 @@ title: Skopli
 description: An SDK that reads AI coding-agent usage from 40 harnesses offline and prices it against market catalogs.
 ---
 
-import Tabs from "@skopli/ui/components/Tabs.astro";
-import Tab from "@skopli/ui/components/Tab.astro";
 import LinkList from "@skopli/ui/components/LinkList.astro";
 import LinkCard from "@skopli/ui/components/LinkCard.astro";
 
 Point Skopli at the session logs your coding agents already keep, and turn them into priced usage data. It reads tokens, sessions, turns, and calls from local disk, normalizes them into usage events, and prices those events against market catalogs. You build the dashboards, reports, and billing checks on top.
 
-Skopli is a library, not a service, so there are no accounts and no telemetry. The readers never touch the network. Only the Price layer does: it fetches market catalogs by default the first time you price, caches them on disk, and keeps pricing from that cache when offline (see [Pricing basics](/skopli/guide/pricing-basics)).
+Skopli is a library you embed, so there are no accounts and no telemetry. The readers never touch the network. Only the Price layer does: it fetches market catalogs by default the first time you price, caches them on disk, and keeps pricing from that cache when offline (see [Pricing basics](/skopli/guide/pricing-basics)).
 
 ## Install and run
 
-Pick your language. TypeScript needs Node 24 or newer and ships ESM only. The rest publish with the [first release](https://github.com/skopli/skopli/releases).
-
-<Tabs syncKey="lang">
-  <Tab label="TypeScript">
-    <Tabs syncKey="pkg">
-      <Tab label="npm">
-        ```sh
-        npm install skopli
-        ```
-
-      </Tab>
-      <Tab label="pnpm">
-        ```sh
-        pnpm add skopli
-        ```
-
-      </Tab>
-      <Tab label="bun">
-        ```sh
-        bun add skopli
-        ```
-
-      </Tab>
-    </Tabs>
-
-  </Tab>
-  <Tab label="Python">
-    ```sh
-    pip install skopli
-    ```
-
-  </Tab>
-  <Tab label="Rust">
-    ```sh
-    cargo add skopli-core
-    ```
-
-  </Tab>
-  <Tab label="Ruby">
-    ```sh
-    gem install skopli
-    ```
-
-  </Tab>
-  <Tab label="Java">
-    <Tabs syncKey="build">
-      <Tab label="Maven">
-        ```xml
-        <dependency>
-          <groupId>com.skopli</groupId>
-          <artifactId>skopli</artifactId>
-        </dependency>
-        ```
-
-      </Tab>
-      <Tab label="Gradle">
-        ```groovy
-        implementation("com.skopli:skopli")
-        ```
-
-      </Tab>
-    </Tabs>
-
-  </Tab>
-  <Tab label="C#">
-    ```sh
-    dotnet add package Skopli
-    ```
-
-  </Tab>
-  <Tab label="Go">
-    ```sh
-    go get github.com/skopli/skopli/sdks/go
-    ```
-
-  </Tab>
-  <Tab label="Swift">
-    Add to the `dependencies` array in `Package.swift`:
-
-    ```swift
-    .package(url: "https://github.com/skopli/skopli", from: "1.0.0")
-    ```
-
-  </Tab>
-  <Tab label="C/C++">
-    Download `skopli.h` and the prebuilt library from the [release assets](https://github.com/skopli/skopli/releases), then include the header and link the library:
-
-    ```c
-    #include "skopli.h"
-    ```
-
-    ```sh
-    cc app.c -lskopli
-    ```
-
-  </Tab>
-</Tabs>
+Install the package for your language from [Getting started](/skopli/guide/getting-started#step-1-install). TypeScript needs Node 24 or newer and ships ESM only. The rest publish with the [first release](https://github.com/skopli/skopli/releases).
 
 Four calls, shown here in TypeScript:
 
@@ -127,7 +29,7 @@ The seven handle-based facades (TypeScript, Python, Ruby, Java, C#, Go, Swift) e
 
 ## What you can do
 
-Read, rollup, and price are independent. Use any subset. Events go in, rollups come out, and priced rows come back.
+Read, rollup, and price are independent. Use any subset.
 
 - **Read** parses local session state from 40 harnesses into normalized usage events, with structured diagnostics. See [Reading usage](/skopli/guide/reading).
 - **Rollup** groups events by model, day (timezone-aware in every SDK), session, harness, workspace, or billing block. See [Rollups](/skopli/guide/rollups).
@@ -181,7 +83,7 @@ Every event carries the same fields before any layer touches it:
 
 ## Diagnosing broken files
 
-The SDK never writes to stdio. Problems come back as structured diagnostics alongside your data:
+Problems come back as structured diagnostics alongside your data, never on stdio:
 
 ```ts
 const { events, diagnostics } = await readUsage();

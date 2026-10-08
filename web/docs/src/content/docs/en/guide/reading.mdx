@@ -1,6 +1,6 @@
 ---
 title: Reading usage
-description: The Read layer parses local session state into normalized usage events, entirely offline.
+description: Options, date and timezone semantics, event fields, subagent tagging, and diagnostics for the Read layer.
 ---
 
 import Tabs from "@skopli/ui/components/Tabs.astro";
@@ -191,15 +191,14 @@ Subagent (child) sessions are real spend, so Skopli includes and tags them by de
 
 `event.subagent` is `true` when the harness's native marker says the event came from a subagent:
 
-| Harness          | Subagent marker                                                                                                                  |
-| ---------------- | -------------------------------------------------------------------------------------------------------------------------------- |
-| OpenCode         | The session has a non-null `parent_id` or `parentID` (SQLite and legacy JSON stores).                                            |
-| Claude Code      | The JSONL entry has `isSidechain === true`.                                                                                      |
-| Pi and omp       | The session's `rlmDepth` is greater than 0.                                                                                      |
-| DeepSeek Harness | The session has a parent session, an `origin` of `subagent`, or a delegation depth above 0 (both the JSONL and SQLite backends). |
-| Codex CLI        | Always `false` for now. Codex CLI exposes no reliable per-event subagent marker today.                                           |
-
-- every other harness: always `false`, since they have no subagent concept.
+| Harness             | Subagent marker                                                                                                                  |
+| ------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| OpenCode            | The session has a non-null `parent_id` or `parentID` (SQLite and legacy JSON stores).                                            |
+| Claude Code         | The JSONL entry has `isSidechain === true`.                                                                                      |
+| Pi and omp          | The session's `rlmDepth` is greater than 0.                                                                                      |
+| DeepSeek Harness    | The session has a parent session, an `origin` of `subagent`, or a delegation depth above 0 (both the JSONL and SQLite backends). |
+| Codex CLI           | Always `false`. Codex CLI exposes no reliable per-event subagent marker.                                                         |
+| Every other harness | Always `false`. They have no subagent concept.                                                                                   |
 
 ## Diagnostics
 

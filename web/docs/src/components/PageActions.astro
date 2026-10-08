@@ -1,5 +1,5 @@
 ---
-import { pageActionEvents } from "@skopli/ui/analytics";
+import { aiTools, pageActionEvents } from "@skopli/ui/analytics";
 import type { Translate } from "@skopli/ui/i18n";
 import { aiPrompt } from "@skopli/ui/i18n";
 import { basePath, siteOrigin } from "../site.ts";
@@ -13,22 +13,7 @@ interface Props {
 const { t, mdPath, placement } = Astro.props;
 const canonicalMdUrl = `${siteOrigin}${basePath}${mdPath}`;
 const q = encodeURIComponent(aiPrompt(canonicalMdUrl));
-const tools = [
-  { name: "ChatGPT", href: `https://chatgpt.com/?q=${q}`, event: pageActionEvents.chatgpt },
-  { name: "Claude", href: `https://claude.ai/new?q=${q}`, event: pageActionEvents.claude },
-  { name: "Grok", href: `https://grok.com/?q=${q}`, event: pageActionEvents.grok },
-  {
-    name: "Perplexity",
-    href: `https://www.perplexity.ai/search?q=${q}`,
-    event: pageActionEvents.perplexity,
-  },
-  {
-    name: "Google AI Mode",
-    href: `https://www.google.com/search?udm=50&q=${q}`,
-    event: pageActionEvents.googleAiMode,
-  },
-  { name: "Cursor", href: `https://cursor.com/link/prompt?text=${q}`, event: pageActionEvents.cursor },
-];
+const tools = aiTools.map((tool) => ({ ...tool, href: tool.url(q) }));
 const uid = `page-actions-${placement}`;
 ---
 
@@ -113,7 +98,7 @@ const uid = `page-actions-${placement}`;
     display: inline-flex;
     align-items: center;
     gap: var(--s-2);
-    min-height: 2.25rem;
+    min-height: var(--target);
     padding: 0 var(--s-3);
     border: 0;
     background: none;

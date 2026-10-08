@@ -12,3 +12,33 @@ export const pageActionEvents = {
 } as const;
 
 export type PageActionEvent = (typeof pageActionEvents)[keyof typeof pageActionEvents];
+
+/** AI assistants a page can be opened in; `url` takes the URL-encoded prompt. */
+export const aiTools = [
+  {
+    name: "ChatGPT",
+    event: pageActionEvents.chatgpt,
+    url: (q: string) => `https://chatgpt.com/?q=${q}`,
+  },
+  {
+    name: "Claude",
+    event: pageActionEvents.claude,
+    url: (q: string) => `https://claude.ai/new?q=${q}`,
+  },
+  { name: "Grok", event: pageActionEvents.grok, url: (q: string) => `https://grok.com/?q=${q}` },
+  {
+    name: "Perplexity",
+    event: pageActionEvents.perplexity,
+    url: (q: string) => `https://www.perplexity.ai/search?q=${q}`,
+  },
+  {
+    name: "Google AI Mode",
+    event: pageActionEvents.googleAiMode,
+    url: (q: string) => `https://www.google.com/search?udm=50&q=${q}`,
+  },
+  {
+    name: "Cursor",
+    event: pageActionEvents.cursor,
+    url: (q: string) => `https://cursor.com/link/prompt?text=${q}`,
+  },
+] as const;

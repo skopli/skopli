@@ -1,6 +1,6 @@
 ---
 title: Rollups
-description: The Rollup layer groups usage events by model, day, session, harness, workspace, or billing block, offline.
+description: Grouping keys, timezone-aware day buckets, workspace handling, and billing blocks for the Rollup layer.
 ---
 
 import Tabs from "@skopli/ui/components/Tabs.astro";
@@ -116,8 +116,8 @@ The Rollup layer groups events. Like the Read layer, it never touches the networ
   </Tab>
 </Tabs>
 
-- **`tz` buckets days in an IANA timezone on every path.** The TypeScript implementation uses `Intl.DateTimeFormat`. The native core (`skopli-core`) and every facade that calls it (Python, Ruby, Java, C#, Go, Swift, and the C ABI) bucket days in the same zone, DST transitions and sub-hour offsets included, so all SDKs agree bucket for bucket. An unknown zone name falls back to UTC. See the [date and timezone semantics](/skopli/guide/reading#date-and-timezone-semantics) for how `tz` maps events to day buckets.
-- **Workspace bucketing** folds events without a workspace under the `"(unknown)"` sentinel.
+- `tz` buckets days in an IANA timezone on every path. The TypeScript implementation uses `Intl.DateTimeFormat`. The native core (`skopli-core`) and every facade that calls it (Python, Ruby, Java, C#, Go, Swift, and the C ABI) bucket days in the same zone, DST transitions and sub-hour offsets included, so all SDKs agree bucket for bucket. An unknown zone name falls back to UTC. See the [date and timezone semantics](/skopli/guide/reading#date-and-timezone-semantics) for how `tz` maps events to day buckets.
+- Workspace bucketing folds events without a workspace under the `"(unknown)"` sentinel.
 
 ## Billing blocks
 

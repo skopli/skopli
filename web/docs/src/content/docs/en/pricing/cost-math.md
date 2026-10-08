@@ -3,7 +3,7 @@ title: Price tokens and cache writes
 description: Base cost math, disjoint token buckets, and Claude's 5m/1h cache-write split.
 ---
 
-Prices are USD per million tokens. Each catalog is cached on disk (default 1 hour TTL) with atomic writes. When a fetch fails, the cache is used at any age, so pricing keeps working offline. Every result says which source priced it and when that data was fetched. Default fetches time out after 10 seconds, so a stalled endpoint never hangs a run. `pricing.catalogs()` reports the loaded catalogs (source, `fetchedAt`, model count), so you can tell when every market source failed and lookups can only miss.
+Prices are USD per million tokens. Skopli caches each catalog on disk (default 1 hour TTL) with atomic writes. When a fetch fails, it uses the cache at any age, so pricing keeps working offline. Every result says which source priced it and when that data was fetched. Default fetches time out after 10 seconds, so a stalled endpoint never hangs a run. `pricing.catalogs()` reports the loaded catalogs (source, `fetchedAt`, model count), so you can tell when every market source failed and lookups can only miss.
 
 ## Base cost math
 
@@ -36,7 +36,7 @@ Claude reports a 5m/1h split for ephemeral cache writes (`tokens.cacheWrite1h`, 
 
 ### Worked example
 
-The 1h fallback is the only rate this page derives, so the example uses it. Assume a catalog with **input = $3.00 / 1M tokens** and **cache write = $3.75 / 1M tokens**, and a request writing 40,000 cache tokens of which 10,000 are the 1h portion. With no above-1hr rate in the catalog, the 1h rate is `input × 2.0`:
+The 1h fallback is the only rate this page derives, so the example uses it. Assume a catalog with input at $3.00 per 1M tokens and cache write at $3.75 per 1M tokens, and a request writing 40,000 cache tokens of which 10,000 are the 1h portion. With no above-1hr rate in the catalog, the 1h rate is `input × 2.0`:
 
 | Cache-write portion | Tokens | Rate / 1M tokens | Formula                |   Cost |
 | ------------------- | -----: | ---------------: | ---------------------- | -----: |

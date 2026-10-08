@@ -1,6 +1,6 @@
 ---
 title: Long-context tiers
-description: Long-context tier rates let large-context requests bill at the vendor's above-threshold rates.
+description: Where tier data comes from, how Skopli picks the tier, how cache writes split per tier, and marginal versus whole-request billing.
 ---
 
 When a request's context crosses a vendor threshold, the tokens above it bill at the vendor's higher long-context rate. Skopli selects the tier per request and, for Anthropic, reprices the whole request.
@@ -9,7 +9,7 @@ When a request's context crosses a vendor threshold, the tokens above it bill at
 
 Only the LiteLLM catalog carries tier data (`*_cost_per_token_above_Nk_tokens` fields at the 128k, 200k, 256k, 272k, and 512k boundaries). OpenRouter and models.dev do not.
 
-The tier is selected by the request's total context (`input + cacheRead + cacheWrite`), matching vendor definitions.
+Skopli selects the tier by the request's total context (`input + cacheRead + cacheWrite`), matching vendor definitions.
 
 ## Tier inheritance and fallbacks
 

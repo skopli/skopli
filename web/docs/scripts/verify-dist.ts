@@ -29,10 +29,12 @@ need(existsSync(join(site, "sitemap-index.xml")), "sitemap-index.xml exists");
 need(existsSync(join(site, "pagefind", "pagefind.js")), "pagefind bundle exists");
 need(existsSync(join(site, "404.html")), "404.html exists");
 need(existsSync(join(site, "privacy.html")), "privacy.html exists");
-need(
-  readFileSync(join(site, "sitemap-0.xml"), "utf8").includes('hreflang="x-default"'),
-  "sitemap carries x-default alternates",
-);
+if (locales.length > 1) {
+  need(
+    readFileSync(join(site, "sitemap-0.xml"), "utf8").includes('hreflang="x-default"'),
+    "sitemap carries x-default alternates",
+  );
+}
 
 const slugs = ["", ...navItems.map((i) => i.slug)];
 const oldNames = [

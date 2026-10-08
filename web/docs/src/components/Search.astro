@@ -60,7 +60,7 @@ const { t } = Astro.props;
       spellcheck="false"
       aria-controls="search-results"
     />
-    <button type="submit" class="search__close" aria-label={t("closeMenu")}>Esc</button>
+    <button type="submit" class="search__close" aria-label={t("closeSearch")}>Esc</button>
   </form>
   <div class="search__status" role="status" aria-live="polite"></div>
   <ol class="search__results" id="search-results"></ol>
@@ -71,7 +71,7 @@ const { t } = Astro.props;
     display: inline-flex;
     align-items: center;
     gap: var(--s-2);
-    min-height: 2.25rem;
+    min-height: var(--target);
     padding: 0 var(--s-2) 0 var(--s-3);
     border: var(--hair) solid var(--rule-2);
     border-radius: var(--r-2);

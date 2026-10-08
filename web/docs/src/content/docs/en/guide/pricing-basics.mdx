@@ -8,7 +8,15 @@ import Tab from "@skopli/ui/components/Tab.astro";
 
 The Price layer matches models against market catalogs and computes USD costs. It is the only layer that touches the network. By default it fetches the market catalogs the first time you price, caches them on disk, and keeps pricing from that cache when offline. Pass an empty `sources` list or `offline: true` for a network-free handle. Prices are USD per million tokens.
 
-The seven handle-based facades (TypeScript, Python, Ruby, Java, C#, Go, Swift) run the same lifecycle. Built-in sources are on by default in priority order OpenRouter, LiteLLM, then models.dev, unless you pass your own `sources`. To make the handle network-free without `offline`, pass an empty `sources` list (`sources: []` in TypeScript, Ruby, and Swift, `sources=[]` in Python, an empty `sources(...)` in Java, `Sources = []` in C#, empty `Sources` in Go), which disables every built-in source. Each source caches to disk under `cacheDir` (default: the platform cache directory, shared byte-for-byte across facades) as `pricing-<source>.json` (`pricing-openrouter.json`, `pricing-litellm.json`, `pricing-models-dev.json`). A source is served from cache within `ttlMs` (default 1 hour), from cache alone under `offline`, and stale rather than failing when a fetch fails. A long-lived handle reloads its sources once the in-memory `ttlMs` window elapses, picking up refreshed prices on a later query. `refresh` is one-shot and applies only to the first load, not to those TTL reloads. In the four FFI facades (Java, C#, Go, Swift) the fetch and cache run in the host language, since the embedded `libskopli` opens no socket by default, and the results match the direct-core facades.
+The seven handle-based facades (TypeScript, Python, Ruby, Java, C#, Go, Swift) run the same lifecycle. Built-in sources are on by default in priority order OpenRouter, LiteLLM, then models.dev, unless you pass your own `sources`.
+
+To make the handle network-free without `offline`, pass an empty `sources` list, which disables every built-in source. The spelling follows the language: `sources: []` in TypeScript, Ruby, and Swift, `sources=[]` in Python, an empty `sources(...)` in Java, `Sources = []` in C#, and an empty `Sources` in Go.
+
+Each source caches to disk under `cacheDir`, which defaults to the platform cache directory and is shared byte-for-byte across facades. The files are `pricing-openrouter.json`, `pricing-litellm.json`, and `pricing-models-dev.json`. A source is served from cache within `ttlMs` (default 1 hour), from cache alone under `offline`, and stale rather than failing when a fetch fails.
+
+A long-lived handle reloads its sources once the in-memory `ttlMs` window elapses, so a later query picks up refreshed prices. `refresh` is one-shot: it applies to the first load only, not to those TTL reloads.
+
+In the four FFI facades (Java, C#, Go, Swift) the fetch and cache run in the host language, since the embedded `libskopli` opens no socket by default. The results match the direct-core facades.
 
 The bare C ABI has no host-language lifecycle. The default `libskopli` prices only against the `catalogs` (or `overrides`) you inject into `ag_pricing_new`, fetches nothing, and keeps no cache. The optional `net` build (`libskopli-full`) turns built-in sources on and runs the fetch, TTL cache, refresh, offline, and stale-fallback lifecycle inside Rust.
 
@@ -194,7 +202,7 @@ Each section below is a one-line summary that links to the page owning the detai
 
 ## How a model matches a price
 
-Model names resolve to a catalog price through a tier ladder (exact key, provider-prefix strip, family aliases, separator and date normalization, alias table). An unmatched model returns `{ priced: false, attempted: [...] }` and never a guess.
+Model names resolve to a catalog price through a tier ladder (exact key, provider-prefix strip, family aliases, separator and date normalization, provider-prefixed family forms, alias table). An unmatched model returns `{ priced: false, attempted: [...] }` and never a guess.
 
 See [Model matching](/skopli/pricing/model-matching) for the full ladder, zero-cost handling, and source priority.
 
@@ -222,4 +230,8 @@ Three cost modes: `calculate` (default) recomputes from tokens × rates, `displa
 
 ## Offline and cache
 
-Each catalog caches on disk (default 1 hour TTL, atomic writes) under `cacheDir`, which defaults to the platform cache directory. Every facade resolves the same `defaultCacheDir`, so the cache is shared, and the file format is byte-compatible, so a cache written by one facade is read by any other. Each source writes one `pricing-<source>.json` file. A cached source is used at any age when a fetch fails or `offline` is set, so pricing keeps working offline. `refresh` attempts one fresh fetch per source, bypassing a fresh cache, falling back to stale on failure. It is one-shot and applies only to the first load. A long-lived handle reloads its sources once the in-memory TTL window elapses, so a later query picks up refreshed prices. `pricing.catalogs()` reports what loaded (source, `fetchedAt`, model count).
+Each catalog caches on disk (default 1 hour TTL, atomic writes) under `cacheDir`, which defaults to the platform cache directory. Every facade resolves the same `defaultCacheDir` and writes the same byte-compatible `pricing-<source>.json` files, so a cache written by one facade is read by any other.
+
+Skopli uses a cached source at any age when a fetch fails or `offline` is set, so pricing keeps working offline.
+
+`refresh` attempts one fresh fetch per source, bypassing a fresh cache and falling back to stale on failure. It is one-shot and applies only to the first load. A long-lived handle reloads its sources once the in-memory TTL window elapses, so a later query picks up refreshed prices. `pricing.catalogs()` reports what loaded (source, `fetchedAt`, model count).

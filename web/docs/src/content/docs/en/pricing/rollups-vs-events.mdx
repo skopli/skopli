@@ -1,6 +1,6 @@
 ---
 title: Price rollups or raw events
-description: How the two pricing entry points differ in handling context-sensitive (tiered) models.
+description: When to call priceRollups and when to call priceEvents, and why tiered models need the per-event path.
 ---
 
 import Tabs from "@skopli/ui/components/Tabs.astro";
@@ -22,7 +22,7 @@ The recorded cost comes from each event's `costUsd`, populated only by the Claud
 
 `priceRollups` prices the tokens already summed onto each rollup. That is exact for flat-rate models. A tiered model is context-sensitive, so summing several events (or one event that already aggregates multiple calls, `calls > 1`) before selecting a tier can push the combined context across a threshold none of the individual calls reached, overbilling the group.
 
-Instead of mispricing silently, Skopli flags such a row with `pricing.tieredAggregate: true` so a caller can catch the exposure. The flag applies in `calculate` mode, or `auto` with no recorded cost, the modes that apply the token math.
+Skopli flags such a row with `pricing.tieredAggregate: true` so a caller can catch the exposure. The flag applies in `calculate` mode, or `auto` with no recorded cost, the modes that apply the token math.
 
 ## priceEvents is the correct path for tiered models
 

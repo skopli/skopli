@@ -20,9 +20,20 @@ const t = translate(defaultLocale);
   </p>
   <h2 id="what-is-recorded">What is recorded</h2>
   <p>
-    Both sites send anonymous usage events to PostHog at <code>{posthogHost}</code>: one page view
-    per page load, plus a named event when you copy a page as Markdown or open it in an AI
-    assistant. Events carry the page URL and the browser's user agent, nothing else.
+    Both sites send anonymous usage events to PostHog at <code>{posthogHost}</code>, hosted in
+    Frankfurt: one page view per page load, plus a named event when you copy a page as Markdown or
+    open it in an AI assistant. The events exist to show which pages are read and which handoffs are
+    used, so the docs can be improved.
+  </p>
+  <p>
+    Each event carries what the stock PostHog browser library attaches: the page URL and path, the
+    referrer, the browser, operating system, and device type, screen and viewport size, language,
+    timezone, and the library version. Like any web server, PostHog receives the IP address of the
+    request. Skopli does not use it.
+  </p>
+  <p>
+    PostHog keeps events for the project's plan retention period, which PostHog sets at one year on
+    its free plan and seven years on paid plans. Nothing is exported elsewhere.
   </p>
   <h2 id="what-is-not-recorded">What is not recorded</h2>
   <ul>

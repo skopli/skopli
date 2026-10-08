@@ -6,7 +6,7 @@ description: The Skopli API in every language. Read, Rollup, and Price layers, m
 import Tabs from "@skopli/ui/components/Tabs.astro";
 import Tab from "@skopli/ui/components/Tab.astro";
 
-Skopli reads AI coding-agent usage (tokens, sessions, turns, calls) from local harness state, aggregates it, and prices it against market catalogs (OpenRouter, LiteLLM, models.dev). Every language calls into one Rust core, so the layers, options, and return shapes are the same everywhere. Only naming conventions differ. TypeScript, Java, C#, and Swift use camelCase. Python, Ruby, and Rust use snake_case. C# and Go use PascalCase methods. C uses a JSON-buffer ABI. The TypeScript package is ESM only and requires Node >= 24.
+Skopli reads AI coding-agent usage (tokens, sessions, turns, calls) from local harness state, aggregates it, and prices it against market catalogs (OpenRouter, LiteLLM, models.dev). Every language calls into one Rust core, so the layers, options, and return shapes are the same everywhere. Only naming conventions differ. TypeScript, Java, and Swift use camelCase. Python, Ruby, and Rust use snake_case. C# and Go use PascalCase. C uses a JSON-buffer ABI. The TypeScript package is ESM only and requires Node >= 24.
 
 :::note[Full pricing parity across every facade]
 The Read, Rollup, and Price layers expose the same operations and return shapes in every language.
@@ -18,7 +18,7 @@ Constructor options are shared but not byte-identical. Python, Ruby, Java, C#, G
 Rust (`skopli-core`) has no `createPricing`. You build a `Pricing` from injected catalogs and call `lookup_model`, `price_rollups`, or `price_events`, with `cost_usd` and `match_model` as lower-level free functions. The bare C ABI has no host lifecycle either: the default `libskopli` prices against the pre-fetched `catalogs` you pass to `ag_pricing_new`, and built-in sources return an error unless the library is built with `net` as `libskopli-full`.
 :::
 
-Option keys follow each language's convention: `camelCase` in TypeScript, Java, C#, and Swift (`cacheDir`, `ttlMs`), `snake_case` in Python, Ruby, and Rust (`cache_dir`, `ttl_ms`), and JSON keys in the C ABI. The semantics are identical, only the spelling changes. Each section's table describes an option once, and the tabs show the per-language spelling.
+Option keys follow each language's convention: `camelCase` in TypeScript, Java, and Swift (`cacheDir`, `ttlMs`), `PascalCase` in C# and Go (`CacheDir`, `TtlMs`), `snake_case` in Python, Ruby, and Rust (`cache_dir`, `ttl_ms`), and JSON keys in the C ABI. The semantics are identical, only the spelling changes. Each section's table describes an option once, and the tabs show the per-language spelling.
 
 ## Layers
 
@@ -39,7 +39,11 @@ Option keys follow each language's convention: `camelCase` in TypeScript, Java, 
       subagents?: "include" | "exclude"; // default "include"
       home?: string;          // optional PathResolver injection
       env?: Record<string, string>;
-    }): Promise<{ events: UsageEvent[]; diagnostics: Diagnostic[]; skipped: Skipped[] }>;
+    }): Promise<{
+      events: UsageEvent[];
+      diagnostics: Diagnostic[];
+      skipped: Skipped[];
+    }>;
     ```
 
   </Tab>
@@ -485,17 +489,17 @@ The seven handle-based facades (TypeScript, Python, Ruby, Java, C#, Go, Swift) c
 
 The options carry the same semantics in every language, only the key spelling changes (`cacheDir`/`cache_dir`, `ttlMs`/`ttl_ms`, `PricingMode.Calculate`/`"calculate"`/`.calculate`). One option differs by facade: `catalogs` is accepted by the six non-TypeScript handle facades (Python, Ruby, Java, C#, Go, Swift) and the C ABI, while TypeScript covers the same need through `sources`. `sources` and `fetch` are on all seven handle facades. Use `catalogs` to hand in pre-fetched catalogs, or `sources` plus `fetch` to drive the built-in fetch lifecycle.
 
-| Option      | Meaning                                                                                                                                                           |
-| ----------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `sources`   | Catalog sources in priority order. Default: OpenRouter, LiteLLM, models.dev. On all seven handle facades, the TypeScript-side alternative to explicit `catalogs`. |
-| `catalogs`  | Explicit pre-fetched catalogs, in priority order after overrides. (All facades except TypeScript.)                                                                |
-| `overrides` | Your own rates. Highest priority, beats every market source. An explicit `$0` counts.                                                                             |
-| `mode`      | `calculate` (default), `display`, or `auto`. See below.                                                                                                           |
-| `cacheDir`  | Disk cache location. Default: the platform cache dir.                                                                                                             |
-| `offline`   | Read cache only, never fetch.                                                                                                                                     |
-| `ttlMs`     | Cache freshness window.                                                                                                                                           |
-| `refresh`   | Attempt one fresh fetch per source, bypassing fresh caches. Stale cache is still used on failure.                                                                 |
-| `fetch`     | Injectable getter for the built-in sources, for tests and proxies. On all seven handle facades.                                                                   |
+| Option      | Meaning                                                                                                                                                                      |
+| ----------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `sources`   | Catalog sources in priority order. Default: OpenRouter, LiteLLM, models.dev. Available on all seven handle facades; in TypeScript it also stands in for explicit `catalogs`. |
+| `catalogs`  | Explicit pre-fetched catalogs, in priority order after overrides. (All facades except TypeScript.)                                                                           |
+| `overrides` | Your own rates. Highest priority, beats every market source. An explicit `$0` counts.                                                                                        |
+| `mode`      | `calculate` (default), `display`, or `auto`. See below.                                                                                                                      |
+| `cacheDir`  | Disk cache location. Default: the platform cache dir.                                                                                                                        |
+| `offline`   | Read cache only, never fetch.                                                                                                                                                |
+| `ttlMs`     | Cache freshness window.                                                                                                                                                      |
+| `refresh`   | Attempt one fresh fetch per source, bypassing fresh caches. Stale cache is still used on failure.                                                                            |
+| `fetch`     | Injectable getter for the built-in sources, for tests and proxies. On all seven handle facades.                                                                              |
 
 Priority runs overrides, then explicit catalogs, OpenRouter, LiteLLM, and models.dev, with one exception. After overrides, any tier-bearing match outranks a flat (tier-less) match from a higher-priority source, so long-context tiers are not lost to a higher-priority flat source (in practice, tiered LiteLLM beating flat OpenRouter).
 
@@ -774,10 +778,10 @@ See [Pricing basics](/skopli/guide/pricing-basics) and the [pricing deep dive](/
 
 The SDK never writes to stdio. Problems come back as structured values, and unmatched models as misses, never guesses.
 
-- **`diagnostics`**: malformed lines, unreadable files, and unusable timestamps from the Read layer. **`skipped`**: source files skipped per harness. Both are returned alongside `events` from `readUsage`.
-- **Pricing misses**: `lookupModel` and a group in `priceEvents`/`priceRollups` return `{ priced: false, attempted }` (the model keys tried) when no rate is found, or `{ priced: false, reason: "zeroCost", key }` when only zero-cost placeholders matched.
-- **`tieredAggregate: true`**: a priced row where summed context may have crossed a tier boundary the individual calls never reached (see 3c and 3d).
-- **C ABI status**: every `ag_*` call returns an `AgStatus`. `AG_STATUS_OK` means the `AgBuf` holds a JSON result to read and then free with `ag_buf_free`. Non-OK statuses carry the error rather than writing to stdio.
+- `diagnostics` lists malformed lines, unreadable files, and unusable timestamps from the Read layer, and `skipped` lists the source files skipped per harness. `readUsage` returns both alongside `events`.
+- `lookupModel` and a group in `priceEvents`/`priceRollups` return `{ priced: false, attempted }` (the model keys tried) when no rate is found, or `{ priced: false, reason: "zeroCost", key }` when only zero-cost placeholders matched.
+- `tieredAggregate: true` marks a priced row where summed context may have crossed a tier boundary the individual calls never reached (see 3c and 3d).
+- Every C ABI `ag_*` call returns an `AgStatus`. `AG_STATUS_OK` means the `AgBuf` holds a JSON result to read and then free with `ag_buf_free`. Non-OK statuses carry the error rather than writing to stdio.
 
 These shapes are the same across languages, in each language's field-name convention. Python, Ruby, and Rust use `fetched_at`. Every other facade uses `fetchedAt`, the C ABI JSON wire keys included.
 
