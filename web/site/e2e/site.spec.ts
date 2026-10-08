@@ -102,11 +102,16 @@ test("section nav lives in the header on wide viewports and in a row below it el
   await nav.getByRole("link", { name: "Harnesses" }).click();
   await expect(page).toHaveURL(/#harnesses$/);
   await expect(page.locator("#harnesses")).toBeInViewport();
-  if (!isDesktop(page))
-    await expect(nav.getByRole("link", { name: "Harnesses" })).toHaveAttribute(
-      "aria-current",
-      "true",
-    );
+  if (isDesktop(page)) return;
+  await expect(nav.getByRole("link", { name: "Harnesses" })).toHaveAttribute(
+    "aria-current",
+    "true",
+  );
+  await expect(nav).toBeInViewport();
+  await page.evaluate(() => document.getElementById("layers")!.scrollIntoView());
+  await expect(nav.getByRole("link", { name: "Layers" })).toHaveAttribute("aria-current", "true");
+  await expect(nav.getByRole("link", { name: "Harnesses" })).not.toHaveAttribute("aria-current");
+  await expect(nav).toBeInViewport();
 });
 
 test("clipped code frames show the overflow fade until scrolled to the end", async ({ page }) => {
@@ -128,7 +133,15 @@ test("the ledger recomputes from the example rows and stays inside its frame", a
   expect(usd(totals.usd)).toBe("$211.39");
   await expect(ledger.locator("tbody tr")).toHaveCount(rows.length);
   await expect(ledger.locator(".ledger__miss")).toHaveText("priced: false");
-  await expect(ledger.locator("thead th", { hasText: "Output" })).toBeVisible();
+  await expect(ledger.locator("thead th", { hasText: "Model" })).toBeVisible();
+  await expect(ledger.locator("thead th", { hasText: "USD" })).toBeVisible();
+  if (isMobile(page)) {
+    await expect(ledger.locator("thead th", { hasText: "Output" })).toBeHidden();
+    for (const code of await ledger.locator(".ledger__model").all()) {
+      const lines = await code.evaluate((el) => el.getClientRects().length);
+      expect(lines).toBe(1);
+    }
+  } else await expect(ledger.locator("thead th", { hasText: "Output" })).toBeVisible();
   const report = await page.evaluate(() => {
     const frame = document.querySelector(".ledger .table-frame")!;
     const scroll = frame.querySelector(".table-scroll")!;

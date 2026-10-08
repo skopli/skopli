@@ -15,7 +15,6 @@ export default defineConfig({
   },
   integrations: [
     sitemap({
-      filter: (page) => !page.endsWith("/404/"),
       i18n: { defaultLocale, locales: Object.fromEntries(locales.map((l) => [l, l])) },
       serialize: (item) => {
         const links = item.links ?? [];

@@ -12,7 +12,7 @@ export const en = {
     lede: `Skopli reads the session logs ${n} coding-agent harnesses already keep on disk, rolls them up, and prices them against market catalogs.`,
     getStarted: "Read the docs",
     github: "GitHub",
-    facts: "MIT. One Rust core, eight language facades, and a C ABI. No accounts, no telemetry.",
+    facts: "MIT. One Rust core, eight language facades, and a C ABI.",
   },
   ledger: {
     caption:
@@ -31,7 +31,7 @@ export const en = {
   },
   install: {
     title: "Install in your language",
-    body: "Eight language facades and a C ABI call one Rust core. No package is published yet; they ship with the first release. Until then each SDK builds from the repository. The TypeScript package needs Node 24 or newer and ships ESM only. Java, C#, Go, and Swift link the C library and C includes its header; build it with `cargo build -p skopli-capi --release`.",
+    body: "No package is published yet; all of them ship with the first release. Until then each SDK builds from the repository. The TypeScript package needs Node 24 or newer and ships ESM only. Java, C#, Go, and Swift link the C library, and C includes its header; the C tab shows the build command.",
     frameTitle: "after the first release",
   },
   layers: {
@@ -54,11 +54,11 @@ export const en = {
   },
   quickstart: {
     title: "Four calls from local files to a priced total",
-    body: "The seven handle-based facades reach the total in four calls. Rust and C expose the primitives, so their tabs show one step each. Pick a language once and both code blocks on this page follow.",
+    body: "The seven handle-based facades reach the total in four calls. Rust and C expose the primitives, so their tabs call rollup and pricing directly. Pick a language once and both code blocks on this page follow.",
   },
   harnesses: {
     title: `Read usage from ${n} harnesses`,
-    body: "Skopli parses the session state each harness keeps on disk, with no plugin, proxy, or exporter in the way. Each id is stable, and names follow the upstream project.",
+    body: "Skopli parses the session state each harness keeps on disk, with no plugin, proxy, or exporter in the way. Each ID is stable, and names follow the upstream project.",
     more: "Full table with footnotes",
   },
   refuses: {

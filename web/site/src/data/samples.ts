@@ -164,20 +164,31 @@ let priced = try pricing.priceRollups(rollups: byModel)
 let total = priced.reduce(0) { $0 + ($1.pricing.usd ?? 0) }`,
   },
   {
-    label: "C/C++",
+    label: "C",
     lang: "c",
-    file: "rollup.c",
+    file: "total.c",
     install: `cargo build -p skopli-capi --release
 cc app.c -I crates/skopli-capi/include -L target/release -lskopli`,
     installLang: "sh",
     code: `#include <string.h>
 #include "skopli.h"
 
-// The C ABI exchanges JSON buffers. events_json is a UsageEvent[]; the caller
-// frees *out with ag_buf_free.
-AgStatus rollup_by_model(const char *events_json, uintptr_t events_len, AgBuf *out) {
-    const char *opts = "{\\"by\\":\\"model\\"}";
-    return ag_rollup(events_json, events_len, opts, strlen(opts), out);
+// The C ABI exchanges JSON buffers. events_json is a UsageEvent[]; *out is a
+// PricedRollup[] the caller frees with ag_buf_free.
+AgStatus price_by_model(const char *events_json, uintptr_t events_len, AgBuf *out) {
+    const char *by_model = "{\\"by\\":\\"model\\"}";
+    AgBuf rollups = {0};
+    AgStatus st = ag_rollup(events_json, events_len, by_model, strlen(by_model), &rollups);
+    if (st != AG_STATUS_OK) return st;
+
+    const char *opts = "{\\"mode\\":\\"calculate\\",\\"builtinSources\\":false}";
+    AgPricing *pricing = NULL;
+    st = ag_pricing_new(opts, strlen(opts), &pricing);
+    if (st == AG_STATUS_OK)
+        st = ag_pricing_price_rollups(pricing, (const char *)rollups.ptr, rollups.len, out);
+    ag_pricing_free(pricing);
+    ag_buf_free(rollups);
+    return st;
 }`,
   },
 ];

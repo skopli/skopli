@@ -17,8 +17,14 @@ const { t, links } = Astro.props;
 
 <style>
   .page-nav {
+    position: sticky;
+    top: var(--header-h);
+    z-index: 30;
     display: none;
     border-bottom: var(--hair) solid var(--rule-1);
+    background: color-mix(in srgb, var(--ground-0) 88%, transparent);
+    -webkit-backdrop-filter: blur(8px);
+    backdrop-filter: blur(8px);
   }
   .page-nav__in {
     display: flex;

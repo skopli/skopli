@@ -10,6 +10,7 @@ import TabsInit from "@skopli/ui/components/TabsInit.astro";
 import ThemeScript from "@skopli/ui/components/ThemeScript.astro";
 import { defaultLocale, type Locale, ogLocale, translator } from "@skopli/ui/i18n";
 import { absoluteHref, locales } from "../lib/i18n.ts";
+import { copyFor } from "../copy.ts";
 import { licenseUrl, repoUrl, siteOrigin } from "../site.ts";
 
 interface Props {
@@ -81,7 +82,7 @@ const jsonLd = {
     <meta property="og:image" content={`${siteOrigin}/og.png`} />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
-    <meta property="og:image:alt" content="Skopli" />
+    <meta property="og:image:alt" content={copyFor(locale).hero.title} />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="color-scheme" content="dark light" />
     <meta name="theme-color" content={themeColor} />
