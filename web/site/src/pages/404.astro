@@ -6,7 +6,7 @@ import SkipLink from "@skopli/ui/components/SkipLink.astro";
 import { copyFor } from "../copy.ts";
 import BaseLayout from "../layouts/BaseLayout.astro";
 import { href, t } from "../lib/i18n.ts";
-import { docsUrl, repoUrl } from "../site.ts";
+import { docsUrl, licenseUrl, privacyUrl, repoUrl } from "../site.ts";
 
 const locale = "en";
 const copy = copyFor(locale);
@@ -30,7 +30,7 @@ const tr = t(locale);
     <p>{copy.notFound.body}</p>
     <Button href={href("/", locale)} variant="primary">{copy.notFound.home}</Button>
   </main>
-  <Footer t={tr}>
+  <Footer t={tr} licenseHref={licenseUrl} privacyHref={privacyUrl}>
     <a href={docsUrl}>{copy.footer.docs}</a>
     <a href={repoUrl} rel="noopener">{copy.footer.github}</a>
   </Footer>

@@ -3,14 +3,14 @@ import { pseudolocalize, type Locale } from "@skopli/ui/i18n";
 export const en = {
   title: "Skopli: price your AI coding-agent usage from local logs",
   description:
-    "An MIT SDK that reads AI coding-agent usage from 40 harnesses on local disk, rolls it up, and prices it against market catalogs. One Rust core, nine languages.",
+    "An MIT SDK that reads AI coding-agent usage from 40 harnesses on local disk, rolls it up, and prices it against market catalogs. One Rust core, eight language facades and a C ABI.",
   nav: { install: "Install", layers: "Layers", quickstart: "Quickstart", harnesses: "Harnesses" },
   hero: {
     title: "Know what your coding agents cost.",
     lede: "Skopli reads the session logs 40 coding-agent harnesses already keep on disk, rolls them up, and prices them against market catalogs. Your code gets the total.",
     getStarted: "Read the docs",
     github: "GitHub",
-    facts: "MIT. One Rust core, nine languages. No accounts, no telemetry.",
+    facts: "MIT. One Rust core, eight language facades and a C ABI. No accounts, no telemetry.",
   },
   ledger: {
     caption:
@@ -29,7 +29,7 @@ export const en = {
   },
   install: {
     title: "Install in your language",
-    body: "Nine facades call one Rust core. The TypeScript package needs Node 24 or newer and ships ESM only. The rest publish with the first release.",
+    body: "Eight language facades and a C ABI call one Rust core. The TypeScript package needs Node 24 or newer and ships ESM only. The rest publish with the first release.",
   },
   layers: {
     title: "Three layers. Use any one alone.",
@@ -48,7 +48,7 @@ export const en = {
   },
   quickstart: {
     title: "Four calls from local files to a priced total",
-    body: "The same calls run in every facade. Pick a language once; the choice follows you into the docs.",
+    body: "The seven handle-based facades expose the same four calls; Rust and C expose the primitives directly. Pick a language once; the choice follows you into the docs.",
   },
   harnesses: {
     title: "40 harnesses, read where they already write",
@@ -82,7 +82,7 @@ export const en = {
     docs: "Documentation",
     releases: "Releases",
   },
-  footer: { docs: "Docs", github: "GitHub", license: "MIT License" },
+  footer: { docs: "Docs", github: "GitHub" },
   trademark:
     "Product names and logos belong to their owners and identify the harness each reader supports. Their use implies no endorsement of Skopli.",
   notFound: {

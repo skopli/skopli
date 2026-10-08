@@ -7,7 +7,7 @@ import { localeNames, type Locale } from "@skopli/ui/i18n";
 import { copyFor } from "../copy.ts";
 import BaseLayout from "../layouts/BaseLayout.astro";
 import { href, locales, t } from "../lib/i18n.ts";
-import { docsUrl, licenseUrl, releasesUrl, repoUrl } from "../site.ts";
+import { docsUrl, licenseUrl, privacyUrl, releasesUrl, repoUrl } from "../site.ts";
 import Harnesses from "./Harnesses.astro";
 import Hero from "./Hero.astro";
 import Layers from "./Layers.astro";
@@ -67,10 +67,9 @@ const localeOptions = locales.map((code) => ({
     </Section>
     <p class="trademark">{copy.trademark}</p>
   </main>
-  <Footer t={tr}>
+  <Footer t={tr} licenseHref={licenseUrl} privacyHref={privacyUrl}>
     <a href={docsUrl}>{copy.footer.docs}</a>
     <a href={repoUrl} rel="noopener">{copy.footer.github}</a>
-    <a href={licenseUrl} rel="noopener">{copy.footer.license}</a>
   </Footer>
 </BaseLayout>
 
