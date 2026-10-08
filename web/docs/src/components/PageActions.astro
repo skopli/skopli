@@ -248,8 +248,13 @@ const uid = `page-actions-${placement}`;
       this.place = () => {
         if (menu.hidden) return;
         const anchor = more.getBoundingClientRect();
-        if (anchor.width === 0 || anchor.bottom < 0 || anchor.top > window.innerHeight)
-          setOpen(false);
+        const top = document.querySelector(".site-header")?.getBoundingClientRect().bottom ?? 0;
+        const offscreen =
+          anchor.bottom < top ||
+          anchor.top > window.innerHeight ||
+          anchor.right < 0 ||
+          anchor.left > window.innerWidth;
+        if (anchor.width === 0 || offscreen) setOpen(false);
         else place();
       };
     }

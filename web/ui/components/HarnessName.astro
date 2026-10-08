@@ -11,6 +11,6 @@ if (!harness) throw new Error(`unknown harness id: ${Astro.props.id}`);
 ---
 
 <span class="harness-name">
-  <span class="harness-name__icon">{harness.icon && <HarnessIcon slug={harness.icon} />}</span>
+  <span class="harness-name__icon"><HarnessIcon slug={harness.icon} /></span>
   {harness.name}
 </span>

@@ -80,7 +80,11 @@ const jsonLd = mdPath
         {trail.length > 0 && <Breadcrumbs locale={locale} label={t("breadcrumbs")} home={t("docs")} trail={trail} />}
         {mdPath && <PageActions t={t} mdPath={mdPath} placement="top" />}
       </div>
-      <article class="prose" data-pagefind-body={noindex ? undefined : ""}>
+      <article
+        class="prose"
+        data-pagefind-body={noindex ? undefined : ""}
+        data-pagefind-meta={slug ? undefined : `title:${t("overview")}`}
+      >
         <header class="docs__head">
           <h1>{title}</h1>
           {description && <p class="docs__lede">{description}</p>}

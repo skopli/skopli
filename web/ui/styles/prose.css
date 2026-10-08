@@ -322,7 +322,7 @@ pre.astro-code code {
   content: "";
   position: absolute;
   inset: 0 0 0 auto;
-  width: var(--s-6);
+  width: var(--s-7);
   border-radius: 0 var(--r-2) var(--r-2) 0;
   background: linear-gradient(to right, transparent, var(--code-0));
   pointer-events: none;

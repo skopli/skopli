@@ -83,6 +83,8 @@ const checkLinks = (text: string, where: string, pattern: RegExp) => {
     need(resolves(target), `${where} links ${target}, which is not in dist`);
 };
 const htmlLink = /(?:href|src)="(\/[^"#?]*)/g;
+const srcsetCandidate = /srcset="[^"]*?(\/[^\s,"#?]*)/g;
+const cssUrl = /url\(["']?(\/[^"')#?]*)/g;
 const mdLink = /\]\((https:\/\/docs\.skopli\.com\/skopli\/[^)#?]*)/g;
 
 for (const locale of locales) {
@@ -105,8 +107,12 @@ for (const locale of locales) {
         existsSync(join(site, slug ? `${prefix}${slug}.html` : `${locale}.html`)),
       );
   need(
-    read(join(site, prefix, "llms-full.txt")).split("\n---\n").length === localeSlugs.length,
-    `${prefix}llms-full.txt carries one page per built page`,
+    localeSlugs.every((slug) =>
+      read(join(site, prefix, "llms-full.txt")).includes(
+        read(join(site, prefix, `${slug || "index"}.md`)).trimEnd(),
+      ),
+    ),
+    `${prefix}llms-full.txt carries every built page`,
   );
   if (!isDefault)
     need(
@@ -139,6 +145,8 @@ for (const locale of locales) {
     );
     need(html.includes("data-pagefind-body"), `${where} is marked for Pagefind`);
     checkLinks(html, where, htmlLink);
+    checkLinks(html, where, srcsetCandidate);
+    checkLinks(html, where, cssUrl);
     checkLinks(md, `${where}.md`, mdLink);
     need(html.includes(`href="/skopli/${prefix}llms.txt"`), `${where} links its locale's llms.txt`);
     for (const host of aiHosts) need(html.includes(host), `${where} links ${host}`);

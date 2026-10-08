@@ -20,7 +20,10 @@ Four calls, shown here in TypeScript:
 import { detectHarnesses, readUsage, rollup, createPricing } from "skopli";
 
 const { supported } = detectHarnesses();
-const { events } = await readUsage({ harnesses: supported, since: "2026-08-01" });
+const { events } = await readUsage({
+  harnesses: supported,
+  since: "2026-08-01",
+});
 const byModel = rollup(events, { by: "model" });
 const priced = await createPricing().priceRollups(byModel);
 ```

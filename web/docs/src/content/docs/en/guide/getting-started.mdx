@@ -17,25 +17,25 @@ Pass an empty `sources` list or `offline` for a network-free handle.
 
 ## Step 1: install
 
-Pick your language. No package is published yet, so each SDK builds from the repository until the [first release](https://github.com/skopli/skopli/releases). The TypeScript package needs Node 24 or newer and ships ESM only. Java, Swift, and C link the C library, built from the repository root with `cargo build -p skopli-capi --release`.
+Pick your language. No package is published yet. The registry commands below work after the [first release](https://github.com/skopli/skopli/releases), and until then each SDK builds from the repository: the Java and Swift tabs already include it from a checkout beside your project. The TypeScript package needs Node 24 or newer and ships ESM only. Java, Swift, and C link the C library, built from the repository root with `cargo build -p skopli-capi --release`.
 
 <Tabs syncKey="lang">
   <Tab label="TypeScript">
     <Tabs syncKey="pkg">
       <Tab label="npm">
-        ```sh
+        ```sh title="after the first release"
         npm install skopli
         ```
 
       </Tab>
       <Tab label="pnpm">
-        ```sh
+        ```sh title="after the first release"
         pnpm add skopli
         ```
 
       </Tab>
       <Tab label="bun">
-        ```sh
+        ```sh title="after the first release"
         bun add skopli
         ```
 
@@ -44,19 +44,19 @@ Pick your language. No package is published yet, so each SDK builds from the rep
 
   </Tab>
   <Tab label="Python">
-    ```sh
+    ```sh title="after the first release"
     pip install skopli
     ```
 
   </Tab>
   <Tab label="Rust">
-    ```sh
+    ```sh title="after the first release"
     cargo add skopli-core
     ```
 
   </Tab>
   <Tab label="Ruby">
-    ```sh
+    ```sh title="after the first release"
     gem install skopli
     ```
 
@@ -76,13 +76,13 @@ Pick your language. No package is published yet, so each SDK builds from the rep
 
   </Tab>
   <Tab label="C#">
-    ```sh
-    dotnet add package Skopli
+    ```sh title="after the first release"
+    dotnet add package Skopli.Sdk
     ```
 
   </Tab>
   <Tab label="Go">
-    ```sh
+    ```sh title="after the first release"
     go get github.com/skopli/skopli/sdks/go
     ```
 
@@ -96,14 +96,11 @@ Pick your language. No package is published yet, so each SDK builds from the rep
 
   </Tab>
   <Tab label="C">
-    Download `skopli.h` and the prebuilt library from the [release assets](https://github.com/skopli/skopli/releases), then include the header and link the library:
-
-    ```c
-    #include "skopli.h"
-    ```
+    After the first release, download `skopli.h` and the prebuilt library from the [release assets](https://github.com/skopli/skopli/releases). Until then build it from the repository root, then include the header and link the library:
 
     ```sh
-    cc app.c -lskopli
+    cargo build -p skopli-capi --release
+    cc app.c -I crates/skopli-capi/include -L target/release -lskopli
     ```
 
   </Tab>
@@ -134,9 +131,11 @@ Pick your language. No package is published yet, so each SDK builds from the rep
     const priced = await pricing.priceRollups(byModel);
     for (const row of priced) {
       if (row.pricing.priced) {
-        console.log(row.key, row.pricing.usd.toFixed(2), `(${row.pricing.source})`);
+        console.log(row.key, row.pricing.usd.toFixed(2),
+            `(${row.pricing.source})`);
       } else {
-        console.log(row.key, "unpriced; tried", row.pricing.attempted.join(", "));
+        console.log(row.key, "unpriced; tried",
+            row.pricing.attempted.join(", "));
       }
     }
     ```
@@ -163,9 +162,11 @@ Pick your language. No package is published yet, so each SDK builds from the rep
     pricing = skopli.create_pricing()
     for row in pricing.price_rollups(by_model):
         if row.pricing.priced:
-            print(row.rollup.key, round(row.usd, 2), f"({row.pricing.source})")
+            print(row.rollup.key, round(row.usd, 2),
+                f"({row.pricing.source})")
         else:
-            print(row.rollup.key, "unpriced; tried", ", ".join(row.pricing.attempted))
+            print(row.rollup.key, "unpriced; tried",
+                ", ".join(row.pricing.attempted))
     ```
 
   </Tab>
@@ -177,14 +178,19 @@ Pick your language. No package is published yet, so each SDK builds from the rep
     use skopli_core::pricing::{cost_usd, ModelPrice};
     use skopli_core::types::TokenCounts;
 
-    // aggregate events by model (timezone-aware day bucketing for `RollupBy::Day`)
+    // aggregate events by model (timezone-aware day bucketing for
+    // `RollupBy::Day`)
     let by_model = rollup(&events, &RollupOptions::new(RollupBy::Model));
     for bucket in &by_model {
         println!("{}: {} events", bucket.key, bucket.events);
     }
 
     // price a token bundle at a flat rate (USD per million tokens)
-    let tokens = TokenCounts { input: 1_000, output: 500, ..Default::default() };
+    let tokens = TokenCounts {
+        input: 1_000,
+        output: 500,
+        ..Default::default()
+    };
     let usd = cost_usd(&tokens, &ModelPrice::flat(1.25, 10.0));
     println!("{usd:.5}");
     ```
@@ -213,7 +219,8 @@ Pick your language. No package is published yet, so each SDK builds from the rep
       if row.pricing.priced
         puts "#{row.rollup.key} #{row.usd.round(2)} (#{row.pricing.source})"
       else
-        puts "#{row.rollup.key} unpriced; tried #{row.pricing.attempted.join(', ')}"
+        tried = row.pricing.attempted.join(", ")
+        puts "#{row.rollup.key} unpriced; tried #{tried}"
       end
     end
     ```
@@ -235,10 +242,12 @@ Pick your language. No package is published yet, so each SDK builds from the rep
         .build());
 
     // aggregate
-    List<Rollup> byModel = Skopli.rollup(result.events(), RollupOptions.by(RollupBy.MODEL));
+    List<Rollup> byModel = Skopli.rollup(result.events(),
+        RollupOptions.by(RollupBy.MODEL));
 
     // price against market catalogs
-    try (Pricing pricing = Skopli.createPricing(PricingOptions.builder().build())) {
+    PricingOptions defaults = PricingOptions.builder().build();
+    try (Pricing pricing = Skopli.createPricing(defaults)) {
         for (PricedRollup row : pricing.priceRollups(byModel)) {
             System.out.println(row.rollup().key() + " " + row.pricing());
         }
@@ -261,7 +270,9 @@ Pick your language. No package is published yet, so each SDK builds from the rep
 
     // aggregate
     IReadOnlyList<Rollup> byModel =
-        SkopliClient.Rollup(usage.Events, new RollupOptions { By = RollupBy.Model });
+        SkopliClient.Rollup(usage.Events, new RollupOptions {
+            By = RollupBy.Model,
+        });
 
     // price against market catalogs
     using Pricing pricing = SkopliClient.CreatePricing(new PricingOptions());
@@ -280,12 +291,17 @@ Pick your language. No package is published yet, so each SDK builds from the rep
 
     // read usage events (all detected harnesses, or pick explicitly)
     result, _ := skopli.ReadUsage(skopli.ReadUsageOptions{
-        Harnesses: []skopli.Harness{skopli.HarnessClaude, skopli.HarnessOpencode},
+        Harnesses: []skopli.Harness{
+            skopli.HarnessClaude,
+            skopli.HarnessOpencode,
+        },
         Since:     "2026-08-01",
     })
 
     // aggregate
-    byModel, _ := skopli.Rollup(result.Events, skopli.RollupOptions{By: skopli.ByModel})
+    byModel, _ := skopli.Rollup(result.Events, skopli.RollupOptions{
+        By: skopli.ByModel,
+    })
 
     // price against market catalogs
     pricing, _ := skopli.NewPricing(skopli.PricingOptions{})
@@ -306,7 +322,8 @@ Pick your language. No package is published yet, so each SDK builds from the rep
 
     // read usage events (all detected harnesses, or pick explicitly)
     let result = try Skopli.readUsage(
-        options: ReadUsageOptions(harnesses: [.claude, .opencode], since: "2026-08-01"))
+        options: ReadUsageOptions(harnesses: [.claude, .opencode],
+            since: "2026-08-01"))
 
     // aggregate
     let byModel = try Skopli.rollup(events: result.events, by: .model)
@@ -329,10 +346,12 @@ Pick your language. No package is published yet, so each SDK builds from the rep
     #include <string.h>
     #include "skopli.h"
 
-    // events_json / events_len are a serialized UsageEvent[] from ag_read_usage.
+    // events_json / events_len are a serialized UsageEvent[] from
+    // ag_read_usage.
     AgBuf out = {0};
     const char *group_opts = "{\"by\":\"model\"}";
-    AgStatus st = ag_rollup(events_json, events_len, group_opts, strlen(group_opts), &out);
+    AgStatus st = ag_rollup(events_json, events_len, group_opts,
+        strlen(group_opts), &out);
     if (st == AG_STATUS_OK) {
         fwrite(out.ptr, 1, out.len, stdout); // Rollup[] as JSON
         ag_buf_free(out);

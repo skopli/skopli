@@ -93,6 +93,11 @@ const { t } = Astro.props;
     font-family: var(--font-sans);
     font-size: var(--fs-xs);
   }
+  @media (hover: none) {
+    .search-trigger__kbd {
+      display: none;
+    }
+  }
   @media (max-width: 47.99rem) {
     .search-trigger {
       min-width: var(--target);
@@ -199,9 +204,23 @@ const { t } = Astro.props;
 </style>
 
 <script>
-  interface PagefindResult {
-    data(): Promise<{ url: string; excerpt: string; meta: { title?: string } }>;
+  interface PagefindSubResult {
+    title: string;
+    url: string;
+    excerpt: string;
+    anchor?: { id: string };
+    weighted_locations: { balanced_score: number }[];
   }
+  interface PagefindResult {
+    data(): Promise<{
+      url: string;
+      excerpt: string;
+      meta: { title?: string };
+      sub_results: PagefindSubResult[];
+    }>;
+  }
+  const score = (sub: PagefindSubResult) =>
+    sub.weighted_locations.reduce((sum, l) => sum + l.balanced_score, 0);
   interface Pagefind {
     init(): Promise<void>;
     debouncedSearch(term: string): Promise<{ results: PagefindResult[] } | null>;
@@ -264,15 +283,20 @@ const { t } = Astro.props;
       const results = await Promise.all(search.results.slice(0, 8).map((r) => r.data()));
       list.replaceChildren(
         ...results.map((result) => {
+          const page = result.meta.title ?? result.url;
+          const best = result.sub_results.reduce(
+            (a, b) => (score(b) > score(a) ? b : a),
+            result.sub_results[0],
+          );
           const li = document.createElement("li");
           const a = document.createElement("a");
-          a.href = result.url.replace(/\.html$/, "");
+          a.href = (best?.url ?? result.url).replace(/\.html(?=$|#)/, "");
           const title = document.createElement("span");
           title.className = "search__title";
-          title.textContent = result.meta.title ?? result.url;
+          title.textContent = best?.anchor ? `${page} / ${best.title}` : page;
           const excerpt = document.createElement("span");
           excerpt.className = "search__excerpt";
-          excerpt.innerHTML = result.excerpt;
+          excerpt.innerHTML = best?.excerpt ?? result.excerpt;
           a.append(title, excerpt);
           li.append(a);
           return li;
@@ -286,6 +310,9 @@ const { t } = Astro.props;
       if (event.key === "ArrowDown") {
         event.preventDefault();
         list.querySelector<HTMLAnchorElement>("a")?.focus();
+      } else if (event.key === "Enter") {
+        event.preventDefault();
+        list.querySelector<HTMLAnchorElement>("a")?.click();
       }
     });
     list.addEventListener("keydown", (event) => {

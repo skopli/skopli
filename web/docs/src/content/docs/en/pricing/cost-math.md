@@ -37,11 +37,11 @@ Claude reports 5-minute and 1-hour ephemeral cache writes separately (`tokens.ca
 
 The 1h fallback is the only rate this page derives, so the example uses it. Assume a catalog with input at $3.00 per 1M tokens and cache write at $3.75 per 1M tokens, and a request writing 40,000 cache tokens of which 10,000 are the 1h portion. With no above-1hr rate in the catalog, the 1h rate is `input × 2.0`:
 
-| Cache-write portion | Tokens | Rate per 1M tokens | Formula                |   Cost |
-| ------------------- | -----: | -----------------: | ---------------------- | -----: |
-| 1h (fallback)       | 10,000 |              $6.00 | 0.010M × ($3.00 × 2.0) | $0.060 |
-| 5m (base)           | 30,000 |              $3.75 | 0.030M × $3.75         | $0.113 |
-| **Total**           | 40,000 |                    |                        | $0.173 |
+| Cache-write portion | Tokens | Rate per 1M tokens |   Cost | Formula                |
+| ------------------- | -----: | -----------------: | -----: | ---------------------- |
+| 1h (fallback)       | 10,000 |              $6.00 | $0.060 | 0.010M × ($3.00 × 2.0) |
+| 5m (base)           | 30,000 |              $3.75 | $0.113 | 0.030M × $3.75         |
+| **Total**           | 40,000 |                    | $0.173 |                        |
 
 The $3.00 and $3.75 figures are illustrative catalog values.
 Only the `× 2.0` multiplier is Skopli's own documented rule.

@@ -1,6 +1,7 @@
 export const en = {
   skipToContent: "Skip to content",
   docs: "Docs",
+  overview: "Overview",
   menu: "Menu",
   openMenu: "Open navigation",
   closeMenu: "Close navigation",
@@ -23,6 +24,7 @@ export const en = {
   openIn: "Open in {tool}",
   aiPrompt: "Read {url} so I can ask questions about it",
   copyCode: "Copy code",
+  sectionLink: "Link to this section",
   previous: "Previous",
   next: "Next",
   breadcrumbs: "Breadcrumbs",

@@ -60,14 +60,18 @@ Each section's table describes an option once, and the tabs show the per-languag
     `skopli-core` has no `read_usage` facade. It exposes the reader one level lower: each harness has a `Reader` you drive with a `ReaderContext` (a home directory plus env overrides), and each `read` returns a `ReaderResult` of events, skipped paths, and warnings. The host-language facades add detection, filtering by `since`, `until`, `tz`, and `subagents`, and the canonical event sort on top.
 
     ```rust
-    use skopli_core::readers::{registered_reader, registered_readers, Reader, ReaderContext};
+    use skopli_core::readers::{
+        registered_reader, registered_readers, Reader, ReaderContext,
+    };
 
     // resolve a context from a home dir, with optional env overrides
-    let ctx = ReaderContext::new("/home/you").with_env("CLAUDE_CONFIG_DIR", "/synced/claude");
+    let ctx = ReaderContext::new("/home/you")
+        .with_env("CLAUDE_CONFIG_DIR", "/synced/claude");
 
     // one harness by id, or iterate every registered reader
     if let Some(reader) = registered_reader("claude") {
-        let result = reader.read(&ctx); // ReaderResult { events, skipped, warnings }
+        // ReaderResult { events, skipped, warnings }
+        let result = reader.read(&ctx);
         let _ = result.events;
     }
     for reader in registered_readers() {
@@ -81,7 +85,8 @@ Each section's table describes an option once, and the tabs show the per-languag
     Skopli.detect_harnesses # -> Detection(supported, unsupported)
 
     Skopli.read_usage(
-      harnesses: nil,        # Array(String) | nil; default: all detected
+      # Array(String) | nil; default: all detected
+      harnesses: nil,
       since: nil,            # inclusive lower bound
       until_: nil,           # exclusive upper bound
       tz: nil,               # timezone for date-only bounds
@@ -97,12 +102,16 @@ Each section's table describes an option once, and the tabs show the per-languag
     Detection detection = Skopli.detectHarnesses(DetectOptions.defaults());
 
     ReadUsageResult result = Skopli.readUsage(ReadUsageOptions.builder()
-        .harness(Harness.CLAUDE)          // repeatable; default: all detected
+        // repeatable; default: all detected
+        .harness(Harness.CLAUDE)
         .since("2026-08-01")              // inclusive lower bound
         .until("2026-09-01")              // exclusive upper bound
-        .tz("America/Los_Angeles")        // timezone for date-only bounds
-        .excludeSubagents(false)          // false (default) includes subagents
-        .home("/custom/home")             // optional PathResolver injection
+        // timezone for date-only bounds
+        .tz("America/Los_Angeles")
+        // false (default) includes subagents
+        .excludeSubagents(false)
+        // optional PathResolver injection
+        .home("/custom/home")
         .env("CLAUDE_CONFIG_DIR", "/synced/claude")
         .build());
     List<UsageEvent> events = result.events();
@@ -118,10 +127,14 @@ Each section's table describes an option once, and the tabs show the per-languag
         Harnesses = new[] { "claude" },   // default: all detected
         Since = "2026-08-01",             // inclusive lower bound
         Until = "2026-09-01",             // exclusive upper bound
-        Tz = "America/Los_Angeles",       // timezone for date-only bounds
+        // timezone for date-only bounds
+        Tz = "America/Los_Angeles",
         Subagents = SubagentMode.Include, // Include (default) | Exclude
-        Home = "/custom/home",            // optional PathResolver injection
-        Env = new Dictionary<string, string> { ["CLAUDE_CONFIG_DIR"] = "/synced/claude" },
+        // optional PathResolver injection
+        Home = "/custom/home",
+        Env = new Dictionary<string, string> {
+            ["CLAUDE_CONFIG_DIR"] = "/synced/claude",
+        },
     });
     IReadOnlyList<UsageEvent> events = result.Events;
     ```
@@ -132,17 +145,23 @@ Each section's table describes an option once, and the tabs show the per-languag
     detection, _ := skopli.DetectHarnesses(nil)
 
     result, _ := skopli.ReadUsage(skopli.ReadUsageOptions{
-        Harnesses: []skopli.Harness{skopli.HarnessClaude}, // default: all detected
-        Since:     "2026-08-01",                           // inclusive lower bound
-        Until:     "2026-09-01",                           // exclusive upper bound
-        TZ:        "America/Los_Angeles",                  // timezone for date-only bounds
-        Subagents: "include",                              // "include" (default) | "exclude"
+        // default: all detected
+        Harnesses: []skopli.Harness{skopli.HarnessClaude},
+        // inclusive lower bound
+        Since:     "2026-08-01",
+        // exclusive upper bound
+        Until:     "2026-09-01",
+        // timezone for date-only bounds
+        TZ:        "America/Los_Angeles",
+        // "include" (default) | "exclude"
+        Subagents: "include",
         Options: skopli.Options{
             Home: "/custom/home", // optional PathResolver injection
             Env:  map[string]string{"CLAUDE_CONFIG_DIR": "/synced/claude"},
         },
     })
-    events, diagnostics, skipped := result.Events, result.Diagnostics, result.Skipped
+    events, diagnostics, skipped := result.Events, result.Diagnostics,
+        result.Skipped
     ```
 
   </Tab>
@@ -151,14 +170,18 @@ Each section's table describes an option once, and the tabs show the per-languag
     let detection = try Skopli.detectHarnesses()
 
     let result = try Skopli.readUsage(options: ReadUsageOptions(
-        home: "/custom/home",             // optional PathResolver injection
+        // optional PathResolver injection
+        home: "/custom/home",
         env: ["CLAUDE_CONFIG_DIR": "/synced/claude"],
         harnesses: [.claude],             // default: all detected
         since: "2026-08-01",              // inclusive lower bound
         until: "2026-09-01",              // exclusive upper bound
-        tz: "America/Los_Angeles",        // timezone for date-only bounds
-        subagents: "include"))            // "include" (default) | "exclude"
-    let (events, diagnostics, skipped) = (result.events, result.diagnostics, result.skipped)
+        // timezone for date-only bounds
+        tz: "America/Los_Angeles",
+        // "include" (default) | "exclude"
+        subagents: "include"))
+    let (events, diagnostics, skipped) = (result.events, result.diagnostics,
+        result.skipped)
     ```
 
   </Tab>
@@ -177,7 +200,8 @@ Each section's table describes an option once, and the tabs show the per-languag
     AgBuf out = {0};
     AgStatus st = ag_read_usage(opts, strlen(opts), &out);
     if (st == AG_STATUS_OK) {
-        fwrite(out.ptr, 1, out.len, stdout); // { events, diagnostics, skipped } as JSON
+        // { events, diagnostics, skipped } as JSON
+        fwrite(out.ptr, 1, out.len, stdout);
         ag_buf_free(out);
     }
     ```
@@ -225,7 +249,8 @@ See [Reading usage](/skopli/guide/reading) for the full guide.
       options: {
         by: "model" | "day" | "session" | "harness" | "workspace" | "block";
         tz?: string;
-        blockMs?: number; // block width for by: "block" (default 18000000)
+        // block width for by: "block" (default 18000000)
+        blockMs?: number;
       },
     ): Rollup[];
     ```
@@ -235,9 +260,12 @@ See [Reading usage](/skopli/guide/reading) for the full guide.
     ```python
     skopli.rollup(
         events,                # list[UsageEvent]
-        by,                    # "model" | "day" | "session" | "harness" | "workspace" | "block"
-        tz=None,               # timezone for day bucketing / block anchoring
-        block_ms=None,         # block width for by="block" (default 18000000)
+        # "model" | "day" | "session" | "harness" | "workspace" | "block"
+        by,
+        # timezone for day bucketing / block anchoring
+        tz=None,
+        # block width for by="block" (default 18000000)
+        block_ms=None,
     )  # -> list[Rollup], sorted
     ```
 
@@ -248,8 +276,16 @@ See [Reading usage](/skopli/guide/reading) for the full guide.
 
     // RollupBy: Model | Day | Session | Harness | Workspace | Block
     rollup(&events, &RollupOptions::new(RollupBy::Model)) -> Vec<Rollup>;
-    rollup(&events, &RollupOptions { by: RollupBy::Day, tz: Some("Asia/Tokyo".into()), block_ms: None });
-    rollup(&events, &RollupOptions { by: RollupBy::Block, tz: None, block_ms: Some(3_600_000) });
+    rollup(&events, &RollupOptions {
+        by: RollupBy::Day,
+        tz: Some("Asia/Tokyo".into()),
+        block_ms: None,
+    });
+    rollup(&events, &RollupOptions {
+        by: RollupBy::Block,
+        tz: None,
+        block_ms: Some(3_600_000),
+    });
     ```
 
   </Tab>
@@ -257,9 +293,12 @@ See [Reading usage](/skopli/guide/reading) for the full guide.
     ```ruby
     Skopli.rollup(
       events,                # Array(UsageEvent)
-      by,                    # :model | :day | :session | :harness | :workspace | :block
-      tz: nil,               # timezone for day bucketing / block anchoring
-      block_ms: nil          # block width for by: :block (default 18000000)
+      # :model | :day | :session | :harness | :workspace | :block
+      by,
+      # timezone for day bucketing / block anchoring
+      tz: nil,
+      # block width for by: :block (default 18000000)
+      block_ms: nil
     ) # -> Array(Rollup), sorted
     ```
 
@@ -267,9 +306,12 @@ See [Reading usage](/skopli/guide/reading) for the full guide.
   <Tab label="Java">
     ```java
     // RollupBy: MODEL | DAY | SESSION | HARNESS | WORKSPACE | BLOCK
-    List<Rollup> byModel = Skopli.rollup(events, RollupOptions.by(RollupBy.MODEL));
-    List<Rollup> byDay = Skopli.rollup(events, RollupOptions.by(RollupBy.DAY, "Asia/Tokyo"));
-    List<Rollup> byBlock = Skopli.rollup(events, RollupOptions.block(3_600_000L));
+    List<Rollup> byModel = Skopli.rollup(events,
+        RollupOptions.by(RollupBy.MODEL));
+    List<Rollup> byDay = Skopli.rollup(events,
+        RollupOptions.by(RollupBy.DAY, "Asia/Tokyo"));
+    List<Rollup> byBlock = Skopli.rollup(events,
+        RollupOptions.block(3_600_000L));
     ```
 
   </Tab>
@@ -279,18 +321,31 @@ See [Reading usage](/skopli/guide/reading) for the full guide.
     IReadOnlyList<Rollup> byModel =
         SkopliClient.Rollup(events, new RollupOptions { By = RollupBy.Model });
     IReadOnlyList<Rollup> byDay =
-        SkopliClient.Rollup(events, new RollupOptions { By = RollupBy.Day, Tz = "Asia/Tokyo" });
+        SkopliClient.Rollup(events, new RollupOptions {
+            By = RollupBy.Day,
+            Tz = "Asia/Tokyo",
+        });
     IReadOnlyList<Rollup> byBlock =
-        SkopliClient.Rollup(events, new RollupOptions { By = RollupBy.Block, BlockMs = 3_600_000 });
+        SkopliClient.Rollup(events, new RollupOptions {
+            By = RollupBy.Block,
+            BlockMs = 3_600_000,
+        });
     ```
 
   </Tab>
   <Tab label="Go">
     ```go
     // By: ByModel | ByDay | BySession | ByHarness | ByWorkspace | ByBlock
-    byModel, _ := skopli.Rollup(events, skopli.RollupOptions{By: skopli.ByModel})
-    byDay, _ := skopli.Rollup(events, skopli.RollupOptions{By: skopli.ByDay, TZ: "Asia/Tokyo"})
-    byBlock, _ := skopli.Rollup(events, skopli.RollupOptions{By: skopli.ByBlock, BlockMs: 3_600_000})
+    byModel, _ := skopli.Rollup(events,
+        skopli.RollupOptions{By: skopli.ByModel})
+    byDay, _ := skopli.Rollup(events, skopli.RollupOptions{
+        By: skopli.ByDay,
+        TZ: "Asia/Tokyo",
+    })
+    byBlock, _ := skopli.Rollup(events, skopli.RollupOptions{
+        By: skopli.ByBlock,
+        BlockMs: 3_600_000,
+    })
     ```
 
   </Tab>
@@ -299,7 +354,8 @@ See [Reading usage](/skopli/guide/reading) for the full guide.
     // by: .model | .day | .session | .harness | .workspace | .block
     let byModel = try Skopli.rollup(events: events, by: .model)
     let byDay = try Skopli.rollup(events: events, by: .day, tz: "Asia/Tokyo")
-    let byBlock = try Skopli.rollup(events: events, by: .block, blockMs: 3_600_000)
+    let byBlock = try Skopli.rollup(events: events, by: .block,
+        blockMs: 3_600_000)
     ```
 
   </Tab>
@@ -311,11 +367,13 @@ See [Reading usage](/skopli/guide/reading) for the full guide.
     #include <string.h>
     #include "skopli.h"
 
-    // events_json / events_len are a serialized UsageEvent[] from ag_read_usage.
+    // events_json / events_len are a serialized UsageEvent[] from
+    // ag_read_usage.
     AgBuf out = {0};
     const char *group_opts = "{\"by\":\"model\"}";
     // block windows: {"by":"block","blockMs":18000000}
-    AgStatus st = ag_rollup(events_json, events_len, group_opts, strlen(group_opts), &out);
+    AgStatus st = ag_rollup(events_json, events_len, group_opts,
+        strlen(group_opts), &out);
     if (st == AG_STATUS_OK) {
         fwrite(out.ptr, 1, out.len, stdout); // Rollup[] as JSON
         ag_buf_free(out);
@@ -361,30 +419,38 @@ The default `libskopli` fetches nothing, and built-in sources require the `net` 
   <Tab label="TypeScript">
     ```ts
     createPricing(options?: {
-      sources?: PricingSource[]; // priority order; default OpenRouter, LiteLLM, models.dev
+      // priority order; default OpenRouter, LiteLLM, models.dev
+      sources?: PricingSource[];
       overrides?: PriceOverride[]; // highest priority
       mode?: "calculate" | "display" | "auto"; // default "calculate"
       cacheDir?: string;         // default: platform cache dir
       offline?: boolean;         // cache only, never fetch
       ttlMs?: number;            // cache freshness window
-      refresh?: boolean;         // one fresh fetch per source, bypassing fresh caches
+      // one fresh fetch per source, bypassing fresh caches
+      refresh?: boolean;
       fetch?: typeof fetch;      // injectable for tests/proxies
     }): Pricing;
-    // Pricing: { lookupModel, priceTokens, priceRollups, priceEvents, catalogs }
+    // Pricing: { lookupModel, priceTokens, priceRollups, priceEvents,
+    // catalogs }
     ```
 
   </Tab>
   <Tab label="Python">
     ```python
     skopli.create_pricing(
-        sources=None,          # priority order; default OpenRouter, LiteLLM, models.dev
+        # priority order; default OpenRouter, LiteLLM, models.dev
+        sources=None,
         overrides=None,        # highest priority
-        mode="calculate",      # "calculate" (default) | "display" | "auto"
+        # "calculate" (default) | "display" | "auto"
+        mode="calculate",
         cache_dir=None,        # default: platform cache dir
         offline=False,         # cache only, never fetch
         ttl_ms=None,           # cache freshness window
-        refresh=False,         # one fresh fetch per source, bypassing fresh caches
-    )  # -> Pricing with lookup_model, price_tokens, price_rollups, price_events, catalogs
+        # one fresh fetch per source, bypassing fresh caches
+        refresh=False,
+    # -> Pricing with lookup_model, price_tokens, price_rollups, price_events,
+    # catalogs
+    )
     ```
 
   </Tab>
@@ -395,27 +461,39 @@ The default `libskopli` fetches nothing, and built-in sources require the `net` 
     use skopli_core::pricing::{cost_usd, ModelPrice, Pricing, PricingMode};
     use skopli_core::types::TokenCounts;
 
-    // catalogs: Vec<PricingCatalog> in priority order (override first, if any).
+    // catalogs: Vec<PricingCatalog> in priority order (override first, if
+    // any).
     // The second arg is the override catalog's index, if you injected one.
     let pricing = Pricing::new(catalogs, None, PricingMode::Calculate);
-    let lookup = pricing.lookup_model("openai/gpt-5"); // PriceLookup::Hit | Miss
+    // PriceLookup::Hit | Miss
+    let lookup = pricing.lookup_model("openai/gpt-5");
 
-    let tokens = TokenCounts { input: 1_000, output: 500, ..Default::default() };
-    let usd = cost_usd(&tokens, &ModelPrice::flat(1.25, 10.0)); // USD per million tokens
+    let tokens = TokenCounts {
+        input: 1_000,
+        output: 500,
+        ..Default::default()
+    };
+    // USD per million tokens
+    let usd = cost_usd(&tokens, &ModelPrice::flat(1.25, 10.0));
     ```
 
   </Tab>
   <Tab label="Ruby">
     ```ruby
     Skopli.create_pricing(
-      sources: nil,          # priority order; default OpenRouter, LiteLLM, models.dev
+      # priority order; default OpenRouter, LiteLLM, models.dev
+      sources: nil,
       overrides: nil,        # highest priority
-      mode: "calculate",     # "calculate" (default) | "display" | "auto"
+      # "calculate" (default) | "display" | "auto"
+      mode: "calculate",
       cache_dir: nil,        # default: platform cache dir
       offline: false,        # cache only, never fetch
       ttl_ms: nil,           # cache freshness window
-      refresh: false         # one fresh fetch per source, bypassing fresh caches
-    ) # -> Pricing with #lookup_model, #price_tokens, #price_rollups, #price_events, #catalogs
+      # one fresh fetch per source, bypassing fresh caches
+      refresh: false
+    )
+    # -> Pricing with #lookup_model, #price_tokens, #price_rollups,
+    # #price_events, and #catalogs
     ```
 
   </Tab>
@@ -424,12 +502,17 @@ The default `libskopli` fetches nothing, and built-in sources require the `net` 
 
     ```java
     try (Pricing pricing = Skopli.createPricing(PricingOptions.builder()
-        .mode(PricingMode.CALCULATE)                             // CALCULATE (default) | DISPLAY | AUTO
-        .override(PriceOverride.flat("my-fine-tune", 5.0, 15.0)) // highest priority
-        .source(Sources.openRouter(Sources.OPENROUTER_URL))      // facade-side sources, priority order
-        .fetch(myFetcher)                                        // injectable getter for those sources
+        // CALCULATE (default) | DISPLAY | AUTO
+        .mode(PricingMode.CALCULATE)
+        // highest priority
+        .override(PriceOverride.flat("my-fine-tune", 5.0, 15.0))
+        // facade-side sources, priority order
+        .source(Sources.openRouter(Sources.OPENROUTER_URL))
+        // injectable getter for those sources
+        .fetch(myFetcher)
         .build())) {
-        // pricing.lookupModel(...), pricing.priceRollups(...), pricing.priceEvents(...), pricing.catalogs()
+        // pricing.lookupModel(...), pricing.priceRollups(...),
+        // pricing.priceEvents(...), pricing.catalogs()
     }
     ```
 
@@ -439,13 +522,18 @@ The default `libskopli` fetches nothing, and built-in sources require the `net` 
 
     ```csharp
     using Pricing pricing = SkopliClient.CreatePricing(new PricingOptions {
-        Mode = PricingMode.Calculate,                             // Calculate (default) | Display | Auto
-        Overrides = new[] { new PriceOverride {                   // highest priority
+        // Calculate (default) | Display | Auto
+        Mode = PricingMode.Calculate,
+        // highest priority
+        Overrides = new[] { new PriceOverride {
             Model = "my-fine-tune", Input = 5, Output = 15 } },
-        Sources = new[] { PricingSource.OpenRouter() },           // facade-side, priority order
-        Fetch = myFetch,                                          // injectable getter for those sources
+        // facade-side, priority order
+        Sources = new[] { PricingSource.OpenRouter() },
+        // injectable getter for those sources
+        Fetch = myFetch,
     });
-    // pricing.LookupModel(...), pricing.PriceRollups(...), pricing.PriceEvents(...), pricing.Catalogs()
+    // pricing.LookupModel(...), pricing.PriceRollups(...),
+    // pricing.PriceEvents(...), pricing.Catalogs()
     ```
 
   </Tab>
@@ -454,15 +542,21 @@ The default `libskopli` fetches nothing, and built-in sources require the `net` 
 
     ```go
     pricing, _ := skopli.NewPricing(skopli.PricingOptions{
-        Mode: skopli.ModeCalculate, // ModeCalculate (default) | ModeDisplay | ModeAuto
+        // ModeCalculate (default) | ModeDisplay | ModeAuto
+        Mode: skopli.ModeCalculate,
         Overrides: []skopli.Override{ // highest priority
             {Model: "my-fine-tune", Input: 5, Output: 15},
         },
-        Sources: []skopli.PricingSource{skopli.OpenRouterSource(skopli.OpenRouterURL)}, // facade-side, priority order
-        Fetch:   myFetch,                                    // injectable getter for those sources
+        // facade-side, priority order
+        Sources: []skopli.PricingSource{
+            skopli.OpenRouterSource(skopli.OpenRouterURL),
+        },
+        // injectable getter for those sources
+        Fetch:   myFetch,
     })
     defer pricing.Close()
-    // pricing.LookupModel(...), pricing.PriceRollups(...), pricing.PriceEvents(...), pricing.Catalogs()
+    // pricing.LookupModel(...), pricing.PriceRollups(...),
+    // pricing.PriceEvents(...), pricing.Catalogs()
     ```
 
   </Tab>
@@ -471,12 +565,17 @@ The default `libskopli` fetches nothing, and built-in sources require the `net` 
 
     ```swift
     let pricing = try Skopli.createPricing(options: PricingOptions(
-        mode: .calculate,                                     // .calculate (default) | .display | .auto
-        overrides: [Override(model: "my-fine-tune", input: 5, output: 15)], // highest priority
-        sources: [openRouterSource()],                        // facade-side sources, priority order
-        fetch: myFetch))                                      // injectable getter for those sources
+        // .calculate (default) | .display | .auto
+        mode: .calculate,
+        // highest priority
+        overrides: [Override(model: "my-fine-tune", input: 5, output: 15)],
+        // facade-side sources, priority order
+        sources: [openRouterSource()],
+        // injectable getter for those sources
+        fetch: myFetch))
     defer { pricing.close() }
-    // pricing.lookupModel(...), pricing.priceRollups(...), pricing.priceEvents(...), pricing.catalogs()
+    // pricing.lookupModel(...), pricing.priceRollups(...),
+    // pricing.priceEvents(...), pricing.catalogs()
     ```
 
   </Tab>
@@ -490,7 +589,8 @@ The default `libskopli` fetches nothing, and built-in sources require the `net` 
     AgPricing *pricing = NULL;
     const char *opts = "{\"mode\":\"calculate\",\"builtinSources\":false}";
     ag_pricing_new(opts, strlen(opts), &pricing);
-    // ... ag_pricing_lookup_model / ag_pricing_price_rollups / ag_pricing_price_events ...
+    // ... ag_pricing_lookup_model / ag_pricing_price_rollups /
+    // ag_pricing_price_events ...
     ag_pricing_free(pricing);
     ```
 
@@ -528,8 +628,12 @@ The FFI facades cover it through `priceRollups` and `priceEvents`, which match a
   <Tab label="TypeScript">
     ```ts
     const hit = await pricing.lookupModel("openai/gpt-5");
-    // { priced: true, key: "gpt-5", price: {...}, source: "litellm", fetchedAt: "..." }
-    const result = await pricing.priceTokens("openai/gpt-5", { input: 1000, output: 500 });
+    // { priced: true, key: "gpt-5", price: {...}, source: "litellm",
+    // fetchedAt: "..." }
+    const result = await pricing.priceTokens("openai/gpt-5", {
+        input: 1000,
+        output: 500,
+    });
     if (result.priced) console.log(result.usd);
     ```
 
@@ -537,7 +641,8 @@ The FFI facades cover it through `priceRollups` and `priceEvents`, which match a
   <Tab label="Python">
     ```python
     hit = pricing.lookup_model("openai/gpt-5")
-    # { priced: True, key: "gpt-5", price: {...}, source: "litellm", fetched_at: "..." }
+    # { priced: True, key: "gpt-5", price: {...}, source: "litellm",
+    # fetched_at: "..." }
     usd = pricing.price_tokens({"input": 1000, "output": 500}, "openai/gpt-5")
     # -> float USD (a miss costs 0.0)
     ```
@@ -550,7 +655,11 @@ The FFI facades cover it through `priceRollups` and `priceEvents`, which match a
 
     // pricing: a Pricing built from injected catalogs (see 3a)
     if let PriceLookup::Hit(hit) = pricing.lookup_model("openai/gpt-5") {
-        let tokens = TokenCounts { input: 1_000, output: 500, ..Default::default() };
+        let tokens = TokenCounts {
+            input: 1_000,
+            output: 500,
+            ..Default::default()
+        };
         let usd = cost_usd(&tokens, &hit.price);
         let _ = usd;
     }
@@ -560,7 +669,8 @@ The FFI facades cover it through `priceRollups` and `priceEvents`, which match a
   <Tab label="Ruby">
     ```ruby
     hit = pricing.lookup_model("openai/gpt-5")
-    # { priced: true, key: "gpt-5", price: {...}, source: "litellm", fetched_at: "..." }
+    # { priced: true, key: "gpt-5", price: {...}, source: "litellm",
+    # fetched_at: "..." }
     usd = pricing.price_tokens({ input: 1000, output: 500 }, "openai/gpt-5")
     # -> float USD (a miss costs 0.0)
     ```
@@ -569,7 +679,8 @@ The FFI facades cover it through `priceRollups` and `priceEvents`, which match a
   <Tab label="Java">
     ```java
     PriceLookup hit = pricing.lookupModel("openai/gpt-5");
-    // PriceHit { priced=true, key="gpt-5", source="litellm", ... } or a PriceMiss
+    // PriceHit { priced=true, key="gpt-5", source="litellm", ... } or a
+    // PriceMiss
     ```
 
     `priceTokens` has no standalone method. Price through `priceRollups` or `priceEvents`, which match and price in one call.
@@ -578,7 +689,8 @@ The FFI facades cover it through `priceRollups` and `priceEvents`, which match a
   <Tab label="C#">
     ```csharp
     PriceLookup hit = pricing.LookupModel("openai/gpt-5");
-    // PriceHit { Priced=true, Key="gpt-5", Source="litellm", ... } or a PriceMiss
+    // PriceHit { Priced=true, Key="gpt-5", Source="litellm", ... } or a
+    // PriceMiss
     ```
 
     `PriceTokens` has no standalone method. Price through `PriceRollups` or `PriceEvents`, which match and price in one call.
@@ -587,7 +699,8 @@ The FFI facades cover it through `priceRollups` and `priceEvents`, which match a
   <Tab label="Go">
     ```go
     hit, _ := pricing.LookupModel("openai/gpt-5")
-    // PriceLookup{ Priced: true, Key: "gpt-5", Source: "litellm", ... } or a miss
+    // PriceLookup{ Priced: true, Key: "gpt-5", Source: "litellm", ... } or a
+    // miss
     ```
 
     `PriceTokens` has no standalone method. Price through `PriceRollups` or `PriceEvents`, which match and price in one call.
@@ -596,7 +709,8 @@ The FFI facades cover it through `priceRollups` and `priceEvents`, which match a
   <Tab label="Swift">
     ```swift
     let hit = try pricing.lookupModel("openai/gpt-5")
-    // .hit(PriceHit(priced: true, key: "gpt-5", source: "litellm", ...)) or a miss
+    // .hit(PriceHit(priced: true, key: "gpt-5", source: "litellm", ...)) or a
+    // miss
     ```
 
     `priceTokens` has no standalone method. Price through `priceRollups` or `priceEvents`, which match and price in one call.
@@ -610,7 +724,8 @@ The FFI facades cover it through `priceRollups` and `priceEvents`, which match a
     // pricing is an AgPricing* from ag_pricing_new (see 3a).
     AgBuf out = {0};
     const char *model = "openai/gpt-5";
-    AgStatus st = ag_pricing_lookup_model(pricing, model, strlen(model), &out);
+    AgStatus st = ag_pricing_lookup_model(pricing, model, strlen(model),
+        &out);
     // out holds a single PriceLookup JSON object (hit or miss)
     ```
 
@@ -633,7 +748,8 @@ Skopli flags that row with `pricing.tieredAggregate: true` (calculate mode, or a
 <Tabs syncKey="lang">
   <Tab label="TypeScript">
     ```ts
-    const priced = await pricing.priceRollups(byModel); // -> PricedRollup[]
+    // -> PricedRollup[]
+    const priced = await pricing.priceRollups(byModel);
     ```
 
   </Tab>
@@ -668,7 +784,8 @@ Skopli flags that row with `pricing.tieredAggregate: true` (calculate mode, or a
   </Tab>
   <Tab label="Java">
     ```java
-    List<PricedRollup> priced = pricing.priceRollups(byModel); // -> List<PricedRollup>
+    // -> List<PricedRollup>
+    List<PricedRollup> priced = pricing.priceRollups(byModel);
     ```
 
   </Tab>
@@ -686,7 +803,8 @@ Skopli flags that row with `pricing.tieredAggregate: true` (calculate mode, or a
   </Tab>
   <Tab label="Swift">
     ```swift
-    let priced = try pricing.priceRollups(rollups: byModel) // -> [PricedRollup]
+    // -> [PricedRollup]
+    let priced = try pricing.priceRollups(rollups: byModel)
     ```
 
   </Tab>
@@ -694,10 +812,12 @@ Skopli flags that row with `pricing.tieredAggregate: true` (calculate mode, or a
     ```c
     #include "skopli.h"
 
-    // pricing is an AgPricing* from ag_pricing_new; rollups_json / rollups_len
+    // pricing is an AgPricing* from ag_pricing_new; rollups_json /
+    // rollups_len
     // are a serialized Rollup[] from ag_rollup.
     AgBuf out = {0};
-    AgStatus st = ag_pricing_price_rollups(pricing, rollups_json, rollups_len, &out);
+    AgStatus st = ag_pricing_price_rollups(pricing, rollups_json, rollups_len,
+        &out);
     // out holds a PricedRollup[] JSON buffer; free it with ag_buf_free
     ```
 
@@ -712,7 +832,10 @@ A group prices only when every member model priced.
 <Tabs syncKey="lang">
   <Tab label="TypeScript">
     ```ts
-    const priced = await pricing.priceEvents(events, { by: "model", tz: "Asia/Tokyo" });
+    const priced = await pricing.priceEvents(events, {
+        by: "model",
+        tz: "Asia/Tokyo",
+    });
     ```
 
   </Tab>
@@ -726,7 +849,8 @@ A group prices only when every member model priced.
     ```rust
     use skopli_core::rollup::{RollupBy, RollupOptions};
 
-    let priced = pricing.price_events(&events, &RollupOptions::new(RollupBy::Model));
+    let priced = pricing.price_events(&events,
+        &RollupOptions::new(RollupBy::Model));
     ```
 
   </Tab>
@@ -738,7 +862,8 @@ A group prices only when every member model priced.
   </Tab>
   <Tab label="Java">
     ```java
-    List<PricedRollup> priced = pricing.priceEvents(events, RollupOptions.by(RollupBy.MODEL));
+    List<PricedRollup> priced = pricing.priceEvents(events,
+        RollupOptions.by(RollupBy.MODEL));
     ```
 
   </Tab>
@@ -751,7 +876,8 @@ A group prices only when every member model priced.
   </Tab>
   <Tab label="Go">
     ```go
-    priced, _ := pricing.PriceEvents(events, skopli.RollupOptions{By: skopli.ByModel})
+    priced, _ := pricing.PriceEvents(events,
+        skopli.RollupOptions{By: skopli.ByModel})
     ```
 
   </Tab>
@@ -771,9 +897,11 @@ A group prices only when every member model priced.
     // are a serialized UsageEvent[] from ag_read_usage.
     AgBuf out = {0};
     const char *group_opts = "{\"by\":\"model\"}";
-    AgStatus st = ag_pricing_price_events(pricing, events_json, events_len, group_opts, strlen(group_opts), &out);
+    AgStatus st = ag_pricing_price_events(pricing, events_json, events_len,
+        group_opts, strlen(group_opts), &out);
     if (st == AG_STATUS_OK) {
-        fwrite(out.ptr, 1, out.len, stdout); // PricedEventGroup[] as JSON
+        // PricedEventGroup[] as JSON
+        fwrite(out.ptr, 1, out.len, stdout);
         ag_buf_free(out);
     }
     ```

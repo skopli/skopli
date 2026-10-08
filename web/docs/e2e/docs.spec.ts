@@ -201,7 +201,7 @@ test("the drawer carries the locale switch on translated pages", async ({ page }
   await expect(page.locator("dialog#drawer .locale-switch")).toBeVisible();
 });
 
-test("the breadcrumb-row actions menu closes once its button scrolls out of view", async ({
+test("the breadcrumb-row actions menu closes once its button slides under the header", async ({
   page,
 }) => {
   test.skip(isMobile(page) || isDesktop(page), "tablet only");
@@ -209,7 +209,7 @@ test("the breadcrumb-row actions menu closes once its button scrolls out of view
   const actions = page.locator(".docs__top .page-actions").first();
   await actions.locator(".page-actions__more").click();
   await expect(actions.locator(".page-actions__menu")).toBeVisible();
-  await page.mouse.wheel(0, 600);
+  await page.mouse.wheel(0, 120);
   await expect(actions.locator(".page-actions__menu")).toBeHidden();
 });
 
@@ -296,6 +296,19 @@ test("search opens with Ctrl+K, returns Pagefind results, closes on Escape", asy
   await page.keyboard.press("ArrowDown");
   await expect(dialog.locator(".search__results a").first()).toBeFocused();
   await page.keyboard.press("Escape");
+  await expect(dialog).toBeHidden();
+});
+
+test("Enter in the search field opens the top result", async ({ page }) => {
+  await page.goto("/skopli/");
+  await page.keyboard.press("ControlOrMeta+k");
+  const dialog = page.locator("dialog.search");
+  await dialog.locator(".search__input").fill("rollup");
+  const first = dialog.locator(".search__results a").first();
+  await expect(first).toBeVisible();
+  const href = (await first.getAttribute("href"))!;
+  await page.keyboard.press("Enter");
+  await expect(page).toHaveURL(new RegExp(`${href.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`));
   await expect(dialog).toBeHidden();
 });
 

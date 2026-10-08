@@ -15,7 +15,8 @@ The Read layer parses local session state into normalized usage events. It never
       harnesses: ["claude"], // default: all detected
       since: "2026-08-01", // inclusive lower bound
       until: "2026-09-01", // exclusive upper bound
-      tz: "America/Los_Angeles", // timezone for date-only bounds; default: system timezone
+      // timezone for date-only bounds; default: system timezone
+      tz: "America/Los_Angeles",
       subagents: "include", // "include" (default) | "exclude"
       home: "/custom/home", // optional PathResolver injection
       env: { CLAUDE_CONFIG_DIR: "/synced/claude" },
@@ -29,12 +30,19 @@ The Read layer parses local session state into normalized usage events. It never
         harnesses=["claude"],            # default: all detected
         since="2026-08-01",              # inclusive lower bound
         until="2026-09-01",              # exclusive upper bound
-        tz="America/Los_Angeles",        # timezone for date-only bounds; default: system timezone
-        subagents="include",             # "include" (default) | "exclude"
-        home="/custom/home",             # optional PathResolver injection
+        # timezone for date-only bounds; default: system timezone
+        tz="America/Los_Angeles",
+        # "include" (default) | "exclude"
+        subagents="include",
+        # optional PathResolver injection
+        home="/custom/home",
         env={"CLAUDE_CONFIG_DIR": "/synced/claude"},
     )
-    events, diagnostics, skipped = result.events, result.diagnostics, result.skipped
+    events, diagnostics, skipped = (
+        result.events,
+        result.diagnostics,
+        result.skipped,
+    )
     ```
 
   </Tab>
@@ -48,8 +56,10 @@ The Read layer parses local session state into normalized usage events. It never
         .with_env("CLAUDE_CONFIG_DIR", "/synced/claude");
 
     if let Some(reader) = registered_reader("claude") {
-        let result = reader.read(&ctx); // ReaderResult { events, skipped, warnings }
-        let (events, skipped, warnings) = (result.events, result.skipped, result.warnings);
+        // ReaderResult { events, skipped, warnings }
+        let result = reader.read(&ctx);
+        let (events, skipped, warnings) = (result.events, result.skipped,
+            result.warnings);
         let _ = (events, skipped, warnings);
     }
     ```
@@ -61,24 +71,35 @@ The Read layer parses local session state into normalized usage events. It never
       harnesses: ["claude"],           # default: all detected
       since: "2026-08-01",             # inclusive lower bound
       until_: "2026-09-01",            # exclusive upper bound
-      tz: "America/Los_Angeles",       # timezone for date-only bounds; default: system timezone
+      # timezone for date-only bounds; default: system timezone
+      tz: "America/Los_Angeles",
       subagents: "include",            # "include" (default) | "exclude"
       home: "/custom/home",            # optional PathResolver injection
       env: { "CLAUDE_CONFIG_DIR" => "/synced/claude" }
     )
-    events, diagnostics, skipped = result.events, result.diagnostics, result.skipped
+    events, diagnostics, skipped = (
+        result.events,
+        result.diagnostics,
+        result.skipped,
+    )
     ```
 
   </Tab>
   <Tab label="Java">
     ```java
     ReadUsageResult result = Skopli.readUsage(ReadUsageOptions.builder()
-        .harness(Harness.CLAUDE)                 // default: all detected
-        .since("2026-08-01")                     // inclusive lower bound
-        .until("2026-09-01")                     // exclusive upper bound
-        .tz("America/Los_Angeles")               // timezone for date-only bounds
-        .excludeSubagents(false)                 // false (default) includes subagents
-        .home("/custom/home")                    // optional PathResolver injection
+        // default: all detected
+        .harness(Harness.CLAUDE)
+        // inclusive lower bound
+        .since("2026-08-01")
+        // exclusive upper bound
+        .until("2026-09-01")
+        // timezone for date-only bounds
+        .tz("America/Los_Angeles")
+        // false (default) includes subagents
+        .excludeSubagents(false)
+        // optional PathResolver injection
+        .home("/custom/home")
         .env("CLAUDE_CONFIG_DIR", "/synced/claude")
         .build());
     List<UsageEvent> events = result.events();
@@ -89,13 +110,21 @@ The Read layer parses local session state into normalized usage events. It never
   <Tab label="C#">
     ```csharp
     ReadUsageResult result = SkopliClient.ReadUsage(new ReadUsageOptions {
-        Harnesses = new[] { "claude" },          // default: all detected
-        Since = "2026-08-01",                    // inclusive lower bound
-        Until = "2026-09-01",                    // exclusive upper bound
-        Tz = "America/Los_Angeles",              // timezone for date-only bounds
-        Subagents = SubagentMode.Include,        // Include (default) | Exclude
-        Home = "/custom/home",                   // optional PathResolver injection
-        Env = new Dictionary<string, string> { ["CLAUDE_CONFIG_DIR"] = "/synced/claude" },
+        // default: all detected
+        Harnesses = new[] { "claude" },
+        // inclusive lower bound
+        Since = "2026-08-01",
+        // exclusive upper bound
+        Until = "2026-09-01",
+        // timezone for date-only bounds
+        Tz = "America/Los_Angeles",
+        // Include (default) | Exclude
+        Subagents = SubagentMode.Include,
+        // optional PathResolver injection
+        Home = "/custom/home",
+        Env = new Dictionary<string, string> {
+            ["CLAUDE_CONFIG_DIR"] = "/synced/claude",
+        },
     });
     IReadOnlyList<UsageEvent> events = result.Events;
     ```
@@ -104,31 +133,44 @@ The Read layer parses local session state into normalized usage events. It never
   <Tab label="Go">
     ```go
     result, _ := skopli.ReadUsage(skopli.ReadUsageOptions{
-        Harnesses: []skopli.Harness{skopli.HarnessClaude}, // default: all detected
-        Since:     "2026-08-01",                           // inclusive lower bound
-        Until:     "2026-09-01",                           // exclusive upper bound
-        TZ:        "America/Los_Angeles",                  // timezone for date-only bounds
-        Subagents: "include",                              // "include" (default) | "exclude"
+        // default: all detected
+        Harnesses: []skopli.Harness{skopli.HarnessClaude},
+        // inclusive lower bound
+        Since:     "2026-08-01",
+        // exclusive upper bound
+        Until:     "2026-09-01",
+        // timezone for date-only bounds
+        TZ:        "America/Los_Angeles",
+        // "include" (default) | "exclude"
+        Subagents: "include",
         Options: skopli.Options{
             Home: "/custom/home", // optional PathResolver injection
             Env:  map[string]string{"CLAUDE_CONFIG_DIR": "/synced/claude"},
         },
     })
-    events, diagnostics, skipped := result.Events, result.Diagnostics, result.Skipped
+    events, diagnostics, skipped := result.Events, result.Diagnostics,
+        result.Skipped
     ```
 
   </Tab>
   <Tab label="Swift">
     ```swift
     let result = try Skopli.readUsage(options: ReadUsageOptions(
-        home: "/custom/home",                    // optional PathResolver injection
+        // optional PathResolver injection
+        home: "/custom/home",
         env: ["CLAUDE_CONFIG_DIR": "/synced/claude"],
-        harnesses: [.claude],                    // default: all detected
-        since: "2026-08-01",                     // inclusive lower bound
-        until: "2026-09-01",                     // exclusive upper bound
-        tz: "America/Los_Angeles",               // timezone for date-only bounds
-        subagents: "include"))                   // "include" (default) | "exclude"
-    let (events, diagnostics, skipped) = (result.events, result.diagnostics, result.skipped)
+        // default: all detected
+        harnesses: [.claude],
+        // inclusive lower bound
+        since: "2026-08-01",
+        // exclusive upper bound
+        until: "2026-09-01",
+        // timezone for date-only bounds
+        tz: "America/Los_Angeles",
+        // "include" (default) | "exclude"
+        subagents: "include"))
+    let (events, diagnostics, skipped) = (result.events, result.diagnostics,
+        result.skipped)
     ```
 
   </Tab>
@@ -147,7 +189,8 @@ The Read layer parses local session state into normalized usage events. It never
     AgBuf out = {0};
     AgStatus st = ag_read_usage(opts, strlen(opts), &out);
     if (st == AG_STATUS_OK) {
-        fwrite(out.ptr, 1, out.len, stdout); // { events, diagnostics, skipped } as JSON
+        // { events, diagnostics, skipped } as JSON
+        fwrite(out.ptr, 1, out.len, stdout);
         ag_buf_free(out);
     }
     ```

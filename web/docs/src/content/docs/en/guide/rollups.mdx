@@ -16,20 +16,24 @@ The Rollup layer groups events. Like the Read layer, it never touches the networ
   <Tab label="TypeScript">
     ```ts
     rollup(events, { by: "model" });
-    rollup(events, { by: "day", tz: "Asia/Tokyo" }); // timezone-aware day bucketing
+    // timezone-aware day bucketing
+    rollup(events, { by: "day", tz: "Asia/Tokyo" });
     rollup(events, { by: "session" });
     rollup(events, { by: "harness" });
-    rollup(events, { by: "workspace" }); // events without a workspace group under "(unknown)"
+    // events without a workspace group under "(unknown)"
+    rollup(events, { by: "workspace" });
     ```
 
   </Tab>
   <Tab label="Python">
     ```python
     skopli.rollup(events, "model")
-    skopli.rollup(events, "day", tz="Asia/Tokyo")  # timezone-aware day bucketing
+    # timezone-aware day bucketing
+    skopli.rollup(events, "day", tz="Asia/Tokyo")
     skopli.rollup(events, "session")
     skopli.rollup(events, "harness")
-    skopli.rollup(events, "workspace")  # events without a workspace group under "(unknown)"
+    # events without a workspace group under "(unknown)"
+    skopli.rollup(events, "workspace")
     ```
 
   </Tab>
@@ -38,60 +42,82 @@ The Rollup layer groups events. Like the Read layer, it never touches the networ
     use skopli_core::rollup::{rollup, RollupBy, RollupOptions};
 
     rollup(&events, &RollupOptions::new(RollupBy::Model));
-    rollup(&events, &RollupOptions { by: RollupBy::Day, tz: Some("Asia/Tokyo".into()), block_ms: None }); // timezone-aware day bucketing
+    // timezone-aware day bucketing
+    rollup(&events, &RollupOptions {
+        by: RollupBy::Day,
+        tz: Some("Asia/Tokyo".into()),
+        block_ms: None,
+    });
     rollup(&events, &RollupOptions::new(RollupBy::Session));
     rollup(&events, &RollupOptions::new(RollupBy::Harness));
-    rollup(&events, &RollupOptions::new(RollupBy::Workspace)); // no-workspace events under "(unknown)"
+    // no-workspace events under "(unknown)"
+    rollup(&events, &RollupOptions::new(RollupBy::Workspace));
     ```
 
   </Tab>
   <Tab label="Ruby">
     ```ruby
     Skopli.rollup(events, :model)
-    Skopli.rollup(events, :day, tz: "Asia/Tokyo") # timezone-aware day bucketing
+    # timezone-aware day bucketing
+    Skopli.rollup(events, :day, tz: "Asia/Tokyo")
     Skopli.rollup(events, :session)
     Skopli.rollup(events, :harness)
-    Skopli.rollup(events, :workspace) # events without a workspace group under "(unknown)"
+    # events without a workspace group under "(unknown)"
+    Skopli.rollup(events, :workspace)
     ```
 
   </Tab>
   <Tab label="Java">
     ```java
     Skopli.rollup(events, RollupOptions.by(RollupBy.MODEL));
-    Skopli.rollup(events, RollupOptions.by(RollupBy.DAY, "Asia/Tokyo")); // timezone-aware day bucketing
+    // timezone-aware day bucketing
+    Skopli.rollup(events, RollupOptions.by(RollupBy.DAY, "Asia/Tokyo"));
     Skopli.rollup(events, RollupOptions.by(RollupBy.SESSION));
     Skopli.rollup(events, RollupOptions.by(RollupBy.HARNESS));
-    Skopli.rollup(events, RollupOptions.by(RollupBy.WORKSPACE)); // no-workspace events under "(unknown)"
+    // no-workspace events under "(unknown)"
+    Skopli.rollup(events, RollupOptions.by(RollupBy.WORKSPACE));
     ```
 
   </Tab>
   <Tab label="C#">
     ```csharp
     SkopliClient.Rollup(events, new RollupOptions { By = RollupBy.Model });
-    SkopliClient.Rollup(events, new RollupOptions { By = RollupBy.Day, Tz = "Asia/Tokyo" }); // timezone-aware day bucketing
+    // timezone-aware day bucketing
+    SkopliClient.Rollup(events, new RollupOptions {
+        By = RollupBy.Day,
+        Tz = "Asia/Tokyo",
+    });
     SkopliClient.Rollup(events, new RollupOptions { By = RollupBy.Session });
     SkopliClient.Rollup(events, new RollupOptions { By = RollupBy.Harness });
-    SkopliClient.Rollup(events, new RollupOptions { By = RollupBy.Workspace }); // no-workspace under "(unknown)"
+    // no-workspace under "(unknown)"
+    SkopliClient.Rollup(events, new RollupOptions { By = RollupBy.Workspace });
     ```
 
   </Tab>
   <Tab label="Go">
     ```go
     skopli.Rollup(events, skopli.RollupOptions{By: skopli.ByModel})
-    skopli.Rollup(events, skopli.RollupOptions{By: skopli.ByDay, TZ: "Asia/Tokyo"}) // timezone-aware day bucketing
+    // timezone-aware day bucketing
+    skopli.Rollup(events, skopli.RollupOptions{
+        By: skopli.ByDay,
+        TZ: "Asia/Tokyo",
+    })
     skopli.Rollup(events, skopli.RollupOptions{By: skopli.BySession})
     skopli.Rollup(events, skopli.RollupOptions{By: skopli.ByHarness})
-    skopli.Rollup(events, skopli.RollupOptions{By: skopli.ByWorkspace}) // no-workspace under "(unknown)"
+    // no-workspace under "(unknown)"
+    skopli.Rollup(events, skopli.RollupOptions{By: skopli.ByWorkspace})
     ```
 
   </Tab>
   <Tab label="Swift">
     ```swift
     try Skopli.rollup(events: events, by: .model)
-    try Skopli.rollup(events: events, by: .day, tz: "Asia/Tokyo") // timezone-aware day bucketing
+    // timezone-aware day bucketing
+    try Skopli.rollup(events: events, by: .day, tz: "Asia/Tokyo")
     try Skopli.rollup(events: events, by: .session)
     try Skopli.rollup(events: events, by: .harness)
-    try Skopli.rollup(events: events, by: .workspace) // no-workspace events under "(unknown)"
+    // no-workspace events under "(unknown)"
+    try Skopli.rollup(events: events, by: .workspace)
     ```
 
   </Tab>
@@ -103,10 +129,12 @@ The Rollup layer groups events. Like the Read layer, it never touches the networ
     #include <string.h>
     #include "skopli.h"
 
-    // events_json / events_len are a serialized UsageEvent[] from ag_read_usage.
+    // events_json / events_len are a serialized UsageEvent[] from
+    // ag_read_usage.
     AgBuf out = {0};
     const char *group_opts = "{\"by\":\"model\"}";
-    AgStatus st = ag_rollup(events_json, events_len, group_opts, strlen(group_opts), &out);
+    AgStatus st = ag_rollup(events_json, events_len, group_opts,
+        strlen(group_opts), &out);
     if (st == AG_STATUS_OK) {
         fwrite(out.ptr, 1, out.len, stdout); // Rollup[] as JSON
         ag_buf_free(out);
@@ -132,15 +160,19 @@ The Rollup layer groups events. Like the Read layer, it never touches the networ
 <Tabs syncKey="lang">
   <Tab label="TypeScript">
     ```ts
-    rollup(events, { by: "block" }); // default five-hour blocks, system timezone
-    rollup(events, { by: "block", blockMs: 3_600_000, tz: "Asia/Tokyo" }); // one-hour blocks anchored in Tokyo
+    // default five-hour blocks, system timezone
+    rollup(events, { by: "block" });
+    // one-hour blocks anchored in Tokyo
+    rollup(events, { by: "block", blockMs: 3_600_000, tz: "Asia/Tokyo" });
     ```
 
   </Tab>
   <Tab label="Python">
     ```python
-    skopli.rollup(events, "block")  # default five-hour blocks, system timezone
-    skopli.rollup(events, "block", block_ms=3_600_000, tz="Asia/Tokyo")  # one-hour blocks anchored in Tokyo
+    # default five-hour blocks, system timezone
+    skopli.rollup(events, "block")
+    # one-hour blocks anchored in Tokyo
+    skopli.rollup(events, "block", block_ms=3_600_000, tz="Asia/Tokyo")
     ```
 
   </Tab>
@@ -148,43 +180,60 @@ The Rollup layer groups events. Like the Read layer, it never touches the networ
     ```rust
     use skopli_core::rollup::{rollup, RollupBy, RollupOptions};
 
-    rollup(&events, &RollupOptions::new(RollupBy::Block)); // default five-hour blocks
-    rollup(&events, &RollupOptions { by: RollupBy::Block, tz: Some("Asia/Tokyo".into()), block_ms: Some(3_600_000) });
+    // default five-hour blocks
+    rollup(&events, &RollupOptions::new(RollupBy::Block));
+    rollup(&events, &RollupOptions {
+        by: RollupBy::Block,
+        tz: Some("Asia/Tokyo".into()),
+        block_ms: Some(3_600_000),
+    });
     ```
 
   </Tab>
   <Tab label="Ruby">
     ```ruby
     Skopli.rollup(events, :block) # default five-hour blocks, system timezone
-    Skopli.rollup(events, :block, block_ms: 3_600_000, tz: "Asia/Tokyo") # one-hour blocks anchored in Tokyo
+    # one-hour blocks anchored in Tokyo
+    Skopli.rollup(events, :block, block_ms: 3_600_000, tz: "Asia/Tokyo")
     ```
 
   </Tab>
   <Tab label="Java">
     ```java
-    Skopli.rollup(events, RollupOptions.block(RollupOptions.DEFAULT_BLOCK_MS));
-    Skopli.rollup(events, RollupOptions.block(3_600_000L, "Asia/Tokyo")); // one-hour blocks anchored in Tokyo
+    Skopli.rollup(events,
+        RollupOptions.block(RollupOptions.DEFAULT_BLOCK_MS));
+    // one-hour blocks anchored in Tokyo
+    Skopli.rollup(events, RollupOptions.block(3_600_000L, "Asia/Tokyo"));
     ```
 
   </Tab>
   <Tab label="C#">
     ```csharp
     SkopliClient.Rollup(events, new RollupOptions { By = RollupBy.Block });
-    SkopliClient.Rollup(events, new RollupOptions { By = RollupBy.Block, BlockMs = 3_600_000, Tz = "Asia/Tokyo" });
+    SkopliClient.Rollup(events, new RollupOptions {
+        By = RollupBy.Block,
+        BlockMs = 3_600_000,
+        Tz = "Asia/Tokyo",
+    });
     ```
 
   </Tab>
   <Tab label="Go">
     ```go
     skopli.Rollup(events, skopli.RollupOptions{By: skopli.ByBlock})
-    skopli.Rollup(events, skopli.RollupOptions{By: skopli.ByBlock, BlockMs: 3_600_000, TZ: "Asia/Tokyo"})
+    skopli.Rollup(events, skopli.RollupOptions{
+        By: skopli.ByBlock,
+        BlockMs: 3_600_000,
+        TZ: "Asia/Tokyo",
+    })
     ```
 
   </Tab>
   <Tab label="Swift">
     ```swift
     try Skopli.rollup(events: events, by: .block)
-    try Skopli.rollup(events: events, by: .block, tz: "Asia/Tokyo", blockMs: 3_600_000)
+    try Skopli.rollup(events: events, by: .block, tz: "Asia/Tokyo",
+        blockMs: 3_600_000)
     ```
 
   </Tab>
@@ -192,7 +241,8 @@ The Rollup layer groups events. Like the Read layer, it never touches the networ
     ```c
     const char *block_opts = "{\"by\":\"block\",\"blockMs\":18000000}";
     AgBuf out = {0};
-    AgStatus st = ag_rollup(events_json, events_len, block_opts, strlen(block_opts), &out);
+    AgStatus st = ag_rollup(events_json, events_len, block_opts,
+        strlen(block_opts), &out);
     ```
 
   </Tab>

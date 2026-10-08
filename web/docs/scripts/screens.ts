@@ -7,6 +7,7 @@ const dist = new URL("../dist", import.meta.url).pathname;
 const pages = [
   { name: "index", path: "/skopli/" },
   ...navItems.map((item) => ({ name: item.slug.replace("/", "-"), path: `/skopli/${item.slug}` })),
+  { name: "privacy", path: "/skopli/privacy" },
   { name: "404", path: "/skopli/this-page-does-not-exist" },
   ...(existsSync(`${dist}/skopli/en-XA.html`)
     ? [

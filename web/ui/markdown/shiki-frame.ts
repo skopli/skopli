@@ -76,6 +76,7 @@ export function shikiFrame(): ShikiTransformer {
         tagName: "figure",
         properties: {
           className: ["code-frame", title ? "code-frame--titled" : "code-frame--untitled"],
+          dataPagefindIgnore: "",
         },
         children: title ? [head, pre] : [pre, copy],
       };

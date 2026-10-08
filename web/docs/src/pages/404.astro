@@ -5,20 +5,26 @@ import DocsLayout from "../layouts/DocsLayout.astro";
 import { href, t as translate } from "../lib/i18n.ts";
 
 const t = translate(defaultLocale);
-const [before, after] = t("notFoundBody", { path: "\u0000" }).split("\u0000");
+const parts = t("notFoundBody", { path: "\u0000" }).split("\u0000");
 ---
 
 <DocsLayout locale={defaultLocale} slug="404" title={t("notFoundTitle")} description="" noindex>
   <p>
-    {before}<code data-not-found-path data-home={href("/")}></code>{after}
+    {parts.map((part, i) => (
+      <>
+        {i > 0 && <code data-not-found-path></code>}
+        {part}
+      </>
+    ))}
   </p>
   <p><Button href={href("/")} variant="primary">{t("backToDocs")}</Button></p>
 </DocsLayout>
 
 <script>
-  const path = document.querySelector<HTMLElement>("[data-not-found-path]")!;
   const { pathname, search, hash } = location;
-  if (pathname.endsWith("/") && pathname !== path.dataset.home)
+  const home = document.documentElement.dataset.home;
+  if (pathname.endsWith("/") && pathname !== home)
     location.replace(pathname.replace(/\/+$/, "") + search + hash);
-  else path.textContent = pathname;
+  else
+    for (const el of document.querySelectorAll("[data-not-found-path]")) el.textContent = pathname;
 </script>
