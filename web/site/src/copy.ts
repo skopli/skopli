@@ -5,7 +5,7 @@ const n = harnesses.length;
 
 export const en = {
   title: "Skopli: price your AI coding-agent usage from local logs",
-  description: `An MIT SDK that reads AI coding-agent usage from ${n} harnesses on local disk, rolls it up, and prices it against market catalogs.`,
+  description: `An MIT-licensed SDK that reads AI coding-agent usage from ${n} harnesses on local disk, rolls it up, and prices it against market catalogs.`,
   nav: { install: "Install", layers: "Layers", quickstart: "Quickstart", harnesses: "Harnesses" },
   hero: {
     title: "Know what your coding agents cost.",
@@ -76,7 +76,7 @@ export const en = {
       },
       {
         title: "Double-count tokens",
-        body: "Input, output, cache read, and cache write stay in separate buckets. Normalized output excludes reasoning tokens, and pricing bills both at the output rate. Cache writes at the 1-hour rate are counted inside the cache-write total.",
+        body: "Input, output, cache read, and cache write stay in separate buckets. Normalized output excludes reasoning tokens. Pricing bills output and reasoning tokens at the output rate. Cache writes at the 1-hour rate are counted inside the cache-write total.",
       },
       {
         title: "Hide a broken file",
@@ -106,11 +106,16 @@ type Widen<T> = T extends string ? string : { readonly [K in keyof T]: Widen<T[K
 
 export type Copy = Widen<typeof en>;
 
+const code = new Set(["frameTitle"]);
+
 function pseudo(value: unknown): unknown {
   if (typeof value === "string") return pseudolocalize(value);
   if (Array.isArray(value)) return value.map(pseudo);
   return Object.fromEntries(
-    Object.entries(value as Record<string, unknown>).map(([k, v]) => [k, pseudo(v)]),
+    Object.entries(value as Record<string, unknown>).map(([k, v]) => [
+      k,
+      code.has(k) ? v : pseudo(v),
+    ]),
   );
 }
 
