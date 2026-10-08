@@ -34,14 +34,14 @@ const { copy } = Astro.props;
           {
             rows.map((row) => (
               <tr class:list={{ "ledger__miss-row": !row.pricing.priced }}>
-                <td>
+                <th scope="row">
                   <code class="ledger__model">{row.model}</code>
                   {!row.pricing.priced && (
                     <span class="ledger__attempted">
                       {format(copy.attempted, { keys: row.pricing.attempted.join(", ") })}
                     </span>
                   )}
-                </td>
+                </th>
                 <td class="num ledger__wide">{int(row.tokens.input)}</td>
                 <td class="num ledger__wide">{int(row.tokens.cacheRead)}</td>
                 <td class="num ledger__wide">{int(row.tokens.cacheWrite)}</td>
@@ -119,12 +119,15 @@ const { copy } = Astro.props;
     text-align: left;
     white-space: nowrap;
   }
-  th {
+  thead th {
     color: var(--ink-2);
     font-size: var(--fs-xs);
     font-weight: 500;
     letter-spacing: var(--tracking-caps);
     text-transform: uppercase;
+  }
+  tbody th {
+    font-weight: 400;
   }
   .num {
     text-align: right;
@@ -155,7 +158,7 @@ const { copy } = Astro.props;
     color: var(--miss);
     font-size: var(--fs-sm);
   }
-  .ledger__miss-row td {
+  .ledger__miss-row :is(th, td) {
     color: var(--ink-2);
   }
   .ledger__note {
@@ -169,6 +172,9 @@ const { copy } = Astro.props;
     td {
       padding-inline: var(--s-3);
     }
+    thead th {
+      white-space: normal;
+    }
   }
   @media (max-width: 47.99rem) {
     th,
@@ -178,8 +184,12 @@ const { copy } = Astro.props;
     .ledger__wide {
       display: none;
     }
+    tbody th {
+      white-space: normal;
+    }
     .ledger__model {
       font-size: var(--fs-xs);
+      white-space: nowrap;
     }
   }
 </style>

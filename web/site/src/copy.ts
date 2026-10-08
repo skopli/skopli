@@ -9,7 +9,7 @@ export const en = {
   nav: { install: "Install", layers: "Layers", quickstart: "Quickstart", harnesses: "Harnesses" },
   hero: {
     title: "Know what your coding agents cost.",
-    lede: `Skopli reads the session logs ${n} coding-agent harnesses already keep on disk, rolls them up, and prices them against market catalogs.`,
+    lede: `Skopli reads the session logs ${n} coding-agent harnesses already keep on disk, rolls the usage up, and prices it against market catalogs.`,
     getStarted: "Read the docs",
     github: "GitHub",
     facts: "MIT licensed. One Rust core, eight language facades, and a C ABI.",
@@ -17,7 +17,7 @@ export const en = {
   ledger: {
     caption:
       "Example output: usage rolled up by model and priced with `priceRollups`. One model has no catalog match and stays unpriced.",
-    frameTitle: 'rollup(events, { by: "model" })',
+    frameTitle: 'priceRollups(rollup(events, { by: "model" }))',
     model: "Model",
     input: "Input",
     cacheRead: "Cache read",
@@ -37,7 +37,7 @@ export const en = {
     title: "Three layers. Use any one alone.",
     network: "Network",
     never: "Never",
-    fetches: "Fetches, caches, reads from cache offline",
+    fetches: "Fetches and caches, offline from cache",
     read: {
       name: "Read",
       body: `Parse local session state from ${n} harnesses into one normalized event shape. Disk only. A file that will not parse returns a structured diagnostic.`,
@@ -48,7 +48,7 @@ export const en = {
     },
     price: {
       name: "Price",
-      body: "Match models against OpenRouter, LiteLLM, and models.dev, or your own catalog, and compute USD. Long-context tiers, 5-minute cache writes, and 1-hour cache writes each bill at their own rate.",
+      body: "Match models against OpenRouter, LiteLLM, models.dev, or your own catalog, and compute USD. Long-context tiers, 5-minute cache writes, and 1-hour cache writes each bill at their own rate.",
     },
   },
   quickstart: {

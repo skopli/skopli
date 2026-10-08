@@ -36,6 +36,10 @@ for (const h of harnesses) need(llms.includes(`- ${h.name} (${h.id})`), `llms.tx
 const notFound = read(join(dist, "404.html"));
 need(notFound.includes('<meta name="robots" content="noindex"'), "404 is noindex");
 need(notFound.includes("Page not found"), "404 renders the copy");
+need(
+  !/rel="canonical"|property="og:url"|hreflang=/.test(notFound),
+  "404 has no canonical, og:url, or hreflang",
+);
 
 for (const locale of locales) {
   const isDefault = locale === defaultLocale;

@@ -95,6 +95,16 @@ const jsonLd = {
   </head>
   <body>
     <slot />
+    <style is:global>
+      body {
+        display: flex;
+        flex-direction: column;
+        min-height: 100dvh;
+      }
+      main {
+        flex: 1;
+      }
+    </style>
     <script>
       import { initCopyCode } from "@skopli/ui/markdown/copy-code.ts";
       import { initScrollOverflow } from "@skopli/ui/markdown/scroll-overflow.ts";

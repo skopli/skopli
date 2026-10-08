@@ -24,6 +24,19 @@ for (const theme of ["dark", "light"] as const) {
           document.documentElement.clientWidth,
         ]);
         expect(scrollWidth, "horizontal overflow").toBeLessThanOrEqual(clientWidth);
+        const frames = await page.evaluate(() =>
+          [...document.querySelectorAll(".ledger .table-scroll")].map(
+            (el) => el.scrollWidth > el.clientWidth + 1,
+          ),
+        );
+        expect(frames, "ledger overflows its frame").not.toContain(true);
+        if (path === "/missing-page") {
+          const [scrollHeight, innerHeight] = await page.evaluate(() => [
+            document.documentElement.scrollHeight,
+            window.innerHeight,
+          ]);
+          expect(scrollHeight, "404 scrolls into blank space").toBeLessThanOrEqual(innerHeight);
+        }
         const results = await new AxeBuilder({ page })
           .withTags(["wcag2a", "wcag2aa", "wcag21aa"])
           .analyze();
