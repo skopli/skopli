@@ -1,7 +1,14 @@
 ---
 import HarnessName from "@skopli/ui/components/HarnessName.astro";
 import { harnesses } from "@skopli/ui/data/harnesses.ts";
+import type { Copy } from "../copy.ts";
 import { docsUrl } from "../site.ts";
+
+interface Props {
+  copy: Copy["harnesses"];
+}
+
+const { copy } = Astro.props;
 ---
 
 <ul class="harnesses">
@@ -15,7 +22,7 @@ import { docsUrl } from "../site.ts";
   }
 </ul>
 <p class="harnesses__more">
-  <a href={`${docsUrl}reference/harnesses`}>Full table with footnotes</a>
+  <a href={`${docsUrl}reference/harnesses`}>{copy.more}</a>
 </p>
 
 <style>
@@ -43,5 +50,10 @@ import { docsUrl } from "../site.ts";
   .harnesses__more {
     margin: var(--s-5) 0 0;
     font-size: var(--fs-sm);
+  }
+  .harnesses__more a {
+    display: inline-flex;
+    align-items: center;
+    min-height: var(--target);
   }
 </style>

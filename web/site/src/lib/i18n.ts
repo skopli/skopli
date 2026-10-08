@@ -1,7 +1,6 @@
 import {
   configuredLocales,
   defaultLocale,
-  isLocale,
   localizePath,
   type Locale,
   translator,
@@ -9,10 +8,6 @@ import {
 import { pseudoLocaleEnabled, siteOrigin } from "../site.ts";
 
 export const locales = configuredLocales(pseudoLocaleEnabled);
-
-export function resolveLocale(value: string | undefined): Locale {
-  return isLocale(value) && locales.includes(value) ? value : defaultLocale;
-}
 
 export function t(locale: Locale) {
   return translator(locale);

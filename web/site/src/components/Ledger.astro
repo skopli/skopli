@@ -2,6 +2,7 @@
 import { int, rateDate, rows, totals, usd } from "../data/example.ts";
 import type { Copy } from "../copy.ts";
 import { format } from "@skopli/ui/i18n";
+import InlineCode from "./InlineCode.astro";
 
 interface Props {
   copy: Copy["ledger"];
@@ -25,7 +26,7 @@ const { copy } = Astro.props;
             <th scope="col" class="num ledger__wide">{copy.input}</th>
             <th scope="col" class="num ledger__wide">{copy.cacheRead}</th>
             <th scope="col" class="num ledger__wide">{copy.cacheWrite}</th>
-            <th scope="col" class="num">{copy.output}</th>
+            <th scope="col" class="num ledger__mid">{copy.output}</th>
             <th scope="col" class="num">{copy.usd}</th>
           </tr>
         </thead>
@@ -44,7 +45,7 @@ const { copy } = Astro.props;
                 <td class="num ledger__wide">{int(row.tokens.input)}</td>
                 <td class="num ledger__wide">{int(row.tokens.cacheRead)}</td>
                 <td class="num ledger__wide">{int(row.tokens.cacheWrite)}</td>
-                <td class="num">{int(row.tokens.output)}</td>
+                <td class="num ledger__mid">{int(row.tokens.output)}</td>
                 <td class="num">
                   {row.pricing.priced ? (
                     <span class="ledger__priced">{usd(row.pricing.usd)}</span>
@@ -62,14 +63,16 @@ const { copy } = Astro.props;
             <td class="num ledger__wide">{int(totals.input)}</td>
             <td class="num ledger__wide">{int(totals.cacheRead)}</td>
             <td class="num ledger__wide">{int(totals.cacheWrite)}</td>
-            <td class="num">{int(totals.output)}</td>
+            <td class="num ledger__mid">{int(totals.output)}</td>
             <td class="num">{usd(totals.usd)}</td>
           </tr>
         </tfoot>
       </table>
     </div>
   </div>
-  <figcaption class="ledger__note">{format(copy.note, { date: rateDate })}</figcaption>
+  <figcaption class="ledger__note">
+    <InlineCode text={format(copy.note, { date: rateDate })} />
+  </figcaption>
 </figure>
 
 <style>
@@ -78,8 +81,9 @@ const { copy } = Astro.props;
   }
   .ledger__head {
     display: flex;
+    flex-wrap: wrap;
     justify-content: space-between;
-    gap: var(--s-4);
+    gap: var(--s-1) var(--s-4);
     padding: var(--s-2) var(--s-4);
     border: var(--hair) solid var(--rule-1);
     border-bottom: 0;
@@ -89,6 +93,9 @@ const { copy } = Astro.props;
     font-size: var(--fs-xs);
     letter-spacing: var(--tracking-caps);
     text-transform: uppercase;
+  }
+  .ledger__head span {
+    white-space: nowrap;
   }
   .ledger__head code {
     font-size: var(--fs-sm);
@@ -102,7 +109,7 @@ const { copy } = Astro.props;
   table {
     width: 100%;
     border-collapse: collapse;
-    font-size: var(--fs-data);
+    font-size: var(--fs-sm);
     font-variant-numeric: tabular-nums;
   }
   th,
@@ -157,8 +164,13 @@ const { copy } = Astro.props;
     color: var(--ink-2);
     font-size: var(--fs-sm);
   }
-  @media (max-width: 47.99rem) {
+  @media (max-width: 63.99rem) {
     .ledger__wide {
+      display: none;
+    }
+  }
+  @media (max-width: 47.99rem) {
+    .ledger__mid {
       display: none;
     }
   }

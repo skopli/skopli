@@ -7,14 +7,14 @@ export const en = {
   nav: { install: "Install", layers: "Layers", quickstart: "Quickstart", harnesses: "Harnesses" },
   hero: {
     title: "Know what your coding agents cost.",
-    lede: "Skopli reads the session logs 40 coding-agent harnesses already keep on disk, rolls them up, and prices them against market catalogs. Your code gets the total.",
+    lede: "Skopli reads the session logs 40 coding-agent harnesses already keep on disk, rolls them up, and prices them against market catalogs.",
     getStarted: "Read the docs",
     github: "GitHub",
     facts: "MIT. One Rust core, eight language facades and a C ABI. No accounts, no telemetry.",
   },
   ledger: {
     caption:
-      "Example output: usage rolled up by model and priced with priceRollups. One model has no catalog match and stays unpriced.",
+      "Example output: usage rolled up by model and priced with `priceRollups`. One model has no catalog match and stays unpriced.",
     frameTitle: 'rollup(events, { by: "model" })',
     model: "Model",
     input: "Input",
@@ -24,15 +24,18 @@ export const en = {
     usd: "USD",
     rates: "rates {date}",
     attempted: "tried {keys}",
-    footer: "{priced} priced, {misses} miss",
-    note: "Synthetic token counts, priced at the per-million rates in Skopli's committed catalog snapshots ({date}). The miss stays out of the total: Skopli returns priced: false with the keys it tried, never a guessed rate.",
+    footer: "{priced} priced, {misses} unpriced",
+    note: "Synthetic token counts, priced at the per-million rates in Skopli's committed catalog snapshots ({date}). The unmatched model returns `priced: false` with the keys it tried, and the totals count priced rows only.",
   },
   install: {
     title: "Install in your language",
-    body: "Eight language facades and a C ABI call one Rust core. The TypeScript package needs Node 24 or newer and ships ESM only. The rest publish with the first release.",
+    body: "Eight language facades and a C ABI call one Rust core. No package is published yet; every registry package ships with the first release, and until then each SDK builds from the repository. The TypeScript package needs Node 24 or newer and ships ESM only. Java, Swift, and C link the C library, built with `cargo build -p skopli-capi --release`.",
   },
   layers: {
     title: "Three layers. Use any one alone.",
+    network: "Network",
+    never: "Never",
+    fetches: "Fetches, caches, reads from cache offline",
     read: {
       name: "Read",
       body: "Parse local session state from 40 harnesses into one normalized event shape. Disk only. A file that will not parse returns a structured diagnostic, not a silent gap.",
@@ -48,27 +51,28 @@ export const en = {
   },
   quickstart: {
     title: "Four calls from local files to a priced total",
-    body: "The seven handle-based facades expose the same four calls; Rust and C expose the primitives directly. Pick a language once; the choice follows you into the docs.",
+    body: "The seven handle-based facades reach the total in four calls. Rust and C expose the primitives, so their tabs show one step each. Pick a language once and both code blocks on this page follow.",
   },
   harnesses: {
-    title: "40 harnesses, read where they already write",
+    title: "Read usage from 40 harnesses",
     body: "No plugin, proxy, or exporter. Skopli parses the session state each harness keeps on disk. Ids are stable; names follow the upstream project.",
+    more: "Full table with footnotes",
   },
   refuses: {
     title: "What Skopli will not do",
-    body: "A wrong number is worse than a gap you can see.",
+    body: "Each of these would make a total look right while being wrong.",
     items: [
       {
         title: "Guess a price",
-        body: "An unmatched model returns priced: false with the keys it tried, and stays out of the total.",
+        body: "An unmatched model returns `priced: false` with the keys it tried, and stays out of the total.",
       },
       {
-        title: "Phone home",
-        body: "No accounts and no telemetry. Read and Rollup never open a socket. Price fetches market catalogs when you use it, caches them, and works offline from the cache; pass an empty sources list or offline for network-free pricing.",
+        title: "Collect telemetry",
+        body: "No accounts and no telemetry. Read and Rollup never open a socket. Price fetches market catalogs when you use it, caches them, and works offline from the cache; pass an empty `sources` list or `offline` for network-free pricing.",
       },
       {
         title: "Double-count tokens",
-        body: "Input, output, cache read, and cache write stay in separate buckets. Reasoning tokens are subtracted from output at the source. 1-hour cache writes are a portion of the cache-write total, not an addition to it.",
+        body: "Input, output, cache read, and cache write stay in separate buckets. Normalized output excludes reasoning tokens, and pricing bills both at the output rate. 1-hour cache writes are a portion of the cache-write total, not an addition to it.",
       },
       {
         title: "Hide a broken file",
@@ -77,8 +81,8 @@ export const en = {
     ],
   },
   library: {
-    title: "A library, not a service",
-    body: "Skopli ships read, rollup, and price as functions, so what you build on top is yours: a dashboard, a nightly report, a CI budget check, a billing reconciliation.",
+    title: "Functions your application calls",
+    body: "Skopli ships read, rollup, and price as functions in your language. Call them from a dashboard, a nightly report, a CI budget check, or a billing reconciliation.",
     docs: "Documentation",
     releases: "Releases",
   },

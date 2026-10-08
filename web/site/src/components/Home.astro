@@ -54,7 +54,7 @@ const localeOptions = locales.map((code) => ({
       <Quickstart field="code" />
     </Section>
     <Section id="harnesses" title={copy.harnesses.title} body={copy.harnesses.body}>
-      <Harnesses />
+      <Harnesses copy={copy.harnesses} />
     </Section>
     <Section id="refuses" title={copy.refuses.title} body={copy.refuses.body}>
       <Refuses copy={copy.refuses} />
@@ -69,7 +69,7 @@ const localeOptions = locales.map((code) => ({
   </main>
   <Footer t={tr} licenseHref={licenseUrl} privacyHref={privacyUrl}>
     <a href={docsUrl}>{copy.footer.docs}</a>
-    <a href={repoUrl} rel="noopener">{copy.footer.github}</a>
+    <a href={repoUrl}>{copy.footer.github}</a>
   </Footer>
 </BaseLayout>
 

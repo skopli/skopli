@@ -7,10 +7,10 @@ const body = `# Skopli
 
 > ${en.description}
 
-Skopli is a library, not a service. There are no accounts and no telemetry.
+Skopli is an SDK with no accounts and no telemetry.
 Read and Rollup never touch the network.
 Price fetches market catalogs (OpenRouter, LiteLLM, models.dev, or your own) by default when used, caches them, and reads from the cache offline; pass an empty sources list or offline for network-free pricing.
-An unmatched model returns priced: false with the model keys it tried, never a guessed rate.
+An unmatched model returns priced: false with the model keys it tried and stays out of every total.
 Languages: TypeScript (Node 24 or newer, ESM only), Python, Rust, Ruby, Java, C#, Go, Swift, and C, all on one Rust core. MIT licensed.
 
 ## Links

@@ -1,5 +1,6 @@
 ---
 import type { Copy } from "../copy.ts";
+import InlineCode from "./InlineCode.astro";
 
 interface Props {
   copy: Copy["refuses"];
@@ -13,7 +14,9 @@ const { copy } = Astro.props;
     copy.items.map((item) => (
       <div class="refuse">
         <dt>{item.title}</dt>
-        <dd>{item.body}</dd>
+        <dd>
+          <InlineCode text={item.body} />
+        </dd>
       </div>
     ))
   }

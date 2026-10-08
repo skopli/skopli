@@ -1,4 +1,6 @@
-import { costUsd, type ModelPrice, type TokenCounts } from "../lib/cost.ts";
+import { costUsd } from "../../../../src/pricing/index.ts";
+import type { ModelPrice } from "../../../../src/pricing/types.ts";
+import type { TokenCounts } from "../../../../src/types.ts";
 
 /**
  * The landing-page ledger. Token counts are synthetic. Rates are the per-million
@@ -99,16 +101,18 @@ export const rows: Row[] = [
   },
 ];
 
-const sum = (pick: (row: Row) => number) => rows.reduce((acc, row) => acc + pick(row), 0);
+const pricedRows = rows.filter(isPriced);
+const sum = (pick: (row: PricedRow) => number) =>
+  pricedRows.reduce((acc, row) => acc + pick(row), 0);
 
 export const totals = {
   input: sum((r) => r.tokens.input),
   cacheRead: sum((r) => r.tokens.cacheRead),
   cacheWrite: sum((r) => r.tokens.cacheWrite),
   output: sum((r) => r.tokens.output),
-  usd: sum((r) => (isPriced(r) ? r.pricing.usd : 0)),
-  priced: rows.filter(isPriced).length,
-  misses: rows.filter((r) => !isPriced(r)).length,
+  usd: sum((r) => r.pricing.usd),
+  priced: pricedRows.length,
+  misses: rows.length - pricedRows.length,
 };
 
 export const usd = (value: number) =>

@@ -58,7 +58,7 @@ for (const locale of locales) {
   for (const row of rows) need(html.includes(row.model), `${label} ledger has ${row.model}`);
   need(html.includes(usd(totals.usd)), `${label} ledger shows the total ${usd(totals.usd)}`);
   need(html.includes("priced: false"), `${label} ledger shows the miss`);
-  if (!isDefault) {
+  if (locales.length > 1) {
     need(html.includes(`hreflang="${locale}"`), `${label} has hreflang`);
     need(html.includes('hreflang="x-default"'), `${label} has x-default hreflang`);
   }

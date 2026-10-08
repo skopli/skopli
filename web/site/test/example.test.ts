@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { costUsd, type ModelPrice } from "../src/lib/cost.ts";
+import { costUsd } from "../../../src/pricing/index.ts";
+import type { ModelPrice } from "../../../src/pricing/types.ts";
 import { isPriced, rateDate, rows, totals } from "../src/data/example.ts";
 
 const repo = new URL("../../../", import.meta.url);
@@ -8,19 +9,26 @@ const json = (path: string) => JSON.parse(readFileSync(new URL(path, repo), "utf
 const perMillion = (perToken: number) => perToken * 1_000_000;
 
 describe("landing ledger", () => {
-  it("recomputes every priced row with Skopli's cost math", () => {
+  it("prices every row to the hand-computed USD figure", () => {
+    const expected: Record<string, number> = {
+      "claude-sonnet-4-5": 126.2761848,
+      "gpt-5": 17.274765,
+      "claude-opus-4.6": 67.84117,
+    };
     for (const row of rows.filter(isPriced)) {
-      expect(row.pricing.usd).toBe(costUsd(row.tokens, row.pricing.price));
+      expect(row.pricing.usd).toBeCloseTo(expected[row.model], 7);
     }
+    expect(totals.usd).toBeCloseTo(211.3921198, 7);
   });
 
-  it("keeps the miss out of the total and counts it", () => {
+  it("counts the miss and keeps it out of every total", () => {
     expect(rows.filter((r) => !isPriced(r))).toHaveLength(1);
     expect(totals.misses).toBe(1);
-    expect(totals.priced).toBe(rows.length - 1);
-    const pricedSum = rows.filter(isPriced).reduce((t, r) => t + r.pricing.usd, 0);
-    expect(totals.usd).toBe(pricedSum);
-    expect(totals.input).toBe(rows.reduce((t, r) => t + r.tokens.input, 0));
+    expect(totals.priced).toBe(3);
+    expect(totals.input).toBe(16_419_756);
+    expect(totals.cacheRead).toBe(51_112_274);
+    expect(totals.cacheWrite).toBe(2_547_830);
+    expect(totals.output).toBe(3_390_086);
   });
 
   it("records the rates from the committed catalog snapshots", () => {

@@ -3,16 +3,22 @@ interface Props {
   id: string;
   title: string;
   body?: string;
-  wide?: boolean;
 }
 
-const { id, title, body, wide = false } = Astro.props;
+const { id, title, body } = Astro.props;
+import InlineCode from "./InlineCode.astro";
 ---
 
-<section class:list={["section", { "section--wide": wide }]} id={id} aria-labelledby={`${id}-title`}>
+<section class="section" id={id} aria-labelledby={`${id}-title`}>
   <div class="section__head">
     <h2 id={`${id}-title`}>{title}</h2>
-    {body && <p class="section__body">{body}</p>}
+    {
+      body && (
+        <p class="section__body">
+          <InlineCode text={body} />
+        </p>
+      )
+    }
   </div>
   <slot />
 </section>
@@ -34,6 +40,7 @@ const { id, title, body, wide = false } = Astro.props;
     line-height: var(--lh-tight);
   }
   .section__body {
+    overflow-wrap: anywhere;
     margin: 0;
     color: var(--ink-1);
     font-size: var(--fs-body);

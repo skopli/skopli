@@ -7,9 +7,9 @@ interface Props {
 
 const { copy } = Astro.props;
 const layers = [
-  { ...copy.read, network: "Never" },
-  { ...copy.rollup, network: "Never" },
-  { ...copy.price, network: "Fetches, caches, offline from cache" },
+  { ...copy.read, network: copy.never },
+  { ...copy.rollup, network: copy.never },
+  { ...copy.price, network: copy.fetches },
 ];
 ---
 
@@ -21,7 +21,7 @@ const layers = [
         <h3 class="layer__name">{layer.name}</h3>
         <p class="layer__body">{layer.body}</p>
         <p class="layer__net">
-          <span class="layer__net-label">Network</span> {layer.network}
+          <span class="layer__net-label">{copy.network}</span> {layer.network}
         </p>
       </li>
     ))

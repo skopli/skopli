@@ -74,7 +74,7 @@ test("coarse pointers get 44px targets", async ({ page }) => {
   const boxes = await page.evaluate(() =>
     [
       ...document.querySelectorAll(
-        ".site-header a, .site-header button, .tabs__strip [role=tab], .code-frame button, .button, .site-footer a",
+        ".site-header a, .site-header button, .tabs__strip [role=tab], .code-frame button, .button, .harnesses__more a, .library__links a, .site-footer a",
       ),
     ]
       .filter((el) => (el as HTMLElement).offsetParent !== null)
@@ -104,7 +104,8 @@ test("header nav hides below the wide breakpoint and scrolls to sections above i
 test("the ledger recomputes from the example rows and stays inside its frame", async ({ page }) => {
   await page.goto("/");
   const ledger = page.locator(".ledger");
-  await expect(ledger.locator("tfoot td").last()).toHaveText(usd(totals.usd));
+  await expect(ledger.locator("tfoot td").last()).toHaveText("$211.39");
+  expect(usd(totals.usd)).toBe("$211.39");
   await expect(ledger.locator("tbody tr")).toHaveCount(rows.length);
   await expect(ledger.locator(".ledger__miss")).toHaveText("priced: false");
   const report = await page.evaluate(() => {
@@ -172,7 +173,7 @@ test("theme persists and is applied before first paint", async ({ page }) => {
   const themeScript = html.indexOf("skopli-theme");
   const firstStylesheet = html.indexOf('<link rel="stylesheet"');
   expect(themeScript).toBeGreaterThan(-1);
-  expect(firstStylesheet === -1 || themeScript < firstStylesheet).toBe(true);
+  expect(firstStylesheet).toBeGreaterThan(themeScript);
 });
 
 test("footer aligns to the page grid", async ({ page }) => {

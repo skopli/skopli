@@ -32,7 +32,7 @@ const tr = t(locale);
   </main>
   <Footer t={tr} licenseHref={licenseUrl} privacyHref={privacyUrl}>
     <a href={docsUrl}>{copy.footer.docs}</a>
-    <a href={repoUrl} rel="noopener">{copy.footer.github}</a>
+    <a href={repoUrl}>{copy.footer.github}</a>
   </Footer>
 </BaseLayout>
 
@@ -62,5 +62,10 @@ const tr = t(locale);
   }
   .not-found :global(.button) {
     margin-top: var(--s-5);
+  }
+  @media (max-width: 47.99rem) {
+    .not-found {
+      padding: var(--s-7) var(--s-4);
+    }
   }
 </style>

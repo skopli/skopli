@@ -1,9 +1,14 @@
+import type { Code } from "astro:components";
+import type { ComponentProps } from "astro/types";
+
+type Lang = ComponentProps<typeof Code>["lang"];
+
 export interface Sample {
   label: string;
-  lang: string;
+  lang: Lang;
   file: string;
   install: string;
-  installLang: string;
+  installLang: Lang;
   code: string;
 }
 
@@ -37,16 +42,20 @@ total = sum(r.usd for r in priced if r.pricing.priced)`,
   {
     label: "Rust",
     lang: "rust",
-    file: "main.rs",
+    file: "total.rs",
     install: "cargo add skopli-core",
     installLang: "sh",
     code: `use skopli_core::pricing::{cost_usd, ModelPrice};
 use skopli_core::rollup::{rollup, RollupBy, RollupOptions};
-use skopli_core::types::TokenCounts;
+use skopli_core::types::UsageEvent;
 
-let by_model = rollup(&events, &RollupOptions::new(RollupBy::Model));
-let tokens = TokenCounts { input: 1_000, output: 500, ..Default::default() };
-let usd = cost_usd(&tokens, &ModelPrice::flat(1.25, 10.0));`,
+// skopli-core exposes the primitives: group events, then price each bucket.
+fn total(events: &[UsageEvent], price: &ModelPrice) -> f64 {
+    rollup(events, &RollupOptions::new(RollupBy::Model))
+        .iter()
+        .map(|bucket| cost_usd(&bucket.tokens, price))
+        .sum()
+}`,
   },
   {
     label: "Ruby",
@@ -65,8 +74,12 @@ total = priced.select { |r| r.pricing.priced }.sum(&:usd)`,
     label: "Java",
     lang: "java",
     file: "Quickstart.java",
-    install: `implementation("com.skopli:skopli")`,
-    installLang: "groovy",
+    install: `// settings.gradle.kts, with the skopli checkout beside your project
+includeBuild("../skopli/sdks/java")
+
+// build.gradle.kts
+implementation("com.skopli:skopli")`,
+    installLang: "kotlin",
     code: `import com.skopli.*;
 import java.util.List;
 
@@ -74,6 +87,7 @@ ReadUsageResult result = Skopli.readUsage(ReadUsageOptions.builder().since("2026
 List<Rollup> byModel = Skopli.rollup(result.events(), RollupOptions.by(RollupBy.MODEL));
 try (Pricing pricing = Skopli.createPricing(PricingOptions.builder().build())) {
     List<PricedRollup> priced = pricing.priceRollups(byModel);
+    double total = priced.stream().mapToDouble(r -> r.pricing().usd().orElse(0)).sum();
 }`,
   },
   {
@@ -88,7 +102,8 @@ ReadUsageResult usage = SkopliClient.ReadUsage(new ReadUsageOptions { Since = "2
 IReadOnlyList<Rollup> byModel =
     SkopliClient.Rollup(usage.Events, new RollupOptions { By = RollupBy.Model });
 using Pricing pricing = SkopliClient.CreatePricing(new PricingOptions());
-IReadOnlyList<PricedRollup> priced = pricing.PriceRollups(byModel);`,
+IReadOnlyList<PricedRollup> priced = pricing.PriceRollups(byModel);
+double total = priced.Sum(r => r.Pricing is PriceHit hit ? hit.Usd : 0);`,
   },
   {
     label: "Go",
@@ -98,17 +113,36 @@ IReadOnlyList<PricedRollup> priced = pricing.PriceRollups(byModel);`,
     installLang: "sh",
     code: `import "github.com/skopli/skopli/sdks/go/skopli"
 
-result, _ := skopli.ReadUsage(skopli.ReadUsageOptions{Since: "2026-08-01"})
-byModel, _ := skopli.Rollup(result.Events, skopli.RollupOptions{By: skopli.ByModel})
-pricing, _ := skopli.NewPricing(skopli.PricingOptions{})
+result, err := skopli.ReadUsage(skopli.ReadUsageOptions{Since: "2026-08-01"})
+if err != nil {
+    return err
+}
+byModel, err := skopli.Rollup(result.Events, skopli.RollupOptions{By: skopli.ByModel})
+if err != nil {
+    return err
+}
+pricing, err := skopli.NewPricing(skopli.PricingOptions{})
+if err != nil {
+    return err
+}
 defer pricing.Close()
-priced, _ := pricing.PriceRollups(byModel)`,
+priced, err := pricing.PriceRollups(byModel)
+if err != nil {
+    return err
+}
+total := 0.0
+for _, r := range priced {
+    if r.Pricing.Priced {
+        total += *r.Pricing.USD
+    }
+}`,
   },
   {
     label: "Swift",
     lang: "swift",
     file: "Quickstart.swift",
-    install: `.package(url: "https://github.com/skopli/skopli", from: "1.0.0")`,
+    install: `// Package.swift, with the skopli checkout beside your project
+.package(path: "../skopli/sdks/swift")`,
     installLang: "swift",
     code: `import Skopli
 
@@ -116,21 +150,24 @@ let result = try Skopli.readUsage(options: ReadUsageOptions(since: "2026-08-01")
 let byModel = try Skopli.rollup(events: result.events, by: .model)
 let pricing = try Skopli.createPricing()
 defer { pricing.close() }
-let priced = try pricing.priceRollups(rollups: byModel)`,
+let priced = try pricing.priceRollups(rollups: byModel)
+let total = priced.reduce(0) { $0 + ($1.pricing.usd ?? 0) }`,
   },
   {
     label: "C/C++",
     lang: "c",
-    file: "quickstart.c",
-    install: "cc app.c -lskopli",
+    file: "rollup.c",
+    install: `cargo build -p skopli-capi --release
+cc app.c -I crates/skopli-capi/include -L target/release -lskopli`,
     installLang: "sh",
     code: `#include <string.h>
 #include "skopli.h"
 
-// events_json / events_len are a serialized UsageEvent[] from ag_read_usage.
-AgBuf out = {0};
-const char *opts = "{\\"by\\":\\"model\\"}";
-AgStatus st = ag_rollup(events_json, events_len, opts, strlen(opts), &out);
-if (st == AG_STATUS_OK) ag_buf_free(out);`,
+// The C ABI exchanges JSON buffers. events_json is a UsageEvent[]; the caller
+// frees *out with ag_buf_free.
+AgStatus rollup_by_model(const char *events_json, uintptr_t events_len, AgBuf *out) {
+    const char *opts = "{\\"by\\":\\"model\\"}";
+    return ag_rollup(events_json, events_len, opts, strlen(opts), out);
+}`,
   },
 ];
