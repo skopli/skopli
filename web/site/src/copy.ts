@@ -27,7 +27,7 @@ export const en = {
     rates: "rates {date}",
     attempted: "tried {keys}",
     footer: "{priced} priced, {misses} unpriced",
-    note: "Token counts are synthetic and priced at the per-million rates in Skopli's committed catalog snapshots. Neither snapshot carries cache rates for `claude-opus-4.6`, so its cache reads and writes bill at the input rate. Totals count priced rows only.",
+    note: "Token counts are synthetic and priced at the per-million rates in Skopli's two committed catalog snapshots (OpenRouter and LiteLLM). Neither snapshot carries cache rates for `claude-opus-4.6`, so its cache reads and writes bill at the input rate. Totals count priced rows only.",
   },
   install: {
     title: "Install in your language",
@@ -48,7 +48,7 @@ export const en = {
     },
     price: {
       name: "Price",
-      body: "Match models against OpenRouter, LiteLLM, and models.dev, or your own catalog, and compute USD. Long-context tiers and 5-minute and 1-hour cache writes each bill at their own rate.",
+      body: "Match models against OpenRouter, LiteLLM, and models.dev, or your own catalog, and compute USD. Long-context tiers, 5-minute cache writes, and 1-hour cache writes each bill at their own rate.",
     },
   },
   quickstart: {
@@ -59,7 +59,7 @@ export const en = {
   },
   harnesses: {
     title: `Read usage from ${n} harnesses`,
-    body: "Skopli parses the session state each harness keeps on disk, with no plugin, proxy, or exporter in the way. Each id is stable, and names follow the upstream project.",
+    body: "Skopli parses the session state each harness keeps on disk, with no plugin, proxy, or exporter in the way. Each `id` is stable, and names follow the upstream project.",
     more: "Full table with footnotes",
   },
   refuses: {

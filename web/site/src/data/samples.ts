@@ -58,8 +58,9 @@ use skopli_core::pricing::{Pricing, PricingCatalog, PricingMode, RollupPricing};
 use skopli_core::rollup::{rollup, RollupBy, RollupOptions};
 use skopli_core::types::UsageEvent;
 
-// skopli-core exposes the primitives and fetches nothing: group events, then
-// price each bucket against a catalog you fetched (the raw OpenRouter /models JSON).
+// skopli-core exposes the primitives, and the default build fetches nothing.
+// Group events, then price each bucket against a catalog you fetched
+// (the raw OpenRouter /models JSON).
 fn total(events: &[UsageEvent], openrouter: &serde_json::Value) -> f64 {
     let catalog = PricingCatalog {
         source: "openrouter".into(),

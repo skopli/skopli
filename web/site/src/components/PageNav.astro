@@ -55,6 +55,10 @@ const { t, links } = Astro.props;
   @media (max-width: 63.99rem) {
     .page-nav {
       display: block;
+      top: 0;
+    }
+    :global(.site-header) {
+      position: static;
     }
   }
   @media (max-width: 47.99rem) {
