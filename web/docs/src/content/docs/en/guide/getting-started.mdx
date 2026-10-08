@@ -10,17 +10,17 @@ Skopli is an SDK, not a CLI. It reads the session state your harnesses keep on d
 
 Three independent layers, each usable on its own.
 
-| Layer      | What it does                                                                                                                                                                             | Network            |
-| ---------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------ |
-| **Read**   | Parse local session state from 40 harnesses into normalized usage events, with structured diagnostics                                                                                    | Never              |
-| **Rollup** | Group events by model, day (timezone-aware in every SDK), session, harness, workspace, or billing block                                                                                  | Never              |
-| **Price**  | Match models against OpenRouter, LiteLLM, and models.dev catalogs (or your own) and compute USD costs, with tiered long-context rates, cache-write splits, and misses reported as misses | By default, cached |
+| Layer  | What it does                                                                                                                                                                             | Network            |
+| ------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------ |
+| Read   | Parse local session state from 40 harnesses into normalized usage events, with structured diagnostics                                                                                    | Never              |
+| Rollup | Group events by model, day (timezone-aware in every SDK), session, harness, workspace, or billing block                                                                                  | Never              |
+| Price  | Match models against OpenRouter, LiteLLM, and models.dev catalogs (or your own) and compute USD costs, with tiered long-context rates, cache-write splits, and misses reported as misses | By default, cached |
 
 No accounts, no telemetry. The readers never touch the network. Pricing fetches the market catalogs by default when used, caches what it fetches, and reads from cache when offline. Pass an empty `sources` list or `offline` for a network-free handle.
 
 ## Step 1: Install
 
-Pick your language. The TypeScript package requires Node >= 24 and is ESM only. The rest publish with the [first release](https://github.com/skopli/skopli/releases).
+Pick your language. The TypeScript package needs Node 24 or newer and ships ESM only. The rest publish with the [first release](https://github.com/skopli/skopli/releases).
 
 <Tabs syncKey="lang">
   <Tab label="TypeScript">

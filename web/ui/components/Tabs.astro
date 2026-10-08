@@ -7,7 +7,9 @@ interface Props {
 const { syncKey, label } = Astro.props;
 
 let counter = 0;
-const uid = `${Math.random().toString(36).slice(2, 7)}`;
+const locals = Astro.locals as { tabsCount?: number };
+locals.tabsCount = (locals.tabsCount ?? 0) + 1;
+const uid = `tabs${locals.tabsCount}`;
 const html = await Astro.slots.render("default");
 const panelPattern = /<section class="tabs__panel" role="tabpanel" data-tab-label="([^"]*)"/g;
 const labels: string[] = [];
@@ -51,7 +53,7 @@ const panels = html.replace(panelPattern, (_match, panelLabel: string) => {
     border-radius: var(--r-2);
     background: var(--ground-1);
   }
-  .tabs__strip {
+  .tabs__strip[data-overflow] {
     overflow-x: auto;
     scrollbar-width: none;
     border-bottom: var(--hair) solid var(--rule-1);
@@ -153,6 +155,14 @@ const panels = html.replace(panelPattern, (_match, panelLabel: string) => {
         const index = tabs.findIndex((tab) => tab.dataset.label === label);
         if (index >= 0) select(index, false);
       };
+
+      const strip = this.querySelector<HTMLElement>(":scope > .tabs__strip");
+      if (strip) {
+        const mark = () =>
+          strip.toggleAttribute("data-overflow", strip.scrollWidth > strip.clientWidth + 1);
+        new ResizeObserver(mark).observe(strip);
+        mark();
+      }
 
       tabs.forEach((tab, index) => {
         tab.addEventListener("click", () => {

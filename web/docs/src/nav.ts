@@ -1,38 +1,40 @@
+import type { StringKey } from "@skopli/ui/i18n";
+
 export interface NavItem {
   slug: string;
-  title: string;
+  title: StringKey;
 }
 
 export interface NavGroup {
-  label: string;
+  label: StringKey;
   items: NavItem[];
 }
 
 export const nav: NavGroup[] = [
   {
-    label: "Guide",
+    label: "navGuide",
     items: [
-      { slug: "guide/getting-started", title: "Getting started" },
-      { slug: "guide/reading", title: "Reading usage" },
-      { slug: "guide/rollups", title: "Rollups" },
-      { slug: "guide/pricing-basics", title: "Pricing basics" },
+      { slug: "guide/getting-started", title: "navGettingStarted" },
+      { slug: "guide/reading", title: "navReading" },
+      { slug: "guide/rollups", title: "navRollups" },
+      { slug: "guide/pricing-basics", title: "navPricingBasics" },
     ],
   },
   {
-    label: "Pricing",
+    label: "navPricing",
     items: [
-      { slug: "pricing/model-matching", title: "Model matching" },
-      { slug: "pricing/cost-math", title: "Price tokens and cache writes" },
-      { slug: "pricing/long-context-tiers", title: "Long-context tiers" },
-      { slug: "pricing/rollups-vs-events", title: "Price rollups or raw events" },
+      { slug: "pricing/model-matching", title: "navModelMatching" },
+      { slug: "pricing/cost-math", title: "navCostMath" },
+      { slug: "pricing/long-context-tiers", title: "navLongContextTiers" },
+      { slug: "pricing/rollups-vs-events", title: "navRollupsVsEvents" },
     ],
   },
   {
-    label: "Reference",
+    label: "navReference",
     items: [
-      { slug: "reference/harnesses", title: "Supported harnesses" },
-      { slug: "reference/coverage", title: "Coverage" },
-      { slug: "reference/api", title: "API reference" },
+      { slug: "reference/harnesses", title: "navHarnesses" },
+      { slug: "reference/coverage", title: "navCoverage" },
+      { slug: "reference/api", title: "navApi" },
     ],
   },
 ];

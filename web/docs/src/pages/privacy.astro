@@ -1,0 +1,42 @@
+---
+import { defaultLocale } from "@skopli/ui/i18n";
+import { posthogHost } from "@skopli/ui/analytics";
+import DocsLayout from "../layouts/DocsLayout.astro";
+import { href, t as translate } from "../lib/i18n.ts";
+import { marketingUrl } from "../site.ts";
+
+const t = translate(defaultLocale);
+---
+
+<DocsLayout
+  locale={defaultLocale}
+  slug="privacy"
+  title={t("privacy")}
+  description="What this site records about a visit, and what it does not."
+>
+  <p>
+    Skopli is a library. It has no accounts, no sign-in, and no telemetry in the SDK. This notice
+    covers the docs site and <a href={marketingUrl}>skopli.com</a> only.
+  </p>
+  <h2 id="what-is-recorded">What is recorded</h2>
+  <p>
+    Both sites send anonymous usage events to PostHog at <code>{posthogHost}</code>: one page view
+    per page load, plus a named event when you copy a page as Markdown or open it in an AI
+    assistant. Events carry the page URL and the browser's user agent, nothing else.
+  </p>
+  <h2 id="what-is-not-recorded">What is not recorded</h2>
+  <ul>
+    <li>No cookies and no analytics identifiers: PostHog runs with in-memory persistence, so nothing survives the tab.</li>
+    <li>No person profiles, so events are not linked across visits.</li>
+    <li>No session recording, no surveys, no automatic click capture.</li>
+    <li>Nothing on localhost or other local hosts, so development runs send no events.</li>
+  </ul>
+  <h2 id="stored-in-your-browser">Stored in your browser</h2>
+  <p>
+    Your theme choice and the last selected language tab are kept in <code>localStorage</code> so the
+    site remembers them. They never leave your browser.
+  </p>
+  <p>
+    <a href={href("/")}>Back to the docs</a>.
+  </p>
+</DocsLayout>

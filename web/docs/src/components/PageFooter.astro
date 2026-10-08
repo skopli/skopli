@@ -18,7 +18,7 @@ const { t, locale, prev, next } = Astro.props;
     prev && (
       <a class="pager__link pager__link--prev" href={href(`/${prev.slug}`, locale)} rel="prev">
         <span class="pager__kicker">{t("previous")}</span>
-        <span class="pager__title">{prev.title}</span>
+        <span class="pager__title">{t(prev.title)}</span>
       </a>
     )
   }
@@ -26,7 +26,7 @@ const { t, locale, prev, next } = Astro.props;
     next && (
       <a class="pager__link pager__link--next" href={href(`/${next.slug}`, locale)} rel="next">
         <span class="pager__kicker">{t("next")}</span>
-        <span class="pager__title">{next.title}</span>
+        <span class="pager__title">{t(next.title)}</span>
       </a>
     )
   }

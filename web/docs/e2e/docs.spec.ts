@@ -138,13 +138,14 @@ test("code frames hug their content", async ({ page }) => {
   const sizes = await page.evaluate(() =>
     [...document.querySelectorAll(".code-frame pre")].slice(0, 5).map((pre) => ({
       minHeight: getComputedStyle(pre).minHeight,
+      lineHeight: parseFloat(getComputedStyle(pre).lineHeight),
       height: pre.getBoundingClientRect().height,
       lines: (pre.textContent ?? "").trimEnd().split("\n").length,
     })),
   );
   for (const s of sizes) {
     expect(["0px", "auto"]).toContain(s.minHeight);
-    expect(s.height).toBeLessThan(s.lines * 40 + 40);
+    expect(s.height).toBeLessThan((s.lines + 2) * s.lineHeight);
   }
 });
 
@@ -222,6 +223,19 @@ test("page actions copy Markdown and link the six AI handoffs", async ({ page, c
   await expect(menu).toBeVisible();
   await page.mouse.click(5, 500);
   await expect(menu).toBeHidden();
+});
+
+test("page-actions menu stays inside the viewport below the rail breakpoint", async ({ page }) => {
+  test.skip(isDesktop(page), "the rail handles desktop");
+  await page.goto("/skopli/guide/getting-started");
+  const actions = page.locator(".page-actions:visible").first();
+  await actions.locator(".page-actions__more").click();
+  const menu = actions.locator(".page-actions__menu");
+  await expect(menu).toBeVisible();
+  const box = (await menu.boundingBox())!;
+  const width = page.viewportSize()!.width;
+  expect(box.x).toBeGreaterThanOrEqual(0);
+  expect(box.x + box.width).toBeLessThanOrEqual(width);
 });
 
 test("search opens with Ctrl+K, returns Pagefind results, closes on Escape", async ({ page }) => {

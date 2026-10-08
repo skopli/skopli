@@ -14,7 +14,7 @@ import Sidebar from "../components/Sidebar.astro";
 import Toc from "../components/Toc.astro";
 import { href, t as translate } from "../lib/i18n.ts";
 import { groupFor, neighbours } from "../lib/pages.ts";
-import { marketingUrl, repoUrl } from "../site.ts";
+import { licenseUrl, marketingUrl, repoUrl } from "../site.ts";
 import BaseLayout from "./BaseLayout.astro";
 
 interface Props {
@@ -39,7 +39,7 @@ const localeOptions = (alternates ?? [locale]).map((l) => ({
 }));
 const group = groupFor(slug);
 const trail = slug
-  ? [...(group ? [{ title: group.label }] : []), { title }]
+  ? [...(group ? [{ title: t(group.label) }] : []), { title }]
   : [];
 const { prev, next } = neighbours(slug);
 const jsonLd = mdPath
@@ -60,6 +60,7 @@ const jsonLd = mdPath
   <Header t={t} homeHref={href("/", locale)} wordmark={t("docs")} layout="docs">
     <Drawer slot="leading" t={t}>
       <Sidebar locale={locale} current={slug} label={t("mainNavigation")} />
+      <a class="docs__drawer-link" href={marketingUrl}>{t("marketingSite")}</a>
       {localeOptions.length > 1 && (
         <div class="docs__drawer-locale">
           <LocaleSwitch t={t} options={localeOptions} />
@@ -82,18 +83,18 @@ const jsonLd = mdPath
       <article class="prose" data-pagefind-body={noindex ? undefined : ""}>
         <header class="docs__head">
           <h1>{title}</h1>
-          <p class="docs__lede">{description}</p>
+          {description && <p class="docs__lede">{description}</p>}
         </header>
         <slot />
       </article>
-      <PageFooter t={t} locale={locale} prev={prev} next={next} />
+      {(prev || next) && <PageFooter t={t} locale={locale} prev={prev} next={next} />}
     </main>
     <aside class="docs__rail">
       {mdPath && <PageActions t={t} mdPath={mdPath} placement="rail" />}
       <Toc headings={headings} label={t("onThisPage")} />
     </aside>
   </div>
-  <Footer t={t} layout="docs">
+  <Footer t={t} layout="docs" licenseHref={licenseUrl} privacyHref={href("/privacy", locale)}>
     <a href={repoUrl} rel="noopener">GitHub</a>
     <a href={marketingUrl}>{t("marketingSite")}</a>
     <a href={`${import.meta.env.BASE_URL}/llms.txt`}>llms.txt</a>
@@ -101,6 +102,18 @@ const jsonLd = mdPath
 </BaseLayout>
 
 <style>
+  .docs__drawer-link {
+    display: inline-flex;
+    align-items: center;
+    min-height: var(--target);
+    margin-top: var(--s-4);
+    padding: 0 var(--s-2);
+    color: var(--ink-1);
+    text-decoration: none;
+  }
+  .docs__drawer-link:hover {
+    color: var(--ink-0);
+  }
   .docs__drawer-locale {
     display: none;
     margin-top: var(--s-5);
@@ -178,6 +191,7 @@ const jsonLd = mdPath
     }
     .docs__top :global(.page-actions--top) {
       display: inline-flex;
+      margin-inline-start: auto;
     }
   }
   @media (max-width: 47.99rem) {

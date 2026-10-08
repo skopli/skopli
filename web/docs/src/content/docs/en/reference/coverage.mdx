@@ -22,6 +22,8 @@ Some agents keep their token data cloud-side, store it without token counts, or 
 | Senpi           | No local file that records provider token counts could be identified.                                                                 |
 | WorkBuddy       | No local file that records provider token counts could be identified.                                                                 |
 | Trae IDE        | The IDE keeps token usage quota-based in a dashboard, with no documented local token file or schema. The trae-agent CLI is supported. |
+| aider           | Detected from its `.aider*` files in the home directory, but no local file with provider token counts is read, so there is no usage.  |
 | Crush           | Usage files are project-local with no stable discovery location.                                                                      |
+| GitLab Duo CLI  | Sessions are kept server-side as GraphQL checkpoints. The only local artifact is a prompt-history file with no token counts.          |
 
 This list changes as tools ship durable local token logs. When a tool starts recording provider token counts in a stable local file, it moves to the supported list.

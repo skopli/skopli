@@ -1,6 +1,6 @@
 ---
 import type { Locale } from "@skopli/ui/i18n";
-import { href } from "../lib/i18n.ts";
+import { href, t as translate } from "../lib/i18n.ts";
 import { nav } from "../nav.ts";
 
 interface Props {
@@ -11,13 +11,14 @@ interface Props {
 }
 
 const { locale, current, id, label } = Astro.props;
+const t = translate(locale);
 ---
 
 <nav class="sidebar-nav" id={id} aria-label={label}>
   {
     nav.map((group) => (
       <section class="sidebar-group">
-        <h2 class="sidebar-group__label">{group.label}</h2>
+        <h2 class="sidebar-group__label">{t(group.label)}</h2>
         <ul>
           {group.items.map((item) => (
             <li>
@@ -25,7 +26,7 @@ const { locale, current, id, label } = Astro.props;
                 href={href(`/${item.slug}`, locale)}
                 aria-current={item.slug === current ? "page" : undefined}
               >
-                {item.title}
+                {t(item.title)}
               </a>
             </li>
           ))}

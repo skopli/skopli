@@ -25,7 +25,7 @@ const { t } = Astro.props;
     <path d="m20 20-3.5-3.5"></path>
   </svg>
   <span class="search-trigger__label">{t("search")}</span>
-  <kbd class="search-trigger__kbd" aria-hidden="true">{t("searchShortcut")}</kbd>
+  <kbd class="search-trigger__kbd" aria-hidden="true" data-search-kbd>{t("searchShortcut")}</kbd>
 </button>
 
 <dialog
@@ -227,6 +227,11 @@ const { t } = Astro.props;
       void load();
     };
 
+    if (/Mac|iPhone|iPad/.test(navigator.userAgent)) {
+      for (const kbd of document.querySelectorAll("[data-search-kbd]")) {
+        kbd.textContent = kbd.textContent!.replace("Ctrl", "\u2318");
+      }
+    }
     for (const trigger of document.querySelectorAll("[data-search-open]")) {
       trigger.addEventListener("click", open);
     }
@@ -239,6 +244,12 @@ const { t } = Astro.props;
     });
     dialog.addEventListener("click", (event) => {
       if (event.target === dialog) dialog.close();
+    });
+    dialog.addEventListener("keydown", (event) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        dialog.close();
+      }
     });
 
     input.addEventListener("input", async () => {

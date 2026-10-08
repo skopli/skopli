@@ -64,6 +64,7 @@ export function markdownPage(doc: Doc): MarkdownPage {
     description: doc.data.description,
     body: doc.body ?? "",
     siteBase: `${siteOrigin}${basePath}`,
+    path: docPath(splitId(doc.id).slug),
     source: doc.id,
   };
 }

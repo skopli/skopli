@@ -19,15 +19,15 @@ Within a tier, missing input and output fields inherit the last explicit value f
 
 The cacheWrite 5m/1h split composes with tiers: at each selected rate level the 1h portion bills at that level's 1h rate (the tier's above-1hr rate when present, else that level's input × 2.0) and the remaining 5m portion at that level's cacheWrite rate.
 
-See [Price tokens and cache writes](/skopli/pricing/cost-math#cache-write-5m1h-splits) for the base split.
+See [Price tokens and cache writes](/skopli/pricing/cost-math#cache-write-splits-at-5m-and-1h) for the base split.
 
 ## Marginal or whole-request billing
 
-By default tiers are **marginal**. Context tokens (input, cacheRead, cacheWrite pro-rata) below each threshold bill at the base rates and only the excess at the tier rates, while output always bills at the base output rate. Tier thresholds are context sizes, and output tokens never count toward them.
+By default tiers are marginal. Context tokens (input, cacheRead, cacheWrite pro-rata) below each threshold bill at the base rates and only the excess at the tier rates, while output always bills at the base output rate. Tier thresholds are context sizes, and output tokens never count toward them.
 
 When both catalogs price a model, a flat match yields to any lower-priority match that carries tier data (in practice flat OpenRouter yielding to tiered LiteLLM). Explicit overrides always win.
 
-Anthropic instead reprices the **entire request** at the long-context rates, so `claude` models with tier data use whole-request semantics. This is a heuristic on the model key, since the catalog carries no explicit repricing signal.
+Anthropic instead reprices the entire request at the long-context rates, so `claude` models with tier data use whole-request semantics. This is a heuristic on the model key, since the catalog carries no explicit repricing signal.
 
 ## Error bounds if the heuristic is wrong
 
@@ -47,6 +47,6 @@ For `claude-sonnet-4-5` at the 200k boundary that upper bound is:
 
 Models with several tiers accumulate one context term per crossed boundary.
 
-When tier rates increase (the usual case), whole-request applied to a truly-marginal model overbills by up to that amount, and marginal applied to a truly-whole-request model underbills by it; the directions flip for any stream whose tier rate decreases.
+When tier rates increase (the usual case), whole-request applied to a truly-marginal model overbills by up to that amount, and marginal applied to a truly-whole-request model underbills by it. The directions flip for any stream whose tier rate decreases.
 
 Requests at or below every threshold price identically in both modes, as do models without tier data.

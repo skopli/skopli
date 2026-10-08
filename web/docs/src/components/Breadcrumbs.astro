@@ -59,6 +59,11 @@ const { locale, label, home, trail } = Astro.props;
   a:hover {
     color: var(--ink-0);
   }
+  @media (pointer: coarse) {
+    a {
+      min-height: var(--target);
+    }
+  }
   [aria-current="page"] span {
     padding: 0 var(--s-1);
     color: var(--ink-0);

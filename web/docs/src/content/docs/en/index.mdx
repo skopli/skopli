@@ -117,12 +117,13 @@ Four calls, shown here in TypeScript:
 ```ts
 import { detectHarnesses, readUsage, rollup, createPricing } from "skopli";
 
-const { events } = await readUsage({ since: "2026-08-01" });
+const { supported } = detectHarnesses();
+const { events } = await readUsage({ harnesses: supported, since: "2026-08-01" });
 const byModel = rollup(events, { by: "model" });
 const priced = await createPricing().priceRollups(byModel);
 ```
 
-The same four calls run in every language. TypeScript, Python, Rust, Ruby, Java, C#, Go, Swift, and C share one Rust core. See [Getting started](/skopli/guide/getting-started) for the quickstart in all nine.
+The seven handle-based facades (TypeScript, Python, Ruby, Java, C#, Go, Swift) expose the same four calls. Rust and C expose the primitives directly. All of them share one Rust core. See [Getting started](/skopli/guide/getting-started) for the quickstart in each.
 
 ## What you can do
 
@@ -159,7 +160,7 @@ Every event carries the same fields before any layer touches it:
 
 <LinkList>
   <LinkCard title="Install in my language" href="/skopli/guide/getting-started">
-    Nine facades, one core.
+    Eight language facades and a C ABI on one core.
   </LinkCard>
   <LinkCard title="Read local logs" href="/skopli/guide/reading">
     Options, date semantics, event fields, diagnostics.

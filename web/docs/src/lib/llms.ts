@@ -7,7 +7,7 @@ import { nav } from "../nav.ts";
 export async function llmsIndex(locale: Locale): Promise<string> {
   const docs = await docsFor(locale);
   const home = docs.find((d) => splitId(d.id).slug === "");
-  const lines = [`# ${t(locale)("docs")}: Skopli`, "", `> ${home?.data.description ?? ""}`, ""];
+  const lines = ["# Skopli", "", `> ${home?.data.description ?? ""}`, ""];
   for (const group of nav) {
     const items = group.items.flatMap((item) => {
       const doc = docs.find((d) => splitId(d.id).slug === item.slug);
@@ -17,7 +17,7 @@ export async function llmsIndex(locale: Locale): Promise<string> {
           ]
         : [];
     });
-    if (items.length) lines.push(`## ${group.label}`, "", ...items, "");
+    if (items.length) lines.push(`## ${t(locale)(group.label)}`, "", ...items, "");
   }
   return `${lines.join("\n").trim()}\n`;
 }

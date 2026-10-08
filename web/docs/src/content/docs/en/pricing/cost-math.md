@@ -3,7 +3,7 @@ title: Price tokens and cache writes
 description: Base cost math, disjoint token buckets, and Claude's 5m/1h cache-write split.
 ---
 
-Prices are USD per million tokens. Each catalog is cached on disk (default ~1 hour TTL) with atomic writes. When a fetch fails, the cache is used at any age, so pricing keeps working offline. Every result says which source priced it and when that data was fetched. Default fetches time out after 10 seconds, so a stalled endpoint never hangs a run. `pricing.catalogs()` reports the loaded catalogs (source, `fetchedAt`, model count), so you can tell when every market source failed and lookups can only miss.
+Prices are USD per million tokens. Each catalog is cached on disk (default 1 hour TTL) with atomic writes. When a fetch fails, the cache is used at any age, so pricing keeps working offline. Every result says which source priced it and when that data was fetched. Default fetches time out after 10 seconds, so a stalled endpoint never hangs a run. `pricing.catalogs()` reports the loaded catalogs (source, `fetchedAt`, model count), so you can tell when every market source failed and lookups can only miss.
 
 ## Base cost math
 
@@ -25,14 +25,14 @@ Every rate below is USD per 1M tokens.
 | Cache read   | catalog cache-read rate, else input  |
 | Cache write  | catalog cache-write rate, else input |
 
-Reasoning bills at the output rate; cache rates fall back to the input rate when the catalog omits them. Cost for a bucket is `tokens ÷ 1,000,000 × rate`, summed across buckets.
+Cost for a bucket is `tokens ÷ 1,000,000 × rate`, summed across buckets.
 
-## Cache-write 5m/1h splits
+## Cache-write splits at 5m and 1h
 
 Claude reports a 5m/1h split for ephemeral cache writes (`tokens.cacheWrite1h`, a portion of the `cacheWrite` total):
 
-- **1h writes** bill at the catalog's above-1hr rate when present (LiteLLM's `cache_creation_input_token_cost_above_1hr`), else at input × 2.0 (Anthropic's 1h multiplier).
-- The remaining **5m writes** bill at the base `cacheWrite` rate.
+- 1h writes bill at the catalog's above-1hr rate when present (LiteLLM's `cache_creation_input_token_cost_above_1hr`), else at input × 2.0 (Anthropic's 1h multiplier).
+- The remaining 5m writes bill at the base `cacheWrite` rate.
 
 ### Worked example
 
@@ -40,7 +40,7 @@ The 1h fallback is the only rate this page derives, so the example uses it. Assu
 
 | Cache-write portion | Tokens | Rate / 1M tokens | Formula                |   Cost |
 | ------------------- | -----: | ---------------: | ---------------------- | -----: |
-| 1h (fallback)       | 10,000 |            $6.00 | 0.010M × ($3.00 × 2.0) |  $0.06 |
+| 1h (fallback)       | 10,000 |            $6.00 | 0.010M × ($3.00 × 2.0) | $0.060 |
 | 5m (base)           | 30,000 |            $3.75 | 0.030M × $3.75         | $0.113 |
 | **Total**           | 40,000 |                  |                        | $0.173 |
 

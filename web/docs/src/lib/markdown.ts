@@ -29,6 +29,8 @@ export interface MarkdownPage {
   body: string;
   /** Absolute origin plus base, for example `https://docs.skopli.com/skopli`. */
   siteBase: string;
+  /** Root-relative page path under the base, for example `/guide/reading`. */
+  path: string;
   /** Name shown in errors. */
   source?: string;
 }
@@ -82,11 +84,10 @@ function convertJsx(node: Jsx, page: MarkdownPage): RootContent[] {
           ordered: false,
           spread: false,
           children: children
-            .filter(
-              (c): c is MdxJsxFlowElement =>
-                c.type === "mdxJsxFlowElement" && c.name === "LinkCard",
-            )
+            .filter((c) => c.type !== "text" || c.value.trim() !== "")
             .map((card): ListItem => {
+              if (card.type !== "mdxJsxFlowElement" || card.name !== "LinkCard")
+                fail(page, `<LinkList> child ${card.type} is not a <LinkCard>`);
               const link: Link = {
                 type: "link",
                 url: attr(card, "href") ?? fail(page, "<LinkCard> without href"),
@@ -181,11 +182,12 @@ function convertBlocks(nodes: RootContent[], page: MarkdownPage): RootContent[] 
 
 function absolutize(tree: Root, page: MarkdownPage): void {
   const origin = new URL(page.siteBase).origin;
-  visit(tree, "link", (link) => {
-    if (link.url.startsWith("/")) link.url = `${origin}${link.url}`;
-  });
-  visit(tree, "definition", (def) => {
-    if (def.url.startsWith("/")) def.url = `${origin}${def.url}`;
+  const here = `${page.siteBase}${page.path === "/" ? "/" : page.path}`;
+  const absolute = (url: string) =>
+    url.startsWith("/") ? `${origin}${url}` : url.startsWith("#") ? `${here}${url}` : url;
+  visit(tree, (node) => {
+    if (node.type === "link" || node.type === "definition" || node.type === "image")
+      node.url = absolute(node.url);
   });
 }
 

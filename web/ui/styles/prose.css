@@ -57,6 +57,14 @@
   color: var(--accent);
 }
 
+@media (pointer: coarse) {
+  .prose .heading-anchor {
+    min-width: var(--target);
+    justify-content: center;
+    padding-inline-end: 0;
+  }
+}
+
 .prose a {
   color: var(--accent);
   text-decoration: underline;
@@ -101,7 +109,7 @@
   background: var(--ground-2);
   color: var(--ink-0);
   font-size: 0.9em;
-  overflow-wrap: anywhere;
+  overflow-wrap: break-word;
 }
 
 .prose a > code {
@@ -394,11 +402,6 @@
   margin-bottom: var(--s-1);
   color: var(--ink-0);
   font-weight: 600;
-}
-
-.prose .link-card__title::after {
-  content: " \2192";
-  color: var(--accent);
 }
 
 .prose .link-card__body {

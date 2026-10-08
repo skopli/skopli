@@ -191,11 +191,14 @@ Subagent (child) sessions are real spend, so Skopli includes and tags them by de
 
 `event.subagent` is `true` when the harness's native marker says the event came from a subagent:
 
-- **OpenCode**: the session has a non-null `parent_id` or `parentID` (SQLite and legacy JSON stores).
-- **claude**: the JSONL entry has `isSidechain === true`.
-- **pi** and **omp**: the session's `rlmDepth` is greater than 0.
-- **deepseek**: the session has a parent session, an `origin` of `subagent`, or a delegation depth above 0 (both the JSONL and SQLite backends).
-- **codex**: always `false` for now. codex exposes no reliable per-event subagent marker today.
+| Harness          | Subagent marker                                                                                                                  |
+| ---------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| OpenCode         | The session has a non-null `parent_id` or `parentID` (SQLite and legacy JSON stores).                                            |
+| Claude Code      | The JSONL entry has `isSidechain === true`.                                                                                      |
+| Pi and omp       | The session's `rlmDepth` is greater than 0.                                                                                      |
+| DeepSeek Harness | The session has a parent session, an `origin` of `subagent`, or a delegation depth above 0 (both the JSONL and SQLite backends). |
+| Codex CLI        | Always `false` for now. Codex CLI exposes no reliable per-event subagent marker today.                                           |
+
 - every other harness: always `false`, since they have no subagent concept.
 
 ## Diagnostics
@@ -207,5 +210,5 @@ Other reader behavior:
 - The reader drops zero-token rows regardless of vendor-reported cost.
 - Unusable timestamps warn and skip, never epoch-0.
 - `calls` aggregation uses the reported count only when finite, else 1 per event.
-- Cross-store dedup: the authoritative store suppresses its mirror per harness (OpenCode and zcode SQLite over jsonl, devin CLI SQLite over the Desktop `.ndjson` store, cline's extension store over its CLI session store, deepseek's default JSONL event log over its optional SQLite backend, keyed on `session_id` and `seq`).
+- Cross-store dedup: the authoritative store suppresses its mirror per harness (OpenCode and ZCode SQLite over JSONL, Devin CLI SQLite over the Desktop `.ndjson` store, the Cline extension store over its CLI session store, the DeepSeek Harness default JSONL event log over its optional SQLite backend, keyed on `session_id` and `seq`).
 - Codex cache-write tokens come from `cache_write_input_tokens` (a 2026-07 protocol addition), a disjoint subset of `input_tokens` like cache reads. The reader subtracts them from input (`input = raw_input - cacheRead - cacheWrite`) and emits them as `tokens.cacheWrite`. Older session files that lack the field count as 0.

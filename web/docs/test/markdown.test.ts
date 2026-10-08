@@ -3,7 +3,14 @@ import { toMarkdown } from "../src/lib/markdown.ts";
 
 const siteBase = "https://docs.skopli.com/skopli";
 const page = (body: string) =>
-  toMarkdown({ title: "T", description: "D", body, siteBase, source: "test" });
+  toMarkdown({
+    title: "T",
+    description: "D",
+    body,
+    siteBase,
+    path: "/guide/reading",
+    source: "test",
+  });
 
 describe("toMarkdown", () => {
   it("drops imports and flattens tabs into labelled sections", () => {
@@ -70,5 +77,18 @@ Reasoning tokens may be double-billed.[^a]
   it("throws on unknown JSX and unknown directives", () => {
     expect(() => page(`<Mystery />`)).toThrow(/unknown MDX element <Mystery>/);
     expect(() => page(`:::danger\nx\n:::`)).toThrow(/unknown directive :::danger/);
+  });
+
+  it("absolutizes root-relative, fragment, and image links against the page", () => {
+    const md = page(
+      "See [Subagents](#subagents), [Rollups](/skopli/guide/rollups), and ![d](/skopli/d.png).",
+    );
+    expect(md).toContain("[Subagents](https://docs.skopli.com/skopli/guide/reading#subagents)");
+    expect(md).toContain("[Rollups](https://docs.skopli.com/skopli/guide/rollups)");
+    expect(md).toContain("![d](https://docs.skopli.com/skopli/d.png)");
+  });
+
+  it("fails on a LinkList child that is not a LinkCard", () => {
+    expect(() => page('<LinkList>\n  <Card title="x" />\n</LinkList>')).toThrow(/not a <LinkCard>/);
   });
 });

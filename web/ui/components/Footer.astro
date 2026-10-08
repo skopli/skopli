@@ -5,9 +5,11 @@ import BrandMark from "./BrandMark.astro";
 interface Props {
   t: Translate;
   layout?: "page" | "docs";
+  licenseHref: string;
+  privacyHref: string;
 }
 
-const { t, layout = "page" } = Astro.props;
+const { t, layout = "page", licenseHref, privacyHref } = Astro.props;
 ---
 
 <footer class:list={["site-footer", `site-footer--${layout}`]}>
@@ -19,7 +21,9 @@ const { t, layout = "page" } = Astro.props;
     <nav class="site-footer__nav" aria-label={t("footerNavigation")}>
       <slot />
     </nav>
-    <p class="site-footer__legal">{t("license")}</p>
+    <p class="site-footer__legal">
+      <a href={licenseHref} rel="noopener">{t("license")}</a> · <a href={privacyHref}>{t("privacy")}</a>
+    </p>
   </div>
 </footer>
 
@@ -76,6 +80,15 @@ const { t, layout = "page" } = Astro.props;
     grid-column: 1 / -1;
     margin: 0;
     color: var(--ink-3);
+  }
+  .site-footer__legal a {
+    display: inline-block;
+    min-height: var(--target);
+    line-height: var(--target);
+    color: inherit;
+  }
+  .site-footer__legal a:hover {
+    color: var(--ink-1);
   }
   @media (max-width: 47.99rem) {
     .site-footer__in {

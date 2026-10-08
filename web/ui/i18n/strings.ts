@@ -40,6 +40,21 @@ export const en = {
   footnotes: "Footnotes",
   backToReference: "Back to reference {n}",
   scrollTable: "Scroll to see more columns",
+  privacy: "Privacy",
+  navGuide: "Guide",
+  navPricing: "Pricing",
+  navReference: "Reference",
+  navGettingStarted: "Getting started",
+  navReading: "Reading usage",
+  navRollups: "Rollups",
+  navPricingBasics: "Pricing basics",
+  navModelMatching: "Model matching",
+  navCostMath: "Price tokens and cache writes",
+  navLongContextTiers: "Long-context tiers",
+  navRollupsVsEvents: "Price rollups or raw events",
+  navHarnesses: "Supported harnesses",
+  navCoverage: "Coverage",
+  navApi: "API reference",
 } as const;
 
 export type Strings = typeof en;

@@ -1,6 +1,6 @@
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
-import { harnesses } from "@skopli/ui/data/harnesses.ts";
+import { harnesses, unsupportedHarnesses } from "@skopli/ui/data/harnesses.ts";
 import { pageActionEvents } from "@skopli/ui/analytics";
 import { configuredLocales, defaultLocale } from "@skopli/ui/i18n";
 import { navItems } from "../src/nav.ts";
@@ -28,6 +28,11 @@ need(
 need(existsSync(join(site, "sitemap-index.xml")), "sitemap-index.xml exists");
 need(existsSync(join(site, "pagefind", "pagefind.js")), "pagefind bundle exists");
 need(existsSync(join(site, "404.html")), "404.html exists");
+need(existsSync(join(site, "privacy.html")), "privacy.html exists");
+need(
+  readFileSync(join(site, "sitemap-0.xml"), "utf8").includes('hreflang="x-default"'),
+  "sitemap carries x-default alternates",
+);
 
 const slugs = ["", ...navItems.map((i) => i.slug)];
 const oldNames = [
@@ -49,6 +54,10 @@ const aiHosts = [
   "cursor.com/link/prompt?text=",
 ];
 
+for (const name of unsupportedHarnesses)
+  for (const page of ["reference/harnesses", "reference/coverage"])
+    need(read(join(site, `${page}.html`)).includes(name), `${page} names ${name} as unsupported`);
+
 for (const locale of locales) {
   const isDefault = locale === defaultLocale;
   const prefix = isDefault ? "" : `${locale}/`;
@@ -59,7 +68,11 @@ for (const locale of locales) {
     : slugs.filter((slug) =>
         existsSync(join(site, slug ? `${prefix}${slug}.html` : `${locale}.html`)),
       );
-  if (!isDefault) need(localeSlugs.length >= 2, `${locale} has at least two fixture pages`);
+  if (!isDefault)
+    need(
+      localeSlugs.join(",") === ["", "guide/getting-started"].join(","),
+      `${locale} builds exactly the fixture pages`,
+    );
   for (const slug of localeSlugs) {
     const base = slug || "index";
     const html = read(join(site, slug || isDefault ? `${prefix}${base}.html` : `${locale}.html`));
@@ -80,8 +93,8 @@ for (const locale of locales) {
       `${where} links its Markdown twin`,
     );
     need(
-      html.includes('"@type":"TechArticle"') || html.includes('"@type":"WebSite"'),
-      `${where} carries JSON-LD`,
+      html.includes('"@type":"WebSite"') && html.includes('"@type":"TechArticle"'),
+      `${where} carries WebSite and TechArticle JSON-LD`,
     );
     need(html.includes("data-pagefind-body"), `${where} is marked for Pagefind`);
     for (const host of aiHosts) need(html.includes(host), `${where} links ${host}`);
