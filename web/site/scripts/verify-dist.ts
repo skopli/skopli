@@ -55,7 +55,7 @@ for (const locale of locales) {
   );
   need(html.includes("https://eu.i.posthog.com"), `${label} loads analytics`);
   need(html.includes('href="https://docs.skopli.com/skopli/"'), `${label} links the docs`);
-  for (const h of harnesses) need(html.includes(h.name), `${label} lists ${h.name}`);
+  for (const h of harnesses) need(html.includes(`>${h.name}</`), `${label} lists ${h.name}`);
   for (const row of rows) need(html.includes(row.model), `${label} ledger has ${row.model}`);
   need(html.includes(usd(totals.usd)), `${label} ledger shows the total ${usd(totals.usd)}`);
   need(html.includes('class="ledger__miss"'), `${label} ledger shows the miss`);

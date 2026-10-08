@@ -12,7 +12,7 @@ export const en = {
     lede: `Skopli reads the session logs ${n} coding-agent harnesses already keep on disk, rolls them up, and prices them against market catalogs.`,
     getStarted: "Read the docs",
     github: "GitHub",
-    facts: "MIT. One Rust core, eight language facades, and a C ABI.",
+    facts: "MIT licensed. One Rust core, eight language facades, and a C ABI.",
   },
   ledger: {
     caption:
@@ -27,12 +27,11 @@ export const en = {
     rates: "rates {date}",
     attempted: "tried {keys}",
     footer: "{priced} priced, {misses} unpriced",
-    note: "Synthetic token counts, priced at the per-million rates in Skopli's committed catalog snapshots. Neither snapshot carries cache rates for `claude-opus-4.6`, so its cache reads and writes bill at the input rate. Totals count priced rows only.",
+    note: "Token counts are synthetic and priced at the per-million rates in Skopli's committed catalog snapshots. Neither snapshot carries cache rates for `claude-opus-4.6`, so its cache reads and writes bill at the input rate. Totals count priced rows only.",
   },
   install: {
     title: "Install in your language",
-    body: "No package is published yet; all of them ship with the first release. Until then each SDK builds from the repository. The TypeScript package needs Node 24 or newer and ships ESM only. Java, C#, Go, and Swift link the C library, and C includes its header; the C tab shows the build command.",
-    frameTitle: "after the first release",
+    body: "No package is published yet. The packages ship with the first release, and until then each SDK builds from the repository. The TypeScript package needs Node 24 or newer and ships ESM only. Java, C#, Go, and Swift link the C library, and C includes its header. The C tab shows the build command.",
   },
   layers: {
     title: "Three layers. Use any one alone.",
@@ -54,11 +53,11 @@ export const en = {
   },
   quickstart: {
     title: "Four calls from local files to a priced total",
-    body: "The seven handle-based facades reach the total in four calls. Rust and C expose the primitives, so their tabs call rollup and pricing directly. Pick a language once and both code blocks on this page follow.",
+    body: "The seven handle-based facades reach the total in four calls. Rust and C expose the primitives, so their tabs call rollup and pricing directly. Pick a language once and both code blocks on this page switch together.",
   },
   harnesses: {
     title: `Read usage from ${n} harnesses`,
-    body: "Skopli parses the session state each harness keeps on disk, with no plugin, proxy, or exporter in the way. Each ID is stable, and names follow the upstream project.",
+    body: "Skopli parses the session state each harness keeps on disk, with no plugin, proxy, or exporter in the way. Each id is stable, and names follow the upstream project.",
     more: "Full table with footnotes",
   },
   refuses: {
@@ -71,7 +70,7 @@ export const en = {
       },
       {
         title: "Collect telemetry",
-        body: "No accounts and no telemetry. Read and Rollup never open a socket. Price fetches market catalogs when you use it, caches them, and works offline from the cache; pass an empty `sources` list or `offline` for network-free pricing.",
+        body: "No accounts and no telemetry. Read and Rollup never open a socket. Price fetches market catalogs when you use it, caches them, and works offline from the cache. Pass an empty `sources` list or `offline` for network-free pricing.",
       },
       {
         title: "Double-count tokens",

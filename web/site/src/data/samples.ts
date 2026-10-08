@@ -9,6 +9,7 @@ export interface Sample {
   file: string;
   install: string;
   installLang: Lang;
+  installFile: string;
   code: string;
 }
 
@@ -19,6 +20,7 @@ export const samples: Sample[] = [
     file: "quickstart.ts",
     install: "pnpm add skopli",
     installLang: "sh",
+    installFile: "after the first release",
     code: `import { readUsage, rollup, createPricing } from "skopli";
 
 const { events } = await readUsage({ since: "2026-08-01" });
@@ -35,6 +37,7 @@ const total = priced.reduce(
     file: "quickstart.py",
     install: "pip install skopli",
     installLang: "sh",
+    installFile: "after the first release",
     code: `import skopli
 
 result = skopli.read_usage(since="2026-08-01")
@@ -48,17 +51,31 @@ total = sum(r.usd for r in priced if r.pricing.priced)`,
     file: "total.rs",
     install: "cargo add skopli-core",
     installLang: "sh",
-    code: `use skopli_core::pricing::{cost_usd, ModelPrice};
+    installFile: "after the first release",
+    code: `use skopli_core::pricing::parse::parse_openrouter;
+use skopli_core::pricing::{Pricing, PricingCatalog, PricingMode, RollupPricing};
 use skopli_core::rollup::{rollup, RollupBy, RollupOptions};
 use skopli_core::types::UsageEvent;
 
-// skopli-core exposes the primitives: group events, then price each bucket.
-fn total(events: &[UsageEvent], price: &ModelPrice) -> f64 {
-    rollup(events, &RollupOptions::new(RollupBy::Model))
+// skopli-core exposes the primitives and fetches nothing: group events, then
+// price each bucket against a catalog you fetched (the raw OpenRouter /models JSON).
+fn total(events: &[UsageEvent], openrouter: &serde_json::Value) -> f64 {
+    let catalog = PricingCatalog {
+        source: "openrouter".into(),
+        fetched_at: None,
+        prices: parse_openrouter(openrouter),
+    };
+    let pricing = Pricing::new(vec![catalog], None, PricingMode::Calculate);
+    let by_model = rollup(events, &RollupOptions::new(RollupBy::Model));
+    pricing
+        .price_rollups(&by_model)
         .iter()
-        .map(|bucket| cost_usd(&bucket.tokens, price))
+        .map(|row| match &row.pricing {
+            RollupPricing::Hit { usd, .. } => *usd,
+            _ => 0.0,
+        })
         .sum()
-}`,
+}`,,
   },
   {
     label: "Ruby",
@@ -66,6 +83,7 @@ fn total(events: &[UsageEvent], price: &ModelPrice) -> f64 {
     file: "quickstart.rb",
     install: "gem install skopli",
     installLang: "sh",
+    installFile: "after the first release",
     code: `require "skopli"
 
 result = Skopli.read_usage(since: "2026-08-01")
@@ -83,6 +101,7 @@ includeBuild("../skopli/sdks/java")
 // build.gradle.kts
 implementation("com.skopli:skopli")`,
     installLang: "kotlin",
+    installFile: "settings.gradle.kts and build.gradle.kts",
     code: `import com.skopli.*;
 import java.util.List;
 
@@ -101,8 +120,9 @@ try (Pricing pricing = Skopli.createPricing(PricingOptions.builder().build())) {
     label: "C#",
     lang: "csharp",
     file: "Quickstart.cs",
-    install: "dotnet add package Skopli",
+    install: "dotnet add package Skopli.Sdk",
     installLang: "sh",
+    installFile: "after the first release",
     code: `using Skopli;
 
 ReadUsageResult usage = SkopliClient.ReadUsage(
@@ -119,6 +139,7 @@ double total = priced.Sum(r => r.Pricing is PriceHit hit ? hit.Usd : 0);`,
     file: "main.go",
     install: "go get github.com/skopli/skopli/sdks/go",
     installLang: "sh",
+    installFile: "after the first release",
     code: `import "github.com/skopli/skopli/sdks/go/skopli"
 
 result, err := skopli.ReadUsage(
@@ -154,6 +175,7 @@ for _, r := range priced {
     install: `// Package.swift, with the skopli checkout beside your project
 .package(path: "../skopli/sdks/swift")`,
     installLang: "swift",
+    installFile: "Package.swift",
     code: `import Skopli
 
 let result = try Skopli.readUsage(options: ReadUsageOptions(since: "2026-08-01"))
@@ -170,25 +192,33 @@ let total = priced.reduce(0) { $0 + ($1.pricing.usd ?? 0) }`,
     install: `cargo build -p skopli-capi --release
 cc app.c -I crates/skopli-capi/include -L target/release -lskopli`,
     installLang: "sh",
-    code: `#include <string.h>
+    installFile: "from the checkout",
+    code: `#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include "skopli.h"
 
-// The C ABI exchanges JSON buffers. events_json is a UsageEvent[]; *out is a
-// PricedRollup[] the caller frees with ag_buf_free.
-AgStatus price_by_model(const char *events_json, uintptr_t events_len, AgBuf *out) {
+// The C ABI exchanges JSON buffers. The default libskopli fetches nothing, so
+// pass a catalog you fetched yourself: here the raw OpenRouter /models JSON.
+AgStatus price_by_model(const char *events_json, uintptr_t events_len,
+                        const char *openrouter_json, AgBuf *out) {
     const char *by_model = "{\\"by\\":\\"model\\"}";
     AgBuf rollups = {0};
     AgStatus st = ag_rollup(events_json, events_len, by_model, strlen(by_model), &rollups);
     if (st != AG_STATUS_OK) return st;
 
-    const char *opts = "{\\"mode\\":\\"calculate\\",\\"builtinSources\\":false}";
+    const char *head = "{\\"builtinSources\\":false,\\"catalogs\\":[{\\"source\\":\\"openrouter\\","
+                       "\\"format\\":\\"openrouter\\",\\"payload\\":";
+    char *opts = malloc(strlen(head) + strlen(openrouter_json) + 4);
+    size_t len = (size_t)sprintf(opts, "%s%s}]}", head, openrouter_json);
     AgPricing *pricing = NULL;
-    st = ag_pricing_new(opts, strlen(opts), &pricing);
+    st = ag_pricing_new(opts, len, &pricing);
     if (st == AG_STATUS_OK)
         st = ag_pricing_price_rollups(pricing, (const char *)rollups.ptr, rollups.len, out);
     ag_pricing_free(pricing);
     ag_buf_free(rollups);
+    free(opts);
     return st;
-}`,
+}`,,
   },
 ];
