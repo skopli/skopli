@@ -3,10 +3,11 @@ import Button from "@skopli/ui/components/Button.astro";
 import Footer from "@skopli/ui/components/Footer.astro";
 import Header from "@skopli/ui/components/Header.astro";
 import SkipLink from "@skopli/ui/components/SkipLink.astro";
-import { localizePath, translator } from "@skopli/ui/i18n";
+import { translator } from "@skopli/ui/i18n";
 import PageNav from "../components/PageNav.astro";
 import { copyFor } from "../copy.ts";
 import BaseLayout from "../layouts/BaseLayout.astro";
+import { localHref } from "../lib/i18n.ts";
 import { docsUrl, licenseUrl, privacyUrl, repoUrl } from "../site.ts";
 
 const locale = "en";
@@ -22,7 +23,7 @@ const tr = translator(locale);
   noindex
 >
   <SkipLink t={tr} />
-  <Header t={tr} homeHref={localizePath("/", locale)} githubUrl={repoUrl}>
+  <Header t={tr} homeHref={localHref("/", locale)} githubUrl={repoUrl}>
     <a slot="nav" href={docsUrl}>{tr("docs")}</a>
   </Header>
   <PageNav t={tr} links={[{ href: docsUrl, label: tr("docs") }]} />
@@ -31,7 +32,7 @@ const tr = translator(locale);
     <h1>{copy.notFound.title}</h1>
     <p>{copy.notFound.body}</p>
     <p class="not-found__actions">
-      <Button href={localizePath("/", locale)} variant="primary">{copy.notFound.home}</Button>
+      <Button href={localHref("/", locale)} variant="primary">{copy.notFound.home}</Button>
       <Button href={docsUrl}>{copy.notFound.docs}</Button>
     </p>
   </main>

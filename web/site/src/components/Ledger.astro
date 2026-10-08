@@ -98,9 +98,13 @@ const { copy } = Astro.props;
     white-space: nowrap;
   }
   .ledger__head code {
+    overflow: hidden;
+    max-width: 100%;
     font-size: var(--fs-sm);
     letter-spacing: 0;
+    text-overflow: ellipsis;
     text-transform: none;
+    white-space: nowrap;
   }
   .ledger .table-frame {
     max-width: none;
@@ -188,6 +192,7 @@ const { copy } = Astro.props;
     tfoot td:first-child {
       white-space: normal;
     }
+    .ledger__head code,
     .ledger__model {
       font-size: var(--fs-xs);
       white-space: nowrap;

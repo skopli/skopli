@@ -16,31 +16,31 @@ const transformers = [shikiFrame()];
 ---
 
 <div class="quickstart">
-<Tabs syncKey="lang">
-  {
-    samples.map((s) => (
-      <Tab label={s.label}>
-        {field === "code" ? (
-          <Code
-            code={s.code}
-            lang={s.lang}
-            theme="css-variables"
-            meta={`title="${s.file}"`}
-            transformers={transformers}
-          />
-        ) : (
-          <Code
-            code={s.install}
-            lang={s.installLang}
-            theme="css-variables"
-            meta={`title="${s.installFile ?? copy[s.installWhen ?? "afterRelease"]}"`}
-            transformers={transformers}
-          />
-        )}
-      </Tab>
-    ))
-  }
-</Tabs>
+  <Tabs syncKey="lang">
+    {
+      samples.map((s) => (
+        <Tab label={s.label}>
+          {field === "code" ? (
+            <Code
+              code={s.code}
+              lang={s.lang}
+              theme="css-variables"
+              meta={`title="${s.file}"`}
+              transformers={transformers}
+            />
+          ) : (
+            <Code
+              code={s.install}
+              lang={s.installLang}
+              theme="css-variables"
+              meta={`title="${s.installFile ?? copy[s.installWhen ?? "afterRelease"]}"`}
+              transformers={transformers}
+            />
+          )}
+        </Tab>
+      ))
+    }
+  </Tabs>
 </div>
 
 <style>

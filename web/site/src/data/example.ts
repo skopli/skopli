@@ -2,12 +2,6 @@ import { costUsd } from "../../../../src/pricing/index.ts";
 import type { ModelPrice } from "../../../../src/pricing/types.ts";
 import type { TokenCounts } from "../../../../src/types.ts";
 
-/**
- * The landing-page ledger. Token counts are synthetic. Rates are the per-million
- * USD figures from the catalog snapshots committed under `golden/pricing/catalogs`,
- * pinned at `rateDate` by the pricing conformance gold; `test/example.test.ts`
- * checks both against the repo.
- */
 export const rateDate = "2026-08-01";
 
 export type Catalog = "openrouter" | "litellm";

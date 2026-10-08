@@ -23,6 +23,7 @@ interface Props {
 
 const { locale, title, description, path, noindex = false } = Astro.props;
 const canonical = absoluteHref(path, locale);
+const t = translator(locale);
 const themeColor = /--ground-0:\s*(#[0-9a-f]{6})/i.exec(tokens)?.[1];
 if (!themeColor) throw new Error("tokens.css defines no --ground-0");
 const alternates = noindex || locales.length === 1 ? [] : locales;
@@ -55,9 +56,9 @@ const jsonLd = {
 <html
   lang={locale}
   dir="ltr"
-  data-copy-label={translator(locale)("copyCode")}
-  data-copied-label={translator(locale)("copied")}
-  data-copy-failed-label={translator(locale)("copyFailed")}
+  data-copy-label={t("copyCode")}
+  data-copied-label={t("copied")}
+  data-copy-failed-label={t("copyFailed")}
 >
   <head>
     <meta charset="utf-8" />
@@ -95,13 +96,13 @@ const jsonLd = {
   </head>
   <body>
     <slot />
-    <style is:global>
+    <style>
       body {
         display: flex;
         flex-direction: column;
         min-height: 100dvh;
       }
-      main {
+      body > :global(main) {
         flex: 1;
       }
     </style>

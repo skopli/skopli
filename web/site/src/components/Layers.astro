@@ -21,7 +21,8 @@ const layers = [
         <h3 class="layer__name">{layer.name}</h3>
         <p class="layer__body">{layer.body}</p>
         <p class="layer__net">
-          <span class="layer__net-label">{copy.network}</span> {layer.network}
+          <span class="layer__net-label">{copy.network}</span>
+          {layer.network}
         </p>
       </li>
     ))
@@ -69,6 +70,7 @@ const layers = [
     font-size: var(--fs-sm);
   }
   .layer__net-label {
+    display: block;
     color: var(--ink-3);
     font-size: var(--fs-xs);
     letter-spacing: var(--tracking-caps);

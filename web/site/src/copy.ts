@@ -34,10 +34,10 @@ export const en = {
     body: "No package is published yet. The packages ship with the first release, and until then each SDK builds from the repository. The TypeScript package needs Node 24 or newer and ships ESM only. Java, C#, Go, and Swift link the C library, and C includes its header. The C tab shows the build command.",
   },
   layers: {
-    title: "Three layers. Use any one alone.",
+    title: "Three layers that each work on their own",
     network: "Network",
     never: "Never",
-    fetches: "Fetches and caches, offline from cache",
+    fetches: "Fetches catalogs and caches them",
     read: {
       name: "Read",
       body: `Parse local session state from ${n} harnesses into one normalized event shape. Disk only. A file that will not parse returns a structured diagnostic.`,
@@ -59,12 +59,12 @@ export const en = {
   },
   harnesses: {
     title: `Read usage from ${n} harnesses`,
-    body: "Skopli parses the session state each harness keeps on disk, with no plugin, proxy, or exporter in the way. Each `id` is stable, and names follow the upstream project.",
+    body: "Skopli parses the session state each harness keeps on disk, so there is nothing to install in the harness. Names follow the upstream project.",
     more: "Full table with footnotes",
   },
   refuses: {
     title: "What Skopli will not do",
-    body: "Each of these would make a total look right while being wrong.",
+    body: "Four shortcuts that would corrupt the total.",
     items: [
       {
         title: "Guess a price",
@@ -72,7 +72,7 @@ export const en = {
       },
       {
         title: "Collect telemetry",
-        body: "No accounts and no telemetry. Read and Rollup never open a socket. Price fetches market catalogs when you use it, caches them, and works offline from the cache. Pass an empty `sources` list or `offline` for network-free pricing.",
+        body: "No accounts and no telemetry. Read and Rollup never touch the network. Price fetches market catalogs when you use it, caches them, and works offline from the cache. Pass an empty `sources` list or `offline` for network-free pricing.",
       },
       {
         title: "Double-count tokens",
@@ -80,7 +80,7 @@ export const en = {
       },
       {
         title: "Hide a broken file",
-        body: "The SDK never writes to stdio. Problems arrive as structured diagnostics next to your data, with the harness and path when known.",
+        body: "The SDK never writes to stdio. Problems are returned as structured diagnostics next to your data, with the harness and path when known.",
       },
     ],
   },
