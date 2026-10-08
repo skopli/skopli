@@ -77,6 +77,8 @@ describe("landing ledger", () => {
         } else {
           expect(price.cacheRead).toBeUndefined();
         }
+        expect(price.cacheWrite).toBeUndefined();
+        expect(price.cacheWrite1h).toBeUndefined();
       }
     }
   });

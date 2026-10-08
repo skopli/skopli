@@ -9,7 +9,8 @@ export interface Sample {
   file: string;
   install: string;
   installLang: Lang;
-  installFile: string;
+  installFile?: string;
+  installWhen?: "afterRelease" | "fromCheckout";
   code: string;
 }
 
@@ -20,7 +21,7 @@ export const samples: Sample[] = [
     file: "quickstart.ts",
     install: "pnpm add skopli",
     installLang: "sh",
-    installFile: "after the first release",
+    installWhen: "afterRelease",
     code: `import { readUsage, rollup, createPricing } from "skopli";
 
 const { events } = await readUsage({ since: "2026-08-01" });
@@ -37,7 +38,7 @@ const total = priced.reduce(
     file: "quickstart.py",
     install: "pip install skopli",
     installLang: "sh",
-    installFile: "after the first release",
+    installWhen: "afterRelease",
     code: `import skopli
 
 result = skopli.read_usage(since="2026-08-01")
@@ -51,7 +52,7 @@ total = sum(r.usd for r in priced if r.pricing.priced)`,
     file: "total.rs",
     install: "cargo add skopli-core",
     installLang: "sh",
-    installFile: "after the first release",
+    installWhen: "afterRelease",
     code: `use skopli_core::pricing::parse::parse_openrouter;
 use skopli_core::pricing::{Pricing, PricingCatalog, PricingMode, RollupPricing};
 use skopli_core::rollup::{rollup, RollupBy, RollupOptions};
@@ -83,7 +84,7 @@ fn total(events: &[UsageEvent], openrouter: &serde_json::Value) -> f64 {
     file: "quickstart.rb",
     install: "gem install skopli",
     installLang: "sh",
-    installFile: "after the first release",
+    installWhen: "afterRelease",
     code: `require "skopli"
 
 result = Skopli.read_usage(since: "2026-08-01")
@@ -122,7 +123,7 @@ try (Pricing pricing = Skopli.createPricing(PricingOptions.builder().build())) {
     file: "Quickstart.cs",
     install: "dotnet add package Skopli.Sdk",
     installLang: "sh",
-    installFile: "after the first release",
+    installWhen: "afterRelease",
     code: `using Skopli;
 
 ReadUsageResult usage = SkopliClient.ReadUsage(
@@ -139,7 +140,7 @@ double total = priced.Sum(r => r.Pricing is PriceHit hit ? hit.Usd : 0);`,
     file: "main.go",
     install: "go get github.com/skopli/skopli/sdks/go",
     installLang: "sh",
-    installFile: "after the first release",
+    installWhen: "afterRelease",
     code: `import "github.com/skopli/skopli/sdks/go/skopli"
 
 result, err := skopli.ReadUsage(
@@ -192,7 +193,7 @@ let total = priced.reduce(0) { $0 + ($1.pricing.usd ?? 0) }`,
     install: `cargo build -p skopli-capi --release
 cc app.c -I crates/skopli-capi/include -L target/release -lskopli`,
     installLang: "sh",
-    installFile: "from the checkout",
+    installWhen: "fromCheckout",
     code: `#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -210,6 +211,10 @@ AgStatus price_by_model(const char *events_json, uintptr_t events_len,
     const char *head = "{\\"builtinSources\\":false,\\"catalogs\\":[{\\"source\\":\\"openrouter\\","
                        "\\"format\\":\\"openrouter\\",\\"payload\\":";
     char *opts = malloc(strlen(head) + strlen(openrouter_json) + 4);
+    if (!opts) {
+        ag_buf_free(rollups);
+        return AG_STATUS_INTERNAL;
+    }
     size_t len = (size_t)sprintf(opts, "%s%s}]}", head, openrouter_json);
     AgPricing *pricing = NULL;
     st = ag_pricing_new(opts, len, &pricing);

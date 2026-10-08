@@ -53,13 +53,13 @@ const localeOptions = locales.map((code) => ({
   <main id="main" tabindex="-1">
     <Hero copy={copy} />
     <Section id="install" title={copy.install.title} body={copy.install.body}>
-      <Quickstart field="install" />
+      <Quickstart field="install" copy={copy.quickstart} />
     </Section>
     <Section id="layers" title={copy.layers.title}>
       <Layers copy={copy.layers} />
     </Section>
     <Section id="quickstart" title={copy.quickstart.title} body={copy.quickstart.body}>
-      <Quickstart field="code" />
+      <Quickstart field="code" copy={copy.quickstart} />
     </Section>
     <Section id="harnesses" title={copy.harnesses.title} body={copy.harnesses.body}>
       <Harnesses copy={copy.harnesses} />

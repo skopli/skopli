@@ -17,9 +17,9 @@ const { copy } = Astro.props;
     <span>{format(copy.rates, { date: rateDate })}</span>
   </div>
   <div class="table-frame">
-    <div class="table-scroll" tabindex="0">
+    <div class="table-scroll" role="region" aria-labelledby="ledger-caption">
       <table>
-        <caption class="visually-hidden"><InlineCode text={copy.caption} /></caption>
+        <caption id="ledger-caption" class="visually-hidden"><InlineCode text={copy.caption} /></caption>
         <thead>
           <tr>
             <th scope="col">{copy.model}</th>
@@ -178,8 +178,8 @@ const { copy } = Astro.props;
     .ledger__wide {
       display: none;
     }
-    td:first-child {
-      white-space: normal;
+    .ledger__model {
+      font-size: var(--fs-xs);
     }
   }
 </style>

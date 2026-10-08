@@ -54,6 +54,8 @@ export const en = {
   quickstart: {
     title: "Four calls from local files to a priced total",
     body: "The seven handle-based facades reach the total in four calls. Rust and C expose the primitives, so their tabs call rollup and pricing directly. Pick a language once and both code blocks on this page switch together.",
+    afterRelease: "after the first release",
+    fromCheckout: "from the checkout",
   },
   harnesses: {
     title: `Read usage from ${n} harnesses`,

@@ -3,13 +3,15 @@ import Tab from "@skopli/ui/components/Tab.astro";
 import Tabs from "@skopli/ui/components/Tabs.astro";
 import { shikiFrame } from "@skopli/ui/markdown/shiki-frame.ts";
 import { Code } from "astro:components";
+import type { Copy } from "../copy.ts";
 import { samples } from "../data/samples.ts";
 
 interface Props {
   field: "code" | "install";
+  copy: Copy["quickstart"];
 }
 
-const { field } = Astro.props;
+const { field, copy } = Astro.props;
 const transformers = [shikiFrame()];
 ---
 
@@ -31,7 +33,7 @@ const transformers = [shikiFrame()];
             code={s.install}
             lang={s.installLang}
             theme="css-variables"
-            meta={`title="${s.installFile}"`}
+            meta={`title="${s.installFile ?? copy[s.installWhen ?? "afterRelease"]}"`}
             transformers={transformers}
           />
         )}
