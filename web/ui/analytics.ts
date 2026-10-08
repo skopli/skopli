@@ -29,12 +29,12 @@ export const aiTools = [
   {
     name: "Perplexity",
     event: pageActionEvents.perplexity,
-    url: (q: string) => `https://www.perplexity.ai/search?q=${q}`,
+    url: (q: string) => `https://perplexity.ai/search?q=${q}`,
   },
   {
     name: "Google AI Mode",
     event: pageActionEvents.googleAiMode,
-    url: (q: string) => `https://www.google.com/search?udm=50&q=${q}`,
+    url: (q: string) => `https://google.com/search?udm=50&q=${q}`,
   },
   {
     name: "Cursor",

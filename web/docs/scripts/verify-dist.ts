@@ -60,6 +60,13 @@ for (const name of unsupportedHarnesses)
   for (const page of ["reference/harnesses", "reference/coverage"])
     need(read(join(site, `${page}.html`)).includes(name), `${page} names ${name} as unsupported`);
 
+const resolves = (target: string) => {
+  const path = target.replace(/^\/skopli\/?/, "").replace(/\/$/, "");
+  return (
+    !path || [path, `${path}.html`, `${path}/index.html`].some((f) => existsSync(join(site, f)))
+  );
+};
+
 for (const locale of locales) {
   const isDefault = locale === defaultLocale;
   const prefix = isDefault ? "" : `${locale}/`;
@@ -100,6 +107,8 @@ for (const locale of locales) {
       `${where} carries WebSite and TechArticle JSON-LD`,
     );
     need(html.includes("data-pagefind-body"), `${where} is marked for Pagefind`);
+    for (const [, target] of html.matchAll(/href="(\/skopli\/[^"#?]*)/g))
+      need(resolves(target), `${where} links ${target}, which is not in dist`);
     for (const host of aiHosts) need(html.includes(host), `${where} links ${host}`);
     for (const event of Object.values(pageActionEvents))
       need(html.includes(`data-event="${event}"`), `${where} carries ${event}`);

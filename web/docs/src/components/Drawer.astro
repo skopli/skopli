@@ -127,6 +127,10 @@ const { t } = Astro.props;
     height: calc(100% - var(--header-h));
     padding: var(--s-4);
     overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+  :global(body:has(.drawer[open])) {
+    overflow: hidden;
   }
 </style>
 

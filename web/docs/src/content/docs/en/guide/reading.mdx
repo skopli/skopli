@@ -39,7 +39,7 @@ The Read layer parses local session state into normalized usage events. It never
 
   </Tab>
   <Tab label="Rust">
-    `skopli-core` has no `read_usage` facade. It exposes the reader one level lower: drive a harness `Reader` with a `ReaderContext` (home directory plus env overrides) and read a `ReaderResult`. The host-language facades add detection, `since`/`until`/`tz`/`subagents` filtering, and the canonical event sort on top.
+    `skopli-core` has no `read_usage` facade. It exposes the reader one level lower: drive a harness `Reader` with a `ReaderContext` (home directory plus env overrides) and read a `ReaderResult`. The host-language facades add detection, filtering by `since`, `until`, `tz`, and `subagents`, and the canonical event sort on top.
 
     ```rust
     use skopli_core::readers::{registered_reader, ReaderContext};

@@ -87,6 +87,15 @@ jobs:
           node-version: 24
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      - name: playwright version
+        id: playwright
+        run: echo "version=$(pnpm --dir web/docs exec playwright --version | cut -d' ' -f2)" >> "$GITHUB_OUTPUT"
+      - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ steps.playwright.outputs.version }}
+      - name: playwright browsers
+        run: pnpm --dir web/docs exec playwright install --with-deps chromium
       - name: ui check
         run: pnpm --dir web/ui run check
       - name: site check + build

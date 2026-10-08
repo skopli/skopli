@@ -27,12 +27,12 @@ const { locale, label, home, trail } = Astro.props;
 
 <style>
   .crumbs {
+    min-width: 0;
     font-size: var(--fs-sm);
     color: var(--ink-2);
   }
   ol {
     display: flex;
-    flex-wrap: wrap;
     align-items: center;
     gap: var(--s-1);
     margin: 0;
@@ -41,8 +41,14 @@ const { locale, label, home, trail } = Astro.props;
   }
   li {
     display: inline-flex;
+    flex-shrink: 0;
     align-items: center;
     gap: var(--s-1);
+    white-space: nowrap;
+  }
+  li:last-child {
+    flex-shrink: 1;
+    min-width: 0;
   }
   li + li::before {
     content: "/";
@@ -65,7 +71,9 @@ const { locale, label, home, trail } = Astro.props;
     }
   }
   [aria-current="page"] span {
+    overflow: hidden;
     padding: 0 var(--s-1);
     color: var(--ink-0);
+    text-overflow: ellipsis;
   }
 </style>

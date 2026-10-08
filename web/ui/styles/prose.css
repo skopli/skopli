@@ -146,6 +146,14 @@
   vertical-align: top;
 }
 
+.prose :is(th, td)[align="right"] {
+  text-align: end;
+}
+
+.prose :is(th, td)[align="center"] {
+  text-align: center;
+}
+
 .prose th {
   color: var(--ink-0);
   font-weight: 600;
@@ -173,6 +181,7 @@
 }
 
 .code-frame {
+  position: relative;
   border: var(--hair) solid var(--code-edge);
   border-radius: var(--r-2);
   background: var(--code-0);
@@ -292,14 +301,36 @@ pre.astro-code code {
   }
 }
 
-.code-frame--untitled {
-  position: relative;
+.code-frame--untitled pre code {
+  padding-inline-end: calc(2rem + var(--s-2));
 }
 
 @media (pointer: coarse) {
   .code-frame--untitled {
     min-height: calc(var(--target) + 2 * var(--s-2));
   }
+  .code-frame--untitled pre code {
+    padding-inline-end: calc(var(--target) + var(--s-2));
+  }
+}
+
+.code-frame[data-overflow="true"]::after {
+  content: "";
+  position: absolute;
+  inset: 0 0 0 auto;
+  width: var(--s-6);
+  border-radius: 0 var(--r-2) var(--r-2) 0;
+  background: linear-gradient(to right, transparent, var(--code-0));
+  pointer-events: none;
+}
+
+.code-frame__head ~ pre:last-child::after,
+.code-frame[data-overflow="true"]:not(.code-frame--untitled)::after {
+  top: 2.5rem;
+}
+
+.code-frame[data-overflow="true"][data-scrolled-end="true"]::after {
+  display: none;
 }
 
 .astro-code .line.diff.add {

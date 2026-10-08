@@ -31,7 +31,7 @@ Anthropic instead reprices the entire request at the long-context rates, so `cla
 
 ## Error bounds if the heuristic is wrong
 
-If the marginal-vs-whole-request heuristic is wrong for a model, the difference per crossed boundary is bounded:
+If the choice between marginal and whole-request billing is wrong for a model, the difference per crossed boundary is bounded:
 
 - Each context stream (input, cacheRead, cacheWrite) differs by at most `threshold × |tier rate − previous effective rate|`.
 - Output differs by `output tokens × |tier output rate − base output rate|`.

@@ -212,8 +212,13 @@ const jsonLd = mdPath
 
 <script>
   import { initCopyCode } from "@skopli/ui/markdown/copy-code.ts";
-  import { initTableOverflow } from "@skopli/ui/markdown/table-overflow.ts";
+  import { initScrollOverflow } from "@skopli/ui/markdown/scroll-overflow.ts";
 
-  initCopyCode(document.documentElement.dataset.copyLabel ?? "Copy code");
-  initTableOverflow();
+  const { copyLabel, copiedLabel, copyFailedLabel } = document.documentElement.dataset;
+  initCopyCode({
+    copy: copyLabel ?? "Copy code",
+    copied: copiedLabel ?? "Copied",
+    failed: copyFailedLabel ?? "Copy failed",
+  });
+  initScrollOverflow();
 </script>

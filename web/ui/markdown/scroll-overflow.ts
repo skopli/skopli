@@ -1,6 +1,7 @@
-export function initTableOverflow(root: ParentNode = document): void {
-  for (const frame of root.querySelectorAll<HTMLElement>(".table-frame")) {
-    const scroll = frame.querySelector<HTMLElement>(".table-scroll");
+/** Marks `.table-frame` and `.code-frame` with `data-overflow` and `data-scrolled-end` so CSS can fade the clipped edge. */
+export function initScrollOverflow(root: ParentNode = document): void {
+  for (const frame of root.querySelectorAll<HTMLElement>(".table-frame, .code-frame")) {
+    const scroll = frame.querySelector<HTMLElement>(".table-scroll, pre");
     if (!scroll) continue;
     const update = () => {
       const overflow = scroll.scrollWidth > scroll.clientWidth + 1;

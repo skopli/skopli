@@ -11,8 +11,8 @@ const aiUrls: Record<string, string> = {
   open_chatgpt: `https://chatgpt.com/?q=${prompt}`,
   open_claude: `https://claude.ai/new?q=${prompt}`,
   open_grok: `https://grok.com/?q=${prompt}`,
-  open_perplexity: `https://www.perplexity.ai/search?q=${prompt}`,
-  open_google_ai_mode: `https://www.google.com/search?udm=50&q=${prompt}`,
+  open_perplexity: `https://perplexity.ai/search?q=${prompt}`,
+  open_google_ai_mode: `https://google.com/search?udm=50&q=${prompt}`,
   open_cursor: `https://cursor.com/link/prompt?text=${prompt}`,
 };
 
@@ -246,6 +246,10 @@ test("search opens with Ctrl+K, returns Pagefind results, closes on Escape", asy
   await expect(dialog.locator(".search__input")).toBeFocused();
   await dialog.locator(".search__input").fill("rollup");
   await expect(dialog.locator(".search__results a").first()).toBeVisible();
+  for (const url of await dialog
+    .locator(".search__results a")
+    .evaluateAll((links) => links.map((a) => a.getAttribute("href"))))
+    expect(url).toMatch(/^\/skopli\/[^.]*$/);
   const box = await dialog.boundingBox();
   const vw = page.viewportSize()!.width;
   expect(Math.abs(box!.x + box!.width / 2 - vw / 2)).toBeLessThan(2);

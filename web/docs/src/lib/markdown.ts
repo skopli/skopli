@@ -3,6 +3,7 @@ import {
   calloutTitles,
   calloutTypes,
   type CalloutType,
+  restoreStrayDirectives,
 } from "@skopli/ui/markdown/remark-callouts.ts";
 import type {
   Blockquote,
@@ -125,12 +126,6 @@ function convertJsx(node: Jsx, page: MarkdownPage): RootContent[] {
   }
 }
 
-/** Stray `:word` runs (like `T00:30Z`) parse as directives; put the source text back. */
-function sourceText(node: RootContent, page: MarkdownPage): string {
-  const { start, end } = node.position ?? fail(page, "directive without position");
-  return page.body.slice(start.offset, end.offset);
-}
-
 function convertCallout(node: ContainerDirective, page: MarkdownPage): Blockquote {
   if (!calloutTypes.includes(node.name as CalloutType))
     fail(page, `unknown directive :::${node.name}`);
@@ -166,9 +161,6 @@ function convertBlocks(nodes: RootContent[], page: MarkdownPage): RootContent[] 
         return convertJsx(node, page);
       case "containerDirective":
         return [convertCallout(node, page)];
-      case "leafDirective":
-      case "textDirective":
-        return [{ type: "text", value: sourceText(node, page) }];
       default:
         if ("children" in node) {
           (node as { children: RootContent[] }).children = convertBlocks(
@@ -199,6 +191,7 @@ function absolutize(tree: Root, page: MarkdownPage): void {
 /** Convert one MDX docs page into plain Markdown for the `.md` twin and llms outputs. */
 export function toMarkdown(page: MarkdownPage): string {
   const tree = parser.parse(page.body) as Root;
+  restoreStrayDirectives(tree, page.body);
   tree.children = convertBlocks(tree.children, page);
   absolutize(tree, page);
   const body = printer.stringify(tree).trim();

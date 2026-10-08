@@ -13,18 +13,21 @@ export const calloutTitles: Record<CalloutType, string> = {
   warning: "Warning",
 };
 
+/** Stray `:word` runs (like `T00:30Z`) parse as directives; put the source text back. */
+export function restoreStrayDirectives(tree: Root, source: string): void {
+  visit(tree, ["textDirective", "leafDirective"], (node, index, parent) => {
+    const { position } = node as TextDirective | LeafDirective;
+    if (!parent || index === undefined || !position) return;
+    parent.children.splice(index, 1, {
+      type: "text",
+      value: source.slice(position.start.offset, position.end.offset),
+    });
+  });
+}
+
 export function remarkCallouts() {
   return (tree: Root, file: VFile) => {
-    // Stray `:word` runs (like `T00:30Z`) parse as directives; put the source text back.
-    const source = String(file.value);
-    visit(tree, ["textDirective", "leafDirective"], (node, index, parent) => {
-      const { position } = node as TextDirective | LeafDirective;
-      if (!parent || index === undefined || !position) return;
-      parent.children.splice(index, 1, {
-        type: "text",
-        value: source.slice(position.start.offset, position.end.offset),
-      });
-    });
+    restoreStrayDirectives(tree, String(file.value));
     visit(tree, "containerDirective", (node: ContainerDirective) => {
       if (!(calloutTypes as readonly string[]).includes(node.name)) return;
       const type = node.name as CalloutType;

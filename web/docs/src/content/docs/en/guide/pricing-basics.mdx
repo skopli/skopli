@@ -202,7 +202,7 @@ Each section below is a one-line summary that links to the page owning the detai
 
 ## How a model matches a price
 
-Model names resolve to a catalog price through a tier ladder (exact key, provider-prefix strip, family aliases, separator and date normalization, provider-prefixed family forms, alias table). An unmatched model returns `{ priced: false, attempted: [...] }` and never a guess.
+Model names resolve to a catalog price through a tier ladder (exact key, provider-prefix strip, family aliases, separator and date normalization, provider-prefixed family forms, alias table). An unmatched model returns `{ priced: false, attempted: [...] }`.
 
 See [Model matching](/skopli/pricing/model-matching) for the full ladder, zero-cost handling, and source priority.
 

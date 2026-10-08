@@ -121,7 +121,7 @@ The Rollup layer groups events. Like the Read layer, it never touches the networ
 
 ## Billing blocks
 
-`by: "block"` groups events into rolling session windows that approximate a provider's usage-quota window, for example Claude subscription five-hour blocks. It is a convenience view of your own recorded usage, not official provider accounting, and will not reproduce a provider's exact quota bookkeeping.
+`by: "block"` groups events into rolling session windows that approximate a provider's usage-quota window, for example Claude subscription five-hour blocks. It approximates the window from your own events, so the provider's own accounting can differ.
 
 A block opens at the first event's timestamp floored to the hour (in `tz`, or the system timezone when `tz` is omitted) and spans `blockMs` (default five hours, `18000000`). Events in `[start, start + blockMs)` join that block. The first event at or past `start + blockMs` opens a new block, so an idle gap of `blockMs` or longer starts a fresh window. Each row's `key` is the ISO-8601 block-start instant. Events are ordered by timestamp before windowing, and rows come back in ascending start order.
 

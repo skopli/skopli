@@ -44,7 +44,13 @@ const siteJsonLd = {
 ---
 
 <!doctype html>
-<html lang={locale} dir="ltr" data-copy-label={translator(locale)("copyCode")}>
+<html
+  lang={locale}
+  dir="ltr"
+  data-copy-label={translator(locale)("copyCode")}
+  data-copied-label={translator(locale)("copied")}
+  data-copy-failed-label={translator(locale)("copyFailed")}
+>
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
