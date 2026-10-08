@@ -164,9 +164,18 @@ const { copy } = Astro.props;
     color: var(--ink-2);
     font-size: var(--fs-sm);
   }
+  @media (max-width: 63.99rem) {
+    th,
+    td {
+      padding-inline: var(--s-3);
+    }
+  }
   @media (max-width: 47.99rem) {
     .ledger__wide {
       display: none;
+    }
+    td:first-child {
+      white-space: normal;
     }
   }
 </style>

@@ -139,7 +139,8 @@ test("the ledger recomputes from the example rows and stays inside its frame", a
     };
   });
   expect(report.right).toBeLessThanOrEqual(page.viewportSize()!.width);
-  expect(report.flagged).toBe(report.overflowing);
+  expect(report.overflowing).toBe(false);
+  expect(report.flagged).toBe(false);
 });
 
 test("install and quickstart tabs sync by language and persist", async ({ page }) => {
