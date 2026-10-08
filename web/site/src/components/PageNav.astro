@@ -84,5 +84,6 @@ const { t, links } = Astro.props;
   if (sections.length) {
     mark();
     addEventListener("scroll", mark, { passive: true });
+    addEventListener("resize", mark);
   }
 </script>
