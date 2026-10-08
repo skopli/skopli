@@ -38,9 +38,10 @@ export function format(template: string, params: Record<string, string | number>
 
 /** Locale of a content file from its first locale-named directory segment, defaulting to English. */
 export function localeOfPath(path: string | undefined): Locale {
-  for (const [, segment] of (path ?? "").matchAll(/[/\\]([a-z]{2}(?:-[A-Z]{2})?)(?=[/\\])/g))
-    if (isLocale(segment)) return segment;
-  return defaultLocale;
+  const segment = (path ?? "").match(
+    /(?:docs|fixtures)[/\\]([a-z]{2}(?:-[A-Z]{2})?)(?=[/\\])/,
+  )?.[1];
+  return isLocale(segment) ? segment : defaultLocale;
 }
 
 export function translator(locale: Locale) {

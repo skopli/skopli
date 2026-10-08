@@ -80,8 +80,8 @@ const items = headings.filter((h) => h.depth === 2 || h.depth === 3);
         .map((link) => document.getElementById(decodeURIComponent(link.hash.slice(1))))
         .filter((el): el is HTMLElement => el !== null);
       if (!targets.length) return;
-      const header = document.querySelector(".site-header");
-      const headerOffset = () => (header?.getBoundingClientRect().height ?? 0) + 24;
+      const headerOffset = () =>
+        parseFloat(getComputedStyle(document.documentElement).scrollPaddingTop) || 0;
       const setCurrent = (id: string) => {
         for (const link of links) {
           const on = decodeURIComponent(link.hash.slice(1)) === id;

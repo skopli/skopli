@@ -22,7 +22,7 @@ const aiUrls: Record<string, string> = {
 };
 
 const isMobile = (page: Page) => (page.viewportSize()?.width ?? 1440) < 768;
-const isDesktop = (page: Page) => (page.viewportSize()?.width ?? 1440) >= 1024;
+const isDesktop = (page: Page) => (page.viewportSize()?.width ?? 1440) >= 1152;
 
 async function setTheme(page: Page, theme: "dark" | "light") {
   await page.addInitScript((value) => localStorage.setItem("skopli-theme", value), theme);

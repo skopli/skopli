@@ -88,9 +88,10 @@ export default defineConfig({
         );
         const slug = locale ? path.slice(locale.length + 2) : path.replace(/^\//, "");
         const url = path === "" ? `${item.url}/` : item.url;
-        if (!translatedSlugs.has(slug)) return { ...item, url };
+        const translated = locales.filter((l) => translatedSlugs[l]?.has(slug));
+        if (translated.length === 0) return { ...item, url };
         /** @type {{ lang: string; url: string }[]} */
-        const links = locales.map((l) => ({
+        const links = [defaultLocale, ...translated].map((l) => ({
           lang: l,
           url: `${siteOrigin}${basePath}${l === defaultLocale ? (slug ? `/${slug}` : "/") : `/${l}${slug ? `/${slug}` : ""}`}`,
         }));

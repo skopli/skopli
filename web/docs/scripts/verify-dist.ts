@@ -4,6 +4,7 @@ import { harnesses, unsupportedHarnesses } from "@skopli/ui/data/harnesses.ts";
 import { pageActionEvents } from "@skopli/ui/analytics";
 import { configuredLocales, defaultLocale } from "@skopli/ui/i18n";
 import { navItems } from "../src/nav.ts";
+import { slugsIn } from "../src/lib/translated.ts";
 
 const dist = new URL("../dist/", import.meta.url).pathname;
 const site = join(dist, "skopli");
@@ -65,13 +66,14 @@ const aiHosts = [
 ];
 
 const unsupported = new Set<string>(unsupportedHarnesses);
-const listed = read(join(site, "reference/harnesses.html"))
-  .match(/no reliable local token data: ([^.<]*)\./)?.[1]
-  .split(", ");
-need(
-  listed?.length === unsupported.size && listed.every((name) => unsupported.has(name)),
-  `reference/harnesses lists exactly ${[...unsupported].join(", ")} as unsupported`,
-);
+const unsupportedLine =
+  read(join(site, "reference/harnesses.html")).match(
+    /no reliable local token data: ([^<]*)/,
+  )?.[1] ?? "";
+for (const name of unsupported)
+  need(unsupportedLine.includes(name), `reference/harnesses names ${name} as unsupported`);
+for (const { name } of harnesses)
+  need(!unsupportedLine.includes(name), `reference/harnesses does not list ${name} as unsupported`);
 const covered = [
   ...read(join(site, "reference/coverage.html")).matchAll(/<tr>\s*<td>([^<]*)<\/td>/g),
 ].map(([, name]) => name);
@@ -86,6 +88,7 @@ const resolves = (target: string) => {
     .replace(/^https:\/\/docs\.skopli\.com/, "")
     .replace(/^\/skopli\/?/, "")
     .replace(/\/$/, "");
+  if (path.split("/").includes("..")) return false;
   return (
     !path || [path, `${path}.html`, `${path}/index.html`].some((f) => existsSync(join(site, f)))
   );
@@ -131,8 +134,8 @@ for (const locale of locales) {
   );
   if (!isDefault)
     need(
-      localeSlugs.join(",") === ["", "guide/getting-started"].join(","),
-      `${locale} builds exactly the fixture pages`,
+      [...localeSlugs].sort().join(",") === slugsIn(locale).sort().join(","),
+      `${locale} builds exactly its source pages`,
     );
   for (const slug of localeSlugs) {
     const base = slug || "index";

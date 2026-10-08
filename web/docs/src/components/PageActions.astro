@@ -213,6 +213,7 @@ const uid = `page-actions-${placement}`;
         const anchor = more.getBoundingClientRect();
         const below = window.innerHeight - anchor.bottom - 4;
         const above = anchor.top - 4;
+        menu.style.maxHeight = "";
         const flip = below < menu.offsetHeight && above > below;
         menu.style.top = flip ? "auto" : `${anchor.bottom + 4}px`;
         menu.style.bottom = flip ? `${window.innerHeight - anchor.top + 4}px` : "auto";

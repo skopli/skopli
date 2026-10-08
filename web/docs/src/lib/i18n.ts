@@ -25,7 +25,8 @@ export function href(path: string, locale: Locale = defaultLocale): string {
     .replace(/\/$/, "")
     .replace(/\.md$/, "")
     .replace(/^index$/, "");
-  const target = locale !== defaultLocale && !translatedSlugs.has(slug) ? defaultLocale : locale;
+  const target =
+    locale !== defaultLocale && !translatedSlugs[locale]?.has(slug) ? defaultLocale : locale;
   return localizedHref(path, target);
 }
 
