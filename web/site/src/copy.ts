@@ -3,7 +3,7 @@ import { pseudolocalize, type Locale } from "@skopli/ui/i18n";
 export const en = {
   title: "Skopli: price your AI coding-agent usage from local logs",
   description:
-    "An MIT SDK that reads AI coding-agent usage from 40 harnesses on local disk, rolls it up, and prices it against market catalogs. One Rust core, eight language facades and a C ABI.",
+    "An MIT SDK that reads AI coding-agent usage from 40 harnesses on local disk, rolls it up, and prices it against market catalogs.",
   nav: { install: "Install", layers: "Layers", quickstart: "Quickstart", harnesses: "Harnesses" },
   hero: {
     title: "Know what your coding agents cost.",
@@ -25,11 +25,12 @@ export const en = {
     rates: "rates {date}",
     attempted: "tried {keys}",
     footer: "{priced} priced, {misses} unpriced",
-    note: "Synthetic token counts, priced at the per-million rates in Skopli's committed catalog snapshots ({date}). The unmatched model returns `priced: false` with the keys it tried, and the totals count priced rows only.",
+    note: "Synthetic token counts, priced at the per-million rates in Skopli's committed catalog snapshots. The unmatched model returns `priced: false` with the keys it tried, and the totals count priced rows only.",
   },
   install: {
     title: "Install in your language",
-    body: "Eight language facades and a C ABI call one Rust core. No package is published yet; every registry package ships with the first release, and until then each SDK builds from the repository. The TypeScript package needs Node 24 or newer and ships ESM only. Java, Swift, and C link the C library, built with `cargo build -p skopli-capi --release`.",
+    body: "Eight language facades and a C ABI call one Rust core. No package is published yet; they ship with the first release. Until then each SDK builds from the repository. The TypeScript package needs Node 24 or newer and ships ESM only. The compiled facades (Java, C#, Go, Swift, and C) link the C library, built with `cargo build -p skopli-capi --release`.",
+    frameTitle: "after the first release",
   },
   layers: {
     title: "Three layers. Use any one alone.",
@@ -55,7 +56,7 @@ export const en = {
   },
   harnesses: {
     title: "Read usage from 40 harnesses",
-    body: "No plugin, proxy, or exporter. Skopli parses the session state each harness keeps on disk. Ids are stable; names follow the upstream project.",
+    body: "No plugin, proxy, or exporter. Skopli parses the session state each harness keeps on disk. Each id is stable; names follow the upstream project.",
     more: "Full table with footnotes",
   },
   refuses: {
@@ -88,11 +89,13 @@ export const en = {
   },
   footer: { docs: "Docs", github: "GitHub" },
   trademark:
-    "Product names and logos belong to their owners and identify the harness each reader supports. Their use implies no endorsement of Skopli.",
+    "Product names and logos belong to their owners and identify the harnesses Skopli reads. Their use implies no endorsement of Skopli.",
   notFound: {
+    documentTitle: "Skopli: page not found",
     title: "Page not found",
-    body: "There is nothing at this address. The docs live at docs.skopli.com.",
+    body: "There is nothing at this address.",
     home: "Back to skopli.com",
+    docs: "Read the docs",
   },
 } as const;
 

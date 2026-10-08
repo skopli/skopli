@@ -101,7 +101,7 @@ jobs:
       - name: site check + build
         run: pnpm --dir web/site run check && pnpm --dir web/site run build
       - name: site e2e
-        run: pnpm --dir web/site exec playwright install --with-deps chromium && pnpm --dir web/site run test:e2e
+        run: pnpm --dir web/site run test:e2e
       - name: site pseudo-locale build
         run: pnpm --dir web/site run build:pseudo
       - name: docs check + build

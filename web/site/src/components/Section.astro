@@ -10,24 +10,29 @@ import InlineCode from "./InlineCode.astro";
 ---
 
 <section class="section" id={id} aria-labelledby={`${id}-title`}>
-  <div class="section__head">
-    <h2 id={`${id}-title`}>{title}</h2>
-    {
-      body && (
-        <p class="section__body">
-          <InlineCode text={body} />
-        </p>
-      )
-    }
+  <div class="section__in">
+    <div class="section__head">
+      <h2 id={`${id}-title`}>{title}</h2>
+      {
+        body && (
+          <p class="section__body">
+            <InlineCode text={body} />
+          </p>
+        )
+      }
+    </div>
+    <slot />
   </div>
-  <slot />
 </section>
 
 <style>
   .section {
     max-width: var(--page-max);
     margin: 0 auto;
-    padding: var(--s-8) var(--s-5);
+    padding: 0 var(--s-5);
+  }
+  .section__in {
+    padding: var(--s-8) 0;
     border-top: var(--hair) solid var(--rule-1);
   }
   .section__head {
@@ -47,7 +52,10 @@ import InlineCode from "./InlineCode.astro";
   }
   @media (max-width: 47.99rem) {
     .section {
-      padding: var(--s-7) var(--s-4);
+      padding: 0 var(--s-4);
+    }
+    .section__in {
+      padding: var(--s-7) 0;
     }
   }
 </style>

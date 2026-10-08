@@ -87,18 +87,30 @@ test("coarse pointers get 44px targets", async ({ page }) => {
   for (const b of boxes) expect(Math.min(b.w, b.h), JSON.stringify(b)).toBeGreaterThanOrEqual(44);
 });
 
-test("header nav hides below the wide breakpoint and scrolls to sections above it", async ({
+test("section nav lives in the header on wide viewports and in a row below it elsewhere", async ({
   page,
 }) => {
   await page.goto("/");
-  const nav = page.locator(".site-header__nav");
-  if (!isDesktop(page)) {
-    await expect(nav).toBeHidden();
-    return;
-  }
+  const headerNav = page.locator(".site-header__nav");
+  const pageNav = page.locator(".page-nav");
+  const nav = isDesktop(page) ? headerNav : pageNav;
+  await expect(isDesktop(page) ? pageNav : headerNav).toBeHidden();
+  await expect(nav).toBeVisible();
   await nav.getByRole("link", { name: "Harnesses" }).click();
   await expect(page).toHaveURL(/#harnesses$/);
   await expect(page.locator("#harnesses")).toBeInViewport();
+});
+
+test("clipped code frames show the overflow fade until scrolled to the end", async ({ page }) => {
+  await page.goto("/");
+  const frame = page.locator("#quickstart .code-frame:visible").first();
+  const pre = frame.locator("pre");
+  const clipped = await pre.evaluate((el) => el.scrollWidth > el.clientWidth + 1);
+  await expect(frame).toHaveAttribute("data-overflow", String(clipped));
+  if (!clipped) return;
+  await expect(frame).toHaveAttribute("data-scrolled-end", "false");
+  await pre.evaluate((el) => el.scrollTo({ left: el.scrollWidth }));
+  await expect(frame).toHaveAttribute("data-scrolled-end", "true");
 });
 
 test("the ledger recomputes from the example rows and stays inside its frame", async ({ page }) => {

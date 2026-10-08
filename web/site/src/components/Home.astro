@@ -42,10 +42,16 @@ const localeOptions = locales.map((code) => ({
       {locales.length > 1 && <LocaleSwitch t={tr} options={localeOptions} />}
     </Fragment>
   </Header>
+  <nav class="page-nav" aria-label={tr("mainNavigation")}>
+    <div class="page-nav__in">
+      {navItems.map(([id, label]) => <a href={`#${id}`}>{label}</a>)}
+      <a href={docsUrl}>{tr("docs")}</a>
+    </div>
+  </nav>
   <main id="main" tabindex="-1">
     <Hero copy={copy} />
     <Section id="install" title={copy.install.title} body={copy.install.body}>
-      <Quickstart field="install" />
+      <Quickstart field="install" title={copy.install.frameTitle} />
     </Section>
     <Section id="layers" title={copy.layers.title}>
       <Layers copy={copy.layers} />
@@ -76,6 +82,45 @@ const localeOptions = locales.map((code) => ({
 <style>
   main:focus {
     outline: none;
+  }
+  .page-nav {
+    display: none;
+    border-bottom: var(--hair) solid var(--rule-1);
+  }
+  .page-nav__in {
+    display: flex;
+    max-width: var(--page-max);
+    margin: 0 auto;
+    padding: 0 var(--s-5);
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .page-nav a {
+    display: inline-flex;
+    flex-shrink: 0;
+    align-items: center;
+    min-height: var(--target);
+    padding: 0 var(--s-3);
+    color: var(--ink-2);
+    font-size: var(--fs-sm);
+    font-weight: 500;
+    text-decoration: none;
+  }
+  .page-nav a:first-child {
+    margin-inline-start: calc(-1 * var(--s-3));
+  }
+  .page-nav a:hover {
+    color: var(--ink-0);
+  }
+  @media (max-width: 63.99rem) {
+    .page-nav {
+      display: block;
+    }
+  }
+  @media (max-width: 47.99rem) {
+    .page-nav__in {
+      padding: 0 var(--s-4);
+    }
   }
   .library__links {
     display: flex;

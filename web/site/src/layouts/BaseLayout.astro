@@ -48,14 +48,19 @@ const jsonLd = {
 ---
 
 <!doctype html>
-<html lang={locale} dir="ltr" data-copy-label={translator(locale)("copyCode")}>
+<html
+  lang={locale}
+  dir="ltr"
+  data-copy-label={translator(locale)("copyCode")}
+  data-copied-label={translator(locale)("copied")}
+  data-copy-failed-label={translator(locale)("copyFailed")}
+>
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>{title}</title>
     <meta name="description" content={description} />
-    <link rel="canonical" href={canonical} />
-    {noindex && <meta name="robots" content="noindex" />}
+    {noindex ? <meta name="robots" content="noindex" /> : <link rel="canonical" href={canonical} />}
     {alternates.map((alt) => <link rel="alternate" hreflang={alt} href={absoluteHref(path, alt)} />)}
     {
       alternates.length > 0 && (
@@ -68,7 +73,7 @@ const jsonLd = {
     <meta property="og:site_name" content="Skopli" />
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
-    <meta property="og:url" content={canonical} />
+    {!noindex && <meta property="og:url" content={canonical} />}
     <meta property="og:locale" content={ogLocale(locale)} />
     <meta name="twitter:card" content="summary" />
     <meta name="color-scheme" content="dark light" />
@@ -83,10 +88,15 @@ const jsonLd = {
     <slot />
     <script>
       import { initCopyCode } from "@skopli/ui/markdown/copy-code.ts";
-      import { initTableOverflow } from "@skopli/ui/markdown/table-overflow.ts";
+      import { initScrollOverflow } from "@skopli/ui/markdown/scroll-overflow.ts";
 
-      initCopyCode(document.documentElement.dataset.copyLabel ?? "Copy code");
-      initTableOverflow();
+      const { copyLabel, copiedLabel, copyFailedLabel } = document.documentElement.dataset;
+      initCopyCode({
+        copy: copyLabel ?? "Copy code",
+        copied: copiedLabel ?? "Copied",
+        failed: copyFailedLabel ?? "Copy failed",
+      });
+      initScrollOverflow();
     </script>
   </body>
 </html>

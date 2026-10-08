@@ -15,7 +15,7 @@ const tr = t(locale);
 
 <BaseLayout
   locale={locale}
-  title={`${copy.notFound.title}: Skopli`}
+  title={copy.notFound.documentTitle}
   description={copy.notFound.body}
   path="/404"
   noindex
@@ -28,7 +28,10 @@ const tr = t(locale);
     <p class="not-found__code tabular">404</p>
     <h1>{copy.notFound.title}</h1>
     <p>{copy.notFound.body}</p>
-    <Button href={href("/", locale)} variant="primary">{copy.notFound.home}</Button>
+    <p class="not-found__actions">
+      <Button href={href("/", locale)} variant="primary">{copy.notFound.home}</Button>
+      <Button href={docsUrl}>{copy.notFound.docs}</Button>
+    </p>
   </main>
   <Footer t={tr} licenseHref={licenseUrl} privacyHref={privacyUrl}>
     <a href={docsUrl}>{copy.footer.docs}</a>
@@ -60,8 +63,12 @@ const tr = t(locale);
     max-width: var(--content-width);
     color: var(--ink-1);
   }
-  .not-found :global(.button) {
-    margin-top: var(--s-5);
+  .not-found__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--s-3);
+    max-width: none;
+    margin: var(--s-5) 0 0;
   }
   @media (max-width: 47.99rem) {
     .not-found {

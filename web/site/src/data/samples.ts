@@ -24,7 +24,10 @@ export const samples: Sample[] = [
 const { events } = await readUsage({ since: "2026-08-01" });
 const byModel = rollup(events, { by: "model" });
 const priced = await createPricing().priceRollups(byModel);
-const total = priced.reduce((t, r) => t + (r.pricing.priced ? r.pricing.usd : 0), 0);`,
+const total = priced.reduce(
+  (sum, row) => sum + (row.pricing.priced ? row.pricing.usd : 0),
+  0,
+);`,
   },
   {
     label: "Python",
@@ -83,11 +86,15 @@ implementation("com.skopli:skopli")`,
     code: `import com.skopli.*;
 import java.util.List;
 
-ReadUsageResult result = Skopli.readUsage(ReadUsageOptions.builder().since("2026-08-01").build());
-List<Rollup> byModel = Skopli.rollup(result.events(), RollupOptions.by(RollupBy.MODEL));
+ReadUsageResult result = Skopli.readUsage(
+    ReadUsageOptions.builder().since("2026-08-01").build());
+List<Rollup> byModel = Skopli.rollup(
+    result.events(), RollupOptions.by(RollupBy.MODEL));
 try (Pricing pricing = Skopli.createPricing(PricingOptions.builder().build())) {
     List<PricedRollup> priced = pricing.priceRollups(byModel);
-    double total = priced.stream().mapToDouble(r -> r.pricing().usd().orElse(0)).sum();
+    double total = priced.stream()
+        .mapToDouble(r -> r.pricing().usd().orElse(0))
+        .sum();
 }`,
   },
   {
@@ -98,7 +105,8 @@ try (Pricing pricing = Skopli.createPricing(PricingOptions.builder().build())) {
     installLang: "sh",
     code: `using Skopli;
 
-ReadUsageResult usage = SkopliClient.ReadUsage(new ReadUsageOptions { Since = "2026-08-01" });
+ReadUsageResult usage = SkopliClient.ReadUsage(
+    new ReadUsageOptions { Since = "2026-08-01" });
 IReadOnlyList<Rollup> byModel =
     SkopliClient.Rollup(usage.Events, new RollupOptions { By = RollupBy.Model });
 using Pricing pricing = SkopliClient.CreatePricing(new PricingOptions());
@@ -113,11 +121,13 @@ double total = priced.Sum(r => r.Pricing is PriceHit hit ? hit.Usd : 0);`,
     installLang: "sh",
     code: `import "github.com/skopli/skopli/sdks/go/skopli"
 
-result, err := skopli.ReadUsage(skopli.ReadUsageOptions{Since: "2026-08-01"})
+result, err := skopli.ReadUsage(
+    skopli.ReadUsageOptions{Since: "2026-08-01"})
 if err != nil {
     return err
 }
-byModel, err := skopli.Rollup(result.Events, skopli.RollupOptions{By: skopli.ByModel})
+byModel, err := skopli.Rollup(
+    result.Events, skopli.RollupOptions{By: skopli.ByModel})
 if err != nil {
     return err
 }
