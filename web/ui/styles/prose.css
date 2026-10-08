@@ -151,6 +151,10 @@
   vertical-align: top;
 }
 
+.prose td:first-child {
+  white-space: nowrap;
+}
+
 .prose :is(th, td)[align="right"] {
   text-align: end;
 }
@@ -256,10 +260,6 @@ pre.astro-code code {
 
 .code-frame__copy:hover {
   color: var(--ink-0);
-}
-
-.code-frame__copy:focus-visible {
-  outline-offset: -2px;
 }
 
 .code-frame__copy[data-state="copied"] {

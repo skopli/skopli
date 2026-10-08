@@ -6,10 +6,8 @@ export function initScrollOverflow(root: ParentNode = document): void {
     const update = () => {
       const overflow = scroll.scrollWidth > scroll.clientWidth + 1;
       frame.dataset.overflow = String(overflow);
-      if (scroll.classList.contains("table-scroll")) {
-        if (overflow) scroll.tabIndex = 0;
-        else scroll.removeAttribute("tabindex");
-      }
+      if (overflow) scroll.tabIndex = 0;
+      else scroll.removeAttribute("tabindex");
       frame.dataset.scrolledEnd = String(
         !overflow || scroll.scrollLeft + scroll.clientWidth >= scroll.scrollWidth - 1,
       );

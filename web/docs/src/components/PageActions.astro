@@ -138,6 +138,7 @@ const uid = `page-actions-${placement}`;
     display: grid;
     min-width: 14rem;
     padding: var(--s-1);
+    overflow-y: auto;
     border: var(--hair) solid var(--rule-2);
     border-radius: var(--r-2);
     background: var(--ground-1);
@@ -210,12 +211,17 @@ const uid = `page-actions-${placement}`;
 
       const place = () => {
         const anchor = more.getBoundingClientRect();
-        menu.style.top = `${anchor.bottom + 4}px`;
+        const below = window.innerHeight - anchor.bottom - 4;
+        const above = anchor.top - 4;
+        const flip = below < menu.offsetHeight && above > below;
+        menu.style.top = flip ? "auto" : `${anchor.bottom + 4}px`;
+        menu.style.bottom = flip ? `${window.innerHeight - anchor.top + 4}px` : "auto";
+        menu.style.maxHeight = `${Math.max(flip ? above : below, 0)}px`;
         menu.style.right = `${window.innerWidth - anchor.right}px`;
       };
       const setOpen = (open: boolean, focusIndex?: number) => {
-        if (open) place();
         menu.hidden = !open;
+        if (open) place();
         more.setAttribute("aria-expanded", String(open));
         if (open && focusIndex !== undefined) items[focusIndex]?.focus();
         if (!open && this.contains(document.activeElement)) more.focus();

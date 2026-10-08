@@ -139,6 +139,8 @@ const panels = html.replace(panelPattern, (_match, panelLabel: string) => {
         this.querySelectorAll<HTMLButtonElement>(':scope > .tabs__strip [role="tab"]'),
       );
       const panels = Array.from(this.querySelectorAll<HTMLElement>(":scope > .tabs__panel"));
+      for (const panel of panels)
+        panel.tabIndex = panel.querySelector('a[href], button, [tabindex="0"]') ? -1 : 0;
       const syncKey = this.dataset.syncKey;
 
       const select = (index: number, focus: boolean) => {

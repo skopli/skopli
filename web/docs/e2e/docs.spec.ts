@@ -426,7 +426,7 @@ test("table of contents links land each heading under the header and mark it cur
   const headerBottom = await page
     .locator(".site-header")
     .evaluate((h) => h.getBoundingClientRect().bottom);
-  for (let i = 1; i < (await links.count()); i++) {
+  for (let i = 0; i < (await links.count()); i++) {
     const link = links.nth(i);
     const id = (await link.getAttribute("href"))!.slice(1);
     await link.click();

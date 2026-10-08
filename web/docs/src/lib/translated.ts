@@ -19,7 +19,12 @@ const slugsIn = (locale: string) =>
 /** Slugs with a page in every configured non-default locale; other links and alternates stay on English. */
 export const translatedSlugs = locales
   .filter((l) => l !== defaultLocale)
-  .map((l) => new Set(slugsIn(l)))
+  .map((l) => {
+    const slugs = new Set(slugsIn(l));
+    if (slugs.size === 0)
+      throw new Error(`no ${l} pages under src/content/docs/${l}; run from web/docs`);
+    return slugs;
+  })
   .reduce(
     (common, set, i) => (i === 0 ? set : new Set([...common].filter((slug) => set.has(slug)))),
     new Set<string>(),

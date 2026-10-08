@@ -8,12 +8,7 @@ import Tab from "@skopli/ui/components/Tab.astro";
 
 Install the SDK for your language, then make the four calls: detect the harnesses on this machine, read their session logs, roll the events up, and price the result. Step 2 is a quickstart that prints each priced row.
 
-It has three layers, Read, Rollup, and Price, and each works on its own.
-Skopli has no accounts and no telemetry.
-Read and Rollup never touch the network.
-Price fetches the market catalogs by default when used, caches what it fetches, and reads from cache when offline.
-Pass an empty `sources` list or `offline` for a network-free handle.
-[Pricing basics](/skopli/guide/pricing-basics) covers sources, cache, and misses.
+Only the Price call touches the network, and [Pricing basics](/skopli/guide/pricing-basics) covers its sources, cache, offline use, and misses.
 
 ## Step 1: install
 

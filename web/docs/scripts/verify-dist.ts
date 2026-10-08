@@ -64,9 +64,21 @@ const aiHosts = [
   "cursor.com/link/prompt?text=",
 ];
 
-for (const name of unsupportedHarnesses)
-  for (const page of ["reference/harnesses", "reference/coverage"])
-    need(read(join(site, `${page}.html`)).includes(name), `${page} names ${name} as unsupported`);
+const unsupported = new Set<string>(unsupportedHarnesses);
+const listed = read(join(site, "reference/harnesses.html"))
+  .match(/no reliable local token data: ([^.<]*)\./)?.[1]
+  .split(", ");
+need(
+  listed?.length === unsupported.size && listed.every((name) => unsupported.has(name)),
+  `reference/harnesses lists exactly ${[...unsupported].join(", ")} as unsupported`,
+);
+const covered = [
+  ...read(join(site, "reference/coverage.html")).matchAll(/<tr>\s*<td>([^<]*)<\/td>/g),
+].map(([, name]) => name);
+for (const name of unsupported)
+  need(covered.includes(name), `reference/coverage has a row for ${name}`);
+for (const h of harnesses)
+  need(!covered.includes(h.name), `reference/coverage does not list the supported ${h.name}`);
 
 const resolves = (target: string) => {
   if (!/^(https:\/\/docs\.skopli\.com)?\/skopli(\/|$)/.test(target)) return false;

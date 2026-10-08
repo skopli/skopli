@@ -6,21 +6,12 @@ interface Props {
 }
 
 const { slug } = Astro.props;
-const fallback =
-  '<rect x="3" y="4" width="18" height="16" rx="3" fill="none" stroke="currentColor" stroke-width="2"/>' +
-  '<path d="m7 9 3 3-3 3M12 15h5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>';
 ---
 
 <svg
-  class:list={["harness-icon", { "harness-icon--generic": !slug }]}
+  class="harness-icon"
   viewBox="0 0 24 24"
   fill="currentColor"
   aria-hidden="true"
-  set:html={slug ? harnessIconPaths[slug] : fallback}
+  set:html={slug ? harnessIconPaths[slug] : ""}
 />
-
-<style>
-  .harness-icon--generic {
-    color: var(--ink-3);
-  }
-</style>
