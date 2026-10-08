@@ -12,7 +12,7 @@ Only the Price call touches the network, and [Pricing basics](/skopli/guide/pric
 
 ## Step 1: install
 
-No package is published yet. The registry commands below work after the [first release](https://github.com/skopli/skopli/releases), and until then each SDK builds from the repository. The Java and Swift tabs already include it from a checkout beside your project. The TypeScript package needs Node 24 or newer and ships ESM only. Java, Swift, and C link the C library, built from the repository root with `cargo build -p skopli-capi --release`.
+No package is published yet. The registry commands below work after the [first release](https://github.com/skopli/skopli/releases), and until then each SDK builds from the repository. The Java and Swift tabs already include it from a checkout beside your project. The TypeScript package needs Node 24 or newer and ships ESM only. Java, Swift, C, Go, and C# link the C library, built from the repository root with `cargo build -p skopli-capi --release`.
 
 <Tabs syncKey="lang">
   <Tab label="TypeScript">
@@ -71,12 +71,16 @@ No package is published yet. The registry commands below work after the [first r
 
   </Tab>
   <Tab label="C#">
+    Until then, add a project reference to `sdks/csharp/Skopli/Skopli.csproj` from a checkout. At run time the P/Invoke layer loads the C library from `SKOPLI_LIBRARY_PATH`, then `runtimes/<rid>/native/` beside the assembly, then the assembly directory, then the OS search path.
+
     ```sh title="after the first release"
     dotnet add package Skopli.Sdk
     ```
 
   </Tab>
   <Tab label="Go">
+    Until then, point a `replace` directive at `sdks/go` in a checkout. cgo links against `target/release` in that checkout (`CGO_CFLAGS` and `CGO_LDFLAGS` override the paths), the library directory must be on the loader path at run time, and Windows needs the `x86_64-pc-windows-gnu` target.
+
     ```sh title="after the first release"
     go get github.com/skopli/skopli/sdks/go
     ```

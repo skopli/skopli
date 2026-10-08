@@ -228,7 +228,7 @@ The return shape is the same across languages. Python, Ruby, and Rust use `snake
 ```
 
 - `cacheWrite` is the total. `cacheWrite1h` is the 1h-TTL portion when the source reports the split (Claude Code).
-- `costUsd` is the harness-recorded cost (Claude Code JSONL `costUSD`, OpenCode nonzero `cost`), absent otherwise.
+- `costUsd` is the harness-recorded cost (Claude Code JSONL `costUSD`, fx `total_cost`, OpenCode nonzero `cost`), absent otherwise.
 - `workspace` (normalized project dir, cross-platform: forward slashes, no trailing sep, case-folded on Windows) and `title` come from the OpenCode session directory and title and from Claude Code `cwd`, absent otherwise.
 - Subagent (child-session or sidechain) events are included and tagged `subagent: true` by default, and `subagents: "exclude"` drops them uniformly.
   [Reading usage](/skopli/guide/reading#subagents) lists each harness's marker.

@@ -106,6 +106,12 @@ const {
     font-weight: 500;
     text-decoration: none;
   }
+  @media (pointer: coarse) {
+    .site-header__nav :global(a) {
+      justify-content: center;
+      min-width: var(--target);
+    }
+  }
   .site-header__nav :global(a:hover),
   .site-header__nav :global(a[aria-current="page"]) {
     color: var(--ink-0);

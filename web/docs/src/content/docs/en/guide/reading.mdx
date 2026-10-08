@@ -220,7 +220,7 @@ Every event carries:
 - `model`: model name.
 - `tokens`: token counts. `input`, `output`, `cacheRead`, `cacheWrite`, optional `cacheWrite1h` (the 1h-TTL portion of the `cacheWrite` total when the source reports the split), and `reasoning`.
 - `calls`: optional count for sources that aggregate multiple model calls per record.
-- `costUsd`: optional harness-recorded cost when the source reports one. The Claude reader populates it from the jsonl `costUSD` field. The OpenCode reader populates it from a nonzero `cost`. Other readers leave it absent.
+- `costUsd`: optional harness-recorded cost when the source reports one. The Claude Code reader populates it from the jsonl `costUSD` field, the fx reader from `total_cost`, and the OpenCode reader from a nonzero `cost`. Other readers leave it absent.
 - `workspace`: optional normalized project directory path. OpenCode records it from its session directory, Claude Code from each record's `cwd`. Readers without the concept leave it undefined. Workspace paths are normalized cross-platform (forward slashes, no trailing separator, case-folded on Windows) so one repository is one key.
 - `title`: optional session title. OpenCode records it from its session title. Readers without the concept leave it undefined.
 

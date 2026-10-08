@@ -16,7 +16,7 @@ Both entry points turn usage into USD. They differ in how they handle context-se
 - `display` reports the harness-recorded cost (summed on the rollup) or `0`, ignoring token math.
 - `auto` prefers the recorded cost when present and falls back to the calculated one, so a recorded cost appears even for an unpriced model.
 
-The recorded cost comes from each event's `costUsd`, populated only by the Claude and OpenCode readers. For rollups with no recorded cost, `auto` behaves like `calculate` while `display` reports `0`.
+The recorded cost comes from each event's `costUsd`, populated only by the Claude Code, fx, and OpenCode readers. For rollups with no recorded cost, `auto` behaves like `calculate` while `display` reports `0`.
 
 ## Why priceRollups can overbill tiered models
 
