@@ -17,8 +17,10 @@ need(
   "robots.txt names the sitemap",
 );
 const sitemap = read(join(dist, "sitemap-0.xml"));
+const locs = [...sitemap.matchAll(/<loc>([^<]*)<\/loc>/g)].map(([, loc]) => loc);
+need(locs.length === locales.length, "sitemap lists one page per locale");
 need(
-  [...sitemap.matchAll(/<loc>([^<]*)<\/loc>/g)].every(([, loc]) => !/\/404(\.html)?\/?$/.test(loc)),
+  locs.every((loc) => !/\/404(\.html)?\/?$/.test(loc)),
   "sitemap omits the 404 page",
 );
 if (locales.length > 1) need(sitemap.includes('hreflang="x-default"'), "sitemap has x-default");

@@ -5,7 +5,7 @@ const only = process.argv.slice(2);
 const dist = new URL("../dist", import.meta.url).pathname;
 const pages = [
   { name: "index", path: "/" },
-  { name: "404", path: "/this-page-does-not-exist" },
+  { name: "404", path: "/missing-page" },
   ...(existsSync(`${dist}/en-XA/index.html`) ? [{ name: "en-XA-index", path: "/en-XA" }] : []),
 ].filter((page) => !only.length || only.includes(page.name));
 

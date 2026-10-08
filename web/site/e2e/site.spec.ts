@@ -2,7 +2,7 @@ import { existsSync } from "node:fs";
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
 import { harnesses } from "@skopli/ui/data/harnesses.ts";
-import { rows, totals, usd } from "../src/data/example.ts";
+import { rows } from "../src/data/example.ts";
 
 const pseudoBuilt = existsSync(new URL("../dist/en-XA/index.html", import.meta.url));
 const pages = ["/", "/missing-page", ...(pseudoBuilt ? ["/en-XA/"] : [])];
@@ -29,6 +29,7 @@ for (const theme of ["dark", "light"] as const) {
             (el) => el.scrollWidth > el.clientWidth + 1,
           ),
         );
+        expect(frames, "one ledger per home page").toHaveLength(path === "/missing-page" ? 0 : 1);
         expect(frames, "ledger overflows its frame").not.toContain(true);
         if (path === "/missing-page") {
           const [scrollHeight, innerHeight] = await page.evaluate(() => [
@@ -156,7 +157,6 @@ test("the ledger recomputes from the example rows and stays inside its frame", a
   await page.goto("/");
   const ledger = page.locator(".ledger");
   await expect(ledger.locator("tfoot td").last()).toHaveText("$211.39");
-  expect(usd(totals.usd)).toBe("$211.39");
   await expect(ledger.locator("tbody tr")).toHaveCount(rows.length);
   await expect(ledger.locator(".ledger__miss")).toHaveText("priced: false");
   await expect(ledger.locator("thead th", { hasText: "Model" })).toBeVisible();
