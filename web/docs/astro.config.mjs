@@ -1,5 +1,4 @@
 // @ts-check
-import { globSync } from "node:fs";
 import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -10,28 +9,12 @@ import { rehypeHeadingAnchors } from "@skopli/ui/markdown/rehype-heading-anchors
 import { rehypeTableFrame } from "@skopli/ui/markdown/rehype-table-frame.ts";
 import { remarkCallouts } from "@skopli/ui/markdown/remark-callouts.ts";
 import { shikiFrame } from "@skopli/ui/markdown/shiki-frame.ts";
-import { configuredLocales, defaultLocale } from "@skopli/ui/i18n";
+import { defaultLocale } from "@skopli/ui/i18n";
 import { defineConfig } from "astro/config";
 import * as pagefind from "pagefind";
 import remarkDirective from "remark-directive";
-import { basePath, pseudoLocaleEnabled, siteOrigin } from "./src/site.ts";
-
-const locales = configuredLocales(pseudoLocaleEnabled);
-/** Slugs that exist in every configured locale, so hreflang alternates only point at real pages. */
-const translatedSlugs = new Set(
-  locales
-    .filter((l) => l !== defaultLocale)
-    .flatMap((l) =>
-      globSync([`src/content/docs/${l}/**/*.{md,mdx}`, `test/fixtures/${l}/**/*.{md,mdx}`]).map(
-        (f) =>
-          f
-            .replace(/^.*?\/[a-z]{2}(-[A-Z]{2})?\//, "")
-            .replace(/\.mdx?$/, "")
-            .replace(/^index$/, "")
-            .replace(/\/index$/, ""),
-      ),
-    ),
-);
+import { locales, translatedSlugs } from "./src/lib/translated.ts";
+import { basePath, siteOrigin } from "./src/site.ts";
 
 const rootRedirect = `<!doctype html>
 <html lang="en">

@@ -77,7 +77,8 @@ for (const locale of locales) {
     );
   for (const slug of localeSlugs) {
     const base = slug || "index";
-    const html = read(join(site, slug || isDefault ? `${prefix}${base}.html` : `${locale}.html`));
+    const htmlFile = !slug && !isDefault ? `${locale}.html` : `${prefix}${base}.html`;
+    const html = read(join(site, htmlFile));
     const md = read(join(site, prefix, `${base}.md`));
     const where = `${prefix}${base}`;
     const canonical = `https://docs.skopli.com/skopli${isDefault ? `/${slug}` : `/${locale}${slug ? `/${slug}` : ""}`}`;

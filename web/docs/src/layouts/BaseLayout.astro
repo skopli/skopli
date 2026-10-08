@@ -7,7 +7,7 @@ import Fonts from "@skopli/ui/components/Fonts.astro";
 import TabsInit from "@skopli/ui/components/TabsInit.astro";
 import ThemeScript from "@skopli/ui/components/ThemeScript.astro";
 import type { Locale } from "@skopli/ui/i18n";
-import { defaultLocale, translator } from "@skopli/ui/i18n";
+import { defaultLocale, ogLocale, translator } from "@skopli/ui/i18n";
 import Analytics from "@skopli/ui/components/Analytics.astro";
 import { absoluteHref } from "../lib/i18n.ts";
 import { basePath, repoUrl, siteOrigin } from "../site.ts";
@@ -69,7 +69,7 @@ const siteJsonLd = {
     <meta property="og:title" content={fullTitle} />
     <meta property="og:description" content={description} />
     <meta property="og:url" content={canonical} />
-    <meta property="og:locale" content={locale.replace("-", "_")} />
+    <meta property="og:locale" content={ogLocale(locale)} />
     <meta name="twitter:card" content="summary" />
     <meta name="color-scheme" content="dark light" />
     <meta name="theme-color" content="#0b0b0c" />

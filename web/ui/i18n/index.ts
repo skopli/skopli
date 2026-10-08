@@ -43,14 +43,8 @@ export function translator(locale: Locale) {
 
 export type Translate = ReturnType<typeof translator>;
 
-export function localeFromPath(pathname: string, locales: readonly Locale[]): Locale {
-  const first = pathname.split("/").find(Boolean);
-  return locales.find((l) => l !== defaultLocale && l === first) ?? defaultLocale;
-}
-
-export function stripLocale(pathname: string, locale: Locale): string {
-  if (locale === defaultLocale) return pathname;
-  return pathname.replace(new RegExp(`^/${locale}(?=/|$)`), "") || "/";
+export function ogLocale(locale: Locale): string {
+  return locale === defaultLocale ? "en_US" : locale.replace("-", "_");
 }
 
 export function localizePath(pathname: string, locale: Locale): string {

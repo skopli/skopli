@@ -94,7 +94,7 @@ jobs:
       - name: docs check + build
         run: pnpm --dir web/docs run check && pnpm --dir web/docs run build
       - name: docs e2e
-        run: pnpm --dir web/docs exec playwright install --with-deps chromium && pnpm --dir web/docs run test:e2e
+        run: pnpm --dir web/docs run test:e2e
       - name: docs pseudo-locale build
         run: SKOPLI_PSEUDO_LOCALE=1 pnpm --dir web/docs run build
 

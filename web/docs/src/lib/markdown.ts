@@ -157,9 +157,10 @@ function convertBlocks(nodes: RootContent[], page: MarkdownPage): RootContent[] 
   return nodes.flatMap((node): RootContent[] => {
     switch (node.type) {
       case "mdxjsEsm":
+        return [];
       case "mdxFlowExpression":
       case "mdxTextExpression":
-        return [];
+        return fail(page, `unsupported expression {${node.value}}`);
       case "mdxJsxFlowElement":
       case "mdxJsxTextElement":
         return convertJsx(node, page);
@@ -184,7 +185,11 @@ function absolutize(tree: Root, page: MarkdownPage): void {
   const origin = new URL(page.siteBase).origin;
   const here = `${page.siteBase}${page.path === "/" ? "/" : page.path}`;
   const absolute = (url: string) =>
-    url.startsWith("/") ? `${origin}${url}` : url.startsWith("#") ? `${here}${url}` : url;
+    url.startsWith("/")
+      ? `${origin}${url}`
+      : url.startsWith("#")
+        ? `${here}${url}`
+        : new URL(url, here).href;
   visit(tree, (node) => {
     if (node.type === "link" || node.type === "definition" || node.type === "image")
       node.url = absolute(node.url);

@@ -267,7 +267,7 @@ test("theme persists and is applied before first paint", async ({ page }) => {
   const themeScript = html.indexOf("skopli-theme");
   const firstStylesheet = html.indexOf('<link rel="stylesheet"');
   expect(themeScript).toBeGreaterThan(-1);
-  expect(firstStylesheet === -1 || themeScript < firstStylesheet).toBe(true);
+  expect(firstStylesheet).toBeGreaterThan(themeScript);
 });
 
 test("mobile drawer traps focus and closes on Escape", async ({ page }) => {

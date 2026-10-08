@@ -170,13 +170,16 @@
 
 .prose .code-frame {
   max-width: var(--content-width-wide);
+}
+
+.code-frame {
   border: var(--hair) solid var(--code-edge);
   border-radius: var(--r-2);
   background: var(--code-0);
 }
 
-.prose .code-frame > pre,
-.prose pre.astro-code {
+.code-frame > pre,
+pre.astro-code {
   margin: 0;
   padding: var(--s-3) var(--s-4);
   overflow-x: auto;
@@ -187,12 +190,13 @@
   scrollbar-width: thin;
 }
 
-.prose pre.astro-code:not(.code-frame > *) {
+pre.astro-code:not(.code-frame > *) {
   border: var(--hair) solid var(--code-edge);
   border-radius: var(--r-2);
 }
 
-.prose pre code {
+.code-frame pre code,
+pre.astro-code code {
   display: block;
   width: max-content;
   min-width: 100%;
@@ -292,17 +296,23 @@
   position: relative;
 }
 
-.prose .astro-code .line.diff.add {
+@media (pointer: coarse) {
+  .code-frame--untitled {
+    min-height: calc(var(--target) + 2 * var(--s-2));
+  }
+}
+
+.astro-code .line.diff.add {
   background: var(--diff-add-wash);
   box-shadow: inset 2px 0 var(--diff-add);
 }
 
-.prose .astro-code .line.diff.remove {
+.astro-code .line.diff.remove {
   background: var(--diff-del-wash);
   box-shadow: inset 2px 0 var(--diff-del);
 }
 
-.prose .astro-code .line.highlighted {
+.astro-code .line.highlighted {
   background: var(--ground-3);
 }
 

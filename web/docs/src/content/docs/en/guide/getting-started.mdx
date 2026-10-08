@@ -20,7 +20,7 @@ No accounts, no telemetry. The readers never touch the network. Pricing fetches 
 
 ## Step 1: Install
 
-Pick your language. The TypeScript package needs Node 24 or newer and ships ESM only. The rest publish with the [first release](https://github.com/skopli/skopli/releases).
+Pick your language. No package is published yet: every registry package below ships with the [first release](https://github.com/skopli/skopli/releases), and until then each SDK builds from the repository. The TypeScript package needs Node 24 or newer and ships ESM only. Java, Swift, and C link the C library, built from the repository root with `cargo build -p skopli-capi --release`.
 
 <Tabs syncKey="lang">
   <Tab label="TypeScript">
@@ -65,23 +65,17 @@ Pick your language. The TypeScript package needs Node 24 or newer and ships ESM 
 
   </Tab>
   <Tab label="Java">
-    <Tabs syncKey="build">
-      <Tab label="Maven">
-        ```xml
-        <dependency>
-          <groupId>com.skopli</groupId>
-          <artifactId>skopli</artifactId>
-        </dependency>
-        ```
+    The facade is a Gradle build under `sdks/java`. Include it from a checkout beside your project, then depend on it by coordinates:
 
-      </Tab>
-      <Tab label="Gradle">
-        ```groovy
-        implementation("com.skopli:skopli")
-        ```
+    ```kotlin
+    // settings.gradle.kts
+    includeBuild("../skopli/sdks/java")
+    ```
 
-      </Tab>
-    </Tabs>
+    ```kotlin
+    // build.gradle.kts
+    implementation("com.skopli:skopli")
+    ```
 
   </Tab>
   <Tab label="C#">
@@ -97,10 +91,10 @@ Pick your language. The TypeScript package needs Node 24 or newer and ships ESM 
 
   </Tab>
   <Tab label="Swift">
-    Add to the `dependencies` array in `Package.swift`:
+    The manifest lives under `sdks/swift`. Add it to the `dependencies` array in `Package.swift` from a checkout beside your project:
 
     ```swift
-    .package(url: "https://github.com/skopli/skopli", from: "1.0.0")
+    .package(path: "../skopli/sdks/swift")
     ```
 
   </Tab>

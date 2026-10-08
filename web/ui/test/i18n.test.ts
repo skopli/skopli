@@ -3,10 +3,8 @@ import {
   aiPrompt,
   configuredLocales,
   format,
-  localeFromPath,
   localizePath,
   pseudolocalize,
-  stripLocale,
   translator,
 } from "../i18n/index.ts";
 import { en } from "../i18n/strings.ts";
@@ -45,9 +43,5 @@ describe("i18n core", () => {
     expect(localizePath("/guide/reading", "en")).toBe("/guide/reading");
     expect(localizePath("/guide/reading", "en-XA")).toBe("/en-XA/guide/reading");
     expect(localizePath("/", "en-XA")).toBe("/en-XA");
-    expect(localeFromPath("/en-XA/guide", ["en", "en-XA"])).toBe("en-XA");
-    expect(localeFromPath("/guide", ["en", "en-XA"])).toBe("en");
-    expect(stripLocale("/en-XA/guide", "en-XA")).toBe("/guide");
-    expect(stripLocale("/en-XA", "en-XA")).toBe("/");
   });
 });
