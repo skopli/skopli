@@ -1,0 +1,119 @@
+---
+import type { MarkdownHeading } from "astro";
+
+interface Props {
+  headings: MarkdownHeading[];
+  label: string;
+}
+
+const { headings, label } = Astro.props;
+const items = headings.filter((h) => h.depth === 2 || h.depth === 3);
+---
+
+{
+  items.length > 0 && (
+    <skopli-toc class="toc">
+      <h2 class="toc__label" id="toc-label">{label}</h2>
+      <ul aria-labelledby="toc-label">
+        {items.map((heading) => (
+          <li class:list={["toc__item", `toc__item--${heading.depth}`]}>
+            <a href={`#${heading.slug}`}>{heading.text}</a>
+          </li>
+        ))}
+      </ul>
+    </skopli-toc>
+  )
+}
+
+<style>
+  .toc {
+    display: block;
+    font-size: var(--fs-sm);
+  }
+  .toc__label {
+    margin: 0 0 var(--s-2);
+    color: var(--ink-0);
+    font-size: var(--fs-xs);
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+  ul {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    border-inline-start: var(--hair) solid var(--rule-1);
+  }
+  a {
+    display: block;
+    padding: var(--s-1) var(--s-3);
+    margin-inline-start: -1px;
+    border-inline-start: 1px solid transparent;
+    color: var(--ink-2);
+    text-decoration: none;
+    overflow-wrap: anywhere;
+  }
+  .toc__item--3 a {
+    padding-inline-start: var(--s-5);
+  }
+  a:hover {
+    color: var(--ink-0);
+  }
+  a[aria-current="true"] {
+    color: var(--ink-0);
+    border-inline-start-color: var(--accent);
+  }
+  @media (pointer: coarse) {
+    a {
+      min-height: var(--target);
+      display: flex;
+      align-items: center;
+    }
+  }
+</style>
+
+<script>
+  class SkopliToc extends HTMLElement {
+    connectedCallback() {
+      const links = Array.from(this.querySelectorAll<HTMLAnchorElement>("a[href^='#']"));
+      const targets = links
+        .map((link) => document.getElementById(decodeURIComponent(link.hash.slice(1))))
+        .filter((el): el is HTMLElement => el !== null);
+      if (!targets.length) return;
+      const headerOffset = () =>
+        parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--header-h")) * 16 +
+        24;
+      const setCurrent = (id: string) => {
+        for (const link of links) {
+          const on = decodeURIComponent(link.hash.slice(1)) === id;
+          if (on) link.setAttribute("aria-current", "true");
+          else link.removeAttribute("aria-current");
+        }
+      };
+      const update = () => {
+        const offset = headerOffset();
+        let current = targets[0]!;
+        for (const target of targets) {
+          if (target.getBoundingClientRect().top - offset <= 1) current = target;
+        }
+        if (window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 2) {
+          current = targets[targets.length - 1]!;
+        }
+        setCurrent(current.id);
+      };
+      let ticking = false;
+      const onScroll = () => {
+        if (ticking) return;
+        ticking = true;
+        requestAnimationFrame(() => {
+          ticking = false;
+          update();
+        });
+      };
+      window.addEventListener("scroll", onScroll, { passive: true });
+      window.addEventListener("resize", onScroll);
+      update();
+    }
+  }
+  if (!customElements.get("skopli-toc")) customElements.define("skopli-toc", SkopliToc);
+</script>

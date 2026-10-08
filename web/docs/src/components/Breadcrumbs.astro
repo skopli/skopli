@@ -1,0 +1,66 @@
+---
+import type { Locale } from "@skopli/ui/i18n";
+import { href } from "../lib/i18n.ts";
+
+interface Props {
+  locale: Locale;
+  label: string;
+  home: string;
+  trail: { title: string; href?: string }[];
+}
+
+const { locale, label, home, trail } = Astro.props;
+---
+
+<nav class="crumbs" aria-label={label}>
+  <ol>
+    <li><a href={href("/", locale)}>{home}</a></li>
+    {
+      trail.map((crumb, index) => (
+        <li aria-current={index === trail.length - 1 ? "page" : undefined}>
+          {crumb.href ? <a href={crumb.href}>{crumb.title}</a> : <span>{crumb.title}</span>}
+        </li>
+      ))
+    }
+  </ol>
+</nav>
+
+<style>
+  .crumbs {
+    font-size: var(--fs-sm);
+    color: var(--ink-2);
+  }
+  ol {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--s-1);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  li {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--s-1);
+  }
+  li + li::before {
+    content: "/";
+    color: var(--ink-3);
+  }
+  a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 2rem;
+    padding: 0 var(--s-1);
+    color: var(--ink-2);
+    text-decoration: none;
+  }
+  a:hover {
+    color: var(--ink-0);
+  }
+  [aria-current="page"] span {
+    padding: 0 var(--s-1);
+    color: var(--ink-0);
+  }
+</style>

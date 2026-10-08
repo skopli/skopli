@@ -1,0 +1,359 @@
+---
+title: Getting started
+description: Install Skopli in your language and run a four-call quickstart from local logs to a priced total.
+---
+
+import Tabs from "@skopli/ui/components/Tabs.astro";
+import Tab from "@skopli/ui/components/Tab.astro";
+
+Skopli is an SDK, not a CLI. It reads the session state your harnesses keep on disk (sessions, turns, calls, tokens), normalizes it, aggregates it, and prices it. Build your own dashboards, reports, or billing checks on top.
+
+Three independent layers, each usable on its own.
+
+| Layer      | What it does                                                                                                                                                                             | Network            |
+| ---------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------ |
+| **Read**   | Parse local session state from 40 harnesses into normalized usage events, with structured diagnostics                                                                                    | Never              |
+| **Rollup** | Group events by model, day (timezone-aware in every SDK), session, harness, workspace, or billing block                                                                                  | Never              |
+| **Price**  | Match models against OpenRouter, LiteLLM, and models.dev catalogs (or your own) and compute USD costs, with tiered long-context rates, cache-write splits, and misses reported as misses | By default, cached |
+
+No accounts, no telemetry. The readers never touch the network. Pricing fetches the market catalogs by default when used, caches what it fetches, and reads from cache when offline. Pass an empty `sources` list or `offline` for a network-free handle.
+
+## Step 1: Install
+
+Pick your language. The TypeScript package requires Node >= 24 and is ESM only. The rest publish with the [first release](https://github.com/skopli/skopli/releases).
+
+<Tabs syncKey="lang">
+  <Tab label="TypeScript">
+    <Tabs syncKey="pkg">
+      <Tab label="npm">
+        ```sh
+        npm install skopli
+        ```
+
+      </Tab>
+      <Tab label="pnpm">
+        ```sh
+        pnpm add skopli
+        ```
+
+      </Tab>
+      <Tab label="bun">
+        ```sh
+        bun add skopli
+        ```
+
+      </Tab>
+    </Tabs>
+
+  </Tab>
+  <Tab label="Python">
+    ```sh
+    pip install skopli
+    ```
+
+  </Tab>
+  <Tab label="Rust">
+    ```sh
+    cargo add skopli-core
+    ```
+
+  </Tab>
+  <Tab label="Ruby">
+    ```sh
+    gem install skopli
+    ```
+
+  </Tab>
+  <Tab label="Java">
+    <Tabs syncKey="build">
+      <Tab label="Maven">
+        ```xml
+        <dependency>
+          <groupId>com.skopli</groupId>
+          <artifactId>skopli</artifactId>
+        </dependency>
+        ```
+
+      </Tab>
+      <Tab label="Gradle">
+        ```groovy
+        implementation("com.skopli:skopli")
+        ```
+
+      </Tab>
+    </Tabs>
+
+  </Tab>
+  <Tab label="C#">
+    ```sh
+    dotnet add package Skopli
+    ```
+
+  </Tab>
+  <Tab label="Go">
+    ```sh
+    go get github.com/skopli/skopli/sdks/go
+    ```
+
+  </Tab>
+  <Tab label="Swift">
+    Add to the `dependencies` array in `Package.swift`:
+
+    ```swift
+    .package(url: "https://github.com/skopli/skopli", from: "1.0.0")
+    ```
+
+  </Tab>
+  <Tab label="C/C++">
+    Download `skopli.h` and the prebuilt library from the [release assets](https://github.com/skopli/skopli/releases), then include the header and link the library:
+
+    ```c
+    #include "skopli.h"
+    ```
+
+    ```sh
+    cc app.c -lskopli
+    ```
+
+  </Tab>
+</Tabs>
+
+## Step 2: Quickstart
+
+<Tabs syncKey="lang">
+  <Tab label="TypeScript">
+    ```ts
+    import { detectHarnesses, readUsage, rollup, createPricing } from "skopli";
+
+    // what harnesses have local data?
+    const { supported, unsupported } = detectHarnesses();
+
+    // read usage events (all detected harnesses, or pick explicitly)
+    const { events, diagnostics } = await readUsage({
+      harnesses: ["claude", "opencode", "codex"],
+      since: "2026-08-01",
+    });
+
+    // aggregate
+    const byModel = rollup(events, { by: "model" });
+    const byDay = rollup(events, { by: "day", tz: "Europe/London" });
+
+    // price against market catalogs
+    const pricing = createPricing();
+    const priced = await pricing.priceRollups(byModel);
+    for (const row of priced) {
+      if (row.pricing.priced) {
+        console.log(row.key, row.pricing.usd.toFixed(2), `(${row.pricing.source})`);
+      } else {
+        console.log(row.key, "unpriced; tried", row.pricing.attempted.join(", "));
+      }
+    }
+    ```
+
+  </Tab>
+  <Tab label="Python">
+    ```python
+    import skopli
+
+    # what harnesses have local data?
+    detection = skopli.detect_harnesses()
+
+    # read usage events (all detected harnesses, or pick explicitly)
+    result = skopli.read_usage(
+        harnesses=["claude", "opencode", "codex"],
+        since="2026-08-01",
+    )
+
+    # aggregate
+    by_model = skopli.rollup(result.events, "model")
+    by_day = skopli.rollup(result.events, "day", tz="Europe/London")
+
+    # price against market catalogs
+    pricing = skopli.create_pricing()
+    for row in pricing.price_rollups(by_model):
+        if row.pricing.priced:
+            print(row.rollup.key, round(row.usd, 2), f"({row.pricing.source})")
+        else:
+            print(row.rollup.key, "unpriced; tried", ", ".join(row.pricing.attempted))
+    ```
+
+  </Tab>
+  <Tab label="Rust">
+    `skopli-core` exposes the aggregation and pricing primitives directly. Roll up a batch of `UsageEvent`s and price a token bundle:
+
+    ```rust
+    use skopli_core::rollup::{rollup, RollupBy, RollupOptions};
+    use skopli_core::pricing::{cost_usd, ModelPrice};
+    use skopli_core::types::TokenCounts;
+
+    // aggregate events by model (timezone-aware day bucketing for `RollupBy::Day`)
+    let by_model = rollup(&events, &RollupOptions::new(RollupBy::Model));
+    for bucket in &by_model {
+        println!("{}: {} events", bucket.key, bucket.events);
+    }
+
+    // price a token bundle at a flat rate (USD per million tokens)
+    let tokens = TokenCounts { input: 1_000, output: 500, ..Default::default() };
+    let usd = cost_usd(&tokens, &ModelPrice::flat(1.25, 10.0));
+    println!("{usd:.5}");
+    ```
+
+  </Tab>
+  <Tab label="Ruby">
+    ```ruby
+    require "skopli"
+
+    # what harnesses have local data?
+    detection = Skopli.detect_harnesses
+
+    # read usage events (all detected harnesses, or pick explicitly)
+    result = Skopli.read_usage(
+      harnesses: ["claude", "opencode", "codex"],
+      since: "2026-08-01"
+    )
+
+    # aggregate
+    by_model = Skopli.rollup(result.events, :model)
+    by_day = Skopli.rollup(result.events, :day, tz: "Europe/London")
+
+    # price against market catalogs
+    pricing = Skopli.create_pricing
+    pricing.price_rollups(by_model).each do |row|
+      if row.pricing.priced
+        puts "#{row.rollup.key} #{row.usd.round(2)} (#{row.pricing.source})"
+      else
+        puts "#{row.rollup.key} unpriced; tried #{row.pricing.attempted.join(', ')}"
+      end
+    end
+    ```
+
+  </Tab>
+  <Tab label="Java">
+    ```java
+    import com.skopli.*;
+    import java.util.List;
+
+    // what harnesses have local data?
+    Detection detection = Skopli.detectHarnesses(DetectOptions.defaults());
+
+    // read usage events (all detected harnesses, or pick explicitly)
+    ReadUsageResult result = Skopli.readUsage(ReadUsageOptions.builder()
+        .harness(Harness.CLAUDE)
+        .harness(Harness.OPENCODE)
+        .since("2026-08-01")
+        .build());
+
+    // aggregate
+    List<Rollup> byModel = Skopli.rollup(result.events(), RollupOptions.by(RollupBy.MODEL));
+
+    // price against market catalogs
+    try (Pricing pricing = Skopli.createPricing(PricingOptions.builder().build())) {
+        for (PricedRollup row : pricing.priceRollups(byModel)) {
+            System.out.println(row.rollup().key() + " " + row.pricing());
+        }
+    }
+    ```
+
+  </Tab>
+  <Tab label="C#">
+    ```csharp
+    using Skopli;
+
+    // what harnesses have local data?
+    Detection detection = SkopliClient.DetectHarnesses();
+
+    // read usage events (all detected harnesses, or pick explicitly)
+    ReadUsageResult usage = SkopliClient.ReadUsage(new ReadUsageOptions {
+        Harnesses = new[] { "claude", "opencode", "codex" },
+        Since = "2026-08-01",
+    });
+
+    // aggregate
+    IReadOnlyList<Rollup> byModel =
+        SkopliClient.Rollup(usage.Events, new RollupOptions { By = RollupBy.Model });
+
+    // price against market catalogs
+    using Pricing pricing = SkopliClient.CreatePricing(new PricingOptions());
+    IReadOnlyList<PricedRollup> priced = pricing.PriceRollups(byModel);
+    foreach (PricedRollup row in priced)
+        Console.WriteLine($"{row.Rollup.Key} {row.Pricing}");
+    ```
+
+  </Tab>
+  <Tab label="Go">
+    ```go
+    import "github.com/skopli/skopli/sdks/go/skopli"
+
+    // what harnesses have local data?
+    detection, _ := skopli.DetectHarnesses(nil)
+
+    // read usage events (all detected harnesses, or pick explicitly)
+    result, _ := skopli.ReadUsage(skopli.ReadUsageOptions{
+        Harnesses: []skopli.Harness{skopli.HarnessClaude, skopli.HarnessOpencode},
+        Since:     "2026-08-01",
+    })
+
+    // aggregate
+    byModel, _ := skopli.Rollup(result.Events, skopli.RollupOptions{By: skopli.ByModel})
+
+    // price against market catalogs
+    pricing, _ := skopli.NewPricing(skopli.PricingOptions{})
+    defer pricing.Close()
+    priced, _ := pricing.PriceRollups(byModel)
+    for _, row := range priced {
+        fmt.Println(row.Key, row.Pricing.Priced)
+    }
+    ```
+
+  </Tab>
+  <Tab label="Swift">
+    ```swift
+    import Skopli
+
+    // what harnesses have local data?
+    let detection = try Skopli.detectHarnesses()
+
+    // read usage events (all detected harnesses, or pick explicitly)
+    let result = try Skopli.readUsage(
+        options: ReadUsageOptions(harnesses: [.claude, .opencode], since: "2026-08-01"))
+
+    // aggregate
+    let byModel = try Skopli.rollup(events: result.events, by: .model)
+
+    // price against market catalogs
+    let pricing = try Skopli.createPricing()
+    defer { pricing.close() }
+    let priced = try pricing.priceRollups(rollups: byModel)
+    for row in priced {
+        print(row.key, row.pricing.priced)
+    }
+    ```
+
+  </Tab>
+  <Tab label="C/C++">
+    The C ABI exchanges JSON buffers. Roll up an event array (`events_json`) and free the returned buffer:
+
+    ```c
+    #include <stdio.h>
+    #include <string.h>
+    #include "skopli.h"
+
+    // events_json / events_len are a serialized UsageEvent[] from ag_read_usage.
+    AgBuf out = {0};
+    const char *group_opts = "{\"by\":\"model\"}";
+    AgStatus st = ag_rollup(events_json, events_len, group_opts, strlen(group_opts), &out);
+    if (st == AG_STATUS_OK) {
+        fwrite(out.ptr, 1, out.len, stdout); // Rollup[] as JSON
+        ag_buf_free(out);
+    }
+    ```
+
+  </Tab>
+</Tabs>
+
+## Next steps
+
+- [Reading usage](/skopli/guide/reading): options, date and timezone semantics, event fields, subagents, and diagnostics.
+- [Rollups](/skopli/guide/rollups): grouping events.
+- [Pricing basics](/skopli/guide/pricing-basics): sources, cache, modes, and misses.
+- [Supported harnesses](/skopli/reference/harnesses): the full table of ids.

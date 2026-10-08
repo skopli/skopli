@@ -1,0 +1,86 @@
+---
+import "@skopli/ui/tokens.css";
+import "@skopli/ui/base.css";
+import "@skopli/ui/prose.css";
+import "@skopli/ui/shiki.css";
+import Fonts from "@skopli/ui/components/Fonts.astro";
+import TabsInit from "@skopli/ui/components/TabsInit.astro";
+import ThemeScript from "@skopli/ui/components/ThemeScript.astro";
+import type { Locale } from "@skopli/ui/i18n";
+import { defaultLocale } from "@skopli/ui/i18n";
+import Analytics from "../components/Analytics.astro";
+import { absoluteHref } from "../lib/i18n.ts";
+import { basePath, repoUrl, siteOrigin } from "../site.ts";
+
+interface Props {
+  locale: Locale;
+  title: string;
+  description: string;
+  path: string;
+  alternates?: Locale[];
+  noindex?: boolean;
+  jsonLd?: Record<string, unknown>;
+  mdPath?: string;
+}
+
+const { locale, title, description, path, alternates = [], noindex = false, jsonLd, mdPath } =
+  Astro.props;
+const canonical = absoluteHref(path, locale);
+const fullTitle = path === "/" ? "Skopli docs" : `${title} | Skopli docs`;
+const siteJsonLd = {
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "WebSite",
+      "@id": `${siteOrigin}${basePath}/#website`,
+      url: `${siteOrigin}${basePath}/`,
+      name: "Skopli docs",
+      inLanguage: locale,
+      publisher: { "@type": "Organization", name: "Skopli", url: repoUrl },
+    },
+    ...(jsonLd ? [jsonLd] : []),
+  ],
+};
+---
+
+<!doctype html>
+<html lang={locale} dir="ltr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{fullTitle}</title>
+    <meta name="description" content={description} />
+    <link rel="canonical" href={canonical} />
+    {noindex && <meta name="robots" content="noindex" />}
+    {
+      alternates.length > 1 &&
+        alternates.map((alt) => <link rel="alternate" hreflang={alt} href={absoluteHref(path, alt)} />)
+    }
+    {
+      alternates.length > 1 && (
+        <link rel="alternate" hreflang="x-default" href={absoluteHref(path, defaultLocale)} />
+      )
+    }
+    {mdPath && <link rel="alternate" type="text/markdown" href={`${basePath}${mdPath}`} />}
+    <link rel="sitemap" href={`${basePath}/sitemap-index.xml`} />
+    <link rel="icon" href={`${basePath}/favicon.svg`} type="image/svg+xml" />
+    <meta property="og:type" content="article" />
+    <meta property="og:site_name" content="Skopli docs" />
+    <meta property="og:title" content={fullTitle} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonical} />
+    <meta property="og:locale" content={locale.replace("-", "_")} />
+    <meta name="twitter:card" content="summary" />
+    <meta name="color-scheme" content="dark light" />
+    <meta name="theme-color" content="#0b0b0c" media="(prefers-color-scheme: dark)" />
+    <meta name="theme-color" content="#f5f5f6" media="(prefers-color-scheme: light)" />
+    <ThemeScript />
+    <TabsInit />
+    <Fonts />
+    <script is:inline type="application/ld+json" set:html={JSON.stringify(siteJsonLd)} />
+    <Analytics />
+  </head>
+  <body>
+    <slot />
+  </body>
+</html>

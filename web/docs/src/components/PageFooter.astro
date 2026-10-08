@@ -1,0 +1,78 @@
+---
+import type { Locale, Translate } from "@skopli/ui/i18n";
+import { href } from "../lib/i18n.ts";
+import type { NavItem } from "../nav.ts";
+
+interface Props {
+  t: Translate;
+  locale: Locale;
+  prev?: NavItem;
+  next?: NavItem;
+}
+
+const { t, locale, prev, next } = Astro.props;
+---
+
+<nav class="pager" aria-label={`${t("previous")} / ${t("next")}`}>
+  {
+    prev && (
+      <a class="pager__link pager__link--prev" href={href(`/${prev.slug}`, locale)} rel="prev">
+        <span class="pager__kicker">{t("previous")}</span>
+        <span class="pager__title">{prev.title}</span>
+      </a>
+    )
+  }
+  {
+    next && (
+      <a class="pager__link pager__link--next" href={href(`/${next.slug}`, locale)} rel="next">
+        <span class="pager__kicker">{t("next")}</span>
+        <span class="pager__title">{next.title}</span>
+      </a>
+    )
+  }
+</nav>
+
+<style>
+  .pager {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--s-3);
+    max-width: var(--content-width);
+    margin-top: var(--s-7);
+    padding-top: var(--s-5);
+    border-top: var(--hair) solid var(--rule-1);
+  }
+  .pager__link {
+    display: grid;
+    gap: var(--s-1);
+    padding: var(--s-3) var(--s-4);
+    border: var(--hair) solid var(--rule-1);
+    border-radius: var(--r-2);
+    color: var(--ink-0);
+    text-decoration: none;
+  }
+  .pager__link:hover {
+    border-color: var(--rule-ui);
+    color: var(--ink-0);
+  }
+  .pager__link--next {
+    grid-column: 2;
+    text-align: end;
+  }
+  .pager__kicker {
+    color: var(--ink-3);
+    font-size: var(--fs-xs);
+  }
+  .pager__title {
+    font-size: var(--fs-sm);
+    font-weight: 500;
+  }
+  @media (max-width: 29.99rem) {
+    .pager {
+      grid-template-columns: 1fr;
+    }
+    .pager__link--next {
+      grid-column: 1;
+    }
+  }
+</style>

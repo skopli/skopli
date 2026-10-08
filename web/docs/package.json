@@ -5,26 +5,44 @@
   "type": "module",
   "scripts": {
     "dev": "astro dev",
-    "start": "astro dev",
-    "build": "astro build",
+    "build": "astro build && pnpm run verify-dist",
+    "build:pseudo": "SKOPLI_PSEUDO_LOCALE=1 astro build && SKOPLI_PSEUDO_LOCALE=1 pnpm run verify-dist",
     "preview": "astro preview",
-    "astro": "astro",
+    "verify-dist": "node scripts/verify-dist.ts",
     "lint": "oxlint",
     "format": "oxfmt --check .",
     "format:write": "oxfmt .",
     "typecheck": "astro check",
-    "check": "pnpm run lint && pnpm run format && pnpm run typecheck"
+    "test": "vitest run",
+    "test:e2e": "playwright test",
+    "check": "pnpm run lint && pnpm run format && pnpm run typecheck && pnpm run test"
   },
   "dependencies": {
-    "@astrojs/starlight": "^0.36.0",
-    "astro": "^5.14.1",
-    "sharp": "^0.34.4"
+    "@astrojs/markdown-remark": "7.3.1",
+    "@astrojs/mdx": "8.0.2",
+    "@astrojs/sitemap": "3.7.4",
+    "@skopli/ui": "workspace:*",
+    "astro": "7.3.5",
+    "mdast-util-to-string": "4.0.0",
+    "pagefind": "1.5.2",
+    "remark-directive": "4.0.0",
+    "remark-gfm": "4.0.1",
+    "remark-mdx": "3.1.1",
+    "remark-parse": "11.0.0",
+    "remark-stringify": "11.0.0",
+    "unified": "11.0.5",
+    "unist-util-visit": "5.1.0"
   },
   "devDependencies": {
     "@astrojs/check": "^0.9.10",
-    "@shikijs/themes": "3.23.0",
+    "@axe-core/playwright": "4.13.0",
+    "@playwright/test": "1.63.0",
+    "@types/mdast": "4.0.4",
+    "mdast-util-directive": "3.1.0",
+    "mdast-util-mdx-jsx": "3.2.0",
     "oxfmt": "^0.63.0",
     "oxlint": "^1.78.0",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "vitest": "^4.1.10"
   }
 }

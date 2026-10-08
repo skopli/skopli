@@ -1,0 +1,49 @@
+{
+  "name": "@skopli/ui",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./tokens.css": "./styles/tokens.css",
+    "./base.css": "./styles/base.css",
+    "./prose.css": "./styles/prose.css",
+    "./shiki.css": "./styles/shiki.css",
+    "./components/*": "./components/*",
+    "./i18n": "./i18n/index.ts",
+    "./i18n/*": "./i18n/*",
+    "./data/*": "./data/*",
+    "./analytics": "./analytics.ts",
+    "./fonts": "./fonts/index.ts",
+    "./markdown/*": "./markdown/*"
+  },
+  "scripts": {
+    "lint": "oxlint",
+    "format": "oxfmt --check .",
+    "format:write": "oxfmt .",
+    "typecheck": "astro check --minimumSeverity error --tsconfig tsconfig.json",
+    "test": "vitest run",
+    "contrast": "node scripts/contrast.ts",
+    "check": "pnpm run lint && pnpm run format && pnpm run typecheck && pnpm run contrast && pnpm run test"
+  },
+  "dependencies": {
+    "@fontsource-variable/geist": "5.3.0",
+    "@fontsource-variable/geist-mono": "5.3.0",
+    "mdast-util-directive": "3.1.0",
+    "unist-util-visit": "5.1.0"
+  },
+  "devDependencies": {
+    "@astrojs/check": "^0.9.10",
+    "@types/hast": "3.0.5",
+    "@types/mdast": "4.0.4",
+    "astro": "7.3.5",
+    "oxfmt": "^0.63.0",
+    "oxlint": "^1.78.0",
+    "shiki": "4.4.3",
+    "typescript": "^5.9.3",
+    "vfile": "6.0.3",
+    "vitest": "^4.1.10"
+  },
+  "peerDependencies": {
+    "astro": ">=7.3.0"
+  }
+}

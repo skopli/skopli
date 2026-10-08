@@ -1,0 +1,62 @@
+---
+import { posthogHost, posthogKey } from "@skopli/ui/analytics";
+---
+
+<script is:inline define:vars={{ posthogHost, posthogKey }}>
+  (function () {
+    var host = location.hostname;
+    if (host === "localhost" || host === "127.0.0.1" || host === "[::1]" || host.endsWith(".local")) return;
+    var ph = (window.posthog = window.posthog || []);
+    if (ph.__SV) return;
+    ph._i = [];
+    ph.init = function (key, config, name) {
+      function stub(target, method) {
+        var parts = method.split(".");
+        if (parts.length === 2) {
+          target = target[parts[0]];
+          method = parts[1];
+        }
+        target[method] = function () {
+          target.push([method].concat(Array.prototype.slice.call(arguments, 0)));
+        };
+      }
+      var script = document.createElement("script");
+      script.type = "text/javascript";
+      script.crossOrigin = "anonymous";
+      script.async = true;
+      script.src = config.api_host.replace(".i.posthog.com", "-assets.i.posthog.com") + "/static/array.js";
+      document.head.appendChild(script);
+      var instance = ph;
+      if (name !== undefined) instance = ph[name] = [];
+      else name = "posthog";
+      instance.people = instance.people || [];
+      instance.toString = function (noStub) {
+        var label = "posthog";
+        if (name !== "posthog") label += "." + name;
+        if (!noStub) label += " (stub)";
+        return label;
+      };
+      instance.people.toString = function () {
+        return instance.toString(true) + ".people (stub)";
+      };
+      var methods = "init capture register register_once unregister opt_in_capturing opt_out_capturing has_opted_in_capturing has_opted_out_capturing reset set_config".split(" ");
+      for (var i = 0; i < methods.length; i++) stub(instance, methods[i]);
+      ph._i.push([key, config, name]);
+    };
+    ph.__SV = 1;
+    ph.init(posthogKey, {
+      api_host: posthogHost,
+      persistence: "memory",
+      autocapture: false,
+      capture_pageview: false,
+      disable_session_recording: true,
+      disable_surveys: true,
+      person_profiles: "never",
+    });
+    ph.capture("$pageview");
+    document.addEventListener("click", function (event) {
+      var target = event.target instanceof Element ? event.target.closest("[data-event]") : null;
+      if (target) ph.capture(target.getAttribute("data-event"));
+    });
+  })();
+</script>

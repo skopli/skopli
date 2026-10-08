@@ -1,0 +1,6 @@
+---
+import { fontFaces, fontFiles } from "../fonts/index.ts";
+---
+
+{fontFiles.map((href) => <link rel="preload" as="font" type="font/woff2" href={href} crossorigin />)}
+<style is:global set:html={fontFaces} />

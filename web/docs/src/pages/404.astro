@@ -1,0 +1,18 @@
+---
+import Button from "@skopli/ui/components/Button.astro";
+import { defaultLocale } from "@skopli/ui/i18n";
+import DocsLayout from "../layouts/DocsLayout.astro";
+import { href, t as translate } from "../lib/i18n.ts";
+
+const t = translate(defaultLocale);
+---
+
+<DocsLayout locale={defaultLocale} slug="404" title={t("notFoundTitle")} description="" noindex>
+  <p data-not-found-body>{t("notFoundBody", { path: "" })}</p>
+  <p><Button href={href("/")} variant="primary">{t("backToDocs")}</Button></p>
+</DocsLayout>
+
+<script>
+  const body = document.querySelector<HTMLElement>("[data-not-found-body]");
+  if (body) body.textContent = body.textContent!.replace("  ", ` ${location.pathname} `);
+</script>

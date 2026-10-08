@@ -1,0 +1,193 @@
+---
+title: Skopli
+description: An SDK that reads AI coding-agent usage from 40 harnesses offline and prices it against market catalogs.
+---
+
+import Tabs from "@skopli/ui/components/Tabs.astro";
+import Tab from "@skopli/ui/components/Tab.astro";
+import LinkList from "@skopli/ui/components/LinkList.astro";
+import LinkCard from "@skopli/ui/components/LinkCard.astro";
+
+Point Skopli at the session logs your coding agents already keep, and turn them into priced usage data. It reads tokens, sessions, turns, and calls from local disk, normalizes them into usage events, and prices those events against market catalogs. You build the dashboards, reports, and billing checks on top.
+
+Skopli is a library, not a service, so there are no accounts and no telemetry. The readers never touch the network. Only the Price layer does: it fetches market catalogs by default the first time you price, caches them on disk, and keeps pricing from that cache when offline (see [Pricing basics](/skopli/guide/pricing-basics)).
+
+## Install and run
+
+Pick your language. TypeScript needs Node 24 or newer and ships ESM only. The rest publish with the [first release](https://github.com/skopli/skopli/releases).
+
+<Tabs syncKey="lang">
+  <Tab label="TypeScript">
+    <Tabs syncKey="pkg">
+      <Tab label="npm">
+        ```sh
+        npm install skopli
+        ```
+
+      </Tab>
+      <Tab label="pnpm">
+        ```sh
+        pnpm add skopli
+        ```
+
+      </Tab>
+      <Tab label="bun">
+        ```sh
+        bun add skopli
+        ```
+
+      </Tab>
+    </Tabs>
+
+  </Tab>
+  <Tab label="Python">
+    ```sh
+    pip install skopli
+    ```
+
+  </Tab>
+  <Tab label="Rust">
+    ```sh
+    cargo add skopli-core
+    ```
+
+  </Tab>
+  <Tab label="Ruby">
+    ```sh
+    gem install skopli
+    ```
+
+  </Tab>
+  <Tab label="Java">
+    <Tabs syncKey="build">
+      <Tab label="Maven">
+        ```xml
+        <dependency>
+          <groupId>com.skopli</groupId>
+          <artifactId>skopli</artifactId>
+        </dependency>
+        ```
+
+      </Tab>
+      <Tab label="Gradle">
+        ```groovy
+        implementation("com.skopli:skopli")
+        ```
+
+      </Tab>
+    </Tabs>
+
+  </Tab>
+  <Tab label="C#">
+    ```sh
+    dotnet add package Skopli
+    ```
+
+  </Tab>
+  <Tab label="Go">
+    ```sh
+    go get github.com/skopli/skopli/sdks/go
+    ```
+
+  </Tab>
+  <Tab label="Swift">
+    Add to the `dependencies` array in `Package.swift`:
+
+    ```swift
+    .package(url: "https://github.com/skopli/skopli", from: "1.0.0")
+    ```
+
+  </Tab>
+  <Tab label="C/C++">
+    Download `skopli.h` and the prebuilt library from the [release assets](https://github.com/skopli/skopli/releases), then include the header and link the library:
+
+    ```c
+    #include "skopli.h"
+    ```
+
+    ```sh
+    cc app.c -lskopli
+    ```
+
+  </Tab>
+</Tabs>
+
+Four calls, shown here in TypeScript:
+
+```ts
+import { detectHarnesses, readUsage, rollup, createPricing } from "skopli";
+
+const { events } = await readUsage({ since: "2026-08-01" });
+const byModel = rollup(events, { by: "model" });
+const priced = await createPricing().priceRollups(byModel);
+```
+
+The same four calls run in every language. TypeScript, Python, Rust, Ruby, Java, C#, Go, Swift, and C share one Rust core. See [Getting started](/skopli/guide/getting-started) for the quickstart in all nine.
+
+## What you can do
+
+Read, rollup, and price are independent. Use any subset. Events go in, rollups come out, and priced rows come back.
+
+- **Read** parses local session state from 40 harnesses into normalized usage events, with structured diagnostics. See [Reading usage](/skopli/guide/reading).
+- **Rollup** groups events by model, day (timezone-aware in every SDK), session, harness, workspace, or billing block. See [Rollups](/skopli/guide/rollups).
+- **Price** matches models against OpenRouter, LiteLLM, and models.dev catalogs (or your own) and computes USD costs. An unmatched model returns `priced: false` with the sources it tried. See [Pricing basics](/skopli/guide/pricing-basics).
+
+## What every event looks like
+
+Every event carries the same fields before any layer touches it:
+
+- `harness`, `timestamp`, `sessionId`, `messageId`, `turn`, `subagent`, `model`
+- `tokens`: `input`, `output`, `cacheRead`, `cacheWrite`, optional `cacheWrite1h`, `reasoning`
+- `calls`, optional `costUsd` (only when the source reports one), optional `workspace`, optional `title`
+
+`cacheWrite1h` is a portion of the `cacheWrite` total, not additive. Readers subtract reasoning-inclusive output at the source, so nothing bills twice. See [Reading usage](/skopli/guide/reading#event-fields) for the full field semantics.
+
+## When to use Skopli
+
+- Your agents run on machines you control and keep local session logs.
+- You want usage and cost across many harnesses in one pipeline.
+- You need offline reads, timezone-aware day rollups, or cache-write split pricing.
+- You want misses reported as misses, not guesses.
+
+## When not to use Skopli
+
+- Your tool keeps token data cloud-side only (vendor dashboard, quota APIs, no local token file). See [Coverage](/skopli/reference/coverage) for the per-tool reasons.
+- You only need one vendor's billed total and already trust its dashboard.
+- You want a hosted tracker with accounts and telemetry. Skopli is a library, and the read path has no network.
+
+## Find your job
+
+<LinkList>
+  <LinkCard title="Install in my language" href="/skopli/guide/getting-started">
+    Nine facades, one core.
+  </LinkCard>
+  <LinkCard title="Read local logs" href="/skopli/guide/reading">
+    Options, date semantics, event fields, diagnostics.
+  </LinkCard>
+  <LinkCard title="Aggregate by day or model" href="/skopli/guide/rollups">
+    Grouping semantics and timezone handling.
+  </LinkCard>
+  <LinkCard title="Price against catalogs" href="/skopli/guide/pricing-basics">
+    Sources, cache, modes, and misses.
+  </LinkCard>
+  <LinkCard title="Check my harness" href="/skopli/reference/harnesses">
+    The 40 supported ids and detection.
+  </LinkCard>
+  <LinkCard title="Call the API" href="/skopli/reference/api">
+    Functions and types across every facade.
+  </LinkCard>
+</LinkList>
+
+## Diagnosing broken files
+
+The SDK never writes to stdio. Problems come back as structured diagnostics alongside your data:
+
+```ts
+const { events, diagnostics } = await readUsage();
+for (const d of diagnostics) {
+  // { severity: "warning" | "info", message, harness?, path? }
+  console.warn(d.severity, d.message, d.path ?? "");
+}
+```
+
+Each diagnostic names its severity, what went wrong, and (when known) which harness and file it came from. Re-check the path, re-run for that harness, or ship the diagnostics with the report. Skipped source files arrive per harness in `skipped`. See [Diagnostics and error shapes](/skopli/reference/api#diagnostics-and-error-shapes) for the full field table.

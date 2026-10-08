@@ -1,0 +1,12 @@
+---
+import type { Translate } from "../i18n/index.ts";
+
+interface Props {
+  t: Translate;
+  target?: string;
+}
+
+const { t, target = "#main" } = Astro.props;
+---
+
+<a class="skip-link" href={target}>{t("skipToContent")}</a>

@@ -1,0 +1,15 @@
+---
+import type { CalloutType } from "../markdown/remark-callouts.ts";
+
+interface Props {
+  type?: CalloutType;
+  title: string;
+}
+
+const { type = "note", title } = Astro.props;
+---
+
+<aside class="callout" data-type={type}>
+  <strong class="callout__title">{title}</strong>
+  <slot />
+</aside>

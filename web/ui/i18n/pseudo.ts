@@ -1,0 +1,63 @@
+const accents: Record<string, string> = {
+  a: "\u00e5",
+  b: "\u0180",
+  c: "\u00e7",
+  d: "\u00f0",
+  e: "\u00e9",
+  f: "\u0192",
+  g: "\u011f",
+  h: "\u0127",
+  i: "\u00ee",
+  j: "\u0135",
+  k: "\u0137",
+  l: "\u013c",
+  m: "\u1e3f",
+  n: "\u00f1",
+  o: "\u00f6",
+  p: "\u00fe",
+  q: "\u01eb",
+  r: "\u0155",
+  s: "\u0161",
+  t: "\u0167",
+  u: "\u00fc",
+  v: "\u1e7d",
+  w: "\u0175",
+  x: "\u1e8b",
+  y: "\u00fd",
+  z: "\u017e",
+  A: "\u00c5",
+  B: "\u0181",
+  C: "\u00c7",
+  D: "\u00d0",
+  E: "\u00c9",
+  F: "\u0191",
+  G: "\u011e",
+  H: "\u0126",
+  I: "\u00ce",
+  J: "\u0134",
+  K: "\u0136",
+  L: "\u013b",
+  M: "\u1e3e",
+  N: "\u00d1",
+  O: "\u00d6",
+  P: "\u00de",
+  Q: "\u01ea",
+  R: "\u0154",
+  S: "\u0160",
+  T: "\u0166",
+  U: "\u00dc",
+  V: "\u1e7c",
+  W: "\u0174",
+  X: "\u1e8a",
+  Y: "\u00dd",
+  Z: "\u017d",
+};
+
+export function pseudolocalize(text: string): string {
+  const parts = text.split(/(\{[^}]+\})/);
+  const body = parts
+    .map((part, i) => (i % 2 === 1 ? part : part.replace(/[A-Za-z]/g, (c) => accents[c] ?? c)))
+    .join("");
+  const padding = "\u00b7".repeat(Math.ceil(text.replace(/\{[^}]+\}/g, "").length * 0.3));
+  return `[${body}${padding}]`;
+}

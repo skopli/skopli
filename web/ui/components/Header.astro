@@ -1,0 +1,139 @@
+---
+import type { Translate } from "../i18n/index.ts";
+import BrandMark from "./BrandMark.astro";
+import GitHubIcon from "./GitHubIcon.astro";
+import ThemeToggle from "./ThemeToggle.astro";
+
+interface Props {
+  t: Translate;
+  homeHref: string;
+  wordmark?: string;
+  githubUrl?: string;
+  layout?: "page" | "docs";
+}
+
+const {
+  t,
+  homeHref,
+  wordmark,
+  githubUrl = "https://github.com/skopli/skopli",
+  layout = "page",
+} = Astro.props;
+---
+
+<header class:list={["site-header", `site-header--${layout}`]}>
+  <div class="site-header__in">
+    <slot name="leading" />
+    <a class="brand" href={homeHref}>
+      <BrandMark />
+      <span class="brand__word">Skopli</span>
+      {wordmark && <span class="brand__sub">{wordmark}</span>}
+    </a>
+    <nav class="site-header__nav" aria-label={t("mainNavigation")}>
+      <slot name="nav" />
+    </nav>
+    <div class="site-header__actions">
+      <slot name="actions" />
+      <a class="icon-link" href={githubUrl} rel="noopener" aria-label={t("githubRepository")}>
+        <GitHubIcon />
+      </a>
+      <ThemeToggle t={t} />
+    </div>
+  </div>
+</header>
+
+<style>
+  .site-header {
+    position: sticky;
+    top: 0;
+    z-index: 40;
+    height: var(--header-h);
+    border-bottom: var(--hair) solid var(--rule-1);
+    background: color-mix(in srgb, var(--ground-0) 88%, transparent);
+    -webkit-backdrop-filter: blur(8px);
+    backdrop-filter: blur(8px);
+  }
+  .site-header__in {
+    display: flex;
+    align-items: center;
+    gap: var(--s-4);
+    height: 100%;
+    max-width: var(--page-max);
+    margin: 0 auto;
+    padding: 0 var(--s-5);
+  }
+  .site-header--docs .site-header__in {
+    max-width: none;
+  }
+  .brand {
+    display: inline-flex;
+    flex-shrink: 0;
+    white-space: nowrap;
+    align-items: center;
+    gap: var(--s-2);
+    min-height: var(--target);
+    color: var(--ink-0);
+    font-weight: 600;
+    letter-spacing: var(--tracking-heading);
+    text-decoration: none;
+  }
+  .brand:hover {
+    color: var(--ink-0);
+  }
+  .brand__sub {
+    color: var(--ink-2);
+    font-weight: 500;
+  }
+  .brand__sub::before {
+    content: "/";
+    margin-inline-end: var(--s-2);
+    color: var(--ink-3);
+  }
+  .site-header__nav {
+    display: flex;
+    align-items: center;
+    gap: var(--s-1);
+    margin-inline-start: auto;
+  }
+  .site-header__nav :global(a) {
+    display: inline-flex;
+    align-items: center;
+    min-height: var(--target);
+    padding: 0 var(--s-3);
+    border-radius: var(--r-2);
+    color: var(--ink-2);
+    font-size: var(--fs-sm);
+    font-weight: 500;
+    text-decoration: none;
+  }
+  .site-header__nav :global(a:hover),
+  .site-header__nav :global(a[aria-current="page"]) {
+    color: var(--ink-0);
+  }
+  .site-header__actions {
+    display: flex;
+    align-items: center;
+    gap: var(--s-1);
+  }
+  .icon-link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: var(--target);
+    min-height: var(--target);
+    border-radius: var(--r-2);
+    color: var(--ink-2);
+  }
+  .icon-link:hover {
+    color: var(--ink-0);
+    background: var(--ground-2);
+  }
+  @media (max-width: 47.99rem) {
+    .site-header__in {
+      padding: 0 var(--s-4);
+    }
+    .site-header__nav {
+      display: none;
+    }
+  }
+</style>

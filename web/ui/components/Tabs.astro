@@ -1,0 +1,199 @@
+---
+interface Props {
+  syncKey?: string;
+  label?: string;
+}
+
+const { syncKey, label } = Astro.props;
+
+let counter = 0;
+const uid = `${Math.random().toString(36).slice(2, 7)}`;
+const html = await Astro.slots.render("default");
+const panelPattern = /<section class="tabs__panel" role="tabpanel" data-tab-label="([^"]*)"/g;
+const labels: string[] = [];
+const panels = html.replace(panelPattern, (_match, panelLabel: string) => {
+  const index = counter++;
+  labels.push(panelLabel);
+  const hidden = index === 0 ? "" : " hidden";
+  return `<section class="tabs__panel" role="tabpanel" id="${uid}-panel-${index}" aria-labelledby="${uid}-tab-${index}" data-tab-label="${panelLabel}"${hidden}`;
+});
+---
+
+<skopli-tabs class="tabs" data-sync-key={syncKey}>
+  <div class="tabs__strip">
+    <div role="tablist" aria-label={label}>
+      {
+        labels.map((tabLabel, index) => (
+          <button
+            type="button"
+            role="tab"
+            id={`${uid}-tab-${index}`}
+            aria-controls={`${uid}-panel-${index}`}
+            aria-selected={index === 0 ? "true" : "false"}
+            tabindex={index === 0 ? 0 : -1}
+            data-label={tabLabel}
+          >
+            {tabLabel}
+          </button>
+        ))
+      }
+    </div>
+  </div>
+  <Fragment set:html={panels} />
+  {syncKey && <script is:inline>skopliTabsRestore(document.currentScript.parentElement);</script>}
+</skopli-tabs>
+
+<style>
+  .tabs {
+    display: block;
+    max-width: var(--content-width-wide);
+    border: var(--hair) solid var(--rule-1);
+    border-radius: var(--r-2);
+    background: var(--ground-1);
+  }
+  .tabs__strip {
+    overflow-x: auto;
+    scrollbar-width: none;
+    border-bottom: var(--hair) solid var(--rule-1);
+    -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 24px), transparent);
+    mask-image: linear-gradient(to right, #000 calc(100% - 24px), transparent);
+  }
+  .tabs__strip::-webkit-scrollbar {
+    display: none;
+  }
+  [role="tablist"] {
+    display: flex;
+    width: max-content;
+    min-width: 100%;
+    padding: 0 var(--s-2);
+  }
+  [role="tab"] {
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    min-height: var(--target);
+    margin-bottom: -1px;
+    padding: 0 var(--s-3);
+    border: 0;
+    border-bottom: 2px solid transparent;
+    background: none;
+    color: var(--ink-2);
+    font-size: var(--fs-sm);
+    font-weight: 500;
+    white-space: nowrap;
+    cursor: pointer;
+  }
+  [role="tab"]:hover {
+    color: var(--ink-0);
+  }
+  [role="tab"][aria-selected="true"] {
+    color: var(--ink-0);
+    border-bottom-color: var(--accent);
+  }
+  [role="tab"]:focus-visible {
+    outline-offset: -2px;
+  }
+  .tabs :global(.tabs__panel) {
+    padding: var(--s-4);
+  }
+  .tabs :global(.tabs__panel > * + *) {
+    margin-top: var(--s-3);
+  }
+  .tabs :global(.tabs__panel:focus-visible) {
+    outline-offset: -2px;
+  }
+  .tabs :global(.tabs__panel > .code-frame:only-child),
+  .tabs :global(.tabs__panel > .tabs:first-child:not(:has(~ :not(script)))) {
+    margin: calc(-1 * var(--s-4));
+    max-width: none;
+    border: 0;
+    border-radius: 0 0 var(--r-2) var(--r-2);
+  }
+  .tabs :global(.tabs__panel > .code-frame:only-child > pre) {
+    border-radius: 0 0 var(--r-2) var(--r-2);
+  }
+  .tabs :global(.tabs__panel > .tabs:first-child:not(:has(~ :not(script))) > .tabs__strip) {
+    background: var(--ground-0);
+  }
+  @media (pointer: coarse) {
+    [role="tab"] {
+      min-width: var(--target);
+      justify-content: center;
+    }
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    [role="tab"] {
+      transition:
+        color var(--instant),
+        border-color var(--instant);
+    }
+  }
+</style>
+
+<script>
+  class SkopliTabs extends HTMLElement {
+    connectedCallback() {
+      const tabs = Array.from(
+        this.querySelectorAll<HTMLButtonElement>(':scope > .tabs__strip [role="tab"]'),
+      );
+      const panels = Array.from(this.querySelectorAll<HTMLElement>(":scope > .tabs__panel"));
+      const syncKey = this.dataset.syncKey;
+
+      const select = (index: number, focus: boolean) => {
+        tabs.forEach((tab, i) => {
+          const on = i === index;
+          tab.setAttribute("aria-selected", String(on));
+          tab.tabIndex = on ? 0 : -1;
+          panels[i]!.hidden = !on;
+        });
+        if (focus) tabs[index]?.focus();
+      };
+
+      const selectLabel = (label: string) => {
+        const index = tabs.findIndex((tab) => tab.dataset.label === label);
+        if (index >= 0) select(index, false);
+      };
+
+      tabs.forEach((tab, index) => {
+        tab.addEventListener("click", () => {
+          const top = tab.getBoundingClientRect().top;
+          select(index, false);
+          if (syncKey) {
+            try {
+              localStorage.setItem(`skopli-tab-${syncKey}`, tab.dataset.label ?? "");
+            } catch {
+              /* storage unavailable */
+            }
+            document.dispatchEvent(
+              new CustomEvent("skopli-tabs-sync", {
+                detail: { syncKey, label: tab.dataset.label, source: this },
+              }),
+            );
+            window.scrollBy({ top: tab.getBoundingClientRect().top - top, behavior: "instant" });
+          }
+        });
+        tab.addEventListener("keydown", (event) => {
+          const keys: Record<string, number> = {
+            ArrowRight: index + 1,
+            ArrowLeft: index - 1,
+            Home: 0,
+            End: tabs.length - 1,
+          };
+          const next = keys[event.key];
+          if (next === undefined) return;
+          event.preventDefault();
+          select((next + tabs.length) % tabs.length, true);
+        });
+      });
+
+      if (syncKey) {
+        document.addEventListener("skopli-tabs-sync", (event) => {
+          const detail = (event as CustomEvent<{ syncKey: string; label: string; source: Element }>)
+            .detail;
+          if (detail.source !== this && detail.syncKey === syncKey) selectLabel(detail.label);
+        });
+      }
+    }
+  }
+  if (!customElements.get("skopli-tabs")) customElements.define("skopli-tabs", SkopliTabs);
+</script>

@@ -1,0 +1,156 @@
+/* Skopli design tokens. Named by role, not by component.
+   Colour semantics: --accent is interactive only, --ok marks priced or verified
+   states, --miss marks honest failures and is amber, never red. */
+
+:root {
+  color-scheme: dark;
+
+  --ground-0: #0b0b0c;
+  --ground-1: #111114;
+  --ground-2: #16161a;
+  --ground-3: #1c1c21;
+  --code-0: #101014;
+  --code-edge: #2a2a31;
+
+  --rule-1: #242429;
+  --rule-2: #333339;
+  --rule-inset: #1b1b20;
+  --rule-ui: #74777f;
+
+  --ink-0: #ebebee;
+  --ink-1: #b3b6bd;
+  --ink-2: #92959e;
+  --ink-3: #8a8d96;
+  --ink-inv: #0b0b0c;
+
+  --accent: #5b8bff;
+  --accent-strong: #7ba2ff;
+  --accent-dim: #3a5fb0;
+  --accent-wash: #131a2e;
+  --accent-line: #2c3f66;
+
+  --ok: #58c98e;
+  --ok-wash: #112018;
+
+  --miss: #e0a55f;
+  --miss-wash: #201a11;
+
+  --code-kw: #7aa2f7;
+  --code-str: #7fd6a0;
+  --code-num: #e0a86a;
+  --code-fn: #89c4e6;
+  --code-cm: #7e8aa0;
+  --code-pn: #9aa6ba;
+  --code-txt: #cdd6e6;
+
+  --code-title-bg: var(--ground-1);
+  --code-title-fg: var(--ink-2);
+  --code-title-border: var(--rule-1);
+  --diff-add: var(--accent-strong);
+  --diff-add-wash: var(--accent-wash);
+  --diff-del: var(--miss);
+  --diff-del-wash: var(--miss-wash);
+
+  --font-sans:
+    "Geist Variable", "Geist Fallback", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+    "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif;
+  --font-mono:
+    "Geist Mono Variable", "Geist Mono Fallback", ui-monospace, SFMono-Regular, Menlo, Monaco,
+    Consolas, "Liberation Mono", "Courier New", monospace;
+  --font-display: var(--font-sans);
+
+  --fs-hero: clamp(2.4rem, 4.5vw, 3.4rem);
+  --fs-h1: clamp(1.7rem, 2.6vw, 2.1rem);
+  --fs-h2: 1.3rem;
+  --fs-h3: 1.02rem;
+  --fs-body: 0.975rem;
+  --fs-sm: 0.86rem;
+  --fs-xs: 0.76rem;
+  --fs-data: 0.9rem;
+
+  --lh-tight: 1.15;
+  --lh-body: 1.62;
+  --tracking-caps: 0.11em;
+  --tracking-heading: -0.02em;
+  --fw-heading: 600;
+
+  --s-1: 4px;
+  --s-2: 8px;
+  --s-3: 12px;
+  --s-4: 16px;
+  --s-5: 24px;
+  --s-6: 32px;
+  --s-7: 48px;
+  --s-8: 64px;
+  --s-9: 96px;
+
+  --r-1: 3px;
+  --r-2: 5px;
+  --r-3: 8px;
+
+  --page-max: 1200px;
+  --hair: 1px;
+  --content-width: 42rem;
+  --content-width-wide: 54rem;
+  --header-h: 4rem;
+  --sidebar-w: 17rem;
+  --rail-w: 15rem;
+  --target: 44px;
+
+  --slide: 200ms cubic-bezier(0.22, 0.61, 0.36, 1);
+  --instant: 90ms linear;
+
+  --focus: 0 0 0 2px var(--ground-0), 0 0 0 4px var(--accent);
+}
+
+:root[data-theme="light"] {
+  color-scheme: light;
+
+  --ground-0: #f5f5f6;
+  --ground-1: #ffffff;
+  --ground-2: #efeff1;
+  --ground-3: #e6e6e9;
+  --code-0: #f8f8fa;
+  --code-edge: #d7d7dc;
+
+  --rule-1: #dadadf;
+  --rule-2: #c2c2c9;
+  --rule-inset: #e9e9ee;
+  --rule-ui: #7f828c;
+
+  --ink-0: #17181c;
+  --ink-1: #3e414a;
+  --ink-2: #5a5e69;
+  --ink-3: #60646f;
+  --ink-inv: #ffffff;
+
+  --accent: #2a56c8;
+  --accent-strong: #1f4bc0;
+  --accent-dim: #6f8ede;
+  --accent-wash: #e5ecfb;
+  --accent-line: #b9c8ef;
+
+  --ok: #196f43;
+  --ok-wash: #e2f3e9;
+
+  --miss: #8a5015;
+  --miss-wash: #f6efdf;
+
+  --code-kw: #2f5fd0;
+  --code-str: #1c7a4a;
+  --code-num: #9a5b1a;
+  --code-fn: #1f6091;
+  --code-cm: #62656e;
+  --code-pn: #50535b;
+  --code-txt: #1e2027;
+
+  --code-title-bg: #ffffff;
+  --code-title-fg: #5a5e69;
+  --code-title-border: #dadadf;
+  --diff-add: #1f4bc0;
+  --diff-add-wash: #e5ecfb;
+  --diff-del: #9a5b1a;
+  --diff-del-wash: #f6efdf;
+
+  --focus: 0 0 0 2px var(--ground-1), 0 0 0 4px var(--accent);
+}

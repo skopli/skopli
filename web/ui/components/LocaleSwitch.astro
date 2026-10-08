@@ -1,0 +1,48 @@
+---
+import type { Translate } from "../i18n/index.ts";
+
+interface Props {
+  t: Translate;
+  options: { code: string; name: string; href: string; current: boolean }[];
+}
+
+const { t, options } = Astro.props;
+---
+
+{
+  options.length > 1 && (
+    <nav class="locale-switch" aria-label={t("language")}>
+      {options.map((o) => (
+        <a href={o.href} lang={o.code} hreflang={o.code} aria-current={o.current ? "page" : undefined}>
+          {o.name}
+        </a>
+      ))}
+    </nav>
+  )
+}
+
+<style>
+  .locale-switch {
+    display: inline-flex;
+    white-space: nowrap;
+    gap: var(--s-1);
+    font-size: var(--fs-sm);
+  }
+  .locale-switch a {
+    display: inline-flex;
+    align-items: center;
+    min-height: var(--target);
+    padding: 0 var(--s-2);
+    border-radius: var(--r-1);
+    color: var(--ink-2);
+    text-decoration: none;
+  }
+  .locale-switch a:hover {
+    color: var(--ink-0);
+    background: var(--ground-1);
+  }
+  .locale-switch a[aria-current="page"] {
+    color: var(--ink-0);
+    font-weight: 600;
+  }
+</style>

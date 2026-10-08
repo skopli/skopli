@@ -1,0 +1,205 @@
+---
+import Footer from "@skopli/ui/components/Footer.astro";
+import Header from "@skopli/ui/components/Header.astro";
+import LocaleSwitch from "@skopli/ui/components/LocaleSwitch.astro";
+import SkipLink from "@skopli/ui/components/SkipLink.astro";
+import { localeNames, type Locale } from "@skopli/ui/i18n";
+import type { MarkdownHeading } from "astro";
+import Breadcrumbs from "../components/Breadcrumbs.astro";
+import Drawer from "../components/Drawer.astro";
+import PageActions from "../components/PageActions.astro";
+import PageFooter from "../components/PageFooter.astro";
+import Search from "../components/Search.astro";
+import Sidebar from "../components/Sidebar.astro";
+import Toc from "../components/Toc.astro";
+import { href, t as translate } from "../lib/i18n.ts";
+import { groupFor, neighbours } from "../lib/pages.ts";
+import { marketingUrl, repoUrl } from "../site.ts";
+import BaseLayout from "./BaseLayout.astro";
+
+interface Props {
+  locale: Locale;
+  slug: string;
+  title: string;
+  description: string;
+  headings?: MarkdownHeading[];
+  alternates?: Locale[];
+  mdPath?: string;
+  noindex?: boolean;
+}
+
+const { locale, slug, title, description, headings = [], alternates, mdPath, noindex } = Astro.props;
+const t = translate(locale);
+const path = slug ? `/${slug}` : "/";
+const localeOptions = (alternates ?? [locale]).map((l) => ({
+  code: l,
+  name: localeNames[l],
+  href: href(path, l),
+  current: l === locale,
+}));
+const group = groupFor(slug);
+const trail = slug
+  ? [...(group ? [{ title: group.label }] : []), { title }]
+  : [];
+const { prev, next } = neighbours(slug);
+const jsonLd = mdPath
+  ? {
+      "@type": "TechArticle",
+      headline: title,
+      description,
+      inLanguage: locale,
+      url: `${Astro.site}${href(path, locale).slice(1)}`,
+      isPartOf: { "@id": `${Astro.site}skopli/#website` },
+      author: { "@type": "Organization", name: "Skopli", url: repoUrl },
+    }
+  : undefined;
+---
+
+<BaseLayout {locale} {title} {description} {path} {alternates} {mdPath} {noindex} {jsonLd}>
+  <SkipLink t={t} />
+  <Header t={t} homeHref={href("/", locale)} wordmark={t("docs")} layout="docs">
+    <Drawer slot="leading" t={t}>
+      <Sidebar locale={locale} current={slug} label={t("mainNavigation")} />
+      {localeOptions.length > 1 && (
+        <div class="docs__drawer-locale">
+          <LocaleSwitch t={t} options={localeOptions} />
+        </div>
+      )}
+    </Drawer>
+    <a slot="nav" href={marketingUrl}>{t("marketingSite")}</a>
+    <Search slot="actions" t={t} />
+    <LocaleSwitch slot="actions" t={t} options={localeOptions} />
+  </Header>
+  <div class="docs">
+    <aside class="docs__sidebar">
+      <Sidebar locale={locale} current={slug} id="sidebar" label={t("mainNavigation")} />
+    </aside>
+    <main class="docs__main" id="main" tabindex="-1">
+      <div class="docs__top">
+        {trail.length > 0 && <Breadcrumbs locale={locale} label={t("breadcrumbs")} home={t("docs")} trail={trail} />}
+        {mdPath && <PageActions t={t} mdPath={mdPath} placement="top" />}
+      </div>
+      <article class="prose" data-pagefind-body={noindex ? undefined : ""}>
+        <header class="docs__head">
+          <h1>{title}</h1>
+          <p class="docs__lede">{description}</p>
+        </header>
+        <slot />
+      </article>
+      <PageFooter t={t} locale={locale} prev={prev} next={next} />
+    </main>
+    <aside class="docs__rail">
+      {mdPath && <PageActions t={t} mdPath={mdPath} placement="rail" />}
+      <Toc headings={headings} label={t("onThisPage")} />
+    </aside>
+  </div>
+  <Footer t={t} layout="docs">
+    <a href={repoUrl} rel="noopener">GitHub</a>
+    <a href={marketingUrl}>{t("marketingSite")}</a>
+    <a href={`${import.meta.env.BASE_URL}/llms.txt`}>llms.txt</a>
+  </Footer>
+</BaseLayout>
+
+<style>
+  .docs__drawer-locale {
+    display: none;
+    margin-top: var(--s-5);
+    padding-top: var(--s-4);
+    border-top: var(--hair) solid var(--rule-1);
+  }
+  @media (max-width: 47.99rem) {
+    .docs__drawer-locale {
+      display: block;
+    }
+    :global(.site-header .locale-switch) {
+      display: none;
+    }
+  }
+  .docs {
+    display: grid;
+    grid-template-columns: var(--sidebar-w) minmax(0, 1fr) var(--rail-w);
+    min-height: calc(100vh - var(--header-h));
+  }
+  .docs__sidebar,
+  .docs__rail {
+    position: sticky;
+    top: var(--header-h);
+    align-self: start;
+    max-height: calc(100vh - var(--header-h));
+    overflow-y: auto;
+    scrollbar-width: thin;
+  }
+  .docs__sidebar {
+    padding: var(--s-5) var(--s-3) var(--s-6);
+    border-inline-end: var(--hair) solid var(--rule-1);
+  }
+  .docs__rail {
+    display: grid;
+    gap: var(--s-5);
+    align-content: start;
+    justify-items: start;
+    padding: var(--s-5) var(--s-5) var(--s-6) var(--s-4);
+  }
+  .docs__main {
+    padding: var(--s-5) var(--s-6) var(--s-8);
+    outline: none;
+  }
+  .docs__top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--s-4);
+    min-height: 2.25rem;
+    margin-bottom: var(--s-5);
+  }
+  .docs__top :global(.page-actions--top) {
+    display: none;
+  }
+  .docs__head {
+    display: grid;
+    gap: var(--s-3);
+    margin-bottom: var(--s-6);
+  }
+  .docs__head h1 {
+    font-size: var(--fs-h1);
+  }
+  .docs__lede {
+    color: var(--ink-2);
+    font-size: var(--fs-lg);
+    line-height: var(--lh-body);
+    text-wrap: pretty;
+  }
+  @media (max-width: 71.99rem) {
+    .docs {
+      grid-template-columns: var(--sidebar-w) minmax(0, 1fr);
+    }
+    .docs__rail {
+      display: none;
+    }
+    .docs__top :global(.page-actions--top) {
+      display: inline-flex;
+    }
+  }
+  @media (max-width: 47.99rem) {
+    .docs {
+      grid-template-columns: minmax(0, 1fr);
+    }
+    .docs__sidebar {
+      display: none;
+    }
+    .docs__main {
+      padding: var(--s-4) var(--s-4) var(--s-7);
+    }
+    .docs__top {
+      flex-wrap: wrap;
+    }
+  }
+</style>
+
+<script>
+  import { initCopyCode } from "@skopli/ui/markdown/copy-code.ts";
+  import { initTableOverflow } from "@skopli/ui/markdown/table-overflow.ts";
+
+  initCopyCode(document.documentElement.dataset.copyCode ?? "Copy code");
+  initTableOverflow();
+</script>

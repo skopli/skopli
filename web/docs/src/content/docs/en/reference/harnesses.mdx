@@ -1,0 +1,68 @@
+---
+title: Supported harnesses
+description: The 40 supported harnesses and their ids, plus harnesses detected but unsupported.
+---
+
+import HarnessName from "@skopli/ui/components/HarnessName.astro";
+
+40 harnesses supported. The id selects harnesses in `readUsage({ harnesses: [...] })`.
+
+| Harness                                           | id               |
+| ------------------------------------------------- | ---------------- |
+| <HarnessName id="claude" />                       | `claude`         |
+| <HarnessName id="opencode" />                     | `opencode`       |
+| <HarnessName id="mimocode" />                     | `mimocode`       |
+| <HarnessName id="commandcode" />                  | `commandcode`    |
+| <HarnessName id="codex" />                        | `codex`          |
+| <HarnessName id="gemini" />                       | `gemini`         |
+| <HarnessName id="copilot" />                      | `copilot`        |
+| <HarnessName id="amp" />                          | `amp`            |
+| <HarnessName id="droid" />                        | `droid`          |
+| <HarnessName id="qwen" />                         | `qwen`           |
+| <HarnessName id="pi" />                           | `pi`             |
+| <HarnessName id="omp" />                          | `omp`            |
+| <HarnessName id="prime" />                        | `prime`          |
+| <HarnessName id="gajae" />                        | `gajae`          |
+| <HarnessName id="kimchi" />                       | `kimchi`         |
+| <HarnessName id="kilo" />                         | `kilo`           |
+| <HarnessName id="goose" />                        | `goose`          |
+| <HarnessName id="hermes" />                       | `hermes`         |
+| <HarnessName id="kimi" />                         | `kimi`           |
+| <HarnessName id="openclaw" />                     | `openclaw`       |
+| <HarnessName id="junie" />                        | `junie`          |
+| <HarnessName id="grok" />                         | `grok`           |
+| <HarnessName id="augment" />                      | `augment`        |
+| <HarnessName id="codebuff" />                     | `codebuff`       |
+| <HarnessName id="codebuddy" />                    | `codebuddy`      |
+| <HarnessName id="jcode" />                        | `jcode`          |
+| <HarnessName id="mux" />                          | `mux`            |
+| <HarnessName id="zed" />                          | `zed`            |
+| <HarnessName id="cherrystudio" />                 | `cherrystudio`   |
+| <HarnessName id="zcode" />                        | `zcode`          |
+| <HarnessName id="devin" />                        | `devin`          |
+| <HarnessName id="roo" />                          | `roo`            |
+| <HarnessName id="cline" />                        | `cline`          |
+| <HarnessName id="kilocode" />                     | `kilocode`       |
+| <HarnessName id="opencodereview" />               | `opencodereview` |
+| <HarnessName id="trae" />                         | `trae`           |
+| <HarnessName id="deepseek" />                     | `deepseek`       |
+| <HarnessName id="reasonix" /> [^reasonix-session] | `reasonix`       |
+| <HarnessName id="kiro" /> [^kiro-estimated]       | `kiro`           |
+| <HarnessName id="fx" /> [^fx-aggregate]           | `fx`             |
+
+[^reasonix-session]: Reasonix persists only a per-session cumulative usage total (in the session's `.acp.json` metadata sidecar), so it reports one event per session, not one per turn. Sessions whose totals are marked estimated are still included.
+
+[^kiro-estimated]: Kiro CLI persists full conversation text but no provider token counts, so its token counts are estimated from the stored message length (about four characters per token). Kiro totals are estimates, not billed usage.
+
+[^fx-aggregate]: fx persists real provider token counts per session in a `usage-v2.json` sidecar, aggregated per model rather than per turn, so it reports one event per model per session. Skopli reads every session regardless of its billing state. The recorded counts are the applied totals in all states.
+
+## Detected but unsupported
+
+These are detected but have no reliable local token data: **Cursor, aider, Crush, GitLab Duo CLI**.
+
+`detectHarnesses()` reports them separately, so callers can explain the gap to users.
+
+## Next steps
+
+- [Coverage](/skopli/reference/coverage): the tools Skopli cannot read locally yet, with the reason for each.
+- [Reading usage](/skopli/guide/reading): options, date and timezone semantics, event fields, subagents, and diagnostics.

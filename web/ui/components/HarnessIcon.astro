@@ -1,0 +1,11 @@
+---
+import { harnessIconPaths, type HarnessIconSlug } from "../data/harness-icons.ts";
+
+interface Props {
+  slug: HarnessIconSlug;
+}
+
+const inner = harnessIconPaths[Astro.props.slug];
+---
+
+<svg class="harness-icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" set:html={inner} />

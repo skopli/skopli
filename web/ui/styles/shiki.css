@@ -1,0 +1,13 @@
+:root {
+  --astro-code-foreground: var(--code-txt);
+  --astro-code-background: var(--code-0);
+  --astro-code-token-constant: var(--code-num);
+  --astro-code-token-string: var(--code-str);
+  --astro-code-token-comment: var(--code-cm);
+  --astro-code-token-keyword: var(--code-kw);
+  --astro-code-token-parameter: var(--code-txt);
+  --astro-code-token-function: var(--code-fn);
+  --astro-code-token-string-expression: var(--code-str);
+  --astro-code-token-punctuation: var(--code-pn);
+  --astro-code-token-link: var(--accent);
+}

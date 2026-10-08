@@ -1,0 +1,293 @@
+---
+import type { Translate } from "@skopli/ui/i18n";
+import { basePath } from "../site.ts";
+
+interface Props {
+  t: Translate;
+}
+
+const { t } = Astro.props;
+---
+
+<button type="button" class="search-trigger" data-search-open aria-label={t("search")}>
+  <svg
+    width="16"
+    height="16"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    stroke-width="2"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+    aria-hidden="true"
+  >
+    <circle cx="11" cy="11" r="7"></circle>
+    <path d="m20 20-3.5-3.5"></path>
+  </svg>
+  <span class="search-trigger__label">{t("search")}</span>
+  <kbd class="search-trigger__kbd" aria-hidden="true">{t("searchShortcut")}</kbd>
+</button>
+
+<dialog
+  class="search"
+  data-search
+  data-bundle={`${basePath}/pagefind/pagefind.js`}
+  data-no-results={t("searchNoResults")}
+  data-count={t("searchResultsCount")}
+  aria-label={t("search")}
+>
+  <form class="search__form" role="search" method="dialog">
+    <svg
+      width="18"
+      height="18"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="2"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+      aria-hidden="true"
+    >
+      <circle cx="11" cy="11" r="7"></circle>
+      <path d="m20 20-3.5-3.5"></path>
+    </svg>
+    <input
+      type="search"
+      class="search__input"
+      placeholder={t("searchPlaceholder")}
+      aria-label={t("searchPlaceholder")}
+      autocomplete="off"
+      spellcheck="false"
+      aria-controls="search-results"
+    />
+    <button type="submit" class="search__close" aria-label={t("closeMenu")}>Esc</button>
+  </form>
+  <div class="search__status" role="status" aria-live="polite"></div>
+  <ol class="search__results" id="search-results"></ol>
+</dialog>
+
+<style>
+  .search-trigger {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--s-2);
+    min-height: 2.25rem;
+    padding: 0 var(--s-2) 0 var(--s-3);
+    border: var(--hair) solid var(--rule-2);
+    border-radius: var(--r-2);
+    background: var(--ground-1);
+    color: var(--ink-2);
+    font-size: var(--fs-sm);
+    cursor: pointer;
+  }
+  .search-trigger:hover {
+    color: var(--ink-0);
+    border-color: var(--rule-ui);
+  }
+  .search-trigger__kbd {
+    white-space: nowrap;
+    padding: 0.1em 0.4em;
+    border: var(--hair) solid var(--rule-2);
+    border-radius: var(--r-1);
+    color: var(--ink-3);
+    font-family: var(--font-sans);
+    font-size: var(--fs-xs);
+  }
+  @media (max-width: 47.99rem) {
+    .search-trigger {
+      min-width: var(--target);
+      min-height: var(--target);
+      padding: 0;
+      justify-content: center;
+      border: 0;
+      background: none;
+    }
+    .search-trigger__label,
+    .search-trigger__kbd {
+      display: none;
+    }
+  }
+  .search {
+    width: min(40rem, calc(100vw - 2 * var(--s-4)));
+    max-height: min(70vh, 36rem);
+    margin: 10vh auto 0;
+    padding: 0;
+    border: var(--hair) solid var(--rule-2);
+    border-radius: var(--r-3);
+    background: var(--ground-1);
+    color: var(--ink-1);
+    overflow: hidden;
+  }
+  .search::backdrop {
+    background: rgb(0 0 0 / 0.6);
+  }
+  .search__form {
+    display: flex;
+    align-items: center;
+    gap: var(--s-3);
+    padding: 0 var(--s-3) 0 var(--s-4);
+    border-bottom: var(--hair) solid var(--rule-1);
+    color: var(--ink-2);
+  }
+  .search__input {
+    flex: 1;
+    min-height: 3.25rem;
+    border: 0;
+    background: none;
+    color: var(--ink-0);
+    font: inherit;
+    outline: none;
+  }
+  .search__input::-webkit-search-cancel-button {
+    display: none;
+  }
+  .search__close {
+    padding: 0.2em 0.5em;
+    border: var(--hair) solid var(--rule-2);
+    border-radius: var(--r-1);
+    background: none;
+    color: var(--ink-3);
+    font-size: var(--fs-xs);
+    cursor: pointer;
+  }
+  .search__status {
+    padding: var(--s-2) var(--s-4);
+    color: var(--ink-3);
+    font-size: var(--fs-xs);
+  }
+  .search__status:empty {
+    display: none;
+  }
+  .search__results {
+    max-height: calc(min(70vh, 36rem) - 6rem);
+    margin: 0;
+    padding: var(--s-2);
+    overflow-y: auto;
+    list-style: none;
+  }
+  .search__results:empty {
+    display: none;
+  }
+  .search__results :global(a) {
+    display: block;
+    padding: var(--s-3);
+    border-radius: var(--r-2);
+    color: var(--ink-1);
+    text-decoration: none;
+  }
+  .search__results :global(a:hover),
+  .search__results :global(a:focus-visible) {
+    background: var(--ground-2);
+    outline-offset: -2px;
+  }
+  .search__results :global(.search__title) {
+    display: block;
+    color: var(--ink-0);
+    font-weight: 500;
+  }
+  .search__results :global(.search__excerpt) {
+    display: block;
+    margin-top: var(--s-1);
+    color: var(--ink-2);
+    font-size: var(--fs-sm);
+  }
+  .search__results :global(mark) {
+    background: none;
+    color: var(--accent);
+    font-weight: 600;
+  }
+</style>
+
+<script>
+  interface PagefindResult {
+    data(): Promise<{ url: string; excerpt: string; meta: { title?: string } }>;
+  }
+  interface Pagefind {
+    init(): Promise<void>;
+    debouncedSearch(term: string): Promise<{ results: PagefindResult[] } | null>;
+  }
+
+  const dialog = document.querySelector<HTMLDialogElement>("[data-search]");
+  if (dialog) {
+    const input = dialog.querySelector<HTMLInputElement>(".search__input")!;
+    const status = dialog.querySelector<HTMLElement>(".search__status")!;
+    const list = dialog.querySelector<HTMLOListElement>(".search__results")!;
+    let pagefind: Promise<Pagefind> | undefined;
+
+    const load = () =>
+      (pagefind ??= import(/* @vite-ignore */ dialog.dataset.bundle!).then(async (mod: Pagefind) => {
+        await mod.init();
+        return mod;
+      }));
+
+    const open = () => {
+      if (dialog.open) return;
+      dialog.showModal();
+      input.select();
+      void load();
+    };
+
+    for (const trigger of document.querySelectorAll("[data-search-open]")) {
+      trigger.addEventListener("click", open);
+    }
+    document.addEventListener("keydown", (event) => {
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "k") {
+        event.preventDefault();
+        if (dialog.open) dialog.close();
+        else open();
+      }
+    });
+    dialog.addEventListener("click", (event) => {
+      if (event.target === dialog) dialog.close();
+    });
+
+    input.addEventListener("input", async () => {
+      const term = input.value.trim();
+      if (!term) {
+        list.replaceChildren();
+        status.textContent = "";
+        return;
+      }
+      const search = await (await load()).debouncedSearch(term);
+      if (!search) return;
+      const results = await Promise.all(search.results.slice(0, 8).map((r) => r.data()));
+      list.replaceChildren(
+        ...results.map((result) => {
+          const li = document.createElement("li");
+          const a = document.createElement("a");
+          a.href = result.url;
+          const title = document.createElement("span");
+          title.className = "search__title";
+          title.textContent = result.meta.title ?? result.url;
+          const excerpt = document.createElement("span");
+          excerpt.className = "search__excerpt";
+          excerpt.innerHTML = result.excerpt;
+          a.append(title, excerpt);
+          li.append(a);
+          return li;
+        }),
+      );
+      status.textContent = results.length
+        ? dialog.dataset.count!.replace("{count}", String(search.results.length))
+        : dialog.dataset.noResults!.replace("{query}", term);
+    });
+    input.addEventListener("keydown", (event) => {
+      if (event.key === "ArrowDown") {
+        event.preventDefault();
+        list.querySelector<HTMLAnchorElement>("a")?.focus();
+      }
+    });
+    list.addEventListener("keydown", (event) => {
+      const links = Array.from(list.querySelectorAll<HTMLAnchorElement>("a"));
+      const index = links.indexOf(document.activeElement as HTMLAnchorElement);
+      if (event.key === "ArrowDown" && index < links.length - 1) {
+        event.preventDefault();
+        links[index + 1]?.focus();
+      } else if (event.key === "ArrowUp") {
+        event.preventDefault();
+        if (index === 0) input.focus();
+        else links[index - 1]?.focus();
+      }
+    });
+  }
+</script>

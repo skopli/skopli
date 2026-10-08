@@ -1,161 +1,119 @@
 // @ts-check
-import { defineConfig } from "astro/config";
-import { fileURLToPath } from "node:url";
-import { writeFile, mkdir } from "node:fs/promises";
+import { globSync } from "node:fs";
+import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
-import starlight from "@astrojs/starlight";
-import tokyoNight from "@shikijs/themes/tokyo-night";
+import { fileURLToPath } from "node:url";
+import { rehypeHeadingIds, unified } from "@astrojs/markdown-remark";
+import mdx from "@astrojs/mdx";
+import sitemap from "@astrojs/sitemap";
+import { rehypeHeadingAnchors } from "@skopli/ui/markdown/rehype-heading-anchors.ts";
+import { rehypeTableFrame } from "@skopli/ui/markdown/rehype-table-frame.ts";
+import { remarkCallouts } from "@skopli/ui/markdown/remark-callouts.ts";
+import { shikiFrame } from "@skopli/ui/markdown/shiki-frame.ts";
+import { configuredLocales, defaultLocale } from "@skopli/ui/i18n";
+import { defineConfig } from "astro/config";
+import * as pagefind from "pagefind";
+import remarkDirective from "remark-directive";
+import { basePath, pseudoLocaleEnabled, siteOrigin } from "./src/site.ts";
 
-// Restrain tokyo-night's syntax palette (L-5): its violet function/keyword hue
-// (#bb9af7 / #9d7cd8) introduces a second accent that fights the cobalt --accent.
-// Remap both purples to the shared --code-fn cobalt-family cyan so docs code
-// matches the landing's restrained highlight palette. No other colours change.
-/** @type {any} */
-const tokyoNightRestrained = {
-  ...tokyoNight,
-  settings: (tokyoNight.settings ?? tokyoNight.tokenColors ?? []).map((/** @type {any} */ s) => {
-    const fg = s?.settings?.foreground?.toLowerCase();
-    if (fg === "#bb9af7" || fg === "#9d7cd8") {
-      return { ...s, settings: { ...s.settings, foreground: "#89c4e6" } };
-    }
-    return s;
-  }),
-};
+const locales = configuredLocales(pseudoLocaleEnabled);
+/** Slugs that exist in every configured locale, so hreflang alternates only point at real pages. */
+const translatedSlugs = new Set(
+  locales
+    .filter((l) => l !== defaultLocale)
+    .flatMap((l) =>
+      globSync([`src/content/docs/${l}/**/*.{md,mdx}`, `test/fixtures/${l}/**/*.{md,mdx}`]).map(
+        (f) =>
+          f
+            .replace(/^.*?\/[a-z]{2}(-[A-Z]{2})?\//, "")
+            .replace(/\.mdx?$/, "")
+            .replace(/^index$/, "")
+            .replace(/\/index$/, ""),
+      ),
+    ),
+);
 
-const ROOT_REDIRECT = `<!doctype html>
+const rootRedirect = `<!doctype html>
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <meta http-equiv="refresh" content="0; url=/skopli/" />
-    <link rel="canonical" href="https://docs.skopli.com/skopli/" />
-    <title>Redirecting to Skopli docs</title>
+    <meta http-equiv="refresh" content="0; url=${basePath}/" />
+    <link rel="canonical" href="${siteOrigin}${basePath}/" />
+    <title>Skopli docs</title>
   </head>
   <body>
-    <p>Redirecting to <a href="/skopli/">/skopli/</a>&hellip;</p>
+    <p><a href="${basePath}/">Skopli docs</a></p>
   </body>
 </html>
 `;
 
-/**
- * The whole site (including Pagefind and the sitemap) builds natively into
- * dist/skopli/ via `outDir`, so the on-disk tree matches the /skopli/ base in
- * every generated link. This integration only drops a meta-refresh redirect at
- * the true domain root (dist/index.html): docs.skopli.com/ -> /skopli/.
- * Deploy dist/ at https://docs.skopli.com/ and everything lines up.
- * @returns {import('astro').AstroIntegration}
- */
-function rootRedirect() {
+/** @returns {import("astro").AstroIntegration} */
+function postBuild() {
   return {
-    name: "skopli-root-redirect",
+    name: "skopli-docs-post-build",
     hooks: {
       "astro:build:done": async ({ dir }) => {
-        // dir is <project>/dist/skopli (the outDir); the domain root is its parent.
-        const outPath = fileURLToPath(dir);
-        const domainRoot = join(outPath, "..");
+        const out = fileURLToPath(dir);
+        const domainRoot = join(out, "..");
         await mkdir(domainRoot, { recursive: true });
-        await writeFile(join(domainRoot, "index.html"), ROOT_REDIRECT, "utf8");
+        await writeFile(join(domainRoot, "index.html"), rootRedirect);
+        await writeFile(
+          join(domainRoot, "robots.txt"),
+          `User-agent: *\nAllow: /\n\nSitemap: ${siteOrigin}${basePath}/sitemap-index.xml\n`,
+        );
+        const { index, errors } = await pagefind.createIndex({
+          rootSelector: "main",
+          excludeSelectors: [".heading-anchor", ".code-frame__copy", ".callout__title"],
+        });
+        if (!index) throw new Error(errors.join("\n"));
+        const added = await index.addDirectory({ path: out });
+        if (added.errors.length) throw new Error(added.errors.join("\n"));
+        const written = await index.writeFiles({ outputPath: join(out, "pagefind") });
+        if (written.errors.length) throw new Error(written.errors.join("\n"));
+        await pagefind.close();
       },
     },
   };
 }
 
 export default defineConfig({
-  site: "https://docs.skopli.com",
-  base: "/skopli/",
-  outDir: "./dist/skopli",
-  integrations: [
-    rootRedirect(),
-    starlight({
-      title: "Skopli",
-      favicon: "/favicon.svg",
-      logo: {
-        light: "./src/assets/skopli-mark-light.svg",
-        dark: "./src/assets/skopli-mark-dark.svg",
-        replacesTitle: false,
-      },
-      customCss: ["./src/styles/tokens.css", "./src/styles/custom.css"],
-      expressiveCode: {
-        // Inline the EC styles instead of the external ec.*.css: the external
-        // sheet is injected in the body with the first code block and arrives
-        // after first paint, flashing unstyled code on every navigation.
-        emitExternalStylesheet: false,
-        // Dark first (Starlight uses themes[0] for dark, themes[1] for light).
-        // tokyo-night approximates the shared palette: kw blue, str green,
-        // num amber, cm grey. Its function/identifier violet is remapped to the
-        // cobalt-family cyan below so no second accent competes with --accent
-        // (matches the landing's restrained --code-fn). Light uses github-light.
-        themes: [tokyoNightRestrained, "github-light"],
-        styleOverrides: {
-          // Frames sit on the brightest instrument plane (--code-0) with the
-          // landing's hairline code-edge border and flat radius.
-          borderColor: "var(--code-edge)",
-          borderRadius: "var(--r-3)",
-          borderWidth: "var(--hair)",
-          codeBackground: "var(--code-0)",
-          frames: {
-            editorActiveTabBackground: "var(--ground-1)",
-            editorTabBarBackground: "var(--ground-1)",
-            editorBackground: "var(--code-0)",
-            terminalBackground: "var(--code-0)",
-            terminalTitlebarBackground: "var(--ground-1)",
-            frameBoxShadowCssValue: "none",
-          },
-        },
-      },
-      description:
-        "Read AI coding-agent usage from 40 harnesses offline, and price it against live market catalogs.",
-      tagline:
-        "Read AI coding-agent usage from 40 harnesses offline, and price it against live market catalogs. An SDK, not a CLI.",
-      social: [
-        {
-          icon: "github",
-          label: "GitHub",
-          href: "https://github.com/skopli/skopli",
-        },
-      ],
-      components: {
-        Footer: "./src/components/Footer.astro",
-        PageTitle: "./src/components/PageTitle.astro",
-        ThemeProvider: "./src/components/ThemeProvider.astro",
-        ThemeSelect: "./src/components/ThemeSelect.astro",
-      },
-      sidebar: [
-        {
-          label: "Guide",
-          items: [
-            { label: "Getting started", slug: "guide/getting-started" },
-            { label: "Reading usage", slug: "guide/reading" },
-            { label: "Rollups", slug: "guide/rollups" },
-            { label: "Pricing basics", slug: "guide/pricing-basics" },
-          ],
-        },
-        {
-          label: "Pricing deep dive",
-          items: [
-            { label: "Model matching", slug: "pricing/model-matching" },
-            {
-              label: "Cost math & cache-write splits",
-              slug: "pricing/cost-math",
-            },
-            {
-              label: "Long-context tiers",
-              slug: "pricing/long-context-tiers",
-            },
-            {
-              label: "Rollup pricing vs per-event pricing",
-              slug: "pricing/rollups-vs-events",
-            },
-          ],
-        },
-        {
-          label: "Reference",
-          items: [
-            { label: "Supported harnesses", slug: "reference/harnesses" },
-            { label: "Coverage", slug: "reference/coverage" },
-            { label: "API surface", slug: "reference/api" },
-          ],
-        },
-      ],
+  site: siteOrigin,
+  base: basePath,
+  outDir: `./dist${basePath}`,
+  trailingSlash: "never",
+  build: { format: "file" },
+  i18n: {
+    locales,
+    defaultLocale,
+    routing: { prefixDefaultLocale: false, redirectToDefaultLocale: false },
+  },
+  markdown: {
+    processor: unified({
+      remarkPlugins: [remarkDirective, remarkCallouts],
+      rehypePlugins: [rehypeHeadingIds, rehypeTableFrame, rehypeHeadingAnchors],
     }),
+    shikiConfig: { theme: "css-variables", transformers: [shikiFrame()] },
+  },
+  integrations: [
+    mdx(),
+    sitemap({
+      filter: (page) => !page.endsWith("/404"),
+      serialize: (item) => {
+        const path = item.url.slice(`${siteOrigin}${basePath}`.length);
+        const locale = locales.find(
+          (l) => l !== defaultLocale && (path === `/${l}` || path.startsWith(`/${l}/`)),
+        );
+        const slug = locale ? path.slice(locale.length + 2) : path.replace(/^\//, "");
+        const url = path === "" ? `${item.url}/` : item.url;
+        if (!translatedSlugs.has(slug)) return { ...item, url };
+        const links = locales.map((l) => ({
+          lang: l,
+          url: `${siteOrigin}${basePath}${l === defaultLocale ? (slug ? `/${slug}` : "/") : `/${l}${slug ? `/${slug}` : ""}`}`,
+        }));
+        return { ...item, url, links };
+      },
+    }),
+    postBuild(),
   ],
+  vite: { build: { assetsInlineLimit: 0 }, server: { fs: { allow: [".."] } } },
 });

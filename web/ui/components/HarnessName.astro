@@ -1,0 +1,16 @@
+---
+import { harnesses } from "../data/harnesses.ts";
+import HarnessIcon from "./HarnessIcon.astro";
+
+interface Props {
+  id: string;
+}
+
+const harness = harnesses.find((h) => h.id === Astro.props.id);
+if (!harness) throw new Error(`unknown harness id: ${Astro.props.id}`);
+---
+
+<span class="harness-name">
+  {harness.icon && <HarnessIcon slug={harness.icon} />}
+  {harness.name}
+</span>

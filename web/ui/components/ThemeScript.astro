@@ -1,0 +1,10 @@
+<script is:inline>
+  (function () {
+    try {
+      var stored = localStorage.getItem("skopli-theme");
+      document.documentElement.dataset.theme = stored === "light" ? "light" : "dark";
+    } catch {
+      document.documentElement.dataset.theme = "dark";
+    }
+  })();
+</script>

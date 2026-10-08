@@ -1,0 +1,22 @@
+<script is:inline>
+  window.skopliTabsRestore = function (tabs) {
+    var key = tabs.getAttribute("data-sync-key");
+    if (!key) return;
+    var label = null;
+    try {
+      label = localStorage.getItem("skopli-tab-" + key);
+    } catch {}
+    if (!label) return;
+    var buttons = tabs.querySelectorAll(':scope > .tabs__strip [role="tab"]');
+    var panels = tabs.querySelectorAll(":scope > .tabs__panel");
+    for (var i = 0; i < buttons.length; i++) {
+      var on = buttons[i].getAttribute("data-label") === label;
+      if (!on) continue;
+      for (var j = 0; j < buttons.length; j++) {
+        buttons[j].setAttribute("aria-selected", String(i === j));
+        buttons[j].tabIndex = i === j ? 0 : -1;
+        panels[j].hidden = i !== j;
+      }
+    }
+  };
+</script>

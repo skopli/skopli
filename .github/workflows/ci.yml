@@ -77,7 +77,7 @@ jobs:
 
   # --- Websites: build + check both Astro apps (path-filtered) ----------------
   web:
-    name: web (site + docs)
+    name: web (ui + site + docs)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
@@ -87,10 +87,16 @@ jobs:
           node-version: 24
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      - name: ui check
+        run: pnpm --dir web/ui run check
       - name: site check + build
         run: pnpm --dir web/site run check && pnpm --dir web/site run build
       - name: docs check + build
         run: pnpm --dir web/docs run check && pnpm --dir web/docs run build
+      - name: docs e2e
+        run: pnpm --dir web/docs exec playwright install --with-deps chromium && pnpm --dir web/docs run test:e2e
+      - name: docs pseudo-locale build
+        run: SKOPLI_PSEUDO_LOCALE=1 pnpm --dir web/docs run build
 
   # --- C ABI: build cdylib/staticlib + assert the cbindgen header is zero-diff -
   capi-header:
