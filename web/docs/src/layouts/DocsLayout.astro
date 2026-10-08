@@ -200,6 +200,6 @@ const jsonLd = mdPath
   import { initCopyCode } from "@skopli/ui/markdown/copy-code.ts";
   import { initTableOverflow } from "@skopli/ui/markdown/table-overflow.ts";
 
-  initCopyCode(document.documentElement.dataset.copyCode ?? "Copy code");
+  initCopyCode(document.documentElement.dataset.copyLabel ?? "Copy code");
   initTableOverflow();
 </script>

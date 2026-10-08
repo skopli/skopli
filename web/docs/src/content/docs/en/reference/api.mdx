@@ -769,7 +769,7 @@ See [Pricing basics](/skopli/guide/pricing-basics) and the [pricing deep dive](/
 The SDK never writes to stdio. Problems come back as structured values, and unmatched models as misses, never guesses.
 
 - **`diagnostics`**: malformed lines, unreadable files, and unusable timestamps from the Read layer. **`skipped`**: source files skipped per harness. Both are returned alongside `events` from `readUsage`.
-- **Pricing misses**: `lookupModel` and a group in `priceEvents`/`priceRollups` return `{ priced: false, attempted }` (the sources tried) when no rate is found, or `{ priced: false, reason: "zeroCost", key }` when only zero-cost placeholders matched.
+- **Pricing misses**: `lookupModel` and a group in `priceEvents`/`priceRollups` return `{ priced: false, attempted }` (the model keys tried) when no rate is found, or `{ priced: false, reason: "zeroCost", key }` when only zero-cost placeholders matched.
 - **`tieredAggregate: true`**: a priced row where summed context may have crossed a tier boundary the individual calls never reached (see 3c and 3d).
 - **C ABI status**: every `ag_*` call returns an `AgStatus`. `AG_STATUS_OK` means the `AgBuf` holds a JSON result to read and then free with `ag_buf_free`. Non-OK statuses carry the error rather than writing to stdio.
 

@@ -14,7 +14,8 @@
     "./data/*": "./data/*",
     "./analytics": "./analytics.ts",
     "./fonts": "./fonts/index.ts",
-    "./markdown/*": "./markdown/*"
+    "./markdown/*": "./markdown/*",
+    "./scripts/*": "./scripts/*"
   },
   "scripts": {
     "lint": "oxlint",
@@ -33,6 +34,7 @@
   },
   "devDependencies": {
     "@astrojs/check": "^0.9.10",
+    "@playwright/test": "1.63.0",
     "@types/hast": "3.0.5",
     "@types/mdast": "4.0.4",
     "astro": "7.3.5",

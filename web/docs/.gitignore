@@ -6,3 +6,5 @@ dist/
 node_modules/
 # playwright verification artifacts
 .playwright-mcp/
+# playwright
+test-results/

@@ -130,7 +130,7 @@ Read, rollup, and price are independent. Use any subset. Events go in, rollups c
 
 - **Read** parses local session state from 40 harnesses into normalized usage events, with structured diagnostics. See [Reading usage](/skopli/guide/reading).
 - **Rollup** groups events by model, day (timezone-aware in every SDK), session, harness, workspace, or billing block. See [Rollups](/skopli/guide/rollups).
-- **Price** matches models against OpenRouter, LiteLLM, and models.dev catalogs (or your own) and computes USD costs. An unmatched model returns `priced: false` with the sources it tried. See [Pricing basics](/skopli/guide/pricing-basics).
+- **Price** matches models against OpenRouter, LiteLLM, and models.dev catalogs (or your own) and computes USD costs. An unmatched model returns `priced: false` with the model keys it tried. See [Pricing basics](/skopli/guide/pricing-basics).
 
 ## What every event looks like
 

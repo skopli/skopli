@@ -123,7 +123,7 @@ test("tables stay inside their frame and signal overflow", async ({ page }) => {
       return {
         inside: r.left >= main.left - 1 && r.right <= main.right + 1,
         overflowing: scroll.scrollWidth > scroll.clientWidth + 1,
-        flagged: scroll.getAttribute("data-overflow") === "true",
+        flagged: f.getAttribute("data-overflow") === "true",
       };
     });
   });

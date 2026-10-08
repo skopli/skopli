@@ -135,3 +135,44 @@ button {
     scroll-behavior: auto !important;
   }
 }
+
+.harness-name {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5em;
+  white-space: nowrap;
+}
+
+.harness-icon {
+  width: 1em;
+  height: 1em;
+  color: var(--ink-2);
+}
+
+.table-frame {
+  position: relative;
+  max-width: var(--content-width-wide);
+  border: var(--hair) solid var(--rule-1);
+  border-radius: var(--r-2);
+  background: var(--ground-1);
+}
+
+.table-scroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+}
+
+.table-frame[data-overflow="true"]::after {
+  content: "";
+  position: absolute;
+  inset: 0 0 0 auto;
+  width: var(--s-6);
+  border-radius: 0 var(--r-2) var(--r-2) 0;
+  background: linear-gradient(to right, transparent, var(--ground-1));
+  pointer-events: none;
+}
+
+.table-frame[data-overflow="true"][data-scrolled-end="true"]::after {
+  display: none;
+}
