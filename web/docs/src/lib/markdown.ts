@@ -174,14 +174,14 @@ function convertBlocks(nodes: RootContent[], page: MarkdownPage): RootContent[] 
 }
 
 function absolutize(tree: Root, page: MarkdownPage): void {
-  const origin = new URL(page.siteBase).origin;
+  const { origin, pathname: base } = new URL(page.siteBase);
   const here = `${page.siteBase}${page.path === "/" ? "/" : page.path}`;
-  const absolute = (url: string) =>
-    url.startsWith("/")
-      ? `${origin}${url}`
-      : url.startsWith("#")
-        ? `${here}${url}`
-        : new URL(url, here).href;
+  const absolute = (url: string) => {
+    if (url.startsWith("#")) return `${here}${url}`;
+    if (!url.startsWith("/")) return new URL(url, here).href;
+    if (url === base || url.startsWith(`${base}/`)) return `${origin}${url}`;
+    return fail(page, `root-relative link ${url} is outside ${base}`);
+  };
   visit(tree, (node) => {
     if (node.type === "link" || node.type === "definition" || node.type === "image")
       node.url = absolute(node.url);

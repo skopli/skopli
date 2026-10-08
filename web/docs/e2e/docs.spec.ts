@@ -3,7 +3,12 @@ import { expect, test, type Page } from "@playwright/test";
 import { pageActionEvents } from "@skopli/ui/analytics";
 import { navItems } from "../src/nav.ts";
 
-const pages = ["/skopli/", ...navItems.map((i) => `/skopli/${i.slug}`), "/skopli/missing-page"];
+const pages = [
+  "/skopli/",
+  ...navItems.map((i) => `/skopli/${i.slug}`),
+  "/skopli/privacy",
+  "/skopli/missing-page",
+];
 const prompt = encodeURIComponent(
   "Read https://docs.skopli.com/skopli/guide/getting-started.md so I can ask questions about it",
 );
@@ -85,7 +90,8 @@ test("reduced motion disables transitions", async ({ page }) => {
       (sel) => getComputedStyle(document.querySelector(sel)!).transitionDuration,
     ),
   );
-  for (const d of durations) expect(Number.parseFloat(d)).toBeLessThanOrEqual(0.01);
+  for (const d of durations.flatMap((list) => list.split(",")))
+    expect(Number.parseFloat(d)).toBeLessThanOrEqual(0.01);
 });
 
 test("coarse pointers get 44px targets", async ({ page }) => {
@@ -275,7 +281,7 @@ test("theme persists and is applied before first paint", async ({ page }) => {
 });
 
 test("mobile drawer traps focus and closes on Escape", async ({ page }) => {
-  test.skip(!isMobile(page), "mobile only");
+  test.skip(isDesktop(page), "drawer below the sidebar breakpoint");
   await page.goto("/skopli/guide/rollups");
   await expect(page.locator(".sidebar-nav").first()).toBeHidden();
   const open = page.locator(".drawer-open");

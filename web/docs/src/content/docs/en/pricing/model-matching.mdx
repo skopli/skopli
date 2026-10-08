@@ -16,11 +16,11 @@ Model names match in tiers:
 5. Provider-prefixed family forms, so provider-keyed catalogs match. `claude-opus-4.6` also tries `anthropic/claude-opus-4.6`, which is how OpenRouter keys Claude.
 6. Alias table, hand-maintained, for names the mechanical tiers miss.
 
-An unmatched model returns `{ priced: false, attempted: [...] }` and never a guess.
+An unmatched model returns `{ priced: false, attempted: [...] }`.
 
 ## Zero-cost entries
 
-Catalog entries whose every rate is 0 are placeholders, not prices. The match skips them and falls through to the next source. When only zero-cost entries match, the lookup returns:
+Catalog entries whose every rate is 0 are placeholders. The match skips them and falls through to the next source. When only zero-cost entries match, the lookup returns:
 
 ```ts
 { priced: false, reason: "zeroCost", key: "..." }

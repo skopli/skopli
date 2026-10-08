@@ -132,9 +132,7 @@ const uid = `page-actions-${placement}`;
     transform: rotate(180deg);
   }
   .page-actions__menu {
-    position: absolute;
-    top: calc(100% + var(--s-1));
-    right: 0;
+    position: fixed;
     z-index: 30;
     display: grid;
     min-width: 14rem;
@@ -176,6 +174,9 @@ const uid = `page-actions-${placement}`;
 
 <script>
   class SkopliPageActions extends HTMLElement {
+    close = () => {};
+    place = () => {};
+
     connectedCallback() {
       const copy = this.querySelector<HTMLButtonElement>("[data-copy-page]")!;
       const label = copy.querySelector<HTMLElement>("[data-copy-label]")!;
@@ -201,7 +202,13 @@ const uid = `page-actions-${placement}`;
         }, 2000);
       });
 
+      const place = () => {
+        const anchor = more.getBoundingClientRect();
+        menu.style.top = `${anchor.bottom + 4}px`;
+        menu.style.right = `${window.innerWidth - anchor.right}px`;
+      };
       const setOpen = (open: boolean, focusIndex?: number) => {
+        if (open) place();
         menu.hidden = !open;
         more.setAttribute("aria-expanded", String(open));
         if (open && focusIndex !== undefined) items[focusIndex]?.focus();
@@ -234,12 +241,23 @@ const uid = `page-actions-${placement}`;
           setOpen(false);
         }
       });
-      document.addEventListener("pointerdown", (event) => {
-        if (!menu.hidden && !this.contains(event.target as Node)) setOpen(false);
-      });
+      this.close = () => {
+        if (!menu.hidden) setOpen(false);
+      };
+      this.place = () => {
+        if (!menu.hidden) place();
+      };
     }
   }
   if (!customElements.get("skopli-page-actions")) {
     customElements.define("skopli-page-actions", SkopliPageActions);
+    const all = () => document.querySelectorAll<SkopliPageActions>("skopli-page-actions");
+    document.addEventListener("pointerdown", (event) => {
+      for (const actions of all()) if (!actions.contains(event.target as Node)) actions.close();
+    });
+    document.addEventListener("scroll", () => all().forEach((a) => a.place()), {
+      capture: true,
+      passive: true,
+    });
   }
 </script>

@@ -20,7 +20,8 @@ The recorded cost comes from each event's `costUsd`, populated only by the Claud
 
 ## Why priceRollups can overbill tiered models
 
-`priceRollups` prices the tokens already summed onto each rollup. That is exact for flat-rate models. A tiered model is context-sensitive, so summing several events (or one event that already aggregates multiple calls, `calls > 1`) before selecting a tier can push the combined context across a threshold none of the individual calls reached, overbilling the group.
+`priceRollups` prices the tokens already summed onto each rollup. That is exact for flat-rate models. A tiered model is context-sensitive.
+Summing several events before selecting a tier (or one event that already aggregates multiple calls, `calls > 1`) can push the combined context across a threshold none of the individual calls reached, and the group overbills.
 
 Skopli flags such a row with `pricing.tieredAggregate: true` so a caller can catch the exposure. The flag applies in `calculate` mode, or `auto` with no recorded cost, the modes that apply the token math.
 
@@ -106,6 +107,6 @@ A group prices only when every member model prices. If any member is unpriced, t
 Provenance reports mixing:
 
 - A group whose events all share one model returns a `PriceHit` carrying that real model plus its `key`, `price`, `source`, and `fetchedAt`.
-- A group spanning several models (possible when grouping by session, day, harness, or workspace) returns an `AggregatePriceHit` (`{ priced: true, usd, models }`) that lists the contributing models rather than claiming one model's rate.
+- A group spanning several models (possible when grouping by session, day, harness, or workspace) returns an `AggregatePriceHit` (`{ priced: true, usd, models }`) that lists the contributing models.
 
 A single-model group whose events aggregate multiple model calls (`calls > 1`) on a tiered model is still flagged `tieredAggregate: true`, because `priceEvents` prices per event and per-call token breakdowns are not available to separate.

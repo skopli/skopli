@@ -9,11 +9,11 @@ When a request's context crosses a vendor threshold, the tokens above it bill at
 
 Only the LiteLLM catalog carries tier data (`*_cost_per_token_above_Nk_tokens` fields at the 128k, 200k, 256k, 272k, and 512k boundaries). OpenRouter and models.dev do not.
 
-Skopli selects the tier by the request's total context (`input + cacheRead + cacheWrite`), matching vendor definitions.
+Skopli selects the tier by the request's total context (`input + cacheRead + cacheWrite`), which matches the vendor definitions.
 
 ## Tier inheritance and fallbacks
 
-Within a tier, missing input and output fields inherit the last explicit value from earlier tiers (then the base price). Missing cache fields inherit the last explicit cache rate, and if no catalog entry ever supplies one they fall back to that tier's own input rate, mirroring the base fallback.
+Within a tier, missing input and output fields inherit the last explicit value from earlier tiers (then the base price). Missing cache fields inherit the last explicit cache rate, and if no catalog entry ever supplies one they fall back to that tier's own input rate, the same fallback the base price uses.
 
 ## Cache-write composition per tier
 
@@ -25,15 +25,15 @@ See [Price tokens and cache writes](/skopli/pricing/cost-math#cache-write-splits
 
 By default tiers are marginal. Context tokens (input, cacheRead, cacheWrite pro-rata) below each threshold bill at the base rates and only the excess at the tier rates, while output always bills at the base output rate. Tier thresholds are context sizes, and output tokens never count toward them.
 
-When both catalogs price a model, a flat match yields to any lower-priority match that carries tier data (in practice flat OpenRouter yielding to tiered LiteLLM). Explicit overrides always win.
+Source priority between flat and tiered matches is described under [Source priority](/skopli/pricing/model-matching#source-priority).
 
-Anthropic instead reprices the entire request at the long-context rates, so `claude` models with tier data use whole-request semantics. This is a heuristic on the model key, since the catalog carries no explicit repricing signal.
+Anthropic instead reprices the entire request at the long-context rates, so `claude` models with tier data use whole-request semantics. Skopli decides this from the model key, since the catalog carries no explicit repricing signal.
 
 ## Error bounds if the heuristic is wrong
 
 If the choice between marginal and whole-request billing is wrong for a model, the difference per crossed boundary is bounded:
 
-- Each context stream (input, cacheRead, cacheWrite) differs by at most `threshold × |tier rate − previous effective rate|`.
+- Each context stream (input, cacheRead, cacheWrite) differs by at most `threshold × |tier rate - previous effective rate|`.
 - Output differs by `output tokens × |tier output rate − base output rate|`.
 
 For `claude-sonnet-4-5` at the 200k boundary that upper bound is:

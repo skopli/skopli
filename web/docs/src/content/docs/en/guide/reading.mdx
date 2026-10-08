@@ -161,7 +161,7 @@ The Read layer parses local session state into normalized usage events. It never
 
 Full ISO timestamps apply exactly as given.
 
-This keeps filters and day rollups consistent west of UTC. With `tz: "America/Los_Angeles"`, `since: "2026-08-01"` excludes an event at `2026-08-01T00:30Z` (17:30 on Jul 31 in Los Angeles), and the day rollup buckets that event under Jul 31 local, so the two agree.
+Scoping both to `tz` keeps filters and day rollups consistent west of UTC. With `tz: "America/Los_Angeles"`, `since: "2026-08-01"` excludes an event at `2026-08-01T00:30Z` (17:30 on Jul 31 in Los Angeles), and the day rollup buckets that event under Jul 31 local, so the two agree.
 
 The native core buckets rollup days in the same IANA timezone on every path (see [Rollups](/skopli/guide/rollups)), so a `tz`-scoped filter and a `tz` day rollup agree at the UTC boundary in every SDK. An unknown zone name falls back to UTC.
 
@@ -182,12 +182,12 @@ Every event carries:
 - `title`: optional session title. OpenCode records it from its session title. Readers without the concept leave it undefined.
 
 :::tip[Disjoint token buckets]
-`cacheWrite1h` is a portion of the `cacheWrite` total, not additive to it. Readers subtract reasoning-inclusive output at the source, so `output + reasoning` reconstructs the source's raw output count and nothing bills twice.
+`cacheWrite1h` is the 1-hour portion of the `cacheWrite` total. Readers subtract reasoning-inclusive output at the source, so `output + reasoning` reconstructs the source's raw output count and nothing bills twice.
 :::
 
 ## Subagents
 
-Subagent (child) sessions are real spend, so Skopli includes and tags them by default rather than dropping them. Pass `subagents: "exclude"` to drop them uniformly across every harness.
+Subagent (child) sessions are real spend, so Skopli includes and tags them by default. Pass `subagents: "exclude"` to drop them uniformly across every harness.
 
 `event.subagent` is `true` when the harness's native marker says the event came from a subagent:
 
@@ -204,10 +204,4 @@ Subagent (child) sessions are real spend, so Skopli includes and tags them by de
 
 The SDK never writes to stdio. Problems (malformed lines, unreadable files, unusable timestamps) come back as structured `diagnostics`, and skipped source files per harness come back in `skipped`.
 
-Other reader behavior:
-
-- The reader drops zero-token rows regardless of vendor-reported cost.
-- Unusable timestamps warn and skip, never epoch-0.
-- `calls` aggregation uses the reported count only when finite, else 1 per event.
-- Cross-store dedup: the authoritative store suppresses its mirror per harness (OpenCode and ZCode SQLite over JSONL, Devin CLI SQLite over the Desktop `.ndjson` store, the Cline extension store over its CLI session store, the DeepSeek Harness default JSONL event log over its optional SQLite backend, keyed on `session_id` and `seq`).
-- Codex cache-write tokens come from `cache_write_input_tokens` (a 2026-07 protocol addition), a disjoint subset of `input_tokens` like cache reads. The reader subtracts them from input (`input = raw_input - cacheRead - cacheWrite`) and emits them as `tokens.cacheWrite`. Older session files that lack the field count as 0.
+Other reader behavior (zero-token rows, unusable timestamps, `calls` aggregation, cross-store dedup, and Codex cache writes) is listed under [Semantics](/skopli/reference/api#semantics).

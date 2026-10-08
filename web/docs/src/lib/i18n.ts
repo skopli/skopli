@@ -12,11 +12,21 @@ export function t(locale: Locale) {
   return translator(locale);
 }
 
-export function href(path: string, locale: Locale = defaultLocale): string {
-  const slug = path.replace(/^\//, "").replace(/\/$/, "");
-  const target = locale !== defaultLocale && !translatedSlugs.has(slug) ? defaultLocale : locale;
-  const localized = localizePath(path, target);
+/** Localize a path that exists in every locale, such as the generated llms files. */
+export function localizedHref(path: string, locale: Locale): string {
+  const localized = localizePath(path, locale);
   return `${basePath}${localized === "/" ? "/" : localized.replace(/\/$/, "")}`;
+}
+
+/** Localize a content path, falling back to English when the page has no translation. */
+export function href(path: string, locale: Locale = defaultLocale): string {
+  const slug = path
+    .replace(/^\//, "")
+    .replace(/\/$/, "")
+    .replace(/\.md$/, "")
+    .replace(/^index$/, "");
+  const target = locale !== defaultLocale && !translatedSlugs.has(slug) ? defaultLocale : locale;
+  return localizedHref(path, target);
 }
 
 export function absoluteHref(path: string, locale: Locale = defaultLocale): string {

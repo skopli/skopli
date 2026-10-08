@@ -61,22 +61,40 @@ for (const name of unsupportedHarnesses)
     need(read(join(site, `${page}.html`)).includes(name), `${page} names ${name} as unsupported`);
 
 const resolves = (target: string) => {
-  const path = target.replace(/^\/skopli\/?/, "").replace(/\/$/, "");
+  const path = target
+    .replace(/^https:\/\/docs\.skopli\.com/, "")
+    .replace(/^\/skopli\/?/, "")
+    .replace(/\/$/, "");
   return (
     !path || [path, `${path}.html`, `${path}/index.html`].some((f) => existsSync(join(site, f)))
   );
 };
+const checkLinks = (text: string, where: string, pattern: RegExp) => {
+  for (const [, target] of text.matchAll(pattern))
+    need(resolves(target), `${where} links ${target}, which is not in dist`);
+};
+const htmlLink = /href="(\/skopli\/[^"#?]*)/g;
+const mdLink = /\]\((https:\/\/docs\.skopli\.com\/skopli\/[^)#?]*)/g;
 
 for (const locale of locales) {
   const isDefault = locale === defaultLocale;
   const prefix = isDefault ? "" : `${locale}/`;
-  need(existsSync(join(site, prefix, "llms.txt")), `${prefix}llms.txt exists`);
-  need(existsSync(join(site, prefix, "llms-full.txt")), `${prefix}llms-full.txt exists`);
+  const llms = read(join(site, prefix, "llms.txt"));
+  need(llms.startsWith("# Skopli"), `${prefix}llms.txt exists`);
+  checkLinks(llms, `${prefix}llms.txt`, mdLink);
+  need(
+    [...llms.matchAll(mdLink)].every(([, url]) => url.includes(`/skopli/${prefix}`)),
+    `${prefix}llms.txt links its own locale`,
+  );
   const localeSlugs = isDefault
     ? slugs
     : slugs.filter((slug) =>
         existsSync(join(site, slug ? `${prefix}${slug}.html` : `${locale}.html`)),
       );
+  need(
+    read(join(site, prefix, "llms-full.txt")).split("\n---\n").length === localeSlugs.length,
+    `${prefix}llms-full.txt carries one page per built page`,
+  );
   if (!isDefault)
     need(
       localeSlugs.join(",") === ["", "guide/getting-started"].join(","),
@@ -107,8 +125,9 @@ for (const locale of locales) {
       `${where} carries WebSite and TechArticle JSON-LD`,
     );
     need(html.includes("data-pagefind-body"), `${where} is marked for Pagefind`);
-    for (const [, target] of html.matchAll(/href="(\/skopli\/[^"#?]*)/g))
-      need(resolves(target), `${where} links ${target}, which is not in dist`);
+    checkLinks(html, where, htmlLink);
+    checkLinks(md, `${where}.md`, mdLink);
+    need(html.includes(`href="/skopli/${prefix}llms.txt"`), `${where} links its locale's llms.txt`);
     for (const host of aiHosts) need(html.includes(host), `${where} links ${host}`);
     for (const event of Object.values(pageActionEvents))
       need(html.includes(`data-event="${event}"`), `${where} carries ${event}`);
@@ -133,7 +152,14 @@ for (const locale of locales) {
 
 const harnessMd = read(join(site, "reference", "harnesses.md"));
 for (const h of harnesses) need(harnessMd.includes(`| ${h.name}`), `harnesses.md lists ${h.name}`);
-need(readdirSync(join(site, "pagefind")).length > 0, "pagefind index is not empty");
+const indexed = readdirSync(site, { recursive: true, encoding: "utf8" }).filter(
+  (f) => f.endsWith(".html") && read(join(site, f)).includes("data-pagefind-body"),
+);
+need(!read(join(site, "404.html")).includes("data-pagefind-body"), "404 is not indexed");
+need(
+  readdirSync(join(site, "pagefind", "fragment")).length === indexed.length,
+  `pagefind indexed ${indexed.length} pages`,
+);
 
 if (failures.length) {
   console.error(`verify-dist: ${failures.length} failure(s)\n- ${failures.join("\n- ")}`);

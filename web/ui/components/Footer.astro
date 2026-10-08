@@ -85,10 +85,11 @@ const { t, layout = "page", licenseHref, privacyHref } = Astro.props;
     display: inline-block;
     min-height: var(--target);
     line-height: var(--target);
-    color: inherit;
+    color: var(--ink-2);
+    text-decoration: none;
   }
   .site-footer__legal a:hover {
-    color: var(--ink-1);
+    color: var(--ink-0);
   }
   @media (max-width: 47.99rem) {
     .site-footer__in {

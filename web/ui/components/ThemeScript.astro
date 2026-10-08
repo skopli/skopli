@@ -6,7 +6,5 @@
     } catch {
       document.documentElement.dataset.theme = "dark";
     }
-    var meta = document.querySelector('meta[name="theme-color"]');
-    if (meta) meta.setAttribute("content", getComputedStyle(document.documentElement).getPropertyValue("--ground-0").trim());
   })();
 </script>

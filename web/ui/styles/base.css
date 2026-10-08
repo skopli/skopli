@@ -143,6 +143,12 @@ button {
   white-space: nowrap;
 }
 
+.harness-name__icon {
+  display: inline-flex;
+  flex-shrink: 0;
+  width: 1em;
+}
+
 .harness-icon {
   width: 1em;
   height: 1em;

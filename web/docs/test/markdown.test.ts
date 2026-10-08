@@ -77,6 +77,9 @@ Reasoning tokens may be double-billed.[^a]
   it("throws on unknown JSX and unknown directives", () => {
     expect(() => page(`<Mystery />`)).toThrow(/unknown MDX element <Mystery>/);
     expect(() => page(`:::danger\nx\n:::`)).toThrow(/unknown directive :::danger/);
+    expect(() => page(`[x](/guide/x)`)).toThrow(
+      /root-relative link \/guide\/x is outside \/skopli/,
+    );
   });
 
   it("absolutizes root-relative, fragment, and image links against the page", () => {

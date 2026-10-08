@@ -12,7 +12,7 @@ import PageFooter from "../components/PageFooter.astro";
 import Search from "../components/Search.astro";
 import Sidebar from "../components/Sidebar.astro";
 import Toc from "../components/Toc.astro";
-import { href, t as translate } from "../lib/i18n.ts";
+import { href, localizedHref, t as translate } from "../lib/i18n.ts";
 import { groupFor, neighbours } from "../lib/pages.ts";
 import { licenseUrl, marketingUrl, repoUrl } from "../site.ts";
 import BaseLayout from "./BaseLayout.astro";
@@ -97,7 +97,7 @@ const jsonLd = mdPath
   <Footer t={t} layout="docs" licenseHref={licenseUrl} privacyHref={href("/privacy", locale)}>
     <a href={repoUrl} rel="noopener">GitHub</a>
     <a href={marketingUrl}>{t("marketingSite")}</a>
-    <a href={`${import.meta.env.BASE_URL}/llms.txt`}>llms.txt</a>
+    <a href={localizedHref("/llms.txt", locale)}>llms.txt</a>
   </Footer>
 </BaseLayout>
 
@@ -120,7 +120,7 @@ const jsonLd = mdPath
     padding-top: var(--s-4);
     border-top: var(--hair) solid var(--rule-1);
   }
-  @media (max-width: 47.99rem) {
+  @media (max-width: 63.99rem) {
     .docs__drawer-locale {
       display: block;
     }
@@ -144,7 +144,6 @@ const jsonLd = mdPath
   }
   .docs__sidebar {
     padding: var(--s-5) var(--s-3) var(--s-6);
-    border-inline-end: var(--hair) solid var(--rule-1);
   }
   .docs__rail {
     display: grid;
@@ -155,6 +154,7 @@ const jsonLd = mdPath
   }
   .docs__main {
     padding: var(--s-5) var(--s-6) var(--s-8);
+    border-inline-start: var(--hair) solid var(--rule-1);
     outline: none;
   }
   .docs__top {
@@ -194,13 +194,18 @@ const jsonLd = mdPath
       margin-inline-start: auto;
     }
   }
-  @media (max-width: 47.99rem) {
+  @media (max-width: 63.99rem) {
     .docs {
       grid-template-columns: minmax(0, 1fr);
     }
     .docs__sidebar {
       display: none;
     }
+    .docs__main {
+      border-inline-start: 0;
+    }
+  }
+  @media (max-width: 47.99rem) {
     .docs__main {
       padding: var(--s-4) var(--s-4) var(--s-7);
     }

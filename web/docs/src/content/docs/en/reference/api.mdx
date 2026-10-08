@@ -6,7 +6,7 @@ description: The Skopli API in every language. Read, Rollup, and Price layers, m
 import Tabs from "@skopli/ui/components/Tabs.astro";
 import Tab from "@skopli/ui/components/Tab.astro";
 
-Skopli reads AI coding-agent usage (tokens, sessions, turns, calls) from local harness state, aggregates it, and prices it against market catalogs (OpenRouter, LiteLLM, models.dev). Every language calls into one Rust core, so the layers, options, and return shapes are the same everywhere. Only the spelling of names differs, as described below. The TypeScript package is ESM only and needs Node 24 or newer.
+Skopli reads AI coding-agent usage (tokens, sessions, turns, calls) from local harness state, aggregates it, and prices it against market catalogs (OpenRouter, LiteLLM, models.dev). Every language calls into one Rust core, so the layers, options, and return shapes are the same everywhere. The TypeScript package is ESM only and needs Node 24 or newer.
 
 :::note[Full pricing parity across every facade]
 The Read, Rollup, and Price layers expose the same operations and return shapes in every language. The [pricing constructor](#3a-pricing-constructor) section lists what each facade exposes.
@@ -327,9 +327,20 @@ See [Reading usage](/skopli/guide/reading) for the full guide.
 
 Each `Rollup` has summed tokens, events, turns, calls, and `costUsd` (summed recorded cost, present only when an event carried one). Workspace bucketing folds events without a workspace under the `"(unknown)"` sentinel.
 
-`by: "block"` groups events into rolling session windows that approximate a provider usage-quota window, for example Claude subscription five-hour blocks. It approximates the window from your own events, so the provider's own accounting can differ. A block opens at the first event floored to the hour in `tz` and spans `blockMs` (default `18000000`, five hours). Events in `[start, start + blockMs)` join it, and the first event at or past `start + blockMs` opens a new block. Each row's `key` is the ISO-8601 block-start instant, and rows come back in ascending start order. The library never reads the clock, so flag the still-open block by comparing its `end` (`start + blockMs`) against the current time caller-side.
+`by: "block"` groups events into rolling session windows that approximate a provider usage-quota window, for example Claude subscription five-hour blocks.
+The window is derived from your own events, so the provider's own accounting can differ.
 
-The `tz` option buckets days in an IANA timezone on every rollup path. The TypeScript implementation formats each timestamp with `Intl.DateTimeFormat` under `timeZone: tz` (`src/rollup.ts`). The native core (`skopli-core`) and every facade that calls it (Python, Ruby, Java, C#, Go, Swift, and the C ABI) bucket days in the same zone, DST transitions and sub-hour offsets included, so all paths agree bucket for bucket. A non-UTC `tz` shifts the day boundary consistently, so a day rollup agrees with a `tz`-scoped `since` and `until` filter east or west of UTC. An unknown zone name falls back to UTC.
+- A block opens at the first event floored to the hour in `tz` and spans `blockMs` (default `18000000`, five hours).
+- Events in `[start, start + blockMs)` join it.
+- The first event at or past `start + blockMs` opens a new block.
+- Each row's `key` is the ISO-8601 block-start instant, and rows come back in ascending start order.
+- The library never reads the clock. Flag the still-open block caller-side by comparing its `end` (`start + blockMs`) against the current time.
+
+The `tz` option buckets days in an IANA timezone on every rollup path. The TypeScript implementation formats each timestamp with `Intl.DateTimeFormat` under `timeZone: tz` (`src/rollup.ts`).
+The native core (`skopli-core`) and every facade that calls it (Python, Ruby, Java, C#, Go, Swift, and the C ABI) bucket days in the same zone, DST transitions and sub-hour offsets included.
+All paths agree bucket for bucket.
+A non-UTC `tz` shifts the day boundary consistently, so a day rollup agrees with a `tz`-scoped `since` and `until` filter east or west of UTC.
+An unknown zone name falls back to UTC.
 
 See [Rollups](/skopli/guide/rollups).
 
@@ -339,7 +350,12 @@ The Price layer is the only layer that touches the network. It fetches market ca
 
 #### 3a. Pricing constructor
 
-The seven handle-based facades (TypeScript, Python, Ruby, Java, C#, Go, Swift) construct a full pricing handle with `createPricing`. The FFI ones (Java, C#, Go, Swift) run the fetch facade-side in the host language and hand pre-fetched catalogs to the network-free `libskopli`. Those handles are closeable. Rust exposes the pricing primitives directly and has no constructor. The bare C ABI's `ag_pricing_new` takes injected `catalogs` (or overrides) in its options JSON. The default `libskopli` fetches nothing, and built-in sources require the `net` build (`libskopli-full`).
+The seven handle-based facades (TypeScript, Python, Ruby, Java, C#, Go, Swift) construct a full pricing handle with `createPricing`.
+The FFI facades (Java, C#, Go, Swift) run the fetch in the host language and hand pre-fetched catalogs to the network-free `libskopli`.
+Those handles are closeable.
+Rust exposes the pricing primitives directly and has no constructor.
+The bare C ABI's `ag_pricing_new` takes injected `catalogs` (or overrides) in its options JSON.
+The default `libskopli` fetches nothing, and built-in sources require the `net` build (`libskopli-full`).
 
 <Tabs syncKey="lang">
   <Tab label="TypeScript">
@@ -481,12 +497,12 @@ The seven handle-based facades (TypeScript, Python, Ruby, Java, C#, Go, Swift) c
   </Tab>
 </Tabs>
 
-The options carry the same semantics in every language, only the key spelling changes (`cacheDir` and `cache_dir`, `ttlMs` and `ttl_ms`, `PricingMode.Calculate`, `"calculate"`, and `.calculate`). Use `catalogs` to hand in pre-fetched catalogs, or `sources` plus `fetch` to drive the built-in fetch lifecycle.
+The options are the same in every language, and only the key spelling differs (`cacheDir` and `cache_dir`, `ttlMs` and `ttl_ms`, `PricingMode.Calculate`, `"calculate"`, and `.calculate`). Use `catalogs` to hand in pre-fetched catalogs, or `sources` plus `fetch` to drive the built-in fetch lifecycle.
 
 | Option      | Meaning                                                                                                                                                                      |
 | ----------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `sources`   | Catalog sources in priority order. Default: OpenRouter, LiteLLM, models.dev. Available on all seven handle facades; in TypeScript it also stands in for explicit `catalogs`. |
-| `catalogs`  | Explicit pre-fetched catalogs, in priority order after overrides. (All facades except TypeScript.)                                                                           |
+| `catalogs`  | Explicit pre-fetched catalogs, in priority order after overrides. Every facade except TypeScript accepts it.                                                                 |
 | `overrides` | Your own rates. Highest priority, beats every market source. An explicit `$0` counts.                                                                                        |
 | `mode`      | `calculate` (default), `display`, or `auto`. See below.                                                                                                                      |
 | `cacheDir`  | Disk cache location. Default: the platform cache dir.                                                                                                                        |
@@ -495,13 +511,18 @@ The options carry the same semantics in every language, only the key spelling ch
 | `refresh`   | Attempt one fresh fetch per source, bypassing fresh caches. Stale cache is still used on failure.                                                                            |
 | `fetch`     | Injectable getter for the built-in sources, for tests and proxies. On all seven handle facades.                                                                              |
 
-Priority runs overrides, then explicit catalogs, OpenRouter, LiteLLM, and models.dev, with one exception. After overrides, any tier-bearing match outranks a flat (tier-less) match from a higher-priority source, so long-context tiers are not lost to a higher-priority flat source (in practice, tiered LiteLLM beating flat OpenRouter).
+Priority runs overrides, then explicit catalogs, OpenRouter, LiteLLM, and models.dev, with one exception for tiered matches described under [Source priority](/skopli/pricing/model-matching#source-priority).
 
 **`mode`** picks each priced row's `usd`: `calculate` recomputes from tokens, `display` uses the recorded cost or `0`, `auto` prefers recorded then calculated.
 
 #### 3b. lookupModel and priceTokens
 
-`lookupModel` matches a model name against the loaded catalogs and returns a `PriceHit` or a miss. `priceTokens` prices a token bundle at a resolved price. `lookupModel` belongs to every pricing handle. In Rust it is a method on `Pricing` (`pricing.lookup_model(model)`), and `cost_usd` is a free function that prices a token bundle at a `ModelPrice`. `priceTokens` is a convenience on the TypeScript, Python, and Ruby handles (Rust uses `cost_usd`). The FFI facades cover it through `priceRollups` and `priceEvents`, which match and price in one call.
+`lookupModel` matches a model name against the loaded catalogs and returns a `PriceHit` or a miss.
+`priceTokens` prices a token bundle at a resolved price.
+`lookupModel` belongs to every pricing handle.
+In Rust it is a method on `Pricing` (`pricing.lookup_model(model)`), and `cost_usd` is a free function that prices a token bundle at a `ModelPrice`.
+`priceTokens` is a convenience on the TypeScript, Python, and Ruby handles.
+The FFI facades cover it through `priceRollups` and `priceEvents`, which match and price in one call.
 
 <Tabs syncKey="lang">
   <Tab label="TypeScript">
@@ -602,7 +623,10 @@ See [Model matching](/skopli/pricing/model-matching) for how a name resolves and
 
 #### 3c. priceRollups
 
-`priceRollups(rollups)` prices already-summed tokens. It is exact for flat-rate models. For a tiered model whose rollup aggregated more than one event (or a single event that itself aggregates multiple calls, `calls > 1`), the summed context can cross a tier the individual calls never reached, overbilling. That row is flagged `pricing.tieredAggregate: true` (calculate mode, or auto without a recorded cost), so it is never a silent misprice.
+`priceRollups(rollups)` prices already-summed tokens.
+It is exact for flat-rate models.
+For a tiered model, a rollup that aggregated more than one event (or a single event with `calls > 1`) can cross a tier the individual calls never reached, and the row overbills.
+Skopli flags that row with `pricing.tieredAggregate: true` (calculate mode, or auto without a recorded cost).
 
 `priceRollups` is on every pricing handle. `priceEvents` prices each event at its own context, which is what tiered models need. See [Price rollups or raw events](/skopli/pricing/rollups-vs-events).
 
@@ -756,21 +780,25 @@ See [Model matching](/skopli/pricing/model-matching) for how a name resolves and
   </Tab>
 </Tabs>
 
-Provenance follows the group. A single-model group returns a `PriceHit` (its real model, key, price, source). A multi-model group (possible when grouping by session, day, harness, or workspace) returns `AggregatePriceHit` (`{ priced: true, usd, models }`) instead of claiming one model's rate. A single-model group whose events aggregate multiple calls (`calls > 1`) on a tiered model is still flagged `tieredAggregate: true`, since per-call tokens are not separable.
+Provenance follows the group.
+A single-model group returns a `PriceHit` (its real model, key, price, source).
+A multi-model group (possible when grouping by session, day, harness, or workspace) returns `AggregatePriceHit` (`{ priced: true, usd, models }`).
+A single-model group whose events aggregate multiple calls (`calls > 1`) on a tiered model is still flagged `tieredAggregate: true`, since per-call tokens are not separable.
 
 See [Price rollups or raw events](/skopli/pricing/rollups-vs-events) for when each path is safe.
 
 #### 3e. catalogs and cache
 
-Per-source disk cache (1h TTL, atomic writes, stale fallback at any age). `refresh: true` attempts one fresh fetch per source, bypassing fresh caches, falling back to stale on failure. Default fetches abort after 10s. Results carry source attribution and `fetchedAt`. Prices are USD per million tokens.
+Each source caches on disk with a 1-hour TTL and atomic writes, and a stale cache at any age serves when a fetch fails.
+`refresh: true` attempts one fresh fetch per source, bypassing fresh caches and falling back to stale on failure. Default fetches abort after 10s. Results carry source attribution and `fetchedAt`. Prices are USD per million tokens.
 
-`catalogs()` reports the loaded sources (source, `fetchedAt`, model count), so you can tell when every market source failed and lookups can only miss. It is on every pricing handle that has one (`catalogs` in TypeScript/Python/Ruby, `Catalogs()` in Java/C#/Go, `catalogs()` in Swift). In Rust the equivalent is `Pricing::catalog_infos`, which reports the catalogs you injected.
+`catalogs()` reports the loaded sources (source, `fetchedAt`, model count), so you can tell when every market source failed and lookups can only miss. It is on every pricing handle that has one (`catalogs` in TypeScript, Python, and Ruby, `Catalogs()` in Java, C#, and Go, and `catalogs()` in Swift). In Rust the equivalent is `Pricing::catalog_infos`, which reports the catalogs you injected.
 
 See [Pricing basics](/skopli/guide/pricing-basics) and [Model matching](/skopli/pricing/model-matching).
 
 ## Diagnostics and error shapes
 
-The SDK never writes to stdio. Problems come back as structured values, and unmatched models as misses, never guesses.
+The SDK never writes to stdio. Problems come back as structured values, and unmatched models come back as misses.
 
 - `diagnostics` lists malformed lines, unreadable files, and unusable timestamps from the Read layer, and `skipped` lists the source files skipped per harness. `readUsage` returns both alongside `events`.
 - `lookupModel` and a group in `priceEvents`/`priceRollups` return `{ priced: false, attempted }` (the model keys tried) when no rate is found, or `{ priced: false, reason: "zeroCost", key }` when only zero-cost placeholders matched.
@@ -791,7 +819,7 @@ See [Model matching](/skopli/pricing/model-matching).
 
 - Date-only since and until strings (`YYYY-MM-DD`) are interpreted in `tz` (default: system timezone): since = start of day, until = exclusive end of day. Full ISO timestamps apply exactly as given. West of UTC this matters for filtering: with `tz America/Los_Angeles`, since `"2026-08-01"` excludes an event at `2026-08-01T00:30Z` (17:30 Jul 31 local). Day rollups bucket in the same `tz` on every path, so a day rollup never shows a `"2026-07-31"` row and filtering and day rollups agree at the UTC boundary across all SDKs (an unknown zone name falls back to UTC).
 - The reader drops zero-token rows regardless of vendor-reported cost.
-- Unusable timestamps warn and skip, never epoch-0.
+- Unusable timestamps produce a warning and skip the row.
 - `calls` aggregation uses the reported count only when finite, else 1 per event.
 - Reasoning tokens bill as output. Cache price tiers fall back to the input rate when a catalog omits them.
 - Codex CLI, Grok Build, and ZCode report reasoning inside their output count, so the reader subtracts reasoning from output (`output + reasoning` reconstructs the source's raw output). GitHub Copilot CLI is the deliberate exception: the OTel GenAI conventions do not state whether `output_tokens` includes reasoning, so the reader assumes they are disjoint and does not subtract. If Copilot output turns out to be reasoning-inclusive, its reasoning would be double-billed.

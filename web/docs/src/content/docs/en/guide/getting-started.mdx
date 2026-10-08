@@ -8,15 +8,12 @@ import Tab from "@skopli/ui/components/Tab.astro";
 
 Skopli is an SDK you call from your own code. It reads the session state your harnesses keep on disk (sessions, turns, calls, tokens), normalizes it, aggregates it, and prices it. Build your own dashboards, reports, or billing checks on top.
 
-It has three independent layers, and each works on its own.
-
-| Layer  | What it does                                                                                                                                                                             | Network            |
-| ------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------ |
-| Read   | Parse local session state from 40 harnesses into normalized usage events, with structured diagnostics                                                                                    | Never              |
-| Rollup | Group events by model, day (timezone-aware in every SDK), session, harness, workspace, or billing block                                                                                  | Never              |
-| Price  | Match models against OpenRouter, LiteLLM, and models.dev catalogs (or your own) and compute USD costs, with tiered long-context rates, cache-write splits, and misses reported as misses | By default, cached |
-
-No accounts, no telemetry. The readers never touch the network. Pricing fetches the market catalogs by default when used, caches what it fetches, and reads from cache when offline. Pass an empty `sources` list or `offline` for a network-free handle.
+It has three independent layers, Read, Rollup, and Price, and each works on its own.
+Skopli has no accounts and no telemetry.
+Read and Rollup never touch the network.
+Price fetches the market catalogs by default when used, caches what it fetches, and reads from cache when offline.
+Pass an empty `sources` list or `offline` for a network-free handle.
+[Pricing basics](/skopli/guide/pricing-basics) covers sources, cache, and misses.
 
 ## Step 1: Install
 
