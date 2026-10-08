@@ -1,4 +1,6 @@
 ---
+import InlineCode from "./InlineCode.astro";
+
 interface Props {
   id: string;
   title: string;
@@ -6,7 +8,6 @@ interface Props {
 }
 
 const { id, title, body } = Astro.props;
-import InlineCode from "./InlineCode.astro";
 ---
 
 <section class="section" id={id} aria-labelledby={`${id}-title`}>

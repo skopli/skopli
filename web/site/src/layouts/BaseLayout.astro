@@ -3,6 +3,7 @@ import "@skopli/ui/tokens.css";
 import "@skopli/ui/base.css";
 import "@skopli/ui/prose.css";
 import "@skopli/ui/shiki.css";
+import tokens from "@skopli/ui/tokens.css?raw";
 import Analytics from "@skopli/ui/components/Analytics.astro";
 import Fonts from "@skopli/ui/components/Fonts.astro";
 import TabsInit from "@skopli/ui/components/TabsInit.astro";
@@ -21,6 +22,8 @@ interface Props {
 
 const { locale, title, description, path, noindex = false } = Astro.props;
 const canonical = absoluteHref(path, locale);
+const themeColor = /--ground-0:\s*(#[0-9a-f]{6})/i.exec(tokens)?.[1];
+if (!themeColor) throw new Error("tokens.css defines no --ground-0");
 const alternates = noindex || locales.length === 1 ? [] : locales;
 const jsonLd = {
   "@context": "https://schema.org",
@@ -75,9 +78,13 @@ const jsonLd = {
     <meta property="og:description" content={description} />
     {!noindex && <meta property="og:url" content={canonical} />}
     <meta property="og:locale" content={ogLocale(locale)} />
-    <meta name="twitter:card" content="summary" />
+    <meta property="og:image" content={`${siteOrigin}/og.png`} />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Skopli" />
+    <meta name="twitter:card" content="summary_large_image" />
     <meta name="color-scheme" content="dark light" />
-    <meta name="theme-color" content="#0b0b0c" />
+    <meta name="theme-color" content={themeColor} />
     <ThemeScript />
     <TabsInit />
     <Fonts />

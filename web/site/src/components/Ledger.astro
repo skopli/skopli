@@ -26,7 +26,7 @@ const { copy } = Astro.props;
             <th scope="col" class="num ledger__wide">{copy.input}</th>
             <th scope="col" class="num ledger__wide">{copy.cacheRead}</th>
             <th scope="col" class="num ledger__wide">{copy.cacheWrite}</th>
-            <th scope="col" class="num ledger__mid">{copy.output}</th>
+            <th scope="col" class="num">{copy.output}</th>
             <th scope="col" class="num">{copy.usd}</th>
           </tr>
         </thead>
@@ -45,7 +45,7 @@ const { copy } = Astro.props;
                 <td class="num ledger__wide">{int(row.tokens.input)}</td>
                 <td class="num ledger__wide">{int(row.tokens.cacheRead)}</td>
                 <td class="num ledger__wide">{int(row.tokens.cacheWrite)}</td>
-                <td class="num ledger__mid">{int(row.tokens.output)}</td>
+                <td class="num">{int(row.tokens.output)}</td>
                 <td class="num">
                   {row.pricing.priced ? (
                     <span class="ledger__priced">{usd(row.pricing.usd)}</span>
@@ -63,7 +63,7 @@ const { copy } = Astro.props;
             <td class="num ledger__wide">{int(totals.input)}</td>
             <td class="num ledger__wide">{int(totals.cacheRead)}</td>
             <td class="num ledger__wide">{int(totals.cacheWrite)}</td>
-            <td class="num ledger__mid">{int(totals.output)}</td>
+            <td class="num">{int(totals.output)}</td>
             <td class="num">{usd(totals.usd)}</td>
           </tr>
         </tfoot>
@@ -71,7 +71,7 @@ const { copy } = Astro.props;
     </div>
   </div>
   <figcaption class="ledger__note">
-    <InlineCode text={format(copy.note, { date: rateDate })} />
+    <InlineCode text={copy.note} />
   </figcaption>
 </figure>
 
@@ -164,13 +164,8 @@ const { copy } = Astro.props;
     color: var(--ink-2);
     font-size: var(--fs-sm);
   }
-  @media (max-width: 63.99rem) {
-    .ledger__wide {
-      display: none;
-    }
-  }
   @media (max-width: 47.99rem) {
-    .ledger__mid {
+    .ledger__wide {
       display: none;
     }
   }

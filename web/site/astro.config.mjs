@@ -17,6 +17,11 @@ export default defineConfig({
     sitemap({
       filter: (page) => !page.endsWith("/404/"),
       i18n: { defaultLocale, locales: Object.fromEntries(locales.map((l) => [l, l])) },
+      serialize: (item) => {
+        const links = item.links ?? [];
+        const home = links.find((l) => l.lang === defaultLocale);
+        return home ? { ...item, links: [...links, { lang: "x-default", url: home.url }] } : item;
+      },
     }),
   ],
   vite: { build: { assetsInlineLimit: 0 }, server: { fs: { allow: [".."] } } },

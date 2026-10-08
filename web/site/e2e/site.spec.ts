@@ -1,9 +1,11 @@
+import { existsSync } from "node:fs";
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
 import { harnesses } from "@skopli/ui/data/harnesses.ts";
 import { rows, totals, usd } from "../src/data/example.ts";
 
-const pages = ["/", "/missing-page"];
+const pseudoBuilt = existsSync(new URL("../dist/en-XA/index.html", import.meta.url));
+const pages = ["/", "/missing-page", ...(pseudoBuilt ? ["/en-XA/"] : [])];
 const isMobile = (page: Page) => (page.viewportSize()?.width ?? 1440) < 768;
 const isDesktop = (page: Page) => (page.viewportSize()?.width ?? 1440) >= 1024;
 
@@ -65,7 +67,8 @@ test("reduced motion disables transitions", async ({ page }) => {
       (sel) => getComputedStyle(document.querySelector(sel)!).transitionDuration,
     ),
   );
-  for (const d of durations) expect(Number.parseFloat(d)).toBeLessThanOrEqual(0.01);
+  for (const d of durations.flatMap((list) => list.split(",")))
+    expect(Number.parseFloat(d)).toBeLessThanOrEqual(0.01);
 });
 
 test("coarse pointers get 44px targets", async ({ page }) => {
@@ -74,7 +77,7 @@ test("coarse pointers get 44px targets", async ({ page }) => {
   const boxes = await page.evaluate(() =>
     [
       ...document.querySelectorAll(
-        ".site-header a, .site-header button, .tabs__strip [role=tab], .code-frame button, .button, .harnesses__more a, .library__links a, .site-footer a",
+        ".site-header a, .site-header button, .page-nav a, .tabs__strip [role=tab], .code-frame button, .button, .harnesses__more a, .library__links a, .site-footer a",
       ),
     ]
       .filter((el) => (el as HTMLElement).offsetParent !== null)
@@ -99,6 +102,11 @@ test("section nav lives in the header on wide viewports and in a row below it el
   await nav.getByRole("link", { name: "Harnesses" }).click();
   await expect(page).toHaveURL(/#harnesses$/);
   await expect(page.locator("#harnesses")).toBeInViewport();
+  if (!isDesktop(page))
+    await expect(nav.getByRole("link", { name: "Harnesses" })).toHaveAttribute(
+      "aria-current",
+      "true",
+    );
 });
 
 test("clipped code frames show the overflow fade until scrolled to the end", async ({ page }) => {
@@ -120,6 +128,7 @@ test("the ledger recomputes from the example rows and stays inside its frame", a
   expect(usd(totals.usd)).toBe("$211.39");
   await expect(ledger.locator("tbody tr")).toHaveCount(rows.length);
   await expect(ledger.locator(".ledger__miss")).toHaveText("priced: false");
+  await expect(ledger.locator("thead th", { hasText: "Output" })).toBeVisible();
   const report = await page.evaluate(() => {
     const frame = document.querySelector(".ledger .table-frame")!;
     const scroll = frame.querySelector(".table-scroll")!;
@@ -248,6 +257,7 @@ test("metadata carries SoftwareSourceCode JSON-LD and the analytics contract", a
   ]) {
     expect(html.replace(/\s+/g, ""), needle).toContain(needle.replace(/\s+/g, ""));
   }
+  expect(html.replace(/\s+/g, "").split('ph.capture("$pageview")')).toHaveLength(2);
 });
 
 test("404 page renders inside the shared shell", async ({ page }) => {
@@ -255,6 +265,12 @@ test("404 page renders inside the shared shell", async ({ page }) => {
   expect(response?.status()).toBe(404);
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("Page not found");
   await expect(page.locator(".site-header")).toBeVisible();
+  await expect(
+    page
+      .locator(".site-header__nav a, .page-nav a")
+      .filter({ hasText: "Docs" })
+      .filter({ visible: true }),
+  ).toHaveCount(1);
   await page.getByRole("link", { name: "Back to skopli.com" }).click();
   await expect(page).toHaveURL("/");
 });

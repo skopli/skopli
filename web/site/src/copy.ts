@@ -1,16 +1,18 @@
+import { harnesses } from "@skopli/ui/data/harnesses.ts";
 import { pseudolocalize, type Locale } from "@skopli/ui/i18n";
+
+const n = harnesses.length;
 
 export const en = {
   title: "Skopli: price your AI coding-agent usage from local logs",
-  description:
-    "An MIT SDK that reads AI coding-agent usage from 40 harnesses on local disk, rolls it up, and prices it against market catalogs.",
+  description: `An MIT SDK that reads AI coding-agent usage from ${n} harnesses on local disk, rolls it up, and prices it against market catalogs.`,
   nav: { install: "Install", layers: "Layers", quickstart: "Quickstart", harnesses: "Harnesses" },
   hero: {
     title: "Know what your coding agents cost.",
-    lede: "Skopli reads the session logs 40 coding-agent harnesses already keep on disk, rolls them up, and prices them against market catalogs.",
+    lede: `Skopli reads the session logs ${n} coding-agent harnesses already keep on disk, rolls them up, and prices them against market catalogs.`,
     getStarted: "Read the docs",
     github: "GitHub",
-    facts: "MIT. One Rust core, eight language facades and a C ABI. No accounts, no telemetry.",
+    facts: "MIT. One Rust core, eight language facades, and a C ABI. No accounts, no telemetry.",
   },
   ledger: {
     caption:
@@ -25,11 +27,11 @@ export const en = {
     rates: "rates {date}",
     attempted: "tried {keys}",
     footer: "{priced} priced, {misses} unpriced",
-    note: "Synthetic token counts, priced at the per-million rates in Skopli's committed catalog snapshots. The unmatched model returns `priced: false` with the keys it tried, and the totals count priced rows only.",
+    note: "Synthetic token counts, priced at the per-million rates in Skopli's committed catalog snapshots. Neither snapshot carries cache rates for `claude-opus-4.6`, so its cache reads and writes bill at the input rate. Totals count priced rows only.",
   },
   install: {
     title: "Install in your language",
-    body: "Eight language facades and a C ABI call one Rust core. No package is published yet; they ship with the first release. Until then each SDK builds from the repository. The TypeScript package needs Node 24 or newer and ships ESM only. The compiled facades (Java, C#, Go, Swift, and C) link the C library, built with `cargo build -p skopli-capi --release`.",
+    body: "Eight language facades and a C ABI call one Rust core. No package is published yet; they ship with the first release. Until then each SDK builds from the repository. The TypeScript package needs Node 24 or newer and ships ESM only. Java, C#, Go, and Swift link the C library and C includes its header; build it with `cargo build -p skopli-capi --release`.",
     frameTitle: "after the first release",
   },
   layers: {
@@ -39,7 +41,7 @@ export const en = {
     fetches: "Fetches, caches, reads from cache offline",
     read: {
       name: "Read",
-      body: "Parse local session state from 40 harnesses into one normalized event shape. Disk only. A file that will not parse returns a structured diagnostic, not a silent gap.",
+      body: `Parse local session state from ${n} harnesses into one normalized event shape. Disk only. A file that will not parse returns a structured diagnostic.`,
     },
     rollup: {
       name: "Rollup",
@@ -47,7 +49,7 @@ export const en = {
     },
     price: {
       name: "Price",
-      body: "Match models against OpenRouter, LiteLLM, and models.dev, or your own catalog, and compute USD. Long-context tiers and 5-minute and 1-hour cache writes each bill at their own rate. Catalogs are fetched by default, cached, and read from cache offline.",
+      body: "Match models against OpenRouter, LiteLLM, and models.dev, or your own catalog, and compute USD. Long-context tiers and 5-minute and 1-hour cache writes each bill at their own rate.",
     },
   },
   quickstart: {
@@ -55,8 +57,8 @@ export const en = {
     body: "The seven handle-based facades reach the total in four calls. Rust and C expose the primitives, so their tabs show one step each. Pick a language once and both code blocks on this page follow.",
   },
   harnesses: {
-    title: "Read usage from 40 harnesses",
-    body: "No plugin, proxy, or exporter. Skopli parses the session state each harness keeps on disk. Each id is stable; names follow the upstream project.",
+    title: `Read usage from ${n} harnesses`,
+    body: "Skopli parses the session state each harness keeps on disk, with no plugin, proxy, or exporter in the way. Each id is stable, and names follow the upstream project.",
     more: "Full table with footnotes",
   },
   refuses: {
@@ -73,7 +75,7 @@ export const en = {
       },
       {
         title: "Double-count tokens",
-        body: "Input, output, cache read, and cache write stay in separate buckets. Normalized output excludes reasoning tokens, and pricing bills both at the output rate. 1-hour cache writes are a portion of the cache-write total, not an addition to it.",
+        body: "Input, output, cache read, and cache write stay in separate buckets. Normalized output excludes reasoning tokens, and pricing bills both at the output rate. Cache writes at the 1-hour rate are counted inside the cache-write total.",
       },
       {
         title: "Hide a broken file",

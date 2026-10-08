@@ -1,0 +1,79 @@
+---
+import type { Translate } from "@skopli/ui/i18n";
+
+interface Props {
+  t: Translate;
+  links: { href: string; label: string }[];
+}
+
+const { t, links } = Astro.props;
+---
+
+<nav class="page-nav" aria-label={t("mainNavigation")}>
+  <div class="page-nav__in">
+    {links.map((link) => <a href={link.href}>{link.label}</a>)}
+  </div>
+</nav>
+
+<style>
+  .page-nav {
+    display: none;
+    border-bottom: var(--hair) solid var(--rule-1);
+  }
+  .page-nav__in {
+    display: flex;
+    max-width: var(--page-max);
+    margin: 0 auto;
+    padding: 0 var(--s-5);
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .page-nav a {
+    display: inline-flex;
+    flex-shrink: 0;
+    align-items: center;
+    min-height: var(--target);
+    padding: 0 var(--s-3);
+    color: var(--ink-2);
+    font-size: var(--fs-sm);
+    font-weight: 500;
+    text-decoration: none;
+  }
+  .page-nav a:first-child {
+    margin-inline-start: calc(-1 * var(--s-3));
+  }
+  .page-nav a:hover,
+  .page-nav a[aria-current="true"] {
+    color: var(--ink-0);
+  }
+  @media (max-width: 63.99rem) {
+    .page-nav {
+      display: block;
+    }
+  }
+  @media (max-width: 47.99rem) {
+    .page-nav__in {
+      padding: 0 var(--s-4);
+    }
+  }
+</style>
+
+<script>
+  const links = [...document.querySelectorAll<HTMLAnchorElement>(".page-nav a[href^='#']")];
+  const sections = links.flatMap((a) => {
+    const section = document.getElementById(a.hash.slice(1));
+    return section ? [{ a, section }] : [];
+  });
+  const mark = () => {
+    const line = window.innerHeight / 3;
+    const current = sections.filter((s) => s.section.getBoundingClientRect().top <= line).at(-1);
+    for (const { a } of sections) {
+      if (a === current?.a) a.setAttribute("aria-current", "true");
+      else a.removeAttribute("aria-current");
+    }
+  };
+  if (sections.length) {
+    mark();
+    addEventListener("scroll", mark, { passive: true });
+  }
+</script>
