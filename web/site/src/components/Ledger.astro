@@ -19,7 +19,7 @@ const { copy } = Astro.props;
   <div class="table-frame">
     <div class="table-scroll" tabindex="0">
       <table>
-        <caption class="visually-hidden">{copy.caption}</caption>
+        <caption class="visually-hidden"><InlineCode text={copy.caption} /></caption>
         <thead>
           <tr>
             <th scope="col">{copy.model}</th>

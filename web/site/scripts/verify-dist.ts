@@ -1,7 +1,6 @@
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { harnesses } from "@skopli/ui/data/harnesses.ts";
-import { posthogHost } from "@skopli/ui/analytics";
 import { configuredLocales, defaultLocale } from "@skopli/ui/i18n";
 import { rows, totals, usd } from "../src/data/example.ts";
 
@@ -54,7 +53,7 @@ for (const locale of locales) {
     html.includes('<meta property="og:image" content="https://skopli.com/og.png"'),
     `${label} has an og:image`,
   );
-  need(html.includes(posthogHost), `${label} loads analytics`);
+  need(html.includes("https://eu.i.posthog.com"), `${label} loads analytics`);
   need(html.includes('href="https://docs.skopli.com/skopli/"'), `${label} links the docs`);
   for (const h of harnesses) need(html.includes(h.name), `${label} lists ${h.name}`);
   for (const row of rows) need(html.includes(row.model), `${label} ledger has ${row.model}`);

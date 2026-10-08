@@ -52,11 +52,21 @@ test("focus-visible rings render on keyboard focus", async ({ page }) => {
   await page.keyboard.press("Tab");
   await page.keyboard.press("Tab");
   const outline = await page.evaluate(() => {
+    const probe = document.body.appendChild(document.createElement("span"));
+    probe.style.color = "var(--accent)";
+    const accent = getComputedStyle(probe).color;
+    probe.remove();
     const style = getComputedStyle(document.activeElement as HTMLElement);
-    return { style: style.outlineStyle, width: Number.parseFloat(style.outlineWidth) };
+    return {
+      style: style.outlineStyle,
+      width: style.outlineWidth,
+      color: style.outlineColor,
+      accent,
+    };
   });
-  expect(outline.style).not.toBe("none");
-  expect(outline.width).toBeGreaterThan(0);
+  expect(outline.style).toBe("solid");
+  expect(outline.width).toBe("2px");
+  expect(outline.color).toBe(outline.accent);
 });
 
 test("reduced motion disables transitions", async ({ page }) => {

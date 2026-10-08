@@ -12,7 +12,7 @@ describe("landing ledger", () => {
   it("prices every row to the hand-computed USD figure", () => {
     const expected: Record<string, number> = {
       "claude-sonnet-4-5": 126.2761848,
-      "gpt-5": 17.274765,
+      "openai/gpt-5": 17.274765,
       "claude-opus-4.6": 67.84117,
     };
     for (const row of rows.filter(isPriced)) {
@@ -54,6 +54,18 @@ describe("landing ledger", () => {
         );
         expect(tier?.output).toBeCloseTo(
           perMillion(entry.output_cost_per_token_above_200k_tokens),
+          12,
+        );
+        expect(tier?.cacheRead).toBeCloseTo(
+          perMillion(entry.cache_read_input_token_cost_above_200k_tokens),
+          12,
+        );
+        expect(tier?.cacheWrite).toBeCloseTo(
+          perMillion(entry.cache_creation_input_token_cost_above_200k_tokens),
+          12,
+        );
+        expect(tier?.cacheWrite1h).toBeCloseTo(
+          perMillion(entry.cache_creation_input_token_cost_above_1hr_above_200k_tokens),
           12,
         );
       } else {

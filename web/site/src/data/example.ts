@@ -75,7 +75,7 @@ export const rows: Row[] = [
     },
   ),
   priced(
-    "gpt-5",
+    "openai/gpt-5",
     "openai/gpt-5",
     { input: 5_120_338, output: 922_378, cacheRead: 13_204_500, cacheWrite: 0, reasoning: 0 },
     "openrouter",
