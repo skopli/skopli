@@ -17,7 +17,8 @@ Within a tier, missing input and output fields inherit the last explicit value f
 
 ## Cache-write composition per tier
 
-The cacheWrite 5m/1h split composes with tiers: at each selected rate level the 1h portion bills at that level's 1h rate (the tier's above-1hr rate when present, else that level's input × 2.0) and the remaining 5m portion at that level's cacheWrite rate.
+The `cacheWrite` split at 5m and 1h composes with tiers.
+At each selected rate level the 1h portion bills at that level's 1h rate (the tier's above-1hr rate when present, else that level's input × 2.0), and the remaining 5m portion bills at that level's `cacheWrite` rate.
 
 See [Price tokens and cache writes](/skopli/pricing/cost-math#cache-write-splits-at-5m-and-1h) for the base split.
 
@@ -34,7 +35,7 @@ Anthropic instead reprices the entire request at the long-context rates, so `cla
 If the choice between marginal and whole-request billing is wrong for a model, the difference per crossed boundary is bounded:
 
 - Each context stream (input, cacheRead, cacheWrite) differs by at most `threshold × |tier rate - previous effective rate|`.
-- Output differs by `output tokens × |tier output rate − base output rate|`.
+- Output differs by `output tokens × |tier output rate - base output rate|`.
 
 For `claude-sonnet-4-5` at the 200k boundary that upper bound is:
 
@@ -47,6 +48,6 @@ For `claude-sonnet-4-5` at the 200k boundary that upper bound is:
 
 Models with several tiers accumulate one context term per crossed boundary.
 
-When tier rates increase (the usual case), whole-request applied to a truly-marginal model overbills by up to that amount, and marginal applied to a truly-whole-request model underbills by it. The directions flip for any stream whose tier rate decreases.
+When tier rates increase (the usual case), whole-request applied to a marginal model overbills by up to that amount, and marginal applied to a whole-request model underbills by it. The directions flip for any stream whose tier rate decreases.
 
 Requests at or below every threshold price identically in both modes, as do models without tier data.

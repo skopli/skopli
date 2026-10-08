@@ -91,6 +91,19 @@ Reasoning tokens may be double-billed.[^a]
     expect(md).toContain("![d](https://docs.skopli.com/skopli/d.png)");
   });
 
+  it("resolves fragment and relative links against a localized page path", () => {
+    const md = toMarkdown({
+      title: "T",
+      description: "D",
+      body: "See [Subagents](#subagents) and [Reading](reading).",
+      siteBase,
+      path: "/en-XA/guide/getting-started",
+      source: "test",
+    });
+    expect(md).toContain("(https://docs.skopli.com/skopli/en-XA/guide/getting-started#subagents)");
+    expect(md).toContain("(https://docs.skopli.com/skopli/en-XA/guide/reading)");
+  });
+
   it("fails on a LinkList child that is not a LinkCard", () => {
     expect(() => page('<LinkList>\n  <Card title="x" />\n</LinkList>')).toThrow(/not a <LinkCard>/);
   });

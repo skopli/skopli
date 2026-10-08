@@ -57,8 +57,8 @@ const panels = html.replace(panelPattern, (_match, panelLabel: string) => {
     overflow-x: auto;
     scrollbar-width: none;
     border-bottom: var(--hair) solid var(--rule-1);
-    -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 40px), transparent);
-    mask-image: linear-gradient(to right, #000 calc(100% - 40px), transparent);
+    -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 64px), transparent);
+    mask-image: linear-gradient(to right, #000 calc(100% - 64px), transparent);
   }
   .tabs__strip::-webkit-scrollbar {
     display: none;
@@ -164,24 +164,26 @@ const panels = html.replace(panelPattern, (_match, panelLabel: string) => {
         mark();
       }
 
-      tabs.forEach((tab, index) => {
-        tab.addEventListener("click", () => {
-          const top = tab.getBoundingClientRect().top;
-          select(index, false);
-          if (syncKey) {
-            try {
-              localStorage.setItem(`skopli-tab-${syncKey}`, tab.dataset.label ?? "");
-            } catch {
-              /* storage unavailable */
-            }
-            document.dispatchEvent(
-              new CustomEvent("skopli-tabs-sync", {
-                detail: { syncKey, label: tab.dataset.label, source: this },
-              }),
-            );
-            window.scrollBy({ top: tab.getBoundingClientRect().top - top, behavior: "instant" });
+      const activate = (tab: HTMLElement, index: number, focus: boolean) => {
+        const top = tab.getBoundingClientRect().top;
+        select(index, focus);
+        if (syncKey) {
+          try {
+            localStorage.setItem(`skopli-tab-${syncKey}`, tab.dataset.label ?? "");
+          } catch {
+            /* storage unavailable */
           }
-        });
+          document.dispatchEvent(
+            new CustomEvent("skopli-tabs-sync", {
+              detail: { syncKey, label: tab.dataset.label, source: this },
+            }),
+          );
+          window.scrollBy({ top: tab.getBoundingClientRect().top - top, behavior: "instant" });
+        }
+      };
+
+      tabs.forEach((tab, index) => {
+        tab.addEventListener("click", () => activate(tab, index, false));
         tab.addEventListener("keydown", (event) => {
           const keys: Record<string, number> = {
             ArrowRight: index + 1,
@@ -192,7 +194,8 @@ const panels = html.replace(panelPattern, (_match, panelLabel: string) => {
           const next = keys[event.key];
           if (next === undefined) return;
           event.preventDefault();
-          select((next + tabs.length) % tabs.length, true);
+          const target = (next + tabs.length) % tabs.length;
+          activate(tabs[target]!, target, true);
         });
       });
 

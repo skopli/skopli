@@ -30,10 +30,18 @@ need(existsSync(join(site, "pagefind", "pagefind.js")), "pagefind bundle exists"
 need(existsSync(join(site, "404.html")), "404.html exists");
 need(existsSync(join(site, "privacy.html")), "privacy.html exists");
 if (locales.length > 1) {
-  need(
-    readFileSync(join(site, "sitemap-0.xml"), "utf8").includes('hreflang="x-default"'),
-    "sitemap carries x-default alternates",
-  );
+  const entries =
+    readFileSync(join(site, "sitemap-0.xml"), "utf8").match(/<url>.*?<\/url>/gs) ?? [];
+  const alternate = (entry: string, lang: string) =>
+    entry.match(new RegExp(`hreflang="${lang}" href="([^"]+)"`))?.[1];
+  const translated = entries.filter((entry) => entry.includes("hreflang="));
+  need(translated.length > 0, "sitemap carries hreflang alternates");
+  for (const entry of translated)
+    need(
+      entry.split('hreflang="x-default"').length === 2 &&
+        alternate(entry, "x-default") === alternate(entry, defaultLocale),
+      `sitemap entry ${entry.match(/<loc>([^<]+)/)?.[1]} points x-default at the ${defaultLocale} page`,
+    );
 }
 
 const slugs = ["", ...navItems.map((i) => i.slug)];
@@ -61,6 +69,7 @@ for (const name of unsupportedHarnesses)
     need(read(join(site, `${page}.html`)).includes(name), `${page} names ${name} as unsupported`);
 
 const resolves = (target: string) => {
+  if (!/^(https:\/\/docs\.skopli\.com)?\/skopli(\/|$)/.test(target)) return false;
   const path = target
     .replace(/^https:\/\/docs\.skopli\.com/, "")
     .replace(/^\/skopli\/?/, "")
@@ -73,7 +82,7 @@ const checkLinks = (text: string, where: string, pattern: RegExp) => {
   for (const [, target] of text.matchAll(pattern))
     need(resolves(target), `${where} links ${target}, which is not in dist`);
 };
-const htmlLink = /href="(\/skopli\/[^"#?]*)/g;
+const htmlLink = /(?:href|src)="(\/[^"#?]*)/g;
 const mdLink = /\]\((https:\/\/docs\.skopli\.com\/skopli\/[^)#?]*)/g;
 
 for (const locale of locales) {
@@ -82,8 +91,12 @@ for (const locale of locales) {
   const llms = read(join(site, prefix, "llms.txt"));
   need(llms.startsWith("# Skopli"), `${prefix}llms.txt exists`);
   checkLinks(llms, `${prefix}llms.txt`, mdLink);
+  const ownLocale = (url: string) =>
+    isDefault
+      ? locales.every((other) => other === locale || !url.includes(`/skopli/${other}/`))
+      : url.includes(`/skopli/${prefix}`);
   need(
-    [...llms.matchAll(mdLink)].every(([, url]) => url.includes(`/skopli/${prefix}`)),
+    [...llms.matchAll(mdLink)].every(([, url]) => ownLocale(url)),
     `${prefix}llms.txt links its own locale`,
   );
   const localeSlugs = isDefault

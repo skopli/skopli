@@ -6,13 +6,13 @@ description: An SDK that reads AI coding-agent usage from 40 harnesses offline a
 import LinkList from "@skopli/ui/components/LinkList.astro";
 import LinkCard from "@skopli/ui/components/LinkCard.astro";
 
-Point Skopli at the session logs your coding agents already keep, and turn them into priced usage data. It reads tokens, sessions, turns, and calls from local disk, normalizes them into usage events, and prices those events against market catalogs. You build the dashboards, reports, and billing checks on top.
+Skopli is a library that reads AI coding-agent session logs (tokens, sessions, turns, and calls) from local disk, normalizes them into usage events, and prices those events against market catalogs. You build the dashboards, reports, and billing checks on top.
 
-Skopli is a library you embed, so there are no accounts and no telemetry. The readers never touch the network. Only the Price layer does: it fetches market catalogs by default the first time you price, caches them on disk, and keeps pricing from that cache when offline (see [Pricing basics](/skopli/guide/pricing-basics)).
+Skopli is a library you embed, so there are no accounts and no telemetry. The readers never touch the network. Only the Price layer does. It fetches market catalogs by default the first time you price, caches them on disk, and keeps pricing from that cache when offline (see [Pricing basics](/skopli/guide/pricing-basics)).
 
 ## Install and run
 
-Install steps for all nine languages, including the pre-release build from the repository, are in [Getting started](/skopli/guide/getting-started#step-1-install).
+Install steps for every language, including the pre-release build from the repository, are in [Getting started](/skopli/guide/getting-started#step-1-install).
 
 Four calls, shown here in TypeScript:
 
@@ -43,7 +43,7 @@ Every event carries the same fields before any layer touches it:
 - `tokens`: `input`, `output`, `cacheRead`, `cacheWrite`, optional `cacheWrite1h`, `reasoning`
 - `calls`, optional `costUsd` (only when the source reports one), optional `workspace`, optional `title`
 
-`cacheWrite1h` is the 1-hour portion of the `cacheWrite` total. Readers subtract reasoning-inclusive output at the source, so nothing bills twice. See [Reading usage](/skopli/guide/reading#event-fields) for the full field semantics.
+`cacheWrite1h` is the 1-hour portion of the `cacheWrite` total. Readers subtract reasoning-inclusive output at the source. See [Reading usage](/skopli/guide/reading#event-fields) for the full field semantics and [Price tokens and cache writes](/skopli/pricing/cost-math#base-cost-math) for how each bucket bills.
 
 ## When to use Skopli
 

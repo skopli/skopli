@@ -19,7 +19,14 @@ const types: Record<string, string> = {
 
 export function serveDist(root: string, port: number, notFound: string): Promise<Server> {
   const server = createServer((req, res) => {
-    const pathname = decodeURIComponent(new URL(req.url ?? "/", "http://x").pathname);
+    let pathname: string;
+    try {
+      pathname = decodeURIComponent(new URL(req.url ?? "/", "http://x").pathname);
+    } catch {
+      res.statusCode = 400;
+      res.end();
+      return;
+    }
     const safe = normalize(pathname).replace(/^(\.\.[/\\])+/, "");
     const candidates = [
       join(root, safe),

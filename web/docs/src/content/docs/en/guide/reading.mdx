@@ -132,7 +132,7 @@ The Read layer parses local session state into normalized usage events. It never
     ```
 
   </Tab>
-  <Tab label="C/C++">
+  <Tab label="C">
     The C ABI exchanges JSON buffers. Pass the read options as a JSON object and free the returned buffer:
 
     ```c
@@ -182,7 +182,8 @@ Every event carries:
 - `title`: optional session title. OpenCode records it from its session title. Readers without the concept leave it undefined.
 
 :::tip[Disjoint token buckets]
-`cacheWrite1h` is the 1-hour portion of the `cacheWrite` total. Readers subtract reasoning-inclusive output at the source, so `output + reasoning` reconstructs the source's raw output count and nothing bills twice.
+`cacheWrite1h` is the 1-hour portion of the `cacheWrite` total. Readers subtract reasoning-inclusive output at the source, so `output + reasoning` reconstructs the source's raw output count.
+[Price tokens and cache writes](/skopli/pricing/cost-math#base-cost-math) covers how each bucket bills.
 :::
 
 ## Subagents
@@ -204,4 +205,4 @@ Subagent (child) sessions are real spend, so Skopli includes and tags them by de
 
 The SDK never writes to stdio. Problems (malformed lines, unreadable files, unusable timestamps) come back as structured `diagnostics`, and skipped source files per harness come back in `skipped`.
 
-Other reader behavior (zero-token rows, unusable timestamps, `calls` aggregation, cross-store dedup, and Codex cache writes) is listed under [Semantics](/skopli/reference/api#semantics).
+Other reader behavior (zero-token rows, unusable timestamps, `calls` aggregation, cross-store dedup, and Codex CLI cache writes) is listed under [Semantics](/skopli/reference/api#semantics).

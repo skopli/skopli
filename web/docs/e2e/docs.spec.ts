@@ -179,6 +179,38 @@ test("tabs sync by key, persist across reload, and nest inside one frame", async
   await tab.focus();
   await page.keyboard.press("ArrowRight");
   await expect(groups.first().getByRole("tab", { name: "Python" })).toBeFocused();
+  await expect(groups.nth(1).getByRole("tab", { name: "Python" })).toHaveAttribute(
+    "aria-selected",
+    "true",
+  );
+  expect(await page.evaluate(() => localStorage.getItem("skopli-tab-lang"))).toBe("Python");
+});
+
+test("trailing-slash URLs redirect to the extensionless page", async ({ page }) => {
+  await page.goto("/skopli/reference/api/");
+  await expect(page).toHaveURL(/\/skopli\/reference\/api$/);
+  await expect(page.locator("h1")).toHaveText("API reference");
+});
+
+test("the drawer carries the locale switch on translated pages", async ({ page }) => {
+  test.skip(isDesktop(page), "drawer below the sidebar breakpoint");
+  const response = await page.goto("/skopli/en-XA/guide/getting-started");
+  test.skip(response?.status() !== 200, "pseudo-locale build only");
+  await expect(page.locator(".site-header__actions .locale-switch")).toBeHidden();
+  await page.locator(".drawer-open").click();
+  await expect(page.locator("dialog#drawer .locale-switch")).toBeVisible();
+});
+
+test("the breadcrumb-row actions menu closes once its button scrolls out of view", async ({
+  page,
+}) => {
+  test.skip(isMobile(page) || isDesktop(page), "tablet only");
+  await page.goto("/skopli/guide/rollups");
+  const actions = page.locator(".docs__top .page-actions").first();
+  await actions.locator(".page-actions__more").click();
+  await expect(actions.locator(".page-actions__menu")).toBeVisible();
+  await page.mouse.wheel(0, 600);
+  await expect(actions.locator(".page-actions__menu")).toBeHidden();
 });
 
 test("page actions copy Markdown and link the six AI handoffs", async ({ page, context }) => {
@@ -239,9 +271,11 @@ test("page-actions menu stays inside the viewport below the rail breakpoint", as
   const menu = actions.locator(".page-actions__menu");
   await expect(menu).toBeVisible();
   const box = (await menu.boundingBox())!;
-  const width = page.viewportSize()!.width;
+  const { width, height } = page.viewportSize()!;
   expect(box.x).toBeGreaterThanOrEqual(0);
+  expect(box.y).toBeGreaterThanOrEqual(0);
   expect(box.x + box.width).toBeLessThanOrEqual(width);
+  expect(box.y + box.height).toBeLessThanOrEqual(height);
 });
 
 test("search opens with Ctrl+K, returns Pagefind results, closes on Escape", async ({ page }) => {

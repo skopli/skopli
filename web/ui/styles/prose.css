@@ -59,9 +59,13 @@
 
 @media (pointer: coarse) {
   .prose .heading-anchor {
+    top: 50%;
+    bottom: auto;
     min-width: var(--target);
+    min-height: var(--target);
     justify-content: center;
     padding-inline-end: 0;
+    transform: translateY(-50%);
   }
 }
 

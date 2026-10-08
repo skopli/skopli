@@ -231,9 +231,10 @@ const uid = `page-actions-${placement}`;
         } else if (event.key === "Home" || event.key === "End") {
           event.preventDefault();
           items[event.key === "Home" ? 0 : items.length - 1]?.focus();
-        } else if (event.key === "Tab") {
-          setOpen(false);
         }
+      });
+      this.addEventListener("focusout", (event) => {
+        if (!this.contains(event.relatedTarget as Node | null)) this.close();
       });
       this.addEventListener("keydown", (event) => {
         if (event.key === "Escape" && !menu.hidden) {
@@ -245,7 +246,11 @@ const uid = `page-actions-${placement}`;
         if (!menu.hidden) setOpen(false);
       };
       this.place = () => {
-        if (!menu.hidden) place();
+        if (menu.hidden) return;
+        const anchor = more.getBoundingClientRect();
+        if (anchor.width === 0 || anchor.bottom < 0 || anchor.top > window.innerHeight)
+          setOpen(false);
+        else place();
       };
     }
   }
@@ -255,9 +260,8 @@ const uid = `page-actions-${placement}`;
     document.addEventListener("pointerdown", (event) => {
       for (const actions of all()) if (!actions.contains(event.target as Node)) actions.close();
     });
-    document.addEventListener("scroll", () => all().forEach((a) => a.place()), {
-      capture: true,
-      passive: true,
-    });
+    const replace = () => all().forEach((a) => a.place());
+    document.addEventListener("scroll", replace, { capture: true, passive: true });
+    window.addEventListener("resize", replace);
   }
 </script>

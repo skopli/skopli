@@ -1,6 +1,6 @@
 ---
 title: API reference
-description: The Skopli API in every language. Read, Rollup, and Price layers, model matching, and semantics, with the same pricing operations across every facade.
+description: The Skopli API in every language. Read, Rollup, and Price layers, model matching, and semantics.
 ---
 
 import Tabs from "@skopli/ui/components/Tabs.astro";
@@ -8,11 +8,10 @@ import Tab from "@skopli/ui/components/Tab.astro";
 
 Skopli reads AI coding-agent usage (tokens, sessions, turns, calls) from local harness state, aggregates it, and prices it against market catalogs (OpenRouter, LiteLLM, models.dev). Every language calls into one Rust core, so the layers, options, and return shapes are the same everywhere. The TypeScript package is ESM only and needs Node 24 or newer.
 
-:::note[Full pricing parity across every facade]
-The Read, Rollup, and Price layers expose the same operations and return shapes in every language. The [pricing constructor](#3a-pricing-constructor) section lists what each facade exposes.
-:::
-
-Option keys follow each language's convention: `camelCase` in TypeScript, Java, and Swift (`cacheDir`, `ttlMs`), `PascalCase` in C# and Go (`CacheDir`, `TtlMs`), `snake_case` in Python, Ruby, and Rust (`cache_dir`, `ttl_ms`), and JSON keys in the C ABI. The semantics are identical, only the spelling changes. Each section's table describes an option once, and the tabs show the per-language spelling.
+Option keys follow each language's convention: `camelCase` in TypeScript, Java, and Swift (`cacheDir`, `ttlMs`), `PascalCase` in C# and Go (`CacheDir`, `TtlMs`), `snake_case` in Python, Ruby, and Rust (`cache_dir`, `ttl_ms`), and JSON keys in the C ABI.
+The semantics are the same in every language.
+Only the spelling changes.
+Each section's table describes an option once, and the tabs show the per-language spelling.
 
 ## Layers
 
@@ -163,7 +162,7 @@ Option keys follow each language's convention: `camelCase` in TypeScript, Java, 
     ```
 
   </Tab>
-  <Tab label="C/C++">
+  <Tab label="C">
     The C ABI exchanges JSON buffers. Pass the read options as a JSON object and free the returned buffer:
 
     ```c
@@ -208,7 +207,8 @@ The return shape is the same across languages. Python, Ruby, and Rust use `snake
 - `cacheWrite` is the total. `cacheWrite1h` is the 1h-TTL portion when the source reports the split (Claude Code).
 - `costUsd` is the harness-recorded cost (Claude Code JSONL `costUSD`, OpenCode nonzero `cost`), absent otherwise.
 - `workspace` (normalized project dir, cross-platform: forward slashes, no trailing sep, case-folded on Windows) and `title` come from the OpenCode session directory and title and from Claude Code `cwd`, absent otherwise.
-- Subagent (child-session or sidechain) events are included and tagged `subagent: true` by default. `subagents: "exclude"` drops them uniformly. `subagent` is set from each harness's native marker: OpenCode non-null `parent_id` or `parentID`, Claude Code strict `isSidechain === true`, Pi and omp `rlmDepth > 0`, DeepSeek Harness a parent session, `origin` of `subagent`, or delegation depth above 0 (both the JSONL and SQLite backends), Codex CLI and all other harnesses always `false`.
+- Subagent (child-session or sidechain) events are included and tagged `subagent: true` by default, and `subagents: "exclude"` drops them uniformly.
+  [Reading usage](/skopli/guide/reading#subagents) lists each harness's marker.
 - The SDK never writes to stdio. Problems are structured diagnostics.
 
 See [Reading usage](/skopli/guide/reading) for the full guide.
@@ -303,7 +303,7 @@ See [Reading usage](/skopli/guide/reading) for the full guide.
     ```
 
   </Tab>
-  <Tab label="C/C++">
+  <Tab label="C">
     The C ABI exchanges JSON buffers. Pass the rollup options as a JSON object and free the returned buffer:
 
     ```c
@@ -336,7 +336,7 @@ The window is derived from your own events, so the provider's own accounting can
 - Each row's `key` is the ISO-8601 block-start instant, and rows come back in ascending start order.
 - The library never reads the clock. Flag the still-open block caller-side by comparing its `end` (`start + blockMs`) against the current time.
 
-The `tz` option buckets days in an IANA timezone on every rollup path. The TypeScript implementation formats each timestamp with `Intl.DateTimeFormat` under `timeZone: tz` (`src/rollup.ts`).
+The `tz` option buckets days in an IANA timezone on every rollup path. The TypeScript implementation formats each timestamp with `Intl.DateTimeFormat` under `timeZone: tz`.
 The native core (`skopli-core`) and every facade that calls it (Python, Ruby, Java, C#, Go, Swift, and the C ABI) bucket days in the same zone, DST transitions and sub-hour offsets included.
 All paths agree bucket for bucket.
 A non-UTC `tz` shifts the day boundary consistently, so a day rollup agrees with a `tz`-scoped `since` and `until` filter east or west of UTC.
@@ -480,7 +480,7 @@ The default `libskopli` fetches nothing, and built-in sources require the `net` 
     ```
 
   </Tab>
-  <Tab label="C/C++">
+  <Tab label="C">
     The C ABI exchanges JSON buffers. Create a pricing handle from options JSON, then free it with `ag_pricing_free`. It exposes the full pipeline: `ag_pricing_lookup_model`, `ag_pricing_price_rollups`, `ag_pricing_price_events`, and `ag_pricing_catalog_info`. The default `libskopli` opens no socket, so pass pre-fetched catalogs and keep `builtinSources:false`.
 
     ```c
@@ -497,7 +497,7 @@ The default `libskopli` fetches nothing, and built-in sources require the `net` 
   </Tab>
 </Tabs>
 
-The options are the same in every language, and only the key spelling differs (`cacheDir` and `cache_dir`, `ttlMs` and `ttl_ms`, `PricingMode.Calculate`, `"calculate"`, and `.calculate`). Use `catalogs` to hand in pre-fetched catalogs, or `sources` plus `fetch` to drive the built-in fetch lifecycle.
+Key spelling follows the language (`cacheDir` and `cache_dir`, `ttlMs` and `ttl_ms`, `PricingMode.Calculate`, `"calculate"`, and `.calculate`). Use `catalogs` to hand in pre-fetched catalogs, or `sources` plus `fetch` to drive the built-in fetch lifecycle.
 
 | Option      | Meaning                                                                                                                                                                      |
 | ----------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -602,7 +602,7 @@ The FFI facades cover it through `priceRollups` and `priceEvents`, which match a
     `priceTokens` has no standalone method. Price through `priceRollups` or `priceEvents`, which match and price in one call.
 
   </Tab>
-  <Tab label="C/C++">
+  <Tab label="C">
     ```c
     #include <string.h>
     #include "skopli.h"
@@ -690,7 +690,7 @@ Skopli flags that row with `pricing.tieredAggregate: true` (calculate mode, or a
     ```
 
   </Tab>
-  <Tab label="C/C++">
+  <Tab label="C">
     ```c
     #include "skopli.h"
 
@@ -706,7 +706,8 @@ Skopli flags that row with `pricing.tieredAggregate: true` (calculate mode, or a
 
 #### 3d. priceEvents
 
-`priceEvents(events, { by, tz? })` returns `PricedEventGroup[]` and is the correct path for tiered models. It prices each event at its own context (per-event tier selection) with the full tiered and 1h-split logic, applies `mode` per event, then aggregates per group with the same keys as `rollup`. A group prices only when every member model priced. Every language exposes it, the FFI facades included.
+`priceEvents(events, { by, tz? })` returns `PricedEventGroup[]` and is the correct path for tiered models. It prices each event at its own context (per-event tier selection) with the full tiered and 1h-split logic, applies `mode` per event, then aggregates per group with the same keys as `rollup`.
+A group prices only when every member model priced.
 
 <Tabs syncKey="lang">
   <Tab label="TypeScript">
@@ -760,7 +761,7 @@ Skopli flags that row with `pricing.tieredAggregate: true` (calculate mode, or a
     ```
 
   </Tab>
-  <Tab label="C/C++">
+  <Tab label="C">
     ```c
     #include <stdio.h>
     #include <string.h>
@@ -809,7 +810,7 @@ These shapes are the same across languages, in each language's field-name conven
 
 ## Model matching
 
-Matching runs in tiers. First the exact key, then a provider-prefix strip (`openai/gpt-5` matches as `gpt-5`), then family aliases (some platforms carry a model line under their own route prefix, for example Amazon Bedrock's cross-region `us.anthropic.claude-opus-4-6-20260115-v1:0` prices as `claude-opus-4.6`), then separator and date-stamp normalization (`claude-sonnet-4.5`, `claude-sonnet-4-5`, and `claude-sonnet-4-5-20250929` match the same entry), then provider-prefixed family forms (`claude-opus-4.6` also tries `anthropic/claude-opus-4.6`, which is how OpenRouter keys Claude), and last a hand-maintained alias table for names the mechanical tiers miss.
+Matching runs in tiers, from the exact key through a provider-prefix strip, family aliases, separator and date-stamp normalization, and provider-prefixed family forms, to a hand-maintained alias table for names the mechanical tiers miss.
 
 A miss returns `{ priced: false, attempted }`. Zero-cost catalog entries count as placeholders and skip, so matching falls through to the next source. When only zero-cost entries match, the result is `{ priced: false, reason: "zeroCost", key }`. An explicit `$0` in `overrides` is honored as a real price, not skipped.
 
@@ -817,13 +818,18 @@ See [Model matching](/skopli/pricing/model-matching).
 
 ## Semantics
 
-- Date-only since and until strings (`YYYY-MM-DD`) are interpreted in `tz` (default: system timezone): since = start of day, until = exclusive end of day. Full ISO timestamps apply exactly as given. West of UTC this matters for filtering: with `tz America/Los_Angeles`, since `"2026-08-01"` excludes an event at `2026-08-01T00:30Z` (17:30 Jul 31 local). Day rollups bucket in the same `tz` on every path, so a day rollup never shows a `"2026-07-31"` row and filtering and day rollups agree at the UTC boundary across all SDKs (an unknown zone name falls back to UTC).
+- Date-only since and until strings (`YYYY-MM-DD`) are interpreted in `tz` (default: system timezone): since = start of day, until = exclusive end of day.
+  Full ISO timestamps apply exactly as given.
+  West of UTC this matters for filtering: with `tz America/Los_Angeles`, since `"2026-08-01"` excludes an event at `2026-08-01T00:30Z` (17:30 Jul 31 local).
+  Day rollups bucket in the same `tz` on every path, so a day rollup never shows a `"2026-07-31"` row and filtering and day rollups agree at the UTC boundary across all SDKs (an unknown zone name falls back to UTC).
 - The reader drops zero-token rows regardless of vendor-reported cost.
 - Unusable timestamps produce a warning and skip the row.
 - `calls` aggregation uses the reported count only when finite, else 1 per event.
-- Reasoning tokens bill as output. Cache price tiers fall back to the input rate when a catalog omits them.
-- Codex CLI, Grok Build, and ZCode report reasoning inside their output count, so the reader subtracts reasoning from output (`output + reasoning` reconstructs the source's raw output). GitHub Copilot CLI is the deliberate exception: the OTel GenAI conventions do not state whether `output_tokens` includes reasoning, so the reader assumes they are disjoint and does not subtract. If Copilot output turns out to be reasoning-inclusive, its reasoning would be double-billed.
+- Reasoning tokens bill as output, cache rates fall back to the input rate when a catalog omits them, and 1h cache writes bill at their own rate.
+  See [Price tokens and cache writes](/skopli/pricing/cost-math).
+- Codex CLI, Grok Build, and ZCode report reasoning inside their output count, so the reader subtracts reasoning from output.
+  GitHub Copilot CLI is the documented exception; see [Price tokens and cache writes](/skopli/pricing/cost-math#base-cost-math).
 - Codex CLI cache-write tokens come from `cache_write_input_tokens` (a 2026-07 protocol addition), a disjoint subset of `input_tokens` like cache reads, so the reader subtracts them from input (`input = raw_input - cacheRead - cacheWrite`) and emits them as `tokens.cacheWrite`. Older session files that lack the field count as 0.
-- 1h cache writes (`tokens.cacheWrite1h`) bill at the catalog above-1hr rate (LiteLLM `cache_creation_input_token_cost_above_1hr`) when present, else input × 2.0. The rest of cacheWrite bills at the base cacheWrite rate. Source priority is per-model, not per-field.
-- Long-context tiers (LiteLLM only): the tier is chosen by total context (`input + cacheRead + cacheWrite`), with marginal billing by default and whole-request repricing for `claude` model keys. The cacheWrite 5m/1h split composes per tier: the 1h portion bills at the selected level's 1h rate, the 5m remainder at its cacheWrite rate.
+- Long-context tiers (LiteLLM only) are chosen by total context (`input + cacheRead + cacheWrite`), marginal by default and whole-request for `claude` model keys.
+  See [Long-context tiers](/skopli/pricing/long-context-tiers).
 - Cross-store dedup: the authoritative store suppresses its mirror per harness (OpenCode and ZCode SQLite over JSONL, Devin CLI SQLite over the Desktop `.ndjson` store, the Cline extension store over its CLI session store, the DeepSeek Harness default JSONL event log over its optional SQLite backend, keyed on `session_id` and `seq`).

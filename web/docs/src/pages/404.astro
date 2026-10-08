@@ -10,12 +10,15 @@ const [before, after] = t("notFoundBody", { path: "\u0000" }).split("\u0000");
 
 <DocsLayout locale={defaultLocale} slug="404" title={t("notFoundTitle")} description="" noindex>
   <p>
-    {before}<code data-not-found-path></code>{after}
+    {before}<code data-not-found-path data-home={href("/")}></code>{after}
   </p>
   <p><Button href={href("/")} variant="primary">{t("backToDocs")}</Button></p>
 </DocsLayout>
 
 <script>
-  const path = document.querySelector<HTMLElement>("[data-not-found-path]");
-  if (path) path.textContent = location.pathname;
+  const path = document.querySelector<HTMLElement>("[data-not-found-path]")!;
+  const { pathname, search, hash } = location;
+  if (pathname.endsWith("/") && pathname !== path.dataset.home)
+    location.replace(pathname.replace(/\/+$/, "") + search + hash);
+  else path.textContent = pathname;
 </script>

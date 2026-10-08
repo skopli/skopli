@@ -161,7 +161,7 @@ const { t } = Astro.props;
         first.focus();
       }
     });
-    const mq = window.matchMedia("(min-width: 48rem)");
+    const mq = window.matchMedia("(min-width: 64rem)");
     mq.addEventListener("change", () => {
       if (mq.matches && drawer.open) drawer.close();
     });

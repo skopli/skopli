@@ -20,7 +20,7 @@ The recorded cost comes from each event's `costUsd`, populated only by the Claud
 
 ## Why priceRollups can overbill tiered models
 
-`priceRollups` prices the tokens already summed onto each rollup. That is exact for flat-rate models. A tiered model is context-sensitive.
+`priceRollups` prices the tokens already summed onto each rollup. That is exact for flat-rate models and approximate for tiered models, whose rate depends on each request's context.
 Summing several events before selecting a tier (or one event that already aggregates multiple calls, `calls > 1`) can push the combined context across a threshold none of the individual calls reached, and the group overbills.
 
 Skopli flags such a row with `pricing.tieredAggregate: true` so a caller can catch the exposure. The flag applies in `calculate` mode, or `auto` with no recorded cost, the modes that apply the token math.
@@ -79,7 +79,7 @@ Skopli flags such a row with `pricing.tieredAggregate: true` so a caller can cat
     ```
 
   </Tab>
-  <Tab label="C/C++">
+  <Tab label="C">
     ```c
     #include <string.h>
     #include "skopli.h"
@@ -98,7 +98,7 @@ It prices each event at its own context, so tier selection is per-event, with th
 
 Two 150k-context Claude events each price on the base rates, instead of summing to 300k and crossing the 200k long-context tier as `priceRollups` on the summed rollup would.
 
-A group prices only when every member model prices. If any member is unpriced, the whole group reports `priced: false`, so a partial sum is never presented as the whole.
+A group prices only when every member model prices. If any member is unpriced, the whole group reports `priced: false`.
 
 ## Modes and provenance under aggregation
 

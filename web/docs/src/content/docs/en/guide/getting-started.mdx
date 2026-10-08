@@ -8,16 +8,16 @@ import Tab from "@skopli/ui/components/Tab.astro";
 
 Skopli is an SDK you call from your own code. It reads the session state your harnesses keep on disk (sessions, turns, calls, tokens), normalizes it, aggregates it, and prices it. Build your own dashboards, reports, or billing checks on top.
 
-It has three independent layers, Read, Rollup, and Price, and each works on its own.
+It has three layers, Read, Rollup, and Price, and each works on its own.
 Skopli has no accounts and no telemetry.
 Read and Rollup never touch the network.
 Price fetches the market catalogs by default when used, caches what it fetches, and reads from cache when offline.
 Pass an empty `sources` list or `offline` for a network-free handle.
 [Pricing basics](/skopli/guide/pricing-basics) covers sources, cache, and misses.
 
-## Step 1: Install
+## Step 1: install
 
-Pick your language. No package is published yet: every registry package below ships with the [first release](https://github.com/skopli/skopli/releases), and until then each SDK builds from the repository. The TypeScript package needs Node 24 or newer and ships ESM only. Java, Swift, and C link the C library, built from the repository root with `cargo build -p skopli-capi --release`.
+Pick your language. No package is published yet, so each SDK builds from the repository until the [first release](https://github.com/skopli/skopli/releases). The TypeScript package needs Node 24 or newer and ships ESM only. Java, Swift, and C link the C library, built from the repository root with `cargo build -p skopli-capi --release`.
 
 <Tabs syncKey="lang">
   <Tab label="TypeScript">
@@ -95,7 +95,7 @@ Pick your language. No package is published yet: every registry package below sh
     ```
 
   </Tab>
-  <Tab label="C/C++">
+  <Tab label="C">
     Download `skopli.h` and the prebuilt library from the [release assets](https://github.com/skopli/skopli/releases), then include the header and link the library:
 
     ```c
@@ -109,7 +109,7 @@ Pick your language. No package is published yet: every registry package below sh
   </Tab>
 </Tabs>
 
-## Step 2: Quickstart
+## Step 2: quickstart
 
 <Tabs syncKey="lang">
   <Tab label="TypeScript">
@@ -321,7 +321,7 @@ Pick your language. No package is published yet: every registry package below sh
     ```
 
   </Tab>
-  <Tab label="C/C++">
+  <Tab label="C">
     The C ABI exchanges JSON buffers. Roll up an event array (`events_json`) and free the returned buffer:
 
     ```c

@@ -14,8 +14,9 @@ export function splitId(id: string): { locale: Locale; slug: string } {
   return { locale, slug: rest.join("/") };
 }
 
-export function docPath(slug: string): string {
-  return slug ? `/${slug}` : "/";
+export function docPath(locale: Locale, slug: string): string {
+  const route = routeSlug(locale, slug);
+  return route ? `/${route}${slug ? "" : "/"}` : "/";
 }
 
 export function mdPath(slug: string): string {
@@ -59,12 +60,13 @@ export function groupFor(slug: string) {
 }
 
 export function markdownPage(doc: Doc): MarkdownPage {
+  const { locale, slug } = splitId(doc.id);
   return {
     title: doc.data.title,
     description: doc.data.description,
     body: doc.body ?? "",
     siteBase: `${siteOrigin}${basePath}`,
-    path: docPath(splitId(doc.id).slug),
+    path: docPath(locale, slug),
     source: doc.id,
   };
 }

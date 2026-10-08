@@ -30,4 +30,8 @@ Overrides are exempt. An explicit `$0` override is intentional and stays `priced
 
 ## Source priority
 
-The default priority is overrides, then OpenRouter, LiteLLM, and models.dev, with one exception. After overrides, any tier-bearing match outranks a flat (tier-less) match from a higher-priority source, so long-context tiers are not lost to a flat source above them. In practice, the tiered LiteLLM catalog beats flat OpenRouter. Explicit overrides always win. See [Long-context tiers](/skopli/pricing/long-context-tiers).
+The default priority is overrides, then OpenRouter, LiteLLM, and models.dev, with one exception.
+After overrides, any tier-bearing match outranks a flat (tier-less) match from a higher-priority source, so long-context tiers are not lost to a flat source above them.
+The tiered LiteLLM catalog therefore beats flat OpenRouter.
+Explicit overrides always win.
+See [Long-context tiers](/skopli/pricing/long-context-tiers).
