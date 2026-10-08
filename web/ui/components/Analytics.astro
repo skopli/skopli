@@ -56,7 +56,11 @@ import { posthogHost, posthogKey } from "@skopli/ui/analytics";
     ph.capture("$pageview");
     document.addEventListener("click", function (event) {
       var target = event.target instanceof Element ? event.target.closest("[data-event]") : null;
-      if (target) ph.capture(target.getAttribute("data-event"));
+      if (target && !target.hasAttribute("data-event-on-success"))
+        ph.capture(target.getAttribute("data-event"));
+    });
+    document.addEventListener("skopli:event", function (event) {
+      ph.capture(event.detail);
     });
   })();
 </script>

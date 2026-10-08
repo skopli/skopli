@@ -17,12 +17,12 @@ const parts = t("notFoundBody", { path: "\u0000" }).split("\u0000");
       </>
     ))}
   </p>
-  <p><Button href={href("/")} variant="primary">{t("backToDocs")}</Button></p>
+  <p><Button href={href("/")} variant="primary" data-home>{t("backToDocs")}</Button></p>
 </DocsLayout>
 
 <script>
   const { pathname, search, hash } = location;
-  const home = document.documentElement.dataset.home;
+  const home = document.querySelector("[data-home]")?.getAttribute("href");
   if (pathname.endsWith("/") && pathname !== home)
     location.replace(pathname.replace(/\/+$/, "") + search + hash);
   else

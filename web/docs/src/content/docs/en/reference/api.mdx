@@ -9,8 +9,7 @@ import Tab from "@skopli/ui/components/Tab.astro";
 Skopli reads AI coding-agent usage (tokens, sessions, turns, calls) from local harness state, aggregates it, and prices it against market catalogs (OpenRouter, LiteLLM, models.dev). Every language calls into one Rust core, so the layers, options, and return shapes are the same everywhere. The TypeScript package is ESM only and needs Node 24 or newer.
 
 Option keys follow each language's convention: `camelCase` in TypeScript, Java, and Swift (`cacheDir`, `ttlMs`), `PascalCase` in C# and Go (`CacheDir`, `TtlMs`), `snake_case` in Python, Ruby, and Rust (`cache_dir`, `ttl_ms`), and JSON keys in the C ABI.
-The semantics are the same in every language.
-Only the spelling changes.
+The semantics are the same in every language, and only the spelling changes.
 Each section's table describes an option once, and the tabs show the per-language spelling.
 
 ## Layers
@@ -57,7 +56,7 @@ Each section's table describes an option once, and the tabs show the per-languag
 
   </Tab>
   <Tab label="Rust">
-    `skopli-core` has no `read_usage` facade. It exposes the reader one level lower: each harness has a `Reader` you drive with a `ReaderContext` (a home directory plus env overrides), and each `read` returns a `ReaderResult` of events, skipped paths, and warnings. The host-language facades add detection, filtering by `since`, `until`, `tz`, and `subagents`, and the canonical event sort on top.
+    `skopli-core` has no `read_usage` facade. It exposes the reader one level lower. Each harness has a `Reader` you drive with a `ReaderContext` (a home directory plus env overrides), and each `read` returns a `ReaderResult` of events, skipped paths, and warnings. The host-language facades add detection, filtering by `since`, `until`, `tz`, and `subagents`, and the canonical event sort on top.
 
     ```rust
     use skopli_core::readers::{
@@ -394,10 +393,9 @@ The window is derived from your own events, so the provider's own accounting can
 - Each row's `key` is the ISO-8601 block-start instant, and rows come back in ascending start order.
 - The library never reads the clock. Flag the still-open block caller-side by comparing its `end` (`start + blockMs`) against the current time.
 
-The `tz` option buckets days in an IANA timezone on every rollup path. The TypeScript implementation formats each timestamp with `Intl.DateTimeFormat` under `timeZone: tz`.
-The native core (`skopli-core`) and every facade that calls it (Python, Ruby, Java, C#, Go, Swift, and the C ABI) bucket days in the same zone, DST transitions and sub-hour offsets included.
-All paths agree bucket for bucket.
-A non-UTC `tz` shifts the day boundary consistently, so a day rollup agrees with a `tz`-scoped `since` and `until` filter east or west of UTC.
+The `tz` option buckets days in an IANA timezone on every rollup path, DST transitions and sub-hour offsets included.
+The TypeScript implementation formats each timestamp with `Intl.DateTimeFormat` under `timeZone: tz`, and the native core (`skopli-core`) with every facade that calls it (Python, Ruby, Java, C#, Go, Swift, and the C ABI) produces the same buckets.
+A day rollup therefore agrees with a `tz`-scoped `since` and `until` filter east or west of UTC.
 An unknown zone name falls back to UTC.
 
 See [Rollups](/skopli/guide/rollups).

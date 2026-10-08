@@ -23,7 +23,7 @@ const panels = html.replace(panelPattern, (_match, panelLabel: string) => {
 
 <skopli-tabs class="tabs" data-sync-key={syncKey}>
   <div class="tabs__strip" data-pagefind-ignore>
-    <div role="tablist" aria-label={label}>
+    <div role="tablist" aria-label={label ?? labels.join(", ")}>
       {
         labels.map((tabLabel, index) => (
           <button

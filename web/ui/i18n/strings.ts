@@ -25,6 +25,7 @@ export const en = {
   aiPrompt: "Read {url} so I can ask questions about it",
   copyCode: "Copy code",
   sectionLink: "Link to this section",
+  table: "Table",
   previous: "Previous",
   next: "Next",
   breadcrumbs: "Breadcrumbs",

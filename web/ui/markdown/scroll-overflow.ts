@@ -6,12 +6,18 @@ export function initScrollOverflow(root: ParentNode = document): void {
     const update = () => {
       const overflow = scroll.scrollWidth > scroll.clientWidth + 1;
       frame.dataset.overflow = String(overflow);
+      if (scroll.classList.contains("table-scroll")) {
+        if (overflow) scroll.tabIndex = 0;
+        else scroll.removeAttribute("tabindex");
+      }
       frame.dataset.scrolledEnd = String(
         !overflow || scroll.scrollLeft + scroll.clientWidth >= scroll.scrollWidth - 1,
       );
     };
     update();
     scroll.addEventListener("scroll", update, { passive: true });
-    new ResizeObserver(update).observe(scroll);
+    const observer = new ResizeObserver(update);
+    observer.observe(scroll);
+    if (scroll.firstElementChild) observer.observe(scroll.firstElementChild);
   }
 }

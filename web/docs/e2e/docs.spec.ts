@@ -416,3 +416,35 @@ test("404 page renders inside the docs shell", async ({ page }) => {
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("Page not found");
   await expect(page.locator(".site-header")).toBeVisible();
 });
+
+test("table of contents links land each heading under the header and mark it current", async ({
+  page,
+}) => {
+  test.skip(!isDesktop(page), "desktop rail only");
+  await page.goto("/skopli/guide/reading");
+  const links = page.locator(".toc a");
+  const headerBottom = await page
+    .locator(".site-header")
+    .evaluate((h) => h.getBoundingClientRect().bottom);
+  for (let i = 1; i < (await links.count()); i++) {
+    const link = links.nth(i);
+    const id = (await link.getAttribute("href"))!.slice(1);
+    await link.click();
+    const top = await page.locator(`[id="${id}"]`).evaluate((h) => h.getBoundingClientRect().top);
+    const atBottom = await page.evaluate(
+      () => window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 2,
+    );
+    expect(top, id).toBeGreaterThan(headerBottom);
+    if (!atBottom) expect(top - headerBottom, id).toBeLessThanOrEqual(32);
+    await expect(link).toHaveAttribute("aria-current", "true");
+  }
+});
+
+test("copying code announces the result to assistive tech", async ({ page, context }) => {
+  await context.grantPermissions(["clipboard-read", "clipboard-write"]);
+  await page.goto("/skopli/guide/getting-started");
+  await page.locator(".code-frame [data-copy-code]").first().click({ force: true });
+  const status = page.locator("#copy-status");
+  await expect(status).toHaveAttribute("role", "status");
+  await expect(status).toHaveText("Copied");
+});

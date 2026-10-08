@@ -6,7 +6,7 @@ description: Install Skopli in your language and run a four-call quickstart from
 import Tabs from "@skopli/ui/components/Tabs.astro";
 import Tab from "@skopli/ui/components/Tab.astro";
 
-Skopli is an SDK you call from your own code. It reads the session state your harnesses keep on disk (sessions, turns, calls, tokens), normalizes it, aggregates it, and prices it. Build your own dashboards, reports, or billing checks on top.
+Install the SDK for your language, then make the four calls: detect the harnesses on this machine, read their session logs, roll the events up, and price the result. Step 2 is a quickstart that prints each priced row.
 
 It has three layers, Read, Rollup, and Price, and each works on its own.
 Skopli has no accounts and no telemetry.
@@ -17,7 +17,7 @@ Pass an empty `sources` list or `offline` for a network-free handle.
 
 ## Step 1: install
 
-Pick your language. No package is published yet. The registry commands below work after the [first release](https://github.com/skopli/skopli/releases), and until then each SDK builds from the repository: the Java and Swift tabs already include it from a checkout beside your project. The TypeScript package needs Node 24 or newer and ships ESM only. Java, Swift, and C link the C library, built from the repository root with `cargo build -p skopli-capi --release`.
+No package is published yet. The registry commands below work after the [first release](https://github.com/skopli/skopli/releases), and until then each SDK builds from the repository. The Java and Swift tabs already include it from a checkout beside your project. The TypeScript package needs Node 24 or newer and ships ESM only. Java, Swift, and C link the C library, built from the repository root with `cargo build -p skopli-capi --release`.
 
 <Tabs syncKey="lang">
   <Tab label="TypeScript">

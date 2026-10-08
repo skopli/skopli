@@ -1,8 +1,18 @@
-import type { Element, Root } from "hast";
+import type { Element, ElementContent, Root } from "hast";
 import { visit } from "unist-util-visit";
+import type { VFile } from "vfile";
+import { localeOfPath, translator } from "../i18n/index.ts";
+
+const text = (node: ElementContent): string =>
+  node.type === "text"
+    ? node.value
+    : node.type === "element"
+      ? node.children.map(text).join("")
+      : "";
 
 export function rehypeTableFrame() {
-  return (tree: Root) => {
+  return (tree: Root, file: VFile) => {
+    const t = translator(localeOfPath(file.path));
     visit(tree, "element", (node: Element, index, parent) => {
       if (node.tagName !== "table" || !parent || index === undefined) return;
       if (
@@ -10,6 +20,8 @@ export function rehypeTableFrame() {
         parent.properties.className?.toString().includes("table-scroll")
       )
         return;
+      const caption = node.children.find((c) => c.type === "element" && c.tagName === "caption");
+      const label = caption ? text(caption).trim() : t("table");
       const frame: Element = {
         type: "element",
         tagName: "div",
@@ -18,7 +30,7 @@ export function rehypeTableFrame() {
           {
             type: "element",
             tagName: "div",
-            properties: { className: ["table-scroll"], tabIndex: 0 },
+            properties: { className: ["table-scroll"], role: "region", ariaLabel: label },
             children: [node],
           },
         ],

@@ -28,7 +28,7 @@ const byModel = rollup(events, { by: "model" });
 const priced = await createPricing().priceRollups(byModel);
 ```
 
-The seven handle-based facades (TypeScript, Python, Ruby, Java, C#, Go, Swift) expose the same four calls. Rust and C expose the primitives directly. All of them share one Rust core. See [Getting started](/skopli/guide/getting-started) for the quickstart in each.
+Eight language facades (TypeScript, Python, Rust, Ruby, Java, C#, Go, and Swift) and a C ABI share one Rust core. The seven handle-based facades expose the same four calls, and Rust and C expose the primitives directly. See [Getting started](/skopli/guide/getting-started) for the quickstart in each.
 
 ## What you can do
 

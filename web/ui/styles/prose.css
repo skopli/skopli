@@ -32,7 +32,6 @@
 
 .prose :is(h2, h3, h4) {
   position: relative;
-  scroll-margin-top: calc(var(--header-h) + var(--s-5));
 }
 
 .prose .heading-anchor {
@@ -59,13 +58,15 @@
 
 @media (pointer: coarse) {
   .prose .heading-anchor {
-    top: 50%;
-    bottom: auto;
+    position: static;
+    display: inline-flex;
     min-width: var(--target);
     min-height: var(--target);
+    margin-block: calc(var(--target) / -2);
     justify-content: center;
+    vertical-align: middle;
     padding-inline-end: 0;
-    transform: translateY(-50%);
+    opacity: 1;
   }
 }
 

@@ -83,9 +83,12 @@ const checkLinks = (text: string, where: string, pattern: RegExp) => {
     need(resolves(target), `${where} links ${target}, which is not in dist`);
 };
 const htmlLink = /(?:href|src)="(\/[^"#?]*)/g;
-const srcsetCandidate = /srcset="[^"]*?(\/[^\s,"#?]*)/g;
+const srcset = /srcset="([^"]*)"/g;
 const cssUrl = /url\(["']?(\/[^"')#?]*)/g;
 const mdLink = /\]\((https:\/\/docs\.skopli\.com\/skopli\/[^)#?]*)/g;
+
+for (const file of readdirSync(join(site, "_astro")).filter((f) => f.endsWith(".css")))
+  checkLinks(read(join(site, "_astro", file)), `_astro/${file}`, cssUrl);
 
 for (const locale of locales) {
   const isDefault = locale === defaultLocale;
@@ -145,7 +148,12 @@ for (const locale of locales) {
     );
     need(html.includes("data-pagefind-body"), `${where} is marked for Pagefind`);
     checkLinks(html, where, htmlLink);
-    checkLinks(html, where, srcsetCandidate);
+    for (const [, set] of html.matchAll(srcset))
+      for (const candidate of set.split(",")) {
+        const url = candidate.trim().split(/\s+/)[0] ?? "";
+        if (url.startsWith("/"))
+          need(resolves(url.split(/[#?]/)[0]!), `${where} srcset ${url}, which is not in dist`);
+      }
     checkLinks(html, where, cssUrl);
     checkLinks(md, `${where}.md`, mdLink);
     need(html.includes(`href="/skopli/${prefix}llms.txt"`), `${where} links its locale's llms.txt`);

@@ -29,6 +29,7 @@ const uid = `page-actions-${placement}`;
     class="page-actions__copy"
     data-copy-page
     data-event={pageActionEvents.copyMarkdown}
+    data-event-on-success
     aria-label={t("copyPageLabel")}
   >
     <svg
@@ -173,6 +174,8 @@ const uid = `page-actions-${placement}`;
 </style>
 
 <script>
+  import { announce } from "@skopli/ui/markdown/copy-code.ts";
+
   class SkopliPageActions extends HTMLElement {
     close = () => {};
     place = () => {};
@@ -192,9 +195,12 @@ const uid = `page-actions-${placement}`;
           await navigator.clipboard.writeText(await res.text());
           copy.dataset.state = "copied";
           label.textContent = this.dataset.copied ?? "";
+          announce(label.textContent);
+          copy.dispatchEvent(new CustomEvent("skopli:event", { bubbles: true, detail: copy.dataset.event }));
         } catch {
           copy.dataset.state = "failed";
           label.textContent = this.dataset.copyFailed ?? "";
+          announce(label.textContent);
         }
         setTimeout(() => {
           delete copy.dataset.state;
