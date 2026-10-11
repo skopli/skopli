@@ -51,5 +51,4 @@ Each facade has its own test that round-trips the golden cases through its bindi
 
 ## Schema version
 
-Events carry a schema version.
-Facades check it against the core at load time and refuse to run on a mismatch, so a stale binding cannot misread fields.
+Events carry a schema version, and each facade exposes the core's as `schemaVersion`; compare it with the version your code was written against before trusting field names.

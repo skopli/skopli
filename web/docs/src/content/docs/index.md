@@ -26,7 +26,7 @@ Pass `sources: []` to price from overrides alone, or `offline: true` to use what
 ## Four calls
 
 Detect which harnesses are present, read their events, roll them up, price the result.
-The Rust core reads and aggregates; the facades fetch catalogs and hand them to the core, so in Rust you pass catalogs in yourself, and the C library behaves the same way.
+The Rust core reads and aggregates; the facades fetch catalogs and hand them to the core, so in Rust you pass catalogs in yourself, and the C library behaves the same way: the C sample below passes an empty `catalogs` list, so every row comes back `priced: false` until you put catalog JSON in it or link `libskopli-full`.
 
 ```ts tab=quickstart
 import { detectHarnesses, readUsage, rollup, createPricing } from "skopli";
@@ -115,7 +115,7 @@ let priced = Pricing::new(catalogs, None, PricingMode::Calculate).price_rollups(
 
 const char *read_opts = "{\"since\":\"2026-08-01\"}";
 const char *by_model = "{\"by\":\"model\"}";
-const char *pricing_opts = "{}";
+const char *pricing_opts = "{\"builtinSources\":false,\"catalogs\":[]}";
 AgBuf detection, events, rollups, priced;
 AgPricing *pricing = NULL;
 

@@ -101,7 +101,7 @@ type Pricing = {
 };
 ```
 
-`priceTokens` is not available in the Go facade.
+`priceTokens` exists in the TypeScript, Python and Ruby facades; Go, Java, C#, Swift and the C ABI go through `priceRollups` or `priceEvents`.
 
 ### Results
 
@@ -130,7 +130,7 @@ type PricedRollup = Rollup & {
 type CatalogInfo = { source: string; fetchedAt: string | null; models: number };
 ```
 
-A miss carries `usd` only when the rollup itself had a logged `costUsd` to fall back on.
+Whether a miss carries `usd` depends on the mode: `display` always sets it (0 when the rollup logged no `costUsd`), `auto` sets it to the logged `costUsd` when there is one, `calculate` never sets it.
 
 ### Prices
 
@@ -170,7 +170,7 @@ Built-in sources return `null` when the fetch fails and no cache exists, so a fu
 ## C ABI
 
 `libskopli` exports 17 functions.
-Inputs are UTF-8 JSON passed as a pointer and length; results come back through an `AgBuf *out` parameter (a `ptr`/`len` pair the library owns and `ag_buf_free` releases), and every call returns an `AgStatus` (`AG_STATUS_OK`, `AG_STATUS_INVALID_ARGUMENT`, `AG_STATUS_CATALOG` or `AG_STATUS_INTERNAL`).
+Inputs are UTF-8 JSON passed as a pointer and length; results come back through an `AgBuf *out` parameter (a `ptr`/`len` pair the library owns and `ag_buf_free` releases), and every fallible call returns an `AgStatus` (`AG_STATUS_OK`, `AG_STATUS_INVALID_ARGUMENT`, `AG_STATUS_CATALOG` or `AG_STATUS_INTERNAL`).
 The pricing engine is an opaque `AgPricing *` handle from `ag_pricing_new`.
 
 ```c
@@ -200,5 +200,4 @@ Go, Java, C# and Swift wrap this ABI, which is why they need `libskopli` on the 
 
 ## Versions
 
-`ag_schema_version` reports the event schema version.
-A facade compiled against a different schema refuses to run rather than misreading fields.
+`ag_schema_version` reports the event schema version, and each facade exposes it as `schemaVersion` so a caller can compare the binding it compiled against with the core it loaded.

@@ -170,7 +170,7 @@ for row in try pricing.priceRollups(rollups: byModel) {
 
 const char *read_opts = "{\\"since\\":\\"2026-08-01\\"}";
 const char *by_model = "{\\"by\\":\\"model\\"}";
-const char *pricing_opts = "{}";
+const char *pricing_opts = "{\\"builtinSources\\":false,\\"catalogs\\":[]}";
 AgBuf detection, events, rollups, priced;
 AgPricing *pricing = NULL;
 
