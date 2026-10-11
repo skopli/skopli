@@ -1,0 +1,96 @@
+---
+import { t, type Locale } from "../i18n/index.ts";
+interface Props {
+  canonicalMdUrl: string;
+  locale?: Locale;
+}
+const { canonicalMdUrl, locale = "en" } = Astro.props;
+const prompt = t(locale, "handoff.prompt", { url: canonicalMdUrl });
+const q = encodeURIComponent(prompt);
+const links = [
+  ["ChatGPT", `https://chatgpt.com/?q=${q}`, "open_chatgpt"],
+  ["Claude", `https://claude.ai/new?q=${q}`, "open_claude"],
+  ["Grok", `https://grok.com/?q=${q}`, "open_grok"],
+  ["Perplexity", `https://www.perplexity.ai/search?q=${q}`, "open_perplexity"],
+  ["Google AI Mode", `https://www.google.com/search?udm=50&q=${q}`, "open_google_ai_mode"],
+  ["Cursor", `https://cursor.com/link/prompt?text=${q}`, "open_cursor"],
+] as const;
+---
+
+<section class="handoffs" aria-labelledby="handoffs-title">
+  <h2 id="handoffs-title">{t(locale, "handoff.title")}</h2>
+  <table>
+    <tbody>
+      <tr>
+        <td>
+          <button type="button" data-copy-md={canonicalMdUrl} data-copied={t(locale, "handoff.copied")} data-failed={t(locale, "handoff.failed")}>
+            {t(locale, "handoff.copy")}
+          </button>
+        </td>
+        <td><a href={canonicalMdUrl}>{t(locale, "handoff.markdown")}</a></td>
+      </tr>
+      {
+        [0, 2, 4].map((i) => (
+          <tr>
+            {links.slice(i, i + 2).map(([name, href, event]) => (
+              <td>
+                <a href={href} target="_blank" rel="noopener" data-event={event}>
+                  {name}
+                </a>
+              </td>
+            ))}
+          </tr>
+        ))
+      }
+    </tbody>
+  </table>
+</section>
+
+<style>
+  .handoffs h2 {
+    font-size: var(--text-xs);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--fg-muted);
+    margin-bottom: var(--space-2);
+  }
+  .handoffs table {
+    font-size: var(--text-sm);
+  }
+  .handoffs td {
+    padding: 0 var(--space-2) 0 0;
+    width: 50%;
+  }
+  .handoffs a,
+  .handoffs button {
+    display: inline-flex;
+    align-items: center;
+    min-height: var(--target);
+    color: var(--accent);
+    text-decoration: underline;
+    text-underline-offset: 0.18em;
+  }
+</style>
+
+<script>
+  type Capture = { capture?: (event: string) => void };
+  const capture = (event: string) => (window as unknown as { posthog?: Capture }).posthog?.capture?.(event);
+  for (const a of document.querySelectorAll<HTMLAnchorElement>("[data-event]")) {
+    a.addEventListener("click", () => capture(a.dataset.event ?? ""));
+  }
+  for (const b of document.querySelectorAll<HTMLButtonElement>("[data-copy-md]")) {
+    const label = b.textContent;
+    b.addEventListener("click", async () => {
+      try {
+        const res = await fetch(b.dataset.copyMd ?? "");
+        if (!res.ok) throw new Error(String(res.status));
+        await navigator.clipboard.writeText(await res.text());
+        capture("docs_copy_md");
+        b.textContent = b.dataset.copied ?? "";
+      } catch {
+        b.textContent = b.dataset.failed ?? "";
+      }
+      setTimeout(() => (b.textContent = label), 1600);
+    });
+  }
+</script>

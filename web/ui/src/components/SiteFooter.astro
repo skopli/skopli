@@ -1,0 +1,47 @@
+---
+import { t, type Locale } from "../i18n/index.ts";
+import Mark from "./Mark.astro";
+interface Props {
+  locale?: Locale;
+}
+const { locale = "en" } = Astro.props;
+---
+
+<footer class="site-footer">
+  <div class="site-footer-brand"><Mark size={18} /> <span>{t(locale, "site.name")}</span></div>
+  <p>{t(locale, "footer.license")}</p>
+  <p>{t(locale, "footer.status")}</p>
+  <nav class="site-footer-links">
+    <a href="https://github.com/skopli/skopli" rel="noopener" target="_blank">{t(locale, "footer.source")}</a>
+    <a href="https://docs.skopli.com/skopli/">{t(locale, "footer.docs")}</a>
+    <a href="https://skopli.com/">{t(locale, "footer.site")}</a>
+  </nav>
+</footer>
+
+<style>
+  .site-footer {
+    display: grid;
+    gap: var(--space-2);
+    padding: var(--space-6) 0 var(--space-7);
+    border-top: var(--rule-heavy) solid var(--rule-strong);
+    font-size: var(--text-sm);
+    color: var(--fg-muted);
+  }
+  .site-footer-brand {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    font-family: var(--font-display);
+    color: var(--fg);
+  }
+  .site-footer-links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-4);
+  }
+  .site-footer-links a {
+    display: inline-flex;
+    align-items: center;
+    min-height: var(--target);
+  }
+</style>

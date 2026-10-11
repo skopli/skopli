@@ -1,0 +1,27 @@
+/* Panels follow html[data-lang]; the switch itself lives in LangSwitch. */
+.code-tabs .code-tab {
+  display: none;
+}
+.code-tabs .code-tab pre {
+  margin: 0;
+}
+html[data-lang="ts"] .code-tab[data-lang="ts"],
+html[data-lang="py"] .code-tab[data-lang="python"],
+html[data-lang="rust"] .code-tab[data-lang="rust"],
+html[data-lang="ruby"] .code-tab[data-lang="ruby"],
+html[data-lang="java"] .code-tab[data-lang="java"],
+html[data-lang="csharp"] .code-tab[data-lang="csharp"],
+html[data-lang="go"] .code-tab[data-lang="go"],
+html[data-lang="swift"] .code-tab[data-lang="swift"],
+html[data-lang="c"] .code-tab[data-lang="c"] {
+  display: block;
+  animation: tab-in var(--duration) var(--ease-out);
+}
+.code-tabs[data-fallback] .code-tab:first-child {
+  display: block;
+}
+@keyframes tab-in {
+  from {
+    opacity: 0;
+  }
+}

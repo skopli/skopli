@@ -1,0 +1,81 @@
+/* The reading column: calm, measured, and set in the body face. */
+.prose {
+  max-width: var(--measure);
+  font-size: var(--text-md);
+}
+
+.prose > * + * {
+  margin-top: var(--space-4);
+}
+
+.prose > h2 {
+  margin-top: var(--space-7);
+  padding-top: var(--space-4);
+  border-top: var(--rule) solid var(--rule-color);
+}
+
+.prose > h3 {
+  margin-top: var(--space-6);
+}
+
+.prose > h4 {
+  margin-top: var(--space-5);
+}
+
+.prose h2 + *,
+.prose h3 + *,
+.prose h4 + * {
+  margin-top: var(--space-3);
+}
+
+.prose ul,
+.prose ol {
+  padding-left: 1.25em;
+}
+
+.prose li + li {
+  margin-top: var(--space-1);
+}
+
+.prose blockquote {
+  padding-left: var(--space-4);
+  border-left: var(--rule) solid var(--rule-strong);
+  color: var(--fg-muted);
+}
+
+.prose table {
+  display: block;
+  overflow-x: auto;
+}
+
+.prose a code {
+  color: inherit;
+}
+
+.prose .heading-anchor {
+  color: var(--fg-faint);
+  text-decoration: none;
+  margin-left: 0.3em;
+  opacity: 0;
+}
+
+.prose h2:hover .heading-anchor,
+.prose h3:hover .heading-anchor,
+.prose .heading-anchor:focus-visible {
+  opacity: 1;
+}
+
+.prose strong {
+  font-weight: 600;
+}
+
+.prose hr {
+  border: 0;
+  border-top: var(--rule) solid var(--rule-color);
+}
+
+.prose > h2:first-child {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: 0;
+}

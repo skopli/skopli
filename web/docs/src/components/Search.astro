@@ -1,0 +1,125 @@
+---
+import { t, type Locale } from "@skopli/ui/i18n/index.ts";
+interface Props {
+  locale?: Locale;
+}
+const { locale = "en" } = Astro.props;
+---
+
+<div class="search" data-search>
+  <label class="visually-hidden" for="search-input">{t(locale, "search.label")}</label>
+  <input id="search-input" type="search" placeholder={t(locale, "search.placeholder")} autocomplete="off" />
+  <ol class="search-results" role="listbox" hidden></ol>
+</div>
+
+<style>
+  .search {
+    position: relative;
+    flex: 1 1 12rem;
+    max-width: 24rem;
+  }
+  input {
+    width: 100%;
+    min-height: var(--target);
+    padding: 0 var(--space-3);
+    font: inherit;
+    color: var(--fg);
+    background: var(--sunken);
+    border: var(--rule) solid var(--rule-color);
+    border-radius: var(--radius);
+  }
+  input::placeholder {
+    color: var(--fg-faint);
+  }
+  .search-results {
+    position: absolute;
+    z-index: 10;
+    top: calc(100% + 4px);
+    left: 0;
+    right: 0;
+    max-height: 60vh;
+    overflow: auto;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    background: var(--surface);
+    border: var(--rule) solid var(--rule-strong);
+    font-size: var(--text-sm);
+  }
+  .search-results li + li {
+    border-top: var(--rule) solid var(--rule-color);
+  }
+  .search-results a {
+    display: block;
+    padding: var(--space-2) var(--space-3);
+    text-decoration: none;
+    color: var(--fg);
+  }
+  .search-results a:hover,
+  .search-results a:focus {
+    background: var(--sunken);
+  }
+  .search-results .title {
+    font-family: var(--font-display);
+    color: var(--accent);
+  }
+  .search-results .excerpt {
+    color: var(--fg-muted);
+  }
+  .search-results :global(mark) {
+    background: var(--selection);
+    color: inherit;
+  }
+</style>
+
+<script>
+  type Result = { data: () => Promise<{ url: string; meta: { title: string }; excerpt: string }> };
+  type Pagefind = { init: () => Promise<void>; search: (q: string) => Promise<{ results: Result[] }> };
+  const box = document.querySelector<HTMLElement>("[data-search]");
+  const input = box?.querySelector("input");
+  const list = box?.querySelector("ol");
+  if (box && input && list) {
+    let pagefind: Pagefind | undefined;
+    const load = async () => {
+      if (!pagefind) {
+        pagefind = (await import(/* @vite-ignore */ `${import.meta.env.BASE_URL}pagefind/pagefind.js`)) as Pagefind;
+        await pagefind.init();
+      }
+      return pagefind;
+    };
+    let timer: number;
+    input.addEventListener("input", () => {
+      clearTimeout(timer);
+      timer = window.setTimeout(async () => {
+        const q = input.value.trim();
+        if (!q) {
+          list.hidden = true;
+          return;
+        }
+        const pf = await load();
+        const { results } = await pf.search(q);
+        const items = await Promise.all(results.slice(0, 8).map((r) => r.data()));
+        list.replaceChildren(
+          ...items.map((item) => {
+            const li = document.createElement("li");
+            const a = document.createElement("a");
+            a.href = item.url;
+            const title = document.createElement("span");
+            title.className = "title";
+            title.textContent = item.meta.title;
+            const excerpt = document.createElement("p");
+            excerpt.className = "excerpt";
+            excerpt.innerHTML = item.excerpt;
+            a.append(title, excerpt);
+            li.append(a);
+            return li;
+          }),
+        );
+        list.hidden = items.length === 0;
+      }, 120);
+    });
+    document.addEventListener("click", (e) => {
+      if (!box.contains(e.target as Node)) list.hidden = true;
+    });
+  }
+</script>

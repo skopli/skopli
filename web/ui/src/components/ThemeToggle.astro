@@ -1,0 +1,53 @@
+---
+import { t, type Locale } from "../i18n/index.ts";
+interface Props {
+  locale?: Locale;
+}
+const { locale = "en" } = Astro.props;
+---
+
+<button
+  class="theme-toggle"
+  type="button"
+  data-theme-toggle
+  data-label-light={t(locale, "theme.toggle", { theme: t(locale, "theme.light") })}
+  data-label-dark={t(locale, "theme.toggle", { theme: t(locale, "theme.dark") })}
+  aria-label={t(locale, "theme.toggle", { theme: t(locale, "theme.light") })}
+>
+  <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+    <circle cx="10" cy="10" r="6.5"></circle>
+    <path class="theme-toggle-half" d="M10 3.5a6.5 6.5 0 0 1 0 13z" fill="currentColor" stroke="none"></path>
+  </svg>
+</button>
+
+<style>
+  .theme-toggle {
+    display: inline-grid;
+    place-items: center;
+    inline-size: var(--target);
+    block-size: var(--target);
+    color: var(--fg-muted);
+    border-radius: var(--radius);
+  }
+  .theme-toggle:hover {
+    color: var(--fg);
+  }
+</style>
+
+<script>
+  const KEY = "skopli.theme";
+  const root = document.documentElement;
+  for (const button of document.querySelectorAll<HTMLButtonElement>("[data-theme-toggle]")) {
+    const label = () => {
+      const light = root.dataset.theme === "light";
+      button.setAttribute("aria-label", (light ? button.dataset.labelDark : button.dataset.labelLight) ?? "");
+    };
+    label();
+    button.addEventListener("click", () => {
+      const next = root.dataset.theme === "light" ? "dark" : "light";
+      root.dataset.theme = next;
+      localStorage.setItem(KEY, next);
+      label();
+    });
+  }
+</script>

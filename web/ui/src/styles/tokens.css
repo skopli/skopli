@@ -1,0 +1,79 @@
+/* Skopli design tokens. Dark ("night") is the default; light ("day") is opt-in. */
+:root {
+  --font-display: "Bricolage Grotesque Variable", system-ui, sans-serif;
+  --font-body: "Atkinson Hyperlegible Next Variable", system-ui, sans-serif;
+  --font-mono: "Commit Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+
+  --text-xs: 0.8125rem;
+  --text-sm: 0.875rem;
+  --text-md: 1rem;
+  --text-lg: 1.125rem;
+  --text-xl: 1.375rem;
+  --text-2xl: 1.75rem;
+  --text-3xl: 2.5rem;
+  --text-4xl: 3.5rem;
+
+  --leading-tight: 1.1;
+  --leading-snug: 1.3;
+  --leading-body: 1.55;
+
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.5rem;
+  --space-6: 2rem;
+  --space-7: 3rem;
+  --space-8: 4rem;
+  --space-9: 6rem;
+
+  --measure: 68ch;
+  --rule: 1px;
+  --rule-heavy: 2px;
+  --radius: 6px;
+  --radius-lg: 14px;
+  --shadow: 0 8px 32px -12px rgb(0 0 0 / 0.45);
+  --target: 44px;
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --duration: 160ms;
+
+  color-scheme: dark;
+  --ground: #0a1020;
+  --surface: #111a30;
+  --sunken: #060b17;
+  --rule-color: #24314f;
+  --rule-strong: #3a4a70;
+  --fg: #e8edf7;
+  --fg-muted: #a9b4cc;
+  --fg-faint: #7f8aa8;
+  --accent: #ff6cb8;
+  --accent-ink: #0a1020;
+  --nodata: #8e98b3;
+  --selection: #4a1d3b;
+  --focus: #ff6cb8;
+  --glow: rgb(255 108 184 / 0.18);
+}
+
+:root[data-theme="light"] {
+  color-scheme: light;
+  --ground: #f7f2e7;
+  --surface: #efe8d8;
+  --sunken: #fbf8f0;
+  --rule-color: #d3cab5;
+  --rule-strong: #b2a78d;
+  --fg: #141d36;
+  --fg-muted: #46506e;
+  --fg-faint: #5f6884;
+  --accent: #b0176a;
+  --accent-ink: #fbf8f0;
+  --nodata: #596283;
+  --selection: #f3c6df;
+  --focus: #b0176a;
+  --glow: rgb(176 23 106 / 0.12);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --duration: 0ms;
+  }
+}

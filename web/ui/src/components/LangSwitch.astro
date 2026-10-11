@@ -1,0 +1,82 @@
+---
+import { languages } from "../data/languages.ts";
+import { t, type Locale } from "../i18n/index.ts";
+interface Props {
+  locale?: Locale;
+  compact?: boolean;
+}
+const { locale = "en", compact = false } = Astro.props;
+---
+
+<div class:list={["lang-switch", { compact }]} role="tablist" aria-label={t(locale, "lang.label")} data-lang-switch>
+  {
+    languages.map((l) => (
+      <button type="button" role="tab" data-lang={l.id} aria-selected="false">
+        {l.name}
+      </button>
+    ))
+  }
+</div>
+
+<style>
+  .lang-switch {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0 var(--space-1);
+    border-bottom: var(--rule) solid var(--rule-color);
+  }
+  [role="tab"] {
+    min-height: var(--target);
+    padding: 0 var(--space-3);
+    font-family: var(--font-display);
+    font-size: var(--text-sm);
+    color: var(--fg-muted);
+    border-bottom: var(--rule-heavy) solid transparent;
+    margin-bottom: -1px;
+    transition: color var(--duration) var(--ease-out);
+  }
+  [role="tab"]:hover {
+    color: var(--fg);
+  }
+  [role="tab"][aria-selected="true"] {
+    color: var(--fg);
+    border-bottom-color: var(--accent);
+  }
+  .compact [role="tab"] {
+    padding: 0 var(--space-2);
+    font-size: var(--text-xs);
+  }
+</style>
+
+<script>
+  const KEY = "skopli.lang";
+  const LANGS: Record<string, string> = { ts: "ts", py: "python", rust: "rust", ruby: "ruby", java: "java", csharp: "csharp", go: "go", swift: "swift", c: "c" };
+  const root = document.documentElement;
+  const tabs = document.querySelectorAll<HTMLButtonElement>("[data-lang-switch] [role=tab]");
+  const apply = () => {
+    for (const tab of tabs) {
+      const on = tab.dataset.lang === root.dataset.lang;
+      tab.setAttribute("aria-selected", String(on));
+      tab.tabIndex = on ? 0 : -1;
+    }
+    for (const set of document.querySelectorAll<HTMLElement>(".code-tabs")) {
+      const has = set.querySelector(`.code-tab[data-lang="${LANGS[root.dataset.lang ?? "ts"] ?? "ts"}"]`);
+      set.toggleAttribute("data-fallback", !has);
+    }
+  };
+  apply();
+  for (const tab of tabs) {
+    tab.addEventListener("click", () => {
+      root.dataset.lang = tab.dataset.lang;
+      localStorage.setItem(KEY, tab.dataset.lang ?? "ts");
+      apply();
+    });
+    tab.addEventListener("keydown", (e) => {
+      if (e.key !== "ArrowRight" && e.key !== "ArrowLeft") return;
+      const list = [...tab.parentElement!.querySelectorAll<HTMLButtonElement>("[role=tab]")];
+      const next = list[(list.indexOf(tab) + (e.key === "ArrowRight" ? 1 : list.length - 1)) % list.length];
+      next?.focus();
+      next?.click();
+    });
+  }
+</script>

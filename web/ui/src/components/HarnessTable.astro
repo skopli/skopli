@@ -1,0 +1,59 @@
+---
+import { harnesses, unsupported, type HarnessField } from "../data/harnesses.ts";
+interface Props {
+  detailed?: boolean;
+}
+const { detailed = false } = Astro.props;
+const fields: HarnessField[] = ["costUsd", "workspace", "title", "calls", "subagent"];
+---
+
+<div class="table-scroll">
+<table class="harness-table">
+  <thead>
+    <tr>
+      <th class="num">#</th>
+      <th>Harness</th>
+      <th>id</th>
+      {detailed && fields.map((f) => <th>{f}</th>)}
+      {detailed && <th>Counts</th>}
+    </tr>
+  </thead>
+  <tbody>
+    {
+      harnesses.map((h, i) => (
+        <tr>
+          <td class="num">{i + 1}</td>
+          <td>{h.name}</td>
+          <td>
+            <code>{h.id}</code>
+          </td>
+          {detailed &&
+            fields.map((f) => (
+              <td class={h.fields.includes(f) ? "yes" : "nodata"}>
+                {h.fields.includes(f) ? "yes" : <span class="visually-hidden">not in fixture</span>}
+              </td>
+            ))}
+          {detailed && <td>{h.estimated ? "estimated from text" : "reported"}</td>}
+        </tr>
+      ))
+    }
+  </tbody>
+</table>
+</div>
+<p class="caption">
+  40 harnesses, ids as in <code>golden/registry/ids.json</code>. Detected but not read (no reliable local token data): {unsupported.join(", ")}.
+  {detailed && " Field columns show the optional UsageEvent fields present in each harness's golden fixture."}
+</p>
+
+<style>
+  .table-scroll {
+    position: relative;
+    overflow-x: auto;
+  }
+  .harness-table td:nth-child(2) {
+    font-family: var(--font-display);
+  }
+  .harness-table .yes {
+    color: var(--fg);
+  }
+</style>

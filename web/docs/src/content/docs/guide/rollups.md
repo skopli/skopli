@@ -1,0 +1,92 @@
+---
+title: Rollups
+description: Group events by model, day, session, harness, workspace or 5-hour block, and understand what the summed counters mean.
+---
+
+## One call, six dimensions
+
+```ts
+type RollupBy = "model" | "day" | "session" | "harness" | "workspace" | "block";
+
+type RollupOptions = {
+  by: RollupBy;
+  tz?: string; // for "day" and "block"; default: system zone
+  blockMs?: number; // for "block"; default 18,000,000 (5 hours)
+};
+```
+
+```ts tab=rollup
+import { rollup } from "skopli";
+
+const byDay = rollup(events, { by: "day", tz: "UTC" });
+const byModel = rollup(events, { by: "model" });
+```
+
+```python tab=rollup
+by_day = skopli.rollup(result.events, by="day", tz="UTC")
+by_model = skopli.rollup(result.events, by="model")
+```
+
+```ruby tab=rollup
+by_day = Skopli.rollup(result.events, :day, tz: "UTC")
+by_model = Skopli.rollup(result.events, :model)
+```
+
+```go tab=rollup
+byDay, _ := skopli.Rollup(result.Events, skopli.RollupOptions{By: skopli.ByDay, Tz: "UTC"})
+```
+
+```java tab=rollup
+var byDay = Skopli.rollup(result.events(), new RollupOptions(RollupBy.DAY).tz("UTC"));
+```
+
+```csharp tab=rollup
+var byDay = SkopliClient.Rollup(result.Events, new RollupOptions { By = RollupBy.Day, Tz = "UTC" });
+```
+
+```swift tab=rollup
+let byDay = try Skopli.rollup(events: result.events, options: RollupOptions(by: .day, tz: "UTC"))
+```
+
+```c tab=rollup
+ag_buf by_day = ag_rollup(events.ptr, "{\"by\":\"day\",\"tz\":\"UTC\"}");
+```
+
+## The row
+
+```ts
+type Rollup = {
+  key: string; // the group: model name, "2026-08-01", session id, ...
+  tokens: TokenCounts; // summed per counter
+  events: number;
+  turns: number;
+  calls: number; // each event contributes its reported count, else 1
+  costUsd?: number; // summed only when every event in the group reported one
+};
+```
+
+Rows come back sorted by key.
+Token counters are summed per counter, so they remain disjoint after aggregation.
+
+## Dimensions
+
+| `by`        | Key                              | Notes                                                                                                          |
+| ----------- | -------------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| `model`     | model name as logged             | The same model can appear under several names across harnesses; pricing normalizes them, rollup does not       |
+| `day`       | `YYYY-MM-DD` in `tz`             | Day boundaries follow the zone you pass, not the machine's                                                     |
+| `session`   | `sessionId`                      | Session ids are only unique within a harness                                                                   |
+| `harness`   | harness id                       | Useful for "which agent is spending"                                                                           |
+| `workspace` | `workspace`                      | Events without a workspace group under an empty key                                                            |
+| `block`     | ISO timestamp of the block start | Fixed-width windows aligned to the hour in `tz`; 5 hours by default to match common subscription quota windows |
+
+## `costUsd` on a rollup
+
+A rollup carries `costUsd` only when every event in the group carried one.
+A single unpriced event drops the field for the whole group rather than reporting a partial sum as if it were complete.
+To get a cost for every row, price the rollup; see [Pricing basics](/skopli/guide/pricing-basics/).
+
+## Rollup first or price first?
+
+Rollup sums tokens before pricing sees them.
+For models whose price changes above a context threshold, that can move a group across the threshold and change the cost.
+[Rollups vs events](/skopli/pricing/rollups-vs-events/) explains when this matters and how `priceEvents` avoids it.

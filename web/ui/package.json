@@ -1,0 +1,39 @@
+{
+  "name": "@skopli/ui",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Shared design system for the Skopli docs and marketing sites",
+  "type": "module",
+  "exports": {
+    "./styles/*": "./src/styles/*",
+    "./components/*": "./src/components/*",
+    "./*": "./src/*"
+  },
+  "scripts": {
+    "lint": "oxlint .",
+    "format": "oxfmt --check .",
+    "format:write": "oxfmt .",
+    "typecheck": "astro check --tsconfig tsconfig.json",
+    "test": "vitest run",
+    "contrast": "node scripts/contrast.mjs",
+    "check": "pnpm run lint && pnpm run format && pnpm run typecheck && pnpm run test && pnpm run contrast"
+  },
+  "dependencies": {
+    "@fontsource-variable/atkinson-hyperlegible-next": "5.3.0",
+    "@fontsource-variable/bricolage-grotesque": "5.3.0",
+    "@fontsource/commit-mono": "5.3.0"
+  },
+  "devDependencies": {
+    "@astrojs/check": "0.9.10",
+    "@types/hast": "3.0.5",
+    "astro": "7.3.5",
+    "oxfmt": "0.71.0",
+    "oxlint": "1.86.0",
+    "shiki": "4.4.3",
+    "typescript": "6.0.3",
+    "vitest": "4.1.10"
+  },
+  "engines": {
+    "node": ">=24"
+  }
+}
