@@ -83,7 +83,8 @@ Tokens live in `web/ui/src/styles/tokens.css` and are consumed unchanged by `web
 Paper tones are warm off-whites, never pure white; ink is a warm near-black.
 Three ink steps (`ink`, `ink-2`, `ink-3`) cover headings, body and muted text, all AA on paper.
 `accent` is used only for links inside prose and for focus rings.
-`rule` is a decorative hairline; `rule-strong` is the 3:1 boundary used on controls such as quiet buttons and inputs.
+`rule` is a decorative hairline.
+`rule-strong` is the 3:1 boundary used on controls such as quiet buttons and inputs.
 `ok` and `miss` mark priced and unpriced states when a figure needs a status; they are never decorative.
 Dark mode swaps the paper and ink scales under `[data-theme="dark"]`; the same roles apply.
 

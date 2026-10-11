@@ -1,5 +1,5 @@
 .docs {
-  --header-h: 69px;
+  --header-h: 61px;
 }
 .docs__top {
   position: sticky;
@@ -11,6 +11,7 @@
 }
 .docs__top-inner {
   max-width: 96rem;
+  min-height: calc(var(--header-h) - 1px);
   margin: 0 auto;
   padding: var(--space-2) var(--space-5);
   display: grid;
@@ -278,6 +279,9 @@
 .prose td code {
   white-space: nowrap;
 }
+.table--ids th:first-child {
+  width: 70%;
+}
 .prose th {
   font-weight: 500;
   color: var(--ink-3);
@@ -419,8 +423,10 @@
   --pagefind-ui-font: var(--font-sans);
   max-width: 28rem;
 }
+.search__ui .pagefind-ui__form,
 .search__ui .pagefind-ui__search-input {
   height: var(--tap);
+  min-height: 0;
   font-weight: 400;
 }
 .search__ui .pagefind-ui__drawer {
@@ -473,9 +479,6 @@
   .docs__shell {
     grid-template-columns: minmax(0, 1fr);
     gap: 0;
-  }
-  .docs {
-    --header-h: 61px;
   }
   .prose table {
     display: block;

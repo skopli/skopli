@@ -17,7 +17,6 @@ html {
   -webkit-text-size-adjust: 100%;
   text-rendering: optimizeLegibility;
   font-feature-settings: "cv11", "ss01";
-  scroll-padding-top: 5rem;
 }
 
 [id] {

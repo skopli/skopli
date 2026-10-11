@@ -45,8 +45,11 @@ const pricing = createPricing();
 const priced = await pricing.priceRollups(byModel);
 
 for (const row of priced) {
-  if (row.pricing.priced) console.log(row.key, row.pricing.usd, row.pricing.source);
-  else console.log(row.key, "unpriced, tried", row.pricing.attempted);
+  if (row.pricing.priced) {
+    console.log(row.key, row.pricing.usd, row.pricing.source);
+  } else {
+    console.log(row.key, "unpriced, tried", row.pricing.attempted);
+  }
 }
 ```
 
@@ -58,7 +61,9 @@ import skopli
 
 detection = skopli.detect_harnesses()
 print(detection.supported, detection.unsupported)
-result = skopli.read_usage(harnesses=["claude", "opencode", "codex"], since="2026-08-01")
+result = skopli.read_usage(
+    harnesses=["claude", "opencode", "codex"], since="2026-08-01"
+)
 rollups = skopli.rollup(result.events, by="model")
 
 pricing = skopli.create_pricing()
@@ -75,7 +80,9 @@ for row in pricing.price_rollups(rollups):
 ```ruby
 require "skopli"
 
-result = Skopli.read_usage(harnesses: [:claude, :opencode, :codex], since: "2026-08-01")
+result = Skopli.read_usage(
+  harnesses: [:claude, :opencode, :codex], since: "2026-08-01"
+)
 rollups = Skopli.rollup(result.events, :model)
 
 pricing = Skopli.create_pricing
@@ -114,14 +121,22 @@ let priced = try pricing.priceRollups(byModel)
 <Fragment slot="rust">
 
 ```rust
+use skopli_core::pricing::parse::parse_litellm;
+use skopli_core::pricing::types::PricingCatalog;
+use skopli_core::pricing::{Pricing, PricingMode};
 use skopli_core::rollup::{rollup, RollupBy, RollupOptions};
 
-// The core crate holds the parsers, rollup and cost math and has no network layer.
-// `events` is a Vec<UsageEvent> you already hold, for example from your own loader.
+// `events` is a Vec<UsageEvent> you already hold; `litellm_json` is a catalog
+// payload you fetched yourself, because the core crate has no network layer.
 let by_model = rollup(&events, &RollupOptions::new(RollupBy::Model));
-for row in &by_model {
-    println!("{} {:?}", row.key, row.tokens);
-}
+
+let catalog = PricingCatalog {
+    source: "litellm".into(),
+    fetched_at: None,
+    prices: parse_litellm(&litellm_json),
+};
+let pricing = Pricing::new(vec![catalog], None, PricingMode::Calculate);
+let priced = pricing.price_rollups(&by_model);
 ```
 
 </Fragment>
@@ -130,8 +145,10 @@ for row in &by_model {
 ```java
 import com.skopli.*;
 
-ReadUsageResult usage = Skopli.readUsage(ReadUsageOptions.builder().since("2026-08-01").build());
-List<Rollup> byModel = Skopli.rollup(usage.events(), new RollupOptions(RollupBy.MODEL, Optional.empty(), Optional.empty()));
+ReadUsageOptions opts = ReadUsageOptions.builder().since("2026-08-01").build();
+ReadUsageResult usage = Skopli.readUsage(opts);
+RollupOptions byModelOpts = RollupOptions.by(RollupBy.MODEL);
+List<Rollup> byModel = Skopli.rollup(usage.events(), byModelOpts);
 
 try (Pricing pricing = Skopli.createPricing(PricingOptions.builder().build())) {
     List<PricedRollup> priced = pricing.priceRollups(byModel);
@@ -144,15 +161,23 @@ try (Pricing pricing = Skopli.createPricing(PricingOptions.builder().build())) {
 ```go
 import "github.com/skopli/skopli/sdks/go/skopli"
 
-usage, err := skopli.ReadUsage(skopli.ReadUsageOptions{Since: "2026-08-01"})
-if err != nil {
-	return err
+func priceByModel() ([]skopli.PricedRollup, error) {
+	usage, err := skopli.ReadUsage(skopli.ReadUsageOptions{Since: "2026-08-01"})
+	if err != nil {
+		return nil, err
+	}
+	opts := skopli.RollupOptions{By: skopli.ByModel}
+	byModel, err := skopli.Rollup(usage.Events, opts)
+	if err != nil {
+		return nil, err
+	}
+	pricing, err := skopli.NewPricing(skopli.PricingOptions{})
+	if err != nil {
+		return nil, err
+	}
+	defer pricing.Close()
+	return pricing.PriceRollups(byModel)
 }
-byModel, err := skopli.Rollup(usage.Events, skopli.RollupOptions{By: skopli.ByModel})
-
-pricing, err := skopli.NewPricing(skopli.PricingOptions{})
-defer pricing.Close()
-priced, err := pricing.PriceRollups(byModel)
 ```
 
 </Fragment>
@@ -161,28 +186,44 @@ priced, err := pricing.PriceRollups(byModel)
 ```c
 #include "skopli.h"
 
-// Every call takes and returns JSON; AgBuf is freed with ag_buf_free.
+// Every call takes and returns JSON. Free each AgBuf with ag_buf_free.
+// The prebuilt library has no network layer, so pass a catalog you fetched.
 const char *read_opts = "{\"since\":\"2026-08-01\"}";
-AgBuf usage;
-if (ag_read_usage(read_opts, strlen(read_opts), &usage) != AG_STATUS_OK) { /* ag_last_error_message */ }
+AgBuf usage = {0};
+if (ag_read_usage(read_opts, strlen(read_opts), &usage) != AG_STATUS_OK)
+  return 1;
 
 const char *rollup_opts = "{\"by\":\"model\"}";
-AgBuf by_model;
-ag_rollup((const char *)usage.ptr, usage.len, rollup_opts, strlen(rollup_opts), &by_model);
+AgBuf by_model = {0};
+if (ag_rollup((const char *)usage.ptr, usage.len, rollup_opts,
+              strlen(rollup_opts), &by_model) != AG_STATUS_OK)
+  return 1;
 
-AgPricing *pricing;
-ag_pricing_new("{}", 2, &pricing);
-AgBuf priced;
-ag_pricing_price_rollups(pricing, (const char *)by_model.ptr, by_model.len, &priced);
+const char *pricing_opts =
+    "{\"builtinSources\":false,\"catalogs\":[{\"source\":\"litellm\","
+    "\"format\":\"litellm\",\"payload\":" LITELLM_JSON "}]}";
+AgPricing *pricing = NULL;
+if (ag_pricing_new(pricing_opts, strlen(pricing_opts), &pricing)
+    != AG_STATUS_OK)
+  return 1;
+
+AgBuf priced = {0};
+ag_pricing_price_rollups(pricing, (const char *)by_model.ptr, by_model.len,
+                         &priced);
+
 ag_pricing_free(pricing);
+ag_buf_free(priced);
+ag_buf_free(by_model);
+ag_buf_free(usage);
 ```
 
 </Fragment>
 </Tabs>
 
-The first two steps never touch the network.
+Reading and rolling up never touch the network.
 `createPricing()` fetches the OpenRouter, LiteLLM and models.dev catalogs the first time it needs them, caches them on disk for about an hour, and keeps using the cache when a fetch fails.
 Pass `offline: true` or `sources: []` to price without any network access.
+The Rust core crate and the bare C library have no fetch layer at all, so they take catalogs you supply.
 [Pricing basics](/skopli/guide/pricing-basics/) has the details.
 
 ## What comes back

@@ -4,9 +4,11 @@ import Base from "../layouts/Base.astro";
 
 const docs = "https://docs.skopli.com/skopli/";
 
-const input = `import { readUsage, rollup, createPricing } from "skopli";
+const input = `import { createPricing, readUsage, rollup } from "skopli";
 
-const { events } = await readUsage({ since: "2026-08-01" });
+const { events } = await readUsage({
+  since: "2026-08-01",
+});
 const byModel = rollup(events, { by: "model" });
 
 const pricing = createPricing();
@@ -59,6 +61,18 @@ const outputNarrow = `[
       "priced": true,
       "usd": 0.00625,
       "source": "litellm" } },
+  { "key": "us.anthropic.claude-opus-4-6-20260115-v1:0",
+    "tokens": {
+      "input": 800,
+      "output": 200,
+      "cacheRead": 0,
+      "cacheWrite": 0,
+      "reasoning": 0 },
+    "pricing": {
+      "priced": true,
+      "usd": 0.009,
+      "source": "openrouter",
+      "key": "anthropic/claude-opus-4.6" } },
   { "key": "totally-unknown-model-9000",
     "tokens": {
       "input": 100,
@@ -156,13 +170,14 @@ const themes = { light: "github-light", dark: "github-dark" };
       </div>
       <p class="demo__note">
         Figures are from the repository's golden pricing fixture: synthetic token counts priced against a
-        catalog snapshot dated 2026-08-01. The fourth row is a model no catalog knows, so it stays
+        catalog snapshot dated 2026-08-01. The last row is a model no catalog knows, so it stays
         unpriced.
       </p>
     </figure>
   </section>
 
-  <section class="layers wrap" aria-labelledby="layers-h">
+  <section class="layers" aria-labelledby="layers-h">
+    <div class="wrap">
     <h2 id="layers-h">Three layers, used separately or together</h2>
     <dl class="layers__list">
       {layers.map((layer) => (
@@ -173,9 +188,11 @@ const themes = { light: "github-light", dark: "github-dark" };
         </div>
       ))}
     </dl>
+    </div>
   </section>
 
-  <section class="rules wrap" aria-labelledby="rules-h">
+  <section class="rules" aria-labelledby="rules-h">
+    <div class="wrap">
     <div class="rules__lead">
       <h2 id="rules-h">Cost math you can audit</h2>
       <p>
@@ -192,9 +209,11 @@ const themes = { light: "github-light", dark: "github-dark" };
         </div>
       ))}
     </dl>
+    </div>
   </section>
 
-  <section class="harnesses wrap" id="harnesses" aria-labelledby="harnesses-h">
+  <section class="harnesses" id="harnesses" aria-labelledby="harnesses-h">
+    <div class="wrap">
     <div class="harnesses__head">
       <h2 id="harnesses-h"><span class="num">40</span> harnesses, one event shape</h2>
       <p>
@@ -216,9 +235,11 @@ const themes = { light: "github-light", dark: "github-dark" };
       per session, fx.sh one per model per session.
     </p>
     <a class="harnesses__link" href={`${docs}reference/harnesses/`}>Per-harness details</a>
+    </div>
   </section>
 
-  <section class="langs wrap" aria-labelledby="langs-h">
+  <section class="langs" aria-labelledby="langs-h">
+    <div class="wrap">
     <h2 id="langs-h">One core, nine languages</h2>
     <p class="langs__text">
       The parsers, rollup and pricing live in Rust. Each facade is a thin, idiomatic binding, so a day
@@ -232,13 +253,16 @@ const themes = { light: "github-light", dark: "github-dark" };
         </li>
       ))}
     </ul>
+    </div>
   </section>
 
-  <section class="close wrap">
+  <section class="close">
+    <div class="wrap">
     <h2>Build the dashboard, the report or the billing check. The data is already on your disk.</h2>
     <div class="hero__actions">
       <a class="button" href={`${docs}guide/getting-started/`}>Getting started</a>
       <a class="button button--quiet" href="https://github.com/skopli/skopli">Source on GitHub</a>
+    </div>
     </div>
   </section>
 </Base>
@@ -254,14 +278,8 @@ const themes = { light: "github-light", dark: "github-dark" };
     padding-top: var(--space-8);
     padding-bottom: var(--space-8);
   }
-  section + section::before {
-    content: "";
-    display: block;
-    margin-bottom: var(--space-8);
-    border-top: 1px solid var(--rule);
-  }
   section + section {
-    padding-top: 0;
+    border-top: 1px solid var(--rule);
   }
   h2 {
     font-size: var(--text-xl);
@@ -334,6 +352,7 @@ const themes = { light: "github-light", dark: "github-dark" };
   .demo {
     margin-top: var(--space-8);
     display: grid;
+    align-items: start;
     grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
     gap: var(--space-4);
   }
@@ -356,7 +375,7 @@ const themes = { light: "github-light", dark: "github-dark" };
     margin: 0;
     padding: var(--space-4);
     overflow-x: auto;
-    font-size: var(--text-sm);
+    font-size: 0.8125rem;
     line-height: 1.55;
     background: transparent !important;
   }
@@ -381,6 +400,11 @@ const themes = { light: "github-light", dark: "github-dark" };
     .demo__narrow {
       display: block;
     }
+    .demo :global(pre) {
+      font-size: var(--text-xs);
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+    }
   }
 
   .layers__list {
@@ -393,6 +417,11 @@ const themes = { light: "github-light", dark: "github-dark" };
     gap: var(--space-4);
     padding: var(--space-5) 0;
     border-bottom: 1px solid var(--rule);
+  }
+  .layers__row:last-child,
+  .rules__row:last-child,
+  .langs__list li:last-child {
+    border-bottom: 0;
   }
   .layers__row dt {
     font-size: var(--text-lg);
@@ -413,7 +442,7 @@ const themes = { light: "github-light", dark: "github-dark" };
     }
   }
 
-  .rules {
+  .rules > .wrap {
     display: grid;
     grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);
     gap: var(--space-7);
@@ -447,7 +476,7 @@ const themes = { light: "github-light", dark: "github-dark" };
     color: var(--ink-2);
   }
   @media (max-width: 860px) {
-    .rules {
+    .rules > .wrap {
       grid-template-columns: 1fr;
       gap: var(--space-5);
     }
