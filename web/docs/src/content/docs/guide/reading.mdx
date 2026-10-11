@@ -81,4 +81,4 @@ Anything odd becomes a `Diagnostic` with a `severity` of `warning` or `info`, a 
 
 Rows with zero tokens are dropped even when the vendor recorded a cost.
 Rows with unusable timestamps warn and are skipped rather than landing on epoch zero.
-Where a harness keeps both a SQLite store and a legacy JSONL mirror (OpenCode, ZCode, Devin, Cline), the SQLite store wins and the mirror is not double-counted.
+Where a harness keeps both a SQLite store and a legacy JSONL mirror (OpenCode, ZCode, Devin CLI, Cline), the SQLite store wins and the mirror is not double-counted.

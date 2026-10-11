@@ -9,13 +9,15 @@ colors:
   ink-2: "#44423a"
   ink-3: "#66635a"
   rule: "#d6d2c8"
-  rule-strong: "#b8b3a6"
+  rule-strong: "#8f8a7d"
   accent: "#b43c12"
   ok: "#176b43"
   miss: "#8a5a00"
   dark-paper: "#141311"
   dark-ink: "#f1efe9"
   dark-accent: "#f08a62"
+  dark-rule: "#33312c"
+  dark-rule-strong: "#6b675d"
 typography:
   display:
     fontFamily: "Inter Variable, system-ui, sans-serif"
@@ -81,6 +83,7 @@ Tokens live in `web/ui/src/styles/tokens.css` and are consumed unchanged by `web
 Paper tones are warm off-whites, never pure white; ink is a warm near-black.
 Three ink steps (`ink`, `ink-2`, `ink-3`) cover headings, body and muted text, all AA on paper.
 `accent` is used only for links inside prose and for focus rings.
+`rule` is a decorative hairline; `rule-strong` is the 3:1 boundary used on controls such as quiet buttons and inputs.
 `ok` and `miss` mark priced and unpriced states when a figure needs a status; they are never decorative.
 Dark mode swaps the paper and ink scales under `[data-theme="dark"]`; the same roles apply.
 

@@ -1,11 +1,12 @@
 ---
 interface Props {
   links: { label: string; href: string }[];
+  maxWidth?: string;
 }
-const { links } = Astro.props;
+const { links, maxWidth = "var(--content-max)" } = Astro.props;
 ---
 
-<footer class="footer">
+<footer class="footer" style={`--footer-max:${maxWidth}`}>
   <div class="footer__inner">
     <nav class="footer__links" aria-label="Footer">
       {links.map((link) => <a href={link.href}>{link.label}</a>)}
@@ -28,7 +29,7 @@ const { links } = Astro.props;
     font-size: var(--text-sm);
   }
   .footer__inner {
-    max-width: var(--content-max);
+    max-width: var(--footer-max);
     margin: 0 auto;
     padding: var(--space-6) var(--space-5) var(--space-7);
     display: grid;

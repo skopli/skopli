@@ -118,6 +118,7 @@ const github = "https://github.com/skopli/skopli";
     </div>
 
     <Footer
+      maxWidth="96rem"
       links={[
         { label: "skopli.com", href: "https://skopli.com" },
         { label: "GitHub", href: github },
@@ -137,6 +138,15 @@ const github = "https://github.com/skopli/skopli";
         });
       toggle(document.querySelector("[data-menu]"), document.getElementById("sidebar"));
       toggle(document.querySelector("[data-search-toggle]"), document.querySelector("[data-search]"), "input");
+
+      for (const box of document.querySelectorAll<HTMLElement>(".prose table, .tabs__list")) {
+        const sync = () => {
+          box.toggleAttribute("data-scrollable", box.scrollWidth > box.clientWidth);
+          box.toggleAttribute("data-scrolled", box.scrollLeft + box.clientWidth >= box.scrollWidth - 1);
+        };
+        box.addEventListener("scroll", sync, { passive: true });
+        new ResizeObserver(sync).observe(box);
+      }
     </script>
   </body>
 </html>

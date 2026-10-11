@@ -34,6 +34,44 @@ const output = `[
                  "attempted": ["totally-unknown-model-9000"] } }
 ]`;
 
+const outputNarrow = `[
+  { "key": "claude-sonnet-4-5",
+    "tokens": {
+      "input": 205000,
+      "output": 11000,
+      "cacheRead": 22000,
+      "cacheWrite": 34000,
+      "cacheWrite1h": 11500,
+      "reasoning": 2000 },
+    "pricing": {
+      "priced": true,
+      "usd": 1.84245,
+      "source": "litellm",
+      "tieredAggregate": true } },
+  { "key": "gpt-5",
+    "tokens": {
+      "input": 1000,
+      "output": 500,
+      "cacheRead": 0,
+      "cacheWrite": 0,
+      "reasoning": 0 },
+    "pricing": {
+      "priced": true,
+      "usd": 0.00625,
+      "source": "litellm" } },
+  { "key": "totally-unknown-model-9000",
+    "tokens": {
+      "input": 100,
+      "output": 100,
+      "cacheRead": 0,
+      "cacheWrite": 0,
+      "reasoning": 0 },
+    "pricing": {
+      "priced": false,
+      "attempted": [
+        "totally-unknown-model-9000" ] } }
+]`;
+
 const layers = [
   {
     name: "Read",
@@ -56,7 +94,7 @@ const rules = [
   ["Reasoning tokens", "billed at the output rate"],
   ["Cache read and write", "fall back to the input rate when a catalog omits them"],
   ["1h cache writes", "billed at the catalog's 1h rate when it has one, else input x 2"],
-  ["Long-context tiers", "128k, 200k, 256k, 272k and 512k thresholds; marginal by default, whole-request for Claude models"],
+  ["Long-context tiers", "128k, 200k, 256k, 272k and 512k thresholds, marginal by default and whole-request for Claude models"],
   ["Zero-token rows", "dropped, whatever cost the vendor reported"],
   ["Unmatched models", "<code>priced: false</code> with the keys that were tried, never a guess"],
 ];
@@ -82,7 +120,7 @@ const installs: [string, string][] = [
   ["Java", "com.skopli:skopli"],
   ["C#", "dotnet add package Skopli"],
   ["Go", "go get github.com/skopli/skopli/sdks/go"],
-  ["Swift", ".package(url: \"https://github.com/skopli/skopli\", from: \"...\")"],
+  ["Swift", ".package(url: \"https://github.com/skopli/skopli\", branch: \"main\")"],
   ["C", "libskopli + skopli.h from GitHub Releases"],
 ];
 
@@ -113,7 +151,8 @@ const themes = { light: "github-light", dark: "github-dark" };
       </div>
       <div class="demo__pane">
         <figcaption>Output, abridged</figcaption>
-        <Code code={output} lang="json" themes={themes} defaultColor={false} />
+        <div class="demo__wide"><Code code={output} lang="json" themes={themes} defaultColor={false} /></div>
+        <div class="demo__narrow"><Code code={outputNarrow} lang="json" themes={themes} defaultColor={false} /></div>
       </div>
       <p class="demo__note">
         Figures are from the repository's golden pricing fixture: synthetic token counts priced against a
@@ -215,8 +254,14 @@ const themes = { light: "github-light", dark: "github-dark" };
     padding-top: var(--space-8);
     padding-bottom: var(--space-8);
   }
-  section + section {
+  section + section::before {
+    content: "";
+    display: block;
+    margin-bottom: var(--space-8);
     border-top: 1px solid var(--rule);
+  }
+  section + section {
+    padding-top: 0;
   }
   h2 {
     font-size: var(--text-xl);
@@ -268,9 +313,9 @@ const themes = { light: "github-light", dark: "github-dark" };
     background: var(--ink-2);
   }
   .button--quiet {
+    border: 1px solid var(--rule-strong);
     background: transparent;
     color: var(--ink);
-    box-shadow: inset 0 0 0 1px var(--rule-strong);
   }
   .button--quiet:hover {
     background: var(--paper-2);
@@ -326,10 +371,15 @@ const themes = { light: "github-light", dark: "github-dark" };
       grid-template-columns: 1fr;
     }
   }
+  .demo__narrow {
+    display: none;
+  }
   @media (max-width: 480px) {
-    .demo :global(pre) {
-      white-space: pre-wrap;
-      overflow-wrap: anywhere;
+    .demo__wide {
+      display: none;
+    }
+    .demo__narrow {
+      display: block;
     }
   }
 
@@ -353,9 +403,8 @@ const themes = { light: "github-light", dark: "github-dark" };
     max-width: var(--measure);
     color: var(--ink-2);
   }
-  .layers__net {
-    color: var(--ink) !important;
-    font-variant-numeric: tabular-nums;
+  .layers__row .layers__net {
+    color: var(--ink);
   }
   @media (max-width: 720px) {
     .layers__row {
@@ -376,8 +425,6 @@ const themes = { light: "github-light", dark: "github-dark" };
   }
   .rules__lead a {
     color: var(--accent);
-  }
-  .rules__lead a {
     display: inline-flex;
     align-items: center;
     min-height: var(--tap);
