@@ -1,0 +1,84 @@
+---
+title: Reading usage
+description: How detectHarnesses and readUsage find local session logs and turn them into normalized events with diagnostics.
+---
+
+## Detection
+
+`detectHarnesses()` probes the directories each harness writes to and returns two lists.
+`supported` names the harnesses with local data Skopli can parse.
+`unsupported` names tools that were found on the machine but keep no reliable local token data: Cursor, aider, Crush and GitLab Duo CLI.
+Nothing is executed and nothing is modified; detection is a set of filesystem checks.
+
+## readUsage
+
+```ts
+const { events, diagnostics, skipped } = await readUsage({
+  harnesses: ["claude", "codex"], // default: every supported harness
+  since: "2026-08-01", // ISO date or Date; earlier events are dropped
+  until: "2026-08-31", // ISO date or Date; events at or after are dropped
+  tz: "Europe/London", // IANA zone for date-only bounds; default: system
+  subagents: "include", // or "exclude"
+});
+```
+
+`home` and `env` override where the resolver looks, which matters for tests and for reading another user's exported state.
+
+### Date bounds
+
+A date-only string such as `2026-08-01` means midnight at the start of that day in `tz` for `since`, and the exclusive end of that day for `until`.
+Full ISO timestamps are used exactly as given.
+This matters west of UTC: with `tz: "America/Los_Angeles"`, `since: "2026-08-01"` excludes an event stamped `2026-08-01T00:30Z`, because that is 17:30 on 31 July locally.
+The same zone drives day rollups, so a day rollup never shows a row for a day the bounds excluded.
+
+### Subagents
+
+Child sessions and sidechains are included by default and tagged `subagent: true`.
+`subagents: "exclude"` drops them uniformly across harnesses.
+The flag comes from each harness's own marker: a non-null `parent_id` in OpenCode, `isSidechain === true` in Claude Code, `rlmDepth > 0` in Pi and OMP.
+Codex and every other harness report `false`.
+
+## The event
+
+```ts
+type UsageEvent = {
+  harness: Harness;
+  timestamp: string; // ISO 8601
+  sessionId: string;
+  messageId: string;
+  turn: boolean; // true for the assistant turn that ends a user prompt
+  subagent: boolean;
+  model: string; // the harness's own model name, unmodified
+  tokens: {
+    input: number;
+    output: number;
+    cacheRead: number;
+    cacheWrite: number; // total across cache TTLs
+    cacheWrite1h?: number; // the 1h-TTL portion, when the source reports the split
+    reasoning: number;
+  };
+  calls?: number; // model calls this event aggregates, when the source reports it
+  costUsd?: number; // cost the harness itself recorded, when it did
+  workspace?: string; // normalized project directory
+  title?: string;
+};
+```
+
+Token buckets are disjoint.
+Where a harness reports reasoning inside its output count (Codex, Grok, ZCode) the reader subtracts it so `output + reasoning` reconstructs the raw figure.
+Codex cache writes arrive as a subset of input and are moved into `cacheWrite` the same way.
+Copilot's OTel export does not say whether `output_tokens` includes reasoning, so the reader leaves it alone and treats the two as disjoint.
+
+`costUsd` is present only when the harness recorded a cost itself: Claude Code's `costUSD` and OpenCode's non-zero `cost`.
+`workspace` and `title` come from OpenCode's session directory and title and Claude Code's `cwd`.
+Paths are normalized to forward slashes without a trailing separator, and case-folded on Windows.
+
+## Diagnostics and skipped files
+
+Skopli never writes to stdout or stderr.
+Anything odd becomes a `Diagnostic` with a `severity` of `warning` or `info`, a message, and where known the harness and path.
+`skipped` maps each harness to the files or `file:line` positions that were unreadable or malformed.
+
+Rows with zero tokens are dropped even when the vendor recorded a cost.
+Rows with unusable timestamps warn and are skipped rather than landing on epoch zero.
+Where a harness keeps both a SQLite store and a legacy JSONL mirror (OpenCode, ZCode, Devin, Cline), the SQLite store wins and the mirror is not double-counted.

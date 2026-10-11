@@ -1,0 +1,162 @@
+---
+title: API surface
+description: Every export of the TypeScript package, with the shape of the types the other facades mirror.
+---
+
+The TypeScript package exports the functions and types below.
+The Python, Ruby, Java, C#, Go and Swift facades expose the same operations with the naming conventions of their language (`read_usage`, `ReadUsage`, `readUsage`), and the C ABI exposes them as functions over JSON.
+
+## Reading
+
+```ts
+function detectHarnesses(options?: PathResolverOptions): Detection;
+// { supported: Harness[]; unsupported: string[] }
+
+function readUsage(options?: ReadUsageOptions): Promise<ReadUsageResult>;
+
+type ReadUsageOptions = PathResolverOptions & {
+  harnesses?: Harness[];
+  since?: Date | string;
+  until?: Date | string;
+  tz?: string;
+  subagents?: "include" | "exclude";
+};
+
+type ReadUsageResult = {
+  events: UsageEvent[];
+  diagnostics: Diagnostic[];
+  skipped: Partial<Record<Harness, string[]>>;
+};
+
+function createPathResolver(options?: PathResolverOptions): PathResolver;
+```
+
+See [Reading usage](/skopli/guide/reading/) for `UsageEvent`, `TokenCounts` and `Diagnostic`.
+
+## Rollups
+
+```ts
+function rollup(events: UsageEvent[], options: RollupOptions): Rollup[];
+
+type RollupBy = "model" | "day" | "session" | "harness" | "workspace" | "block";
+
+type RollupOptions = {
+  by: RollupBy;
+  tz?: string;
+  blockMs?: number; // by: "block" only; default 18_000_000 (five hours)
+};
+```
+
+## Pricing
+
+```ts
+function createPricing(options?: CreatePricingOptions): Pricing;
+
+type Pricing = {
+  lookupModel(model: string): Promise<PriceLookup>;
+  priceTokens(model: string, tokens: TokenCounts): Promise<PriceLookup & { usd?: number }>;
+  priceRollups(rollups: Rollup[]): Promise<PricedRollup[]>;
+  priceEvents(events: UsageEvent[], options: PriceEventsOptions): Promise<PricedEventGroup[]>;
+  catalogs(): Promise<CatalogInfo[]>;
+};
+
+type PricingMode = "calculate" | "display" | "auto";
+
+type CreatePricingOptions = {
+  sources?: PricingSource[];
+  overrides?: PriceOverride[];
+  mode?: PricingMode;
+  cacheDir?: string;
+  offline?: boolean;
+  ttlMs?: number;
+  refresh?: boolean;
+  fetch?: FetchLike;
+};
+
+type PriceHit = {
+  priced: true;
+  model: string;
+  key: string;
+  price: ModelPrice;
+  source: string;
+  fetchedAt: string | null;
+};
+
+type PriceMiss = {
+  priced: false;
+  model: string;
+  attempted: string[];
+} & ({ reason?: never; key?: never } | { reason: "zeroCost"; key: string });
+
+type PriceLookup = PriceHit | PriceMiss;
+
+type PricedRollup = Rollup & {
+  pricing: (PriceHit & { usd: number; tieredAggregate?: true }) | (PriceMiss & { usd?: number });
+};
+
+type AggregatePriceHit = { priced: true; usd: number; models: string[] };
+
+type PricedEventGroup = Rollup & {
+  pricing:
+    | (PriceHit & { usd: number; tieredAggregate?: true })
+    | (AggregatePriceHit & { usd: number })
+    | (PriceMiss & { usd?: number });
+};
+
+type CatalogInfo = { source: string; fetchedAt: string | null; models: number };
+
+type PriceEventsOptions = { by: RollupBy; tz?: string };
+```
+
+### Catalog types
+
+```ts
+type ModelPrice = {
+  input: number;
+  output: number;
+  cacheRead?: number;
+  cacheWrite?: number;
+  cacheWrite1h?: number;
+  tiers?: PriceTier[];
+  tierMode?: "marginal" | "whole-request";
+};
+
+type PriceOverride = ModelPrice & { model: string };
+
+type PricingSource = {
+  name: string;
+  load(context: SourceContext): Promise<PricingCatalog | null>;
+};
+
+type PricingCatalog = {
+  source: string;
+  fetchedAt: string | null;
+  prices: Map<string, ModelPrice>;
+};
+
+type SourceContext = {
+  fetch: FetchLike;
+  cacheDir: string;
+  offline: boolean;
+  ttlMs: number;
+  refresh?: boolean;
+};
+
+type FetchLike = (
+  url: string,
+) => Promise<{ ok: boolean; status: number; json(): Promise<unknown> }>;
+```
+
+### Helpers
+
+```ts
+function openRouterSource(): PricingSource;
+function liteLlmSource(): PricingSource;
+function modelsDevSource(): PricingSource;
+
+function candidateKeys(model: string): string[];
+function costUsd(tokens: TokenCounts, price: ModelPrice): number;
+function defaultCacheDir(): string;
+```
+
+`costUsd` applies the [cost math](/skopli/pricing/cost-math/) to one token bundle and one price, tiers included, without a catalog.

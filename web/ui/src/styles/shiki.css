@@ -1,0 +1,9 @@
+.astro-code,
+.astro-code span {
+  color: var(--shiki-light);
+}
+
+[data-theme="dark"] .astro-code,
+[data-theme="dark"] .astro-code span {
+  color: var(--shiki-dark);
+}

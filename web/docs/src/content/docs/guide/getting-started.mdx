@@ -1,0 +1,125 @@
+---
+title: Getting started
+description: Install Skopli, read the usage your agents already logged, and price a rollup in under a minute.
+---
+
+import Tabs from "../../../components/Tabs.astro";
+
+## Install
+
+| Language   | Install                                                          |
+| ---------- | ---------------------------------------------------------------- |
+| TypeScript | `pnpm add skopli` (also `npm install skopli`, `bun add skopli`)  |
+| Python     | `pip install skopli`                                             |
+| Rust       | `cargo add skopli-core`                                          |
+| Ruby       | `gem install skopli`                                             |
+| Java       | `com.skopli:skopli` on Maven Central                             |
+| C#         | `dotnet add package Skopli`                                      |
+| Go         | `go get github.com/skopli/skopli/sdks/go`                        |
+| Swift      | `.package(url: "https://github.com/skopli/skopli", from: "...")` |
+| C          | Prebuilt `libskopli` and `skopli.h` from GitHub Releases         |
+
+The TypeScript package is ESM only and needs Node 24 or later.
+The Go, Java, C# and Swift facades load the native `skopli` library; their READMEs in the repository describe where each runtime looks for it.
+
+## Read, roll up, price
+
+<Tabs>
+  <Fragment slot="ts">
+```ts
+import { detectHarnesses, readUsage, rollup, createPricing } from "skopli";
+
+const { supported, unsupported } = detectHarnesses();
+
+const { events, diagnostics } = await readUsage({
+harnesses: ["claude", "opencode", "codex"],
+since: "2026-08-01",
+});
+
+const byModel = rollup(events, { by: "model" });
+
+const pricing = createPricing();
+const priced = await pricing.priceRollups(byModel);
+
+for (const row of priced) {
+if (row.pricing.priced) console.log(row.key, row.pricing.usd, row.pricing.source);
+else console.log(row.key, "unpriced, tried", row.pricing.attempted);
+}
+
+````
+  </Fragment>
+  <Fragment slot="python">
+```python
+import skopli
+
+detection = skopli.detect_harnesses()
+result = skopli.read_usage(harnesses=["claude", "opencode", "codex"], since="2026-08-01")
+rollups = skopli.rollup(result.events, by="model")
+
+pricing = skopli.create_pricing()
+for row in pricing.price_rollups(rollups):
+    match row.pricing.priced:
+        case True:
+            print(row.rollup.key, row.usd, row.pricing.source)
+        case False:
+            print(row.rollup.key, "unpriced, tried", row.pricing.attempted)
+````
+
+  </Fragment>
+  <Fragment slot="ruby">
+```ruby
+require "skopli"
+
+result = Skopli.read_usage(harnesses: [:claude, :opencode, :codex], since: "2026-08-01")
+rollups = Skopli.rollup(result.events, :model)
+
+pricing = Skopli.create_pricing
+pricing.price_rollups(rollups).each do |row|
+puts "#{row.rollup.key}: #{row.usd.inspect}"
+end
+
+````
+  </Fragment>
+  <Fragment slot="csharp">
+```csharp
+using Skopli;
+
+ReadUsageResult usage = SkopliClient.ReadUsage(new ReadUsageOptions { Since = "2026-08-01" });
+IReadOnlyList<Rollup> byModel = SkopliClient.Rollup(usage.Events, new RollupOptions { By = RollupBy.Model });
+
+using Pricing pricing = SkopliClient.CreatePricing(new PricingOptions());
+IReadOnlyList<PricedRollup> priced = pricing.PriceRollups(byModel);
+````
+
+  </Fragment>
+  <Fragment slot="swift">
+```swift
+import Skopli
+
+let result = try Skopli.readUsage(options: ReadUsageOptions(since: "2026-08-01"))
+let byModel = try Skopli.rollup(events: result.events, by: .model)
+
+let pricing = try Skopli.createPricing(options: PricingOptions())
+let priced = try pricing.priceRollups(byModel)
+
+```
+  </Fragment>
+</Tabs>
+
+The first two steps never touch the network.
+`createPricing()` fetches the OpenRouter, LiteLLM and models.dev catalogs the first time it needs them, caches them on disk for about an hour, and keeps using the cache when a fetch fails.
+Pass `offline: true` or `sources: []` to price without any network access; see [Pricing basics](/skopli/guide/pricing-basics/).
+
+## What comes back
+
+A priced rollup carries the summed tokens, the number of events, turns and model calls, and a `pricing` object.
+When a model matched a catalog, `pricing.priced` is `true` and you get `usd`, the catalog `key` that matched, the `source` and its `fetchedAt` timestamp.
+When no catalog knows the model, `pricing.priced` is `false` and `attempted` lists every key that was tried.
+Skopli never substitutes a guessed price.
+
+## Next
+
+- [Reading usage](/skopli/guide/reading/) for date bounds, timezones, subagents and diagnostics.
+- [Rollups](/skopli/guide/rollups/) for the six grouping keys.
+- [Rollups vs events](/skopli/pricing/rollups-vs-events/) before you price models with long-context tiers.
+```

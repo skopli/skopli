@@ -1,0 +1,87 @@
+---
+title: Pricing basics
+description: Create a pricing instance, understand where catalogs come from and how they are cached, and read hits and misses.
+---
+
+## createPricing
+
+```ts
+import { createPricing, liteLlmSource, modelsDevSource, openRouterSource } from "skopli";
+
+const pricing = createPricing({
+  sources: [openRouterSource(), liteLlmSource(), modelsDevSource()], // the default order
+  overrides: [{ model: "my-finetune", input: 1, output: 2 }], // USD per million tokens
+  mode: "calculate", // "display" | "auto"
+  cacheDir: undefined, // default: the platform cache directory
+  offline: false, // true: never fetch, serve whatever the cache holds
+  ttlMs: 60 * 60 * 1000, // default: one hour
+  refresh: false, // true: try one fresh fetch per source, then fall back to stale cache
+});
+```
+
+All prices are USD per million tokens.
+
+## Sources and priority
+
+Three market catalogs ship with the SDK:
+
+| Source     | Endpoint                                                                                      |
+| ---------- | --------------------------------------------------------------------------------------------- |
+| OpenRouter | `https://openrouter.ai/api/v1/models`                                                         |
+| LiteLLM    | `https://raw.githubusercontent.com/BerriAI/litellm/main/model_prices_and_context_window.json` |
+| models.dev | `https://models.dev/api.json`                                                                 |
+
+Lookup order is overrides, then OpenRouter, LiteLLM and models.dev.
+One exception: after overrides, a match that carries long-context tiers outranks a flat match from a higher-priority source, so LiteLLM's tiered entry for a Claude model beats OpenRouter's flat one.
+Without this rule the tiers would be lost to whichever catalog happened to come first.
+
+You can supply your own `PricingSource`: an object with a `name` and a `load(context)` that returns a `PricingCatalog` or `null`.
+
+## Caching and offline
+
+Each source is cached on disk under `cacheDir`, by default `~/.cache/skopli` on Linux, `~/Library/Caches/skopli` on macOS and `%LOCALAPPDATA%\skopli\cache` on Windows.
+Writes are atomic.
+A cached catalog is fresh for `ttlMs` and is served without a request during that time.
+When a fetch fails, the stale cache is used whatever its age.
+Default fetches abort after 10 seconds.
+
+`offline: true` skips fetching entirely and prices from the cache.
+`sources: []` prices from overrides only.
+Either way nothing leaves the machine.
+`catalogs()` tells you what actually loaded: each source's name, `fetchedAt` and model count, so a dashboard can warn when every market source failed and lookups can only miss.
+
+## Hits and misses
+
+```ts
+const lookup = await pricing.lookupModel("openai/gpt-5");
+
+if (lookup.priced) {
+  lookup.key; // "gpt-5": the catalog key that matched
+  lookup.price; // { input: 1.25, output: 10, ... }
+  lookup.source; // "litellm"
+  lookup.fetchedAt; // ISO timestamp, or null for an override
+} else {
+  lookup.attempted; // every key that was tried, in order
+  lookup.reason; // "zeroCost" when only placeholder entries matched
+}
+```
+
+Skopli refuses to guess.
+A model no catalog knows comes back as `{ priced: false, attempted }`.
+Catalog entries priced at $0 are treated as placeholders and skipped so matching falls through to the next source; when only such entries match, the miss carries `reason: "zeroCost"` and the `key` that was found.
+An explicit $0 in `overrides` is honored as a real price.
+
+## Pricing tokens, rollups and events
+
+`priceTokens(model, tokens)` prices one token bundle and returns the lookup plus `usd`.
+`priceRollups(rollups)` prices already-summed tokens; this is exact for flat-rate models.
+`priceEvents(events, { by, tz })` prices each event at its own context and then groups, which is the correct path for models with long-context tiers.
+[Rollups vs events](/skopli/pricing/rollups-vs-events/) explains the difference and the `tieredAggregate` flag.
+
+## Modes
+
+`mode` decides where `usd` comes from in `priceRollups` and `priceEvents`.
+
+- `calculate` (default) recomputes from tokens and catalog rates.
+- `display` uses the harness-recorded `costUsd`, or 0 when there is none.
+- `auto` prefers the recorded cost and falls back to the calculation.

@@ -1,0 +1,54 @@
+---
+title: Rollups
+description: Group usage events by model, day, session, harness, workspace or billing block, with timezone-aware day bucketing.
+---
+
+## rollup
+
+```ts
+import { rollup } from "skopli";
+
+const byModel = rollup(events, { by: "model" });
+const byDay = rollup(events, { by: "day", tz: "Asia/Tokyo" });
+const byBlock = rollup(events, { by: "block", blockMs: 5 * 60 * 60 * 1000 });
+```
+
+`by` accepts `model`, `day`, `session`, `harness`, `workspace` or `block`.
+The result is a sorted array of `Rollup` records.
+
+```ts
+type Rollup = {
+  key: string; // the model name, YYYY-MM-DD, session id, harness id, workspace or block start
+  tokens: TokenCounts;
+  events: number;
+  turns: number;
+  calls: number; // may exceed events for sources that aggregate several model calls per row
+  costUsd?: number; // sum of harness-recorded costs, present only if an event carried one
+};
+```
+
+## Keys
+
+**model** uses the harness's own model name without normalization, so `openai/gpt-5` and `gpt-5` are separate rows.
+Pricing matches them to the same catalog entry later; see [Model matching](/skopli/pricing/model-matching/).
+
+**day** buckets by calendar day in `tz`, defaulting to the system timezone.
+The same `tz` passed to `readUsage` keeps date bounds and day buckets in step.
+Every facade uses the same timezone logic, so a Ruby day rollup and a Go day rollup agree.
+
+**session** and **harness** use the ids from the event.
+
+**workspace** groups by the normalized project directory.
+Events without one fall under the `(unknown)` sentinel rather than disappearing.
+
+**block** groups into fixed billing windows.
+`blockMs` sets the width; a missing or non-positive value uses the default of five hours (18,000,000 ms).
+Block starts are floored to the hour in `tz`.
+
+## Counting
+
+`events` counts rows.
+`turns` counts rows where `turn` is true.
+`calls` sums each event's reported `calls` when that value is finite, else counts 1, so a Hermes row that aggregates eight calls adds eight.
+`costUsd` is only the recorded cost and only when at least one event in the group recorded one; it is not a price.
+For prices, hand the rollups to [`priceRollups`](/skopli/guide/pricing-basics/), or use [`priceEvents`](/skopli/pricing/rollups-vs-events/) when any model has long-context tiers.

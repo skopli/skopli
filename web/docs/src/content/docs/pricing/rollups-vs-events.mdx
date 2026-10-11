@@ -1,0 +1,50 @@
+---
+title: Rollups vs events
+description: When to price summed rollups and when to price events one by one, and what the tieredAggregate flag and AggregatePriceHit mean.
+---
+
+## priceRollups
+
+```ts
+const priced = await pricing.priceRollups(rollup(events, { by: "model" }));
+```
+
+`priceRollups` prices the summed tokens of each `Rollup`.
+For flat-rate models the result equals the sum of per-event prices, so this is the cheapest correct path.
+
+For a model with [long-context tiers](/skopli/pricing/long-context-tiers/) the sum can mislead.
+Ten requests of 30k context each never cross a 200k threshold, but their 300k total does.
+When a tiered model's rollup aggregates more than one event, or a single event that itself aggregates several calls (`calls > 1`), the row is flagged:
+
+```ts
+row.pricing.tieredAggregate === true;
+```
+
+The flag appears in `calculate` mode and in `auto` mode without a recorded cost.
+It is never silent: a dashboard can show the figure as an upper bound or switch to `priceEvents`.
+
+## priceEvents
+
+```ts
+const groups = await pricing.priceEvents(events, { by: "day", tz: "UTC" });
+```
+
+`priceEvents` prices every event at its own context with the full tier and 1h-split logic, applies `mode` per event, then aggregates with the same keys `rollup` would produce.
+Each `PricedEventGroup` carries the same token sums and counts as a `Rollup` plus a `pricing` object that is one of three shapes.
+
+| Shape               | When                                                                          | Fields                                                |
+| ------------------- | ----------------------------------------------------------------------------- | ----------------------------------------------------- |
+| `PriceHit`          | Every event in the group used one model and it priced                         | `model`, `key`, `price`, `source`, `fetchedAt`, `usd` |
+| `AggregatePriceHit` | The group spans several models (possible by session, day, harness, workspace) | `models`, `usd`                                       |
+| `PriceMiss`         | Any member model failed to price                                              | `model`, `attempted`, optional `reason`               |
+
+A group prices only when every member model priced; one unknown model makes the whole group a miss rather than a partial total that looks complete.
+A multi-model group returns `AggregatePriceHit` instead of claiming one model's rate for all of them.
+
+A single-model group whose events aggregate several calls on a tiered model is still flagged `tieredAggregate: true`, because the per-call token split is not recoverable from the log.
+
+## Choosing
+
+- Flat-rate models only: `priceRollups`.
+- Any tiered model, or by-session and by-day reports where provenance matters: `priceEvents`.
+- Both return `usd` per group and attribute every figure to a catalog and fetch time.

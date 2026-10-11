@@ -1,0 +1,35 @@
+---
+title: Skopli docs
+description: Read AI coding-agent usage from 40 harnesses' local logs, roll it up, and price it against market catalogs.
+---
+
+Skopli is an MIT-licensed SDK.
+It reads the session state that coding agents such as Claude Code, Codex CLI, OpenCode and Gemini CLI already keep on disk, turns it into one event shape, aggregates it, and prices the tokens.
+There is no CLI, no account and no telemetry.
+You build the dashboard, report or billing check; Skopli supplies the numbers.
+
+## Three layers
+
+| Layer  | What it does                                                                             | Network                    |
+| ------ | ---------------------------------------------------------------------------------------- | -------------------------- |
+| Read   | Detects harnesses and parses their local logs into `UsageEvent` records with diagnostics | Never                      |
+| Rollup | Sums events by model, day, session, harness, workspace or billing block                  | Never                      |
+| Price  | Matches models against OpenRouter, LiteLLM and models.dev and computes USD               | Cached, off with `offline` |
+
+Each layer stands alone.
+You can read without pricing, price token counts you obtained elsewhere, or roll up events that came from your own parser.
+
+## One core, nine languages
+
+The parsers, rollup and pricing logic live in a single Rust crate.
+TypeScript, Python, Rust, Ruby, Java, C#, Go and Swift each get a thin idiomatic facade, and a C ABI covers everything else.
+A day rollup in one language matches a day rollup in another to the token because the same code produces both.
+
+## Where to start
+
+- [Getting started](/skopli/guide/getting-started/) installs the SDK and prices your first rollup.
+- [Reading usage](/skopli/guide/reading/) explains the event shape, date bounds and subagent handling.
+- [Pricing basics](/skopli/guide/pricing-basics/) covers catalogs, caching, overrides and why some rows stay unpriced.
+- [Supported harnesses](/skopli/reference/harnesses/) lists the 40 harnesses and the ones that are detected but unsupported.
+
+Every page is also available as Markdown: append `.md` to the URL, or fetch [llms.txt](/skopli/llms.txt) for an index.

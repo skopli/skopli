@@ -1,0 +1,24 @@
+---
+import { BASE } from "../nav";
+---
+
+<div class="search" data-search>
+  <div id="search" class="search__ui"></div>
+</div>
+
+<link rel="stylesheet" href={`${BASE}/pagefind/pagefind-ui.css`} />
+<script is:inline define:vars={{ base: BASE }}>
+  window.addEventListener("DOMContentLoaded", () => {
+    const script = document.createElement("script");
+    script.src = `${base}/pagefind/pagefind-ui.js`;
+    script.onload = () => {
+      new window.PagefindUI({
+        element: "#search",
+        showSubResults: true,
+        showImages: false,
+        translations: { placeholder: "Search docs" },
+      });
+    };
+    document.head.append(script);
+  });
+</script>

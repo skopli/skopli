@@ -1,0 +1,40 @@
+---
+title: Coverage
+description: Which event fields each layer can promise, which depend on the harness, and the known limits of the data.
+---
+
+## Always present
+
+Every `UsageEvent` has `harness`, `timestamp`, `sessionId`, `messageId`, `turn`, `subagent`, `model` and the six token buckets.
+Buckets a harness does not report are `0`, never `undefined`.
+Every `Rollup` has `key`, `tokens`, `events`, `turns` and `calls`.
+
+## Present when the harness provides it
+
+| Field                 | Populated from                                                         |
+| --------------------- | ---------------------------------------------------------------------- |
+| `tokens.cacheWrite1h` | Claude Code's cache-write TTL split                                    |
+| `calls`               | Hermes `message_count`; absent means one call                          |
+| `costUsd`             | Claude Code `costUSD`; OpenCode non-zero `cost`                        |
+| `workspace`           | OpenCode session directory; Claude Code `cwd`                          |
+| `title`               | OpenCode session title                                                 |
+| `subagent: true`      | OpenCode `parent_id`; Claude Code `isSidechain`; Pi and OMP `rlmDepth` |
+
+## Guarantees
+
+- Reading and rollups never open a network connection.
+- Nothing is written to stdout or stderr; problems arrive as `diagnostics` and `skipped`.
+- Zero-token rows are dropped regardless of recorded cost.
+- Unusable timestamps are skipped with a warning rather than defaulting to epoch zero.
+- Token buckets are disjoint after normalization, so summing them gives total tokens.
+- Day bucketing and date-only bounds use the same IANA timezone logic in every facade.
+- Pricing never guesses: unmatched models return `priced: false` with the attempted keys.
+
+## Known limits
+
+- Kiro CLI token counts are estimates.
+- Reasonix and fx.sh expose session-level rows only, so per-message `turn` and `calls` detail is unavailable.
+- Copilot CLI reasoning is assumed disjoint from output; if the OTel export turns out to include it, reasoning would be counted twice for that harness.
+- `priceRollups` on a tiered model can overbill when a rollup sums several events; the row is flagged `tieredAggregate` and `priceEvents` is the exact path.
+- Long-context tiers come from LiteLLM only.
+- A `costUsd` is whatever the harness recorded; Skopli does not audit it.

@@ -1,0 +1,49 @@
+---
+import { SITE, mdPath } from "../nav";
+
+interface Props {
+  slug: string;
+}
+const { slug } = Astro.props;
+const md = mdPath(slug);
+const absolute = `${SITE}${md}`;
+const prompt = encodeURIComponent(`Read ${absolute} so I can ask questions about it.`);
+const targets = [
+  ["ChatGPT", `https://chatgpt.com/?q=${prompt}`],
+  ["Claude", `https://claude.ai/new?q=${prompt}`],
+  ["Grok", `https://grok.com/?q=${prompt}`],
+  ["Perplexity", `https://www.perplexity.ai/search?q=${prompt}`],
+  ["Google AI Mode", `https://www.google.com/search?udm=50&q=${prompt}`],
+  ["Cursor", `cursor://anysphere.cursor-deeplink/prompt?text=${prompt}`],
+];
+---
+
+<div class="actions" data-actions data-md={md}>
+  <button class="actions__btn" type="button" data-copy>Copy page</button>
+  <a class="actions__btn" href={md}>View as Markdown</a>
+  <details class="actions__menu">
+    <summary class="actions__btn">Open in</summary>
+    <ul>
+      {targets.map(([name, href]) => (
+        <li>
+          <a href={href} rel="noopener">{name}</a>
+        </li>
+      ))}
+    </ul>
+  </details>
+</div>
+
+<script>
+  const root = document.querySelector<HTMLElement>("[data-actions]");
+  const copy = root?.querySelector<HTMLButtonElement>("[data-copy]");
+  copy?.addEventListener("click", async () => {
+    const text = await (await fetch(root!.dataset.md!)).text();
+    await navigator.clipboard.writeText(text);
+    copy.textContent = "Copied";
+    setTimeout(() => (copy.textContent = "Copy page"), 1500);
+  });
+  document.addEventListener("click", (event) => {
+    const menu = root?.querySelector<HTMLDetailsElement>("details[open]");
+    if (menu && !menu.contains(event.target as Node)) menu.open = false;
+  });
+</script>

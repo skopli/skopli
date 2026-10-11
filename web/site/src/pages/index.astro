@@ -1,0 +1,475 @@
+---
+import { Code } from "astro:components";
+import Base from "../layouts/Base.astro";
+
+const docs = "https://docs.skopli.com/skopli/";
+
+const input = `import { readUsage, rollup, createPricing } from "skopli";
+
+const { events } = await readUsage({ since: "2026-08-01" });
+const byModel = rollup(events, { by: "model" });
+
+const pricing = createPricing();
+const priced = await pricing.priceRollups(byModel);`;
+
+const output = `[
+  { "key": "claude-sonnet-4-5",
+    "tokens": { "input": 205000, "output": 11000, "cacheRead": 22000,
+                "cacheWrite": 34000, "cacheWrite1h": 11500, "reasoning": 2000 },
+    "pricing": { "priced": true, "usd": 1.84245, "source": "litellm",
+                 "tieredAggregate": true } },
+  { "key": "gpt-5",
+    "tokens": { "input": 1000, "output": 500, "cacheRead": 0, "cacheWrite": 0, "reasoning": 0 },
+    "pricing": { "priced": true, "usd": 0.00625, "source": "litellm" } },
+  { "key": "us.anthropic.claude-opus-4-6-20260115-v1:0",
+    "tokens": { "input": 800, "output": 200, "cacheRead": 0, "cacheWrite": 0, "reasoning": 0 },
+    "pricing": { "priced": true, "usd": 0.009, "key": "anthropic/claude-opus-4.6",
+                 "source": "openrouter" } },
+  { "key": "totally-unknown-model-9000",
+    "tokens": { "input": 100, "output": 100, "cacheRead": 0, "cacheWrite": 0, "reasoning": 0 },
+    "pricing": { "priced": false, "attempted": ["totally-unknown-model-9000"] } }
+]`;
+
+const layers = [
+  {
+    name: "Read",
+    does: "Parses the session state 40 harnesses keep on disk into one event shape: harness, session, message, turn, subagent flag, model, token buckets. Malformed rows become diagnostics, not crashes.",
+    network: "Never",
+  },
+  {
+    name: "Rollup",
+    does: "Groups events by model, day, session, harness, workspace or billing block. Day bucketing takes an IANA timezone and matches it in every SDK.",
+    network: "Never",
+  },
+  {
+    name: "Price",
+    does: "Looks each model up in OpenRouter, LiteLLM and models.dev, caches the catalogs for an hour and keeps serving the cache when the network is gone. Pass offline or an empty source list and it never connects.",
+    network: "Cached, optional",
+  },
+];
+
+const rules = [
+  ["Reasoning tokens", "billed at the output rate"],
+  ["Cache read and write", "fall back to the input rate when a catalog omits them"],
+  ["1h cache writes", "billed at the above-1hr rate when the catalog has one, else input x 2"],
+  ["Long-context tiers", "128k, 200k, 256k, 272k and 512k thresholds; marginal by default, whole-request for Claude models"],
+  ["Zero-token rows", "dropped, whatever cost the vendor reported"],
+  ["Unmatched models", "priced: false with the keys that were tried; never a guess"],
+];
+
+const harnesses: [string, string][] = [
+  ["Claude Code", "claude"], ["OpenCode", "opencode"], ["Codex CLI", "codex"], ["Gemini CLI", "gemini"],
+  ["Copilot CLI (OTel)", "copilot"], ["Amp", "amp"], ["Droid", "droid"], ["Qwen Code", "qwen"],
+  ["Pi", "pi"], ["OMP", "omp"], ["Kilo Code CLI", "kilo"], ["Goose", "goose"],
+  ["Hermes", "hermes"], ["Prime Agent", "prime"], ["Kimchi Coding", "kimchi"], ["Command Code", "commandcode"],
+  ["jcode", "jcode"], ["OpenCodeReview", "opencodereview"], ["DeepSeek Harness", "deepseek"], ["Kiro CLI", "kiro"],
+  ["Grok CLI", "grok"], ["Augment", "augment"], ["Codebuff", "codebuff"], ["Mux", "mux"],
+  ["Zed Agent", "zed"], ["ZCode", "zcode"], ["Devin CLI", "devin"], ["Roo Code", "roo"],
+  ["Cline", "cline"], ["Kilo Code (VS Code)", "kilocode"], ["Junie", "junie"], ["OpenClaw", "openclaw"],
+  ["Kimi CLI", "kimi"], ["gajae-code", "gajae"], ["MiMo Code", "mimocode"], ["CodeBuddy Code", "codebuddy"],
+  ["Cherry Studio", "cherrystudio"], ["Trae Agent", "trae"], ["Reasonix", "reasonix"], ["fx.sh", "fx"],
+];
+
+const installs: [string, string][] = [
+  ["TypeScript", "pnpm add skopli"],
+  ["Python", "pip install skopli"],
+  ["Rust", "cargo add skopli-core"],
+  ["Ruby", "gem install skopli"],
+  ["Java", "com.skopli:skopli"],
+  ["C#", "dotnet add package Skopli"],
+  ["Go", "go get github.com/skopli/skopli/sdks/go"],
+  ["Swift", ".package(url: \"https://github.com/skopli/skopli\", from: \"...\")"],
+  ["C", "libskopli + skopli.h from GitHub Releases"],
+];
+
+const themes = { light: "github-light", dark: "github-dark" };
+---
+
+<Base
+  title="Skopli: usage and cost data from 40 coding agents, read offline"
+  description="An MIT SDK that reads the session logs AI coding agents already keep on disk, normalizes them, rolls them up and prices them against market catalogs. One Rust core, 9 languages, no accounts, no telemetry."
+>
+  <section class="hero">
+    <div class="wrap">
+      <h1>Your coding agents already wrote the usage logs. Skopli reads them.</h1>
+      <p class="hero__text">
+        An MIT SDK that parses the local session state of 40 harnesses, rolls the tokens up and prices
+        them from market catalogs. Offline for reading and rollups. No accounts, no telemetry, no CLI
+        to install.
+      </p>
+      <div class="hero__actions">
+        <a class="button" href={`${docs}guide/getting-started/`}>Read the docs</a>
+        <code class="install num">pnpm add skopli</code>
+      </div>
+    </div>
+    <figure class="demo wrap">
+      <div class="demo__pane">
+        <figcaption>Input</figcaption>
+        <Code code={input} lang="ts" themes={themes} defaultColor={false} />
+      </div>
+      <div class="demo__pane">
+        <figcaption>Output, abridged</figcaption>
+        <Code code={output} lang="json" themes={themes} defaultColor={false} />
+      </div>
+      <p class="demo__note">
+        Figures are from the repository's golden pricing fixture: synthetic token counts priced against a
+        catalog snapshot dated 2026-08-01. The fourth row is a model no catalog knows, so it stays
+        unpriced.
+      </p>
+    </figure>
+  </section>
+
+  <section class="layers wrap" aria-labelledby="layers-h">
+    <h2 id="layers-h">Three layers, used separately or together</h2>
+    <dl class="layers__list">
+      {layers.map((layer) => (
+        <div class="layers__row">
+          <dt>{layer.name}</dt>
+          <dd>{layer.does}</dd>
+          <dd class="layers__net"><span class="label">Network</span>{layer.network}</dd>
+        </div>
+      ))}
+    </dl>
+  </section>
+
+  <section class="rules wrap" aria-labelledby="rules-h">
+    <div class="rules__lead">
+      <h2 id="rules-h">Cost math you can audit</h2>
+      <p>
+        Every priced result carries the catalog it came from and when that catalog was fetched. The
+        rules below are the same in all nine languages because one Rust core applies them.
+      </p>
+      <a href={`${docs}pricing/cost-math/`}>How the math works</a>
+    </div>
+    <dl class="rules__list">
+      {rules.map(([term, rule]) => (
+        <div class="rules__row">
+          <dt>{term}</dt>
+          <dd>{rule}</dd>
+        </div>
+      ))}
+    </dl>
+  </section>
+
+  <section class="harnesses wrap" id="harnesses" aria-labelledby="harnesses-h">
+    <div class="harnesses__head">
+      <h2 id="harnesses-h"><span class="num">40</span> harnesses, one event shape</h2>
+      <p>
+        Detection probes the directories each harness writes to. Cursor, aider, Crush and GitLab Duo CLI
+        are detected but keep no usable local usage data, so they are reported as unsupported rather
+        than silently skipped.
+      </p>
+    </div>
+    <ul class="harnesses__grid">
+      {harnesses.map(([name, id]) => (
+        <li>
+          <span>{name}</span>
+          <code>{id}</code>
+        </li>
+      ))}
+    </ul>
+    <p class="harnesses__note">
+      Kiro CLI stores no token counts, so its events are estimates and flagged as such. Reasonix emits
+      one event per session, fx.sh one per model per session.
+      <a href={`${docs}reference/harnesses/`}>Per-harness details</a>
+    </p>
+  </section>
+
+  <section class="langs wrap" aria-labelledby="langs-h">
+    <h2 id="langs-h">One core, nine languages</h2>
+    <p class="langs__text">
+      The parsers, rollup and pricing live in Rust. Each facade is a thin, idiomatic binding, so a day
+      rollup in Ruby and a day rollup in Go agree to the token.
+    </p>
+    <ul class="langs__list">
+      {installs.map(([lang, cmd]) => (
+        <li>
+          <span>{lang}</span>
+          <code>{cmd}</code>
+        </li>
+      ))}
+    </ul>
+  </section>
+
+  <section class="close wrap">
+    <h2>Build the dashboard, the report or the billing check. The data is already on your disk.</h2>
+    <div class="hero__actions">
+      <a class="button" href={`${docs}guide/getting-started/`}>Getting started</a>
+      <a class="button button--quiet" href="https://github.com/skopli/skopli">Source on GitHub</a>
+    </div>
+  </section>
+</Base>
+
+<style>
+  .wrap {
+    max-width: var(--content-max);
+    margin: 0 auto;
+    padding-left: var(--space-5);
+    padding-right: var(--space-5);
+  }
+  section {
+    padding-top: var(--space-8);
+    padding-bottom: var(--space-8);
+  }
+  section + section {
+    border-top: 1px solid var(--rule);
+  }
+  h2 {
+    font-size: var(--text-xl);
+    max-width: 30ch;
+  }
+  .label {
+    display: block;
+    font-size: var(--text-xs);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--ink-3);
+  }
+
+  .hero {
+    padding-top: var(--space-8);
+    padding-bottom: var(--space-7);
+  }
+  .hero h1 {
+    font-size: var(--text-3xl);
+    line-height: var(--leading-tight);
+    letter-spacing: -0.025em;
+    max-width: 18ch;
+  }
+  .hero__text {
+    margin-top: var(--space-5);
+    max-width: 58ch;
+    font-size: var(--text-md);
+    color: var(--ink-2);
+  }
+  .hero__actions {
+    margin-top: var(--space-6);
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-3) var(--space-4);
+  }
+  .button {
+    display: inline-flex;
+    align-items: center;
+    min-height: var(--tap);
+    padding: 0 var(--space-5);
+    border-radius: var(--radius);
+    background: var(--ink);
+    color: var(--paper);
+    font-weight: 500;
+    text-decoration: none;
+  }
+  .button:hover {
+    background: var(--ink-2);
+  }
+  .button--quiet {
+    background: transparent;
+    color: var(--ink);
+    box-shadow: inset 0 0 0 1px var(--rule-strong);
+  }
+  .button--quiet:hover {
+    background: var(--paper-2);
+  }
+  .install {
+    display: inline-flex;
+    align-items: center;
+    min-height: var(--tap);
+    padding: 0 var(--space-4);
+    border: 1px solid var(--rule);
+    border-radius: var(--radius);
+    background: var(--code-bg);
+    font-size: var(--text-sm);
+  }
+
+  .demo {
+    margin-top: var(--space-8);
+    display: grid;
+    grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+    gap: var(--space-4);
+  }
+  .demo__pane {
+    min-width: 0;
+    border: 1px solid var(--rule);
+    border-radius: var(--radius);
+    background: var(--code-bg);
+    overflow: hidden;
+  }
+  .demo figcaption {
+    padding: var(--space-2) var(--space-4);
+    border-bottom: 1px solid var(--rule);
+    font-size: var(--text-xs);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--ink-3);
+  }
+  .demo :global(pre) {
+    margin: 0;
+    padding: var(--space-4);
+    overflow-x: auto;
+    font-size: var(--text-sm);
+    line-height: 1.55;
+    background: transparent !important;
+  }
+  .demo__note {
+    grid-column: 1 / -1;
+    max-width: var(--measure);
+    font-size: var(--text-sm);
+    color: var(--ink-3);
+  }
+  @media (max-width: 860px) {
+    .demo {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  .layers__list {
+    margin-top: var(--space-6);
+    border-top: 1px solid var(--rule);
+  }
+  .layers__row {
+    display: grid;
+    grid-template-columns: 8rem minmax(0, 1fr) 10rem;
+    gap: var(--space-4);
+    padding: var(--space-5) 0;
+    border-bottom: 1px solid var(--rule);
+  }
+  .layers__row dt {
+    font-size: var(--text-lg);
+    font-weight: 500;
+    letter-spacing: -0.01em;
+  }
+  .layers__row dd {
+    max-width: var(--measure);
+    color: var(--ink-2);
+  }
+  .layers__net {
+    color: var(--ink) !important;
+    font-variant-numeric: tabular-nums;
+  }
+  @media (max-width: 720px) {
+    .layers__row {
+      grid-template-columns: 1fr;
+      gap: var(--space-2);
+    }
+  }
+
+  .rules {
+    display: grid;
+    grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);
+    gap: var(--space-7);
+  }
+  .rules__lead p {
+    margin-top: var(--space-4);
+    color: var(--ink-2);
+    max-width: 44ch;
+  }
+  .rules__lead a,
+  .harnesses__note a {
+    color: var(--accent);
+  }
+  .rules__lead a {
+    display: inline-flex;
+    align-items: center;
+    min-height: var(--tap);
+    margin-top: var(--space-2);
+  }
+  .rules__list {
+    border-top: 1px solid var(--rule);
+  }
+  .rules__row {
+    display: grid;
+    grid-template-columns: 11rem minmax(0, 1fr);
+    gap: var(--space-4);
+    padding: var(--space-3) 0;
+    border-bottom: 1px solid var(--rule);
+  }
+  .rules__row dt {
+    font-weight: 500;
+  }
+  .rules__row dd {
+    color: var(--ink-2);
+  }
+  @media (max-width: 860px) {
+    .rules {
+      grid-template-columns: 1fr;
+      gap: var(--space-5);
+    }
+  }
+  @media (max-width: 560px) {
+    .rules__row {
+      grid-template-columns: 1fr;
+      gap: var(--space-1);
+    }
+  }
+
+  .harnesses__head p,
+  .langs__text {
+    margin-top: var(--space-4);
+    max-width: var(--measure);
+    color: var(--ink-2);
+  }
+  .harnesses__grid {
+    list-style: none;
+    padding: 0;
+    margin-top: var(--space-6);
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(14rem, 1fr));
+    border-top: 1px solid var(--rule);
+    border-left: 1px solid var(--rule);
+  }
+  .harnesses__grid li {
+    display: flex;
+    justify-content: space-between;
+    gap: var(--space-3);
+    padding: var(--space-3) var(--space-4);
+    border-right: 1px solid var(--rule);
+    border-bottom: 1px solid var(--rule);
+    font-size: var(--text-sm);
+  }
+  .harnesses__grid code {
+    color: var(--ink-3);
+  }
+  .harnesses__note {
+    margin-top: var(--space-5);
+    max-width: var(--measure);
+    font-size: var(--text-sm);
+    color: var(--ink-3);
+  }
+  .harnesses__note a {
+    display: inline-flex;
+    align-items: center;
+    min-height: var(--tap);
+    color: var(--ink);
+  }
+
+  .langs__list {
+    list-style: none;
+    padding: 0;
+    margin-top: var(--space-6);
+    border-top: 1px solid var(--rule);
+  }
+  .langs__list li {
+    display: grid;
+    grid-template-columns: 8rem minmax(0, 1fr);
+    gap: var(--space-4);
+    padding: var(--space-3) 0;
+    border-bottom: 1px solid var(--rule);
+  }
+  .langs__list code {
+    font-size: var(--text-sm);
+    overflow-wrap: anywhere;
+  }
+  @media (max-width: 480px) {
+    .langs__list li {
+      grid-template-columns: 1fr;
+      gap: var(--space-1);
+    }
+  }
+
+  .close h2 {
+    font-size: var(--text-2xl);
+    letter-spacing: -0.02em;
+    max-width: 24ch;
+  }
+</style>

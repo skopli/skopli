@@ -1,0 +1,104 @@
+---
+import "@skopli/ui/styles/base.css";
+import "@skopli/ui/styles/shiki.css";
+import Footer from "@skopli/ui/components/Footer.astro";
+import Logo from "@skopli/ui/components/Logo.astro";
+import ThemeInit from "@skopli/ui/components/ThemeInit.astro";
+import ThemeToggle from "@skopli/ui/components/ThemeToggle.astro";
+
+interface Props {
+  title: string;
+  description: string;
+}
+
+const { title, description } = Astro.props;
+const docs = "https://docs.skopli.com/skopli/";
+const github = "https://github.com/skopli/skopli";
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="canonical" href={Astro.site} />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content={Astro.site} />
+    <ThemeInit />
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Skip to content</a>
+    <header class="top">
+      <div class="top__inner">
+        <Logo href="/" />
+        <nav class="top__nav" aria-label="Primary">
+          <a href={docs}>Docs</a>
+          <a href="#harnesses">Harnesses</a>
+          <a href={github}>GitHub</a>
+          <ThemeToggle />
+        </nav>
+      </div>
+    </header>
+    <main id="main">
+      <slot />
+    </main>
+    <Footer
+      links={[
+        { label: "Docs", href: docs },
+        { label: "GitHub", href: github },
+        { label: "npm", href: "https://www.npmjs.com/package/skopli" },
+        { label: "PyPI", href: "https://pypi.org/project/skopli/" },
+        { label: "llms.txt", href: `${docs}llms.txt` },
+      ]}
+    />
+  </body>
+</html>
+
+<style>
+  .top {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background: color-mix(in srgb, var(--paper) 88%, transparent);
+    backdrop-filter: blur(8px);
+    border-bottom: 1px solid var(--rule);
+  }
+  .top__inner {
+    max-width: var(--content-max);
+    margin: 0 auto;
+    padding: var(--space-2) var(--space-5);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-4);
+  }
+  .top__nav {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+  }
+  .top__nav a {
+    display: inline-flex;
+    align-items: center;
+    min-height: var(--tap);
+    padding: 0 var(--space-3);
+    border-radius: var(--radius);
+    font-size: var(--text-sm);
+    color: var(--ink-2);
+    text-decoration: none;
+  }
+  .top__nav a:hover {
+    color: var(--ink);
+    background: var(--paper-2);
+  }
+  @media (max-width: 480px) {
+    .top__nav a:nth-child(2) {
+      display: none;
+    }
+  }
+</style>
