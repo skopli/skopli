@@ -1,16 +1,14 @@
 import type { APIRoute, GetStaticPaths } from "astro";
 import { getCollection, type CollectionEntry } from "astro:content";
-import { HARNESSES } from "@skopli/ui/data/harnesses";
-import { useTranslations } from "@skopli/ui/i18n";
+import { HARNESSES, HARNESS_NOTES } from "@skopli/ui/data/harnesses";
+import { localeFromPath, useTranslations, type Locale } from "@skopli/ui/i18n";
 
-const NOTES = ["sessions", "estimated", "perModel"] as const;
-
-const harnessTable = (): string => {
-  const t = useTranslations("en");
+const harnessTable = (locale: Locale): string => {
+  const t = useTranslations(locale);
   const rows = HARNESSES.map(
     (h, i) => `| ${i + 1} | ${h.name}${h.note ? ` [^${h.note}]` : ""} | \`${h.id}\` |`,
   );
-  const notes = NOTES.map((n) => `[^${n}]: ${t(`harness.note.${n}`)}`);
+  const notes = HARNESS_NOTES.map((n) => `[^${n}]: ${t(`harness.note.${n}`)}`);
   return ["| # | Harness | id |", "| --: | --- | --- |", ...rows, "", ...notes].join("\n");
 };
 
@@ -42,7 +40,7 @@ const flattenTabs = (body: string): string => {
 export const toMarkdown = (entry: CollectionEntry<"docs">): string => {
   const body = flattenTabs(entry.body ?? "")
     .replace(/^import .*$\n?/gm, "")
-    .replace(/<HarnessTable\b[^>]*\/>/g, harnessTable())
+    .replace(/<HarnessTable\b[^>]*\/>/g, harnessTable(localeFromPath(`/${entry.id}`, "/")))
     .replace(/<dl class="ledger">[\s\S]*?<\/dl>/g, ledger)
     .replace(/\n{3,}/g, "\n\n")
     .trim();

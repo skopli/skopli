@@ -101,6 +101,7 @@ const { syncKey, label } = Astro.props;
       button.textContent = label;
       button.setAttribute("role", "tab");
       panel.id = `${id}-panel`;
+      if (!panel.querySelector("a, button, input, pre, [tabindex]")) panel.tabIndex = 0;
       panel.setAttribute("aria-labelledby", id);
       button.setAttribute("aria-controls", panel.id);
       button.addEventListener("click", () => select(i, true));

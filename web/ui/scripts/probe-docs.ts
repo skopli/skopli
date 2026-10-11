@@ -126,7 +126,7 @@ check("Home key selects first tab", (await shown()) === (await tabs.first().text
 check(
   "tab ids are deterministic",
   !/[a-z0-9]{5}$/.test((await tabs.first().getAttribute("id")) ?? "") &&
-    /-0$/.test((await tabs.first().getAttribute("id")) ?? ""),
+    ((await tabs.first().getAttribute("id")) ?? "").endsWith("-0"),
 );
 await page.keyboard.press("Tab");
 check(
@@ -145,13 +145,6 @@ check(
 );
 check("one sidebar nav in the DOM", (await page.locator("nav.sidebar-nav").count()) === 1);
 
-const missing = await page.goto(`${base}no-such-page/`);
-check("404 status", missing?.status() === 404, String(missing?.status()));
-check(
-  "404 has no markdown twin or page actions",
-  (await page.locator('link[rel="alternate"], [data-copy-md], [data-event]').count()) === 0,
-);
-
 for (const w of [390, 768, 1440]) {
   await page.setViewportSize({ width: w, height: 900 });
   const small = await page.evaluate(() =>
@@ -168,6 +161,13 @@ for (const w of [390, 768, 1440]) {
     small.map((x) => `${x.el}:${Math.round(x.h)}`).join(", "),
   );
 }
+
+const missing = await page.goto(`${base}no-such-page/`);
+check("404 status", missing?.status() === 404, String(missing?.status()));
+check(
+  "404 has no markdown twin or page actions",
+  (await page.locator('link[rel="alternate"], [data-copy-md], [data-event]').count()) === 0,
+);
 
 await browser.close();
 process.exitCode = failures.length ? 1 : 0;

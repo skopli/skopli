@@ -32,7 +32,13 @@ const notFound = slug === "404";
 <!doctype html>
 <html lang={locale}>
   <head>
-    <Head title={slug ? `${title} | Skopli docs` : "Skopli docs"} description={description} canonical={canonical} analytics>
+    <Head
+      title={slug ? t("site.pageTitle", { title }) : t("site.docsTitle")}
+      description={description}
+      canonical={notFound ? undefined : canonical}
+      noindex={notFound}
+      analytics
+    >
       {!notFound && <link rel="alternate" type="text/markdown" href={mdPath} />}
       <link rel="icon" href={`${base}favicon.svg`} type="image/svg+xml" />
     </Head>
@@ -55,7 +61,7 @@ const notFound = slug === "404";
         <button class="btn sidebar-toggle" type="button" aria-expanded="false" aria-controls="sidebar-nav">
           {t("sidebar.toggle")}
         </button>
-        <Sidebar current={slug} label={t("sidebar.label")} />
+        <Sidebar current={slug} label={t("sidebar.label")} locale={locale} />
       </aside>
       <main id="content" class="content" data-pagefind-body={notFound ? undefined : ""}>
         <article class="prose">

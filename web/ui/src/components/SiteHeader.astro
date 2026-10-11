@@ -19,7 +19,7 @@ const t = useTranslations(locale);
   <div class="wrap bar">
     <Wordmark href={home} label={label} />
     <slot name="search" />
-    <nav class="links" aria-label={t("nav.menu")}>
+    <nav class="links" aria-label={t("nav.label")}>
       {
         links.map((l) => (
           <a href={l.href} target={l.external ? "_blank" : undefined} rel={l.external ? "noopener" : undefined}>
@@ -30,7 +30,6 @@ const t = useTranslations(locale);
       }
       <ThemeToggle locale={locale} />
     </nav>
-    <slot name="menu" />
   </div>
 </header>
 

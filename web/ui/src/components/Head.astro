@@ -11,21 +11,23 @@ import { POSTHOG_SNIPPET } from "../analytics.ts";
 interface Props {
   title: string;
   description: string;
-  canonical: string;
+  canonical?: string;
+  noindex?: boolean;
   analytics?: boolean;
 }
 
-const { title, description, canonical, analytics = false } = Astro.props;
+const { title, description, canonical, noindex = false, analytics = false } = Astro.props;
 ---
 
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>{title}</title>
 <meta name="description" content={description} />
-<link rel="canonical" href={canonical} />
+{canonical && <link rel="canonical" href={canonical} />}
+{noindex && <meta name="robots" content="noindex" />}
 <meta property="og:title" content={title} />
 <meta property="og:description" content={description} />
-<meta property="og:url" content={canonical} />
+{canonical && <meta property="og:url" content={canonical} />}
 <meta property="og:type" content="website" />
 <meta name="twitter:card" content="summary" />
 <meta name="color-scheme" content="light dark" />

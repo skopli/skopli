@@ -1,6 +1,6 @@
 ---
 import HarnessIcon from "./HarnessIcon.astro";
-import { HARNESSES } from "../data/harnesses.ts";
+import { HARNESSES, HARNESS_NOTES } from "../data/harnesses.ts";
 import { useTranslations, type Locale } from "../i18n/index.ts";
 
 interface Props {
@@ -10,21 +10,24 @@ interface Props {
 
 const { locale, caption } = Astro.props;
 const t = useTranslations(locale);
-const notes = ["sessions", "estimated", "perModel"] as const;
-const marker = (note: (typeof notes)[number]) => notes.indexOf(note) + 1;
+const marker = (note: (typeof HARNESS_NOTES)[number]) => HARNESS_NOTES.indexOf(note) + 1;
 ---
 
 <div class="table-wrap">
   <table class="harness-table">
     <caption class="visually-hidden">{caption}</caption>
     <thead>
-      <tr><th class="n">#</th><th>Harness</th><th>id</th></tr>
+      <tr>
+        <th>{t("harness.col.index")}</th>
+        <th>{t("harness.col.name")}</th>
+        <th>{t("harness.col.id")}</th>
+      </tr>
     </thead>
     <tbody>
       {
         HARNESSES.map((h, i) => (
           <tr>
-            <td class="n">{i + 1}</td>
+            <td>{i + 1}</td>
             <td>
               <span class="name">
                 <HarnessIcon id={h.id} />
@@ -48,7 +51,7 @@ const marker = (note: (typeof notes)[number]) => notes.indexOf(note) + 1;
   </table>
 </div>
 <ol class="harness-notes">
-  {notes.map((note) => <li id={`harness-note-${marker(note)}`}>{t(`harness.note.${note}`)}</li>)}
+  {HARNESS_NOTES.map((note) => <li id={`harness-note-${marker(note)}`}>{t(`harness.note.${note}`)}</li>)}
 </ol>
 
 <style>

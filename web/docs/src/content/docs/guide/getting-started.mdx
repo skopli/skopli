@@ -13,7 +13,7 @@ Three independent layers. Use any subset.
 | Layer      | What it does                                                                                                                                                                             | Network                                   |
 | ---------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------- |
 | **Read**   | Parse local session state from 40 harnesses into normalized usage events, with structured diagnostics                                                                                    | Never                                     |
-| **Rollup** | Group events by model, day (timezone-aware in every SDK), session, harness, or workspace                                                                                                 | Never                                     |
+| **Rollup** | Group events by model, day (timezone-aware in every SDK), session, harness, workspace, or block                                                                                          | Never                                     |
 | **Price**  | Match models against OpenRouter, LiteLLM, and models.dev catalogs (or your own) and compute USD costs, with tiered long-context rates, cache-write splits, and misses reported as misses | Fetches by default, cached, works offline |
 
 No accounts, no telemetry. The readers never touch the network. Pricing fetches catalogs by default, caches what it fetches, and reads from cache when offline; pass `sources: []` or `offline: true` to keep it off the network.

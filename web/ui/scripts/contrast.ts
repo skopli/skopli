@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
+import { parseThemes } from "../src/code-theme.ts";
 
-type Theme = Record<string, string>;
 type Check = { theme: string; fg: string; bg: string; ratio: number; min: number };
 
 const TEXT_ON = ["fg", "fg-muted", "accent", "miss", "ok"];
@@ -18,17 +18,6 @@ const luminance = (hex: string): number => {
 export const contrast = (a: string, b: string): number => {
   const [l1, l2] = [luminance(a), luminance(b)].sort((x, y) => y - x) as [number, number];
   return (l1 + 0.05) / (l2 + 0.05);
-};
-
-const parseThemes = (css: string): Record<string, Theme> => {
-  const themes: Record<string, Theme> = {};
-  for (const block of css.matchAll(/:root(\[data-theme="(\w+)"\])?\s*\{([^}]*)\}/g)) {
-    const name = block[2] ?? "light";
-    themes[name] = Object.fromEntries(
-      [...(block[3] ?? "").matchAll(/--([\w-]+):\s*(#[0-9a-fA-F]{6})/g)].map((m) => [m[1], m[2]]),
-    ) as Theme;
-  }
-  return themes;
 };
 
 export const checkContrast = (css: string): Check[] => {

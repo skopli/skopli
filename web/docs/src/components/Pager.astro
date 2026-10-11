@@ -1,7 +1,7 @@
 ---
 import Icon from "@skopli/ui/components/Icon.astro";
 import { useTranslations, type Locale } from "@skopli/ui/i18n";
-import { PAGES, pageHref } from "../nav.ts";
+import { getPages, pageHref } from "../nav.ts";
 
 interface Props {
   current: string;
@@ -10,9 +10,10 @@ interface Props {
 
 const { current, locale } = Astro.props;
 const t = useTranslations(locale);
-const i = PAGES.findIndex((p) => p.slug === current);
-const prev = i > 0 ? PAGES[i - 1] : undefined;
-const next = i >= 0 ? PAGES[i + 1] : undefined;
+const pages = await getPages(locale);
+const i = pages.findIndex((p) => p.slug === current);
+const prev = i > 0 ? pages[i - 1] : undefined;
+const next = i >= 0 ? pages[i + 1] : undefined;
 ---
 
 {

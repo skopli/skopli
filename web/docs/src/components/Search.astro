@@ -15,7 +15,8 @@ const t = useTranslations(locale);
   <Icon name="search" size={16} />
   <span class="search-text">{t("search.placeholder")}</span>
 </button>
-<dialog class="search" data-search data-base={base} data-empty={t("search.empty")} data-results={t("search.results")}
+<dialog class="search" data-search data-base={base} data-empty={t("search.empty")} data-results-one={t("search.results.one")}
+  data-results-other={t("search.results.other")}
   data-unavailable={t("search.unavailable")}
 >
   <form method="dialog" class="search-form">
@@ -180,7 +181,7 @@ const t = useTranslations(locale);
       const { results } = await pf.search(q);
       const data = await Promise.all(results.slice(0, 10).map((r) => r.data()));
       status!.textContent = data.length
-        ? dialog!.dataset.results!.replace("{count}", String(results.length))
+        ? (results.length === 1 ? dialog!.dataset.resultsOne! : dialog!.dataset.resultsOther!).replace("{count}", String(results.length))
         : dialog!.dataset.empty!.replace("{query}", q);
       for (const d of data) {
         const li = document.createElement("li");

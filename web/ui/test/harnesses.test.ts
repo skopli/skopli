@@ -1,7 +1,6 @@
 import { readFileSync } from "node:fs";
 import { expect, test } from "vitest";
-import { HARNESSES, HARNESS_COUNT } from "../src/data/harnesses.ts";
-import { LANGUAGE_COUNT } from "../src/data/languages.ts";
+import { HARNESSES } from "../src/data/harnesses.ts";
 import { harnessIconPaths } from "../src/data/harness-icons.ts";
 
 const registry = JSON.parse(
@@ -10,8 +9,7 @@ const registry = JSON.parse(
 
 test("harness ids equal golden/registry/ids.json in order", () => {
   expect(HARNESSES.map((h) => h.id)).toEqual(registry.ids);
-  expect(HARNESS_COUNT).toBe(40);
-  expect(LANGUAGE_COUNT).toBe(9);
+  expect(HARNESSES).toHaveLength(40);
 });
 
 test("display names are unique and use the authority spellings", () => {

@@ -43,8 +43,4 @@ export const HARNESSES: readonly Harness[] = [
   { id: "fx", name: "fx", note: "perModel" },
 ];
 
-export const HARNESS_COUNT = HARNESSES.length;
-
-export const harnessName = (id: string): string => HARNESSES.find((h) => h.id === id)?.name ?? id;
-
-export const DETECTED_UNSUPPORTED = ["Cursor", "aider", "Crush", "GitLab Duo CLI"] as const;
+export const HARNESS_NOTES = ["sessions", "estimated", "perModel"] as const;

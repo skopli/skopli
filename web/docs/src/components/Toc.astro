@@ -10,7 +10,7 @@ const { headings, label } = Astro.props;
 ---
 
 <nav class="toc-nav" aria-labelledby="toc-label">
-  <p class="label" id="toc-label">{label}</p>
+  <p class="eyebrow" id="toc-label">{label}</p>
   <ul>
     {
       headings.map((h) => (
@@ -23,15 +23,6 @@ const { headings, label } = Astro.props;
 </nav>
 
 <style>
-  .label {
-    font: 600 var(--text-xs) / 1.4 var(--font-sans);
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
-    color: var(--fg-muted);
-    padding-bottom: var(--space-2);
-    border-bottom: 1px solid var(--rule);
-  }
-
   ul {
     list-style: none;
     padding: 0;

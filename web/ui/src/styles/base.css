@@ -182,12 +182,13 @@ hr {
   font-variant-numeric: tabular-nums;
 }
 
-.ledger .miss {
-  color: var(--miss);
-}
-
-.ledger .ok {
-  color: var(--ok);
+.eyebrow {
+  font: 600 var(--text-xs) / 1.4 var(--font-sans);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--fg-muted);
+  padding-bottom: var(--space-2);
+  border-bottom: 1px solid var(--rule);
 }
 
 .btn {

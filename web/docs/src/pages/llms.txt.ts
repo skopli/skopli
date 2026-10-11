@@ -1,19 +1,21 @@
 import type { APIRoute } from "astro";
 import { getCollection } from "astro:content";
-import { PAGES } from "../nav.ts";
+import { defaultLocale } from "@skopli/ui/i18n";
+import { getPages } from "../nav.ts";
 
 const SITE = "https://docs.skopli.com/skopli/";
 
 export const GET: APIRoute = async () => {
   const docs = await getCollection("docs");
-  const lines = PAGES.map((p) => {
+  const home = docs.find((d) => d.id === "index");
+  const lines = (await getPages(defaultLocale)).map((p) => {
     const entry = docs.find((d) => d.id === (p.slug || "index"));
-    return `- [${entry?.data.title ?? p.title}](${SITE}${p.slug || "index"}.md): ${entry?.data.description ?? ""}`;
+    return `- [${p.title}](${SITE}${p.slug || "index"}.md): ${entry?.data.description ?? ""}`;
   });
   const body = [
-    "# Skopli",
+    `# ${home?.data.title ?? "Skopli"}`,
     "",
-    "> An SDK that reads AI coding-agent usage from 40 harnesses offline, rolls it up, and prices it against market catalogs. Models it cannot match return priced: false instead of a guessed rate.",
+    `> ${home?.data.description ?? ""}`,
     "",
     "## Docs",
     "",

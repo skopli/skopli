@@ -1,19 +1,22 @@
 ---
-import { NAV, pageHref } from "../nav.ts";
+import type { Locale } from "@skopli/ui/i18n";
+import { getNav, pageHref } from "../nav.ts";
 
 interface Props {
   current: string;
   label: string;
+  locale: Locale;
 }
 
-const { current, label } = Astro.props;
+const { current, label, locale } = Astro.props;
+const nav = await getNav(locale);
 ---
 
 <nav class="sidebar-nav" id="sidebar-nav" aria-label={label} hidden>
   {
-    NAV.map((section) => (
+    nav.map((section) => (
       <section>
-        <p class="label">{section.title}</p>
+        <p class="eyebrow">{section.title}</p>
         <ul>
           {section.pages.map((p) => (
             <li>
@@ -36,15 +39,6 @@ const { current, label } = Astro.props;
   .sidebar-nav {
     display: grid;
     gap: var(--space-5);
-  }
-
-  .label {
-    font: 600 var(--text-xs) / 1.4 var(--font-sans);
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
-    color: var(--fg-muted);
-    padding-bottom: var(--space-2);
-    border-bottom: 1px solid var(--rule);
   }
 
   ul {

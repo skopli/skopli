@@ -32,7 +32,7 @@ Skopli is a library, not a CLI or a service. It parses the session state that co
 
 **Read** takes `readUsage({ harnesses, since, until, tz })` and returns usage events plus structured diagnostics for any file it could not parse. It never opens a socket.
 
-**Rollup** takes those events and a `by` key (`model`, `day`, `session`, `harness`, or `workspace`) and returns grouped token totals. It makes no network calls either.
+**Rollup** takes those events and a `by` key (`model`, `day`, `session`, `harness`, `workspace`, or `block`) and returns grouped token totals. It makes no network calls either.
 
 **Price** matches rollups or events against OpenRouter, LiteLLM, and models.dev (or catalogs you supply), applies long-context tiers and cache-write rates, and returns USD per row. A model it cannot match comes back as `priced: false` with the catalogs it tried. Catalogs are fetched by default, cached on disk, and reused offline.
 
