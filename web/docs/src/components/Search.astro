@@ -109,6 +109,7 @@ const { locale = "en" } = Astro.props;
             title.textContent = item.meta.title;
             const excerpt = document.createElement("p");
             excerpt.className = "excerpt";
+            // Pagefind's excerpt is its own index text with <mark> wrappers, not page HTML.
             excerpt.innerHTML = item.excerpt;
             a.append(title, excerpt);
             li.append(a);

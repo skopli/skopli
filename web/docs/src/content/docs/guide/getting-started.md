@@ -7,7 +7,7 @@ description: Build Skopli from source for your language, confirm which harnesses
 
 Skopli is pre-launch: no package is published to npm, PyPI, crates.io, RubyGems, Maven Central, NuGet or the Go module proxy yet.
 Every language builds from a clone of the repository.
-You need Rust 1.88 or newer for the core, plus the toolchain of the language you are calling from.
+You need Rust 1.88 or newer for the core (the repo pins 1.89.0), plus the toolchain of the language you are calling from.
 
 ```sh
 git clone https://github.com/skopli/skopli.git
@@ -16,58 +16,50 @@ cd skopli
 
 ## Build
 
-```sh tab=install
+```sh tab=install lang=ts
 pnpm install
 pnpm run build
 ```
 
-```sh tab=install
-# Python
+```sh tab=install lang=py
 maturin develop --release -m crates/skopli-py/Cargo.toml
 ```
 
-```sh tab=install
-# Ruby
+```sh tab=install lang=ruby
 cd crates/skopli-ruby && bundle install && rake compile
 ```
 
-```sh tab=install
-# Go: the facade links against libskopli
+```sh tab=install lang=go
 cargo build -p skopli-capi --release
 go build ./sdks/go/...
 ```
 
-```sh tab=install
-# Java
+```sh tab=install lang=java
 cargo build -p skopli-capi --release
 ./gradlew -p sdks/java build
 ```
 
-```sh tab=install
-# C#
+```sh tab=install lang=csharp
 cargo build -p skopli-capi --release
 dotnet build sdks/csharp/Skopli.sln -c Release
 ```
 
-```sh tab=install
-# Swift
+```sh tab=install lang=swift
 cargo build -p skopli-capi --release
 swift build --package-path sdks/swift
 ```
 
-```sh tab=install
-# Rust: depend on the core crate by path
-# [dependencies]
-# skopli-core = { path = "crates/skopli-core" }
+```toml tab=install lang=rust
+[dependencies]
+skopli-core = { path = "crates/skopli-core" }
 ```
 
-```sh tab=install
-# C: build libskopli and include skopli.h
+```sh tab=install lang=c
 cargo build -p skopli-capi --release
 ```
 
-The TypeScript, Python and Ruby facades embed the core through native bindings.
-Go, Java, C#, Swift and C call `libskopli` through its C ABI, so build `skopli-capi` first and make the library discoverable to your linker or runtime.
+The TypeScript, Python and Ruby facades embed the core through native bindings; Rust depends on the core crate by path.
+Go, Java, C#, Swift and C call `libskopli` through its C ABI, so build `skopli-capi` first (the `sh` lines above) and make the library discoverable to your linker or runtime; C includes `skopli.h` from `crates/skopli-capi/include`.
 
 ## Detect
 
@@ -95,12 +87,12 @@ p detection.supported, detection.unsupported
 ```
 
 ```go tab=detect
-detection, err := skopli.DetectHarnesses()
+detection, err := skopli.DetectHarnesses(nil)
 fmt.Println(detection.Supported, detection.Unsupported)
 ```
 
 ```java tab=detect
-var detection = Skopli.detectHarnesses();
+var detection = Skopli.detectHarnesses(DetectOptions.defaults());
 System.out.println(detection.supported() + " " + detection.unsupported());
 ```
 

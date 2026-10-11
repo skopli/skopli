@@ -132,7 +132,6 @@ img {
   height: auto;
 }
 
-/* Tables: hairline rows, header rule, tabular numerals. */
 table {
   width: 100%;
   border-collapse: collapse;
@@ -178,7 +177,6 @@ th.num {
   padding-top: var(--space-2);
 }
 
-/* Controls */
 .btn {
   display: inline-flex;
   align-items: center;
@@ -247,7 +245,6 @@ th.num {
   }
 }
 
-/* Panels: the SaaS surface. One elevation declaration (border), no stacked shadows. */
 .panel {
   background: var(--surface);
   border: var(--rule) solid var(--rule-color);

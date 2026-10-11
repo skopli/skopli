@@ -51,7 +51,7 @@ cached, _ := skopli.NewPricing(skopli.PricingOptions{Offline: true})
 ```
 
 ```java tab=offline
-var cached = Skopli.createPricing(new PricingOptions().offline(true));
+var cached = Skopli.createPricing(PricingOptions.builder().offline(true).build());
 ```
 
 ```csharp tab=offline
@@ -63,11 +63,14 @@ let cached = try Skopli.createPricing(options: PricingOptions(offline: true))
 ```
 
 ```c tab=offline
-/* libskopli never fetches; the caller passes catalogs it loaded itself. */
-ag_pricing *p = ag_pricing_new(catalogs_json, "{\"mode\":\"calculate\"}");
+const char *opts = "{\"mode\":\"calculate\",\"catalogs\":[...]}";
+AgPricing *p = NULL;
+AgStatus st = ag_pricing_new(opts, strlen(opts), &p);
 ```
 
 Overrides are consulted before any source, so an override also pins a price for a model the catalogs list differently.
+
+The C library never fetches: the caller loads catalogs itself and passes them in `opts_json` (`libskopli-full`, built with the `net` feature, adds the built-in sources).
 
 ## Pricing a rollup
 
@@ -88,14 +91,14 @@ for (const row of rows) {
 rows = pricing.price_rollups(skopli.rollup(result.events, by="model"))
 for row in rows:
     if row.pricing.priced:
-        print(row.key, round(row.pricing.usd, 2), row.pricing.source)
+        print(row.rollup.key, round(row.usd, 2), row.pricing.source)
     else:
-        print(row.key, "no price; tried", ", ".join(row.pricing.attempted))
+        print(row.rollup.key, "no price; tried", ", ".join(row.pricing.attempted))
 ```
 
 ```ruby tab=price
 pricing.price_rollups(Skopli.rollup(result.events, :model)).each do |row|
-  puts row.pricing.priced? ? "#{row.key} #{row.usd.round(2)}" : "#{row.key} no price"
+  puts row.pricing.priced ? "#{row.rollup.key} #{row.usd.round(2)}" : "#{row.rollup.key} no price"
 end
 ```
 
@@ -116,7 +119,8 @@ let rows = try pricing.priceRollups(rollups: byModel)
 ```
 
 ```c tab=price
-ag_buf rows = ag_pricing_price_rollups(p, rollups.ptr);
+AgBuf rows;
+AgStatus st = ag_pricing_price_rollups(p, (const char *)rollups.ptr, rollups.len, &rows);
 ```
 
 A hit tells you the matched catalog `key`, the `source` it came from, when that catalog was `fetchedAt`, the `price` applied and the `usd` result.

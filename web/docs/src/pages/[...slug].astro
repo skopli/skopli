@@ -1,6 +1,7 @@
 ---
 import { getCollection, render } from "astro:content";
 import HarnessTable from "@skopli/ui/components/HarnessTable.astro";
+import { harnessHeading, harnessIntro } from "../harness-section.ts";
 import DocsLayout from "../layouts/DocsLayout.astro";
 
 export async function getStaticPaths() {
@@ -15,15 +16,15 @@ export async function getStaticPaths() {
 const { entry, titles } = Astro.props;
 const { Content, headings: bodyHeadings } = await render(entry);
 const headings =
-  entry.id === "reference/harnesses" ? [{ depth: 2, slug: "the-list", text: "The list" }, ...bodyHeadings] : bodyHeadings;
+  entry.id === "reference/harnesses" ? [{ depth: 2, slug: "the-list", text: harnessHeading }, ...bodyHeadings] : bodyHeadings;
 ---
 
 <DocsLayout title={entry.data.title} description={entry.data.description} id={entry.id} titles={titles} headings={headings}>
   {
     entry.id === "reference/harnesses" && (
       <>
-        <h2 id="the-list">The list</h2>
-        <p>Ids are stable and lower-case; display names follow each product's own branding. The table is generated from the same data the SDK tests against, so it cannot drift from the registry.</p>
+        <h2 id="the-list">{harnessHeading}</h2>
+        <p>{harnessIntro}</p>
         <HarnessTable detailed />
       </>
     )

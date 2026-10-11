@@ -22,12 +22,14 @@ const links = [
   <table>
     <tbody>
       <tr>
-        <td>
+        <td colspan="2">
           <button type="button" data-copy-md={canonicalMdUrl} data-copied={t(locale, "handoff.copied")} data-failed={t(locale, "handoff.failed")}>
             {t(locale, "handoff.copy")}
           </button>
         </td>
-        <td><a href={canonicalMdUrl}>{t(locale, "handoff.markdown")}</a></td>
+      </tr>
+      <tr>
+        <td colspan="2"><a href={canonicalMdUrl}>{t(locale, "handoff.markdown")}</a></td>
       </tr>
       {
         [0, 2, 4].map((i) => (

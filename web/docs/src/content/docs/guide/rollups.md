@@ -33,11 +33,11 @@ by_model = Skopli.rollup(result.events, :model)
 ```
 
 ```go tab=rollup
-byDay, _ := skopli.Rollup(result.Events, skopli.RollupOptions{By: skopli.ByDay, Tz: "UTC"})
+byDay, _ := skopli.Rollup(result.Events, skopli.RollupOptions{By: skopli.ByDay, TZ: "UTC"})
 ```
 
 ```java tab=rollup
-var byDay = Skopli.rollup(result.events(), new RollupOptions(RollupBy.DAY).tz("UTC"));
+var byDay = Skopli.rollup(result.events(), RollupOptions.by(RollupBy.DAY, "UTC"));
 ```
 
 ```csharp tab=rollup
@@ -45,11 +45,13 @@ var byDay = SkopliClient.Rollup(result.Events, new RollupOptions { By = RollupBy
 ```
 
 ```swift tab=rollup
-let byDay = try Skopli.rollup(events: result.events, options: RollupOptions(by: .day, tz: "UTC"))
+let byDay = try Skopli.rollup(events: result.events, by: .day, tz: "UTC")
 ```
 
 ```c tab=rollup
-ag_buf by_day = ag_rollup(events.ptr, "{\"by\":\"day\",\"tz\":\"UTC\"}");
+const char *opts = "{\"by\":\"day\",\"tz\":\"UTC\"}";
+AgBuf by_day;
+AgStatus st = ag_rollup((const char *)events.ptr, events.len, opts, strlen(opts), &by_day);
 ```
 
 ## The row

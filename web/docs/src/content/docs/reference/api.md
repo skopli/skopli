@@ -79,14 +79,14 @@ The arithmetic, including cache tiers and long-context tiers, is in [Cost math](
 function createPricing(options?: CreatePricingOptions): Pricing;
 
 type CreatePricingOptions = {
-  sources?: PricingSource[]; // default: OpenRouter, LiteLLM, models.dev
-  overrides?: PriceOverride[]; // consulted before any source
-  mode?: PricingMode; // "calculate" (default) | "display" | "auto"
-  cacheDir?: string; // default: defaultCacheDir()
-  offline?: boolean; // never fetch; use the cache or miss
-  ttlMs?: number; // default 3,600,000 (1 hour)
-  refresh?: boolean; // fetch once on first use regardless of TTL
-  fetch?: FetchLike; // custom transport, e.g. through a proxy
+  sources?: PricingSource[];
+  overrides?: PriceOverride[];
+  mode?: PricingMode;
+  cacheDir?: string;
+  offline?: boolean;
+  ttlMs?: number;
+  refresh?: boolean;
+  fetch?: FetchLike;
 };
 
 type Pricing = {
@@ -136,12 +136,12 @@ A miss carries `usd` only when the rollup itself had a logged `costUsd` to fall 
 
 ```ts
 type ModelPrice = {
-  input: number; // USD per million tokens
+  input: number;
   output: number;
-  cacheRead?: number; // default: input rate
-  cacheWrite?: number; // default: input rate
-  cacheWrite1h?: number; // default: this level's input x 2
-  tiers?: PriceTier[]; // long-context tiers, ascending threshold
+  cacheRead?: number;
+  cacheWrite?: number;
+  cacheWrite1h?: number;
+  tiers?: PriceTier[];
   tierMode?: "marginal" | "whole-request";
 };
 
@@ -170,17 +170,29 @@ Built-in sources return `null` when the fetch fails and no cache exists, so a fu
 ## C ABI
 
 `libskopli` exports 17 functions.
-Every call takes and returns UTF-8 JSON; buffers are owned by the library and released with `ag_buf_free`.
+Inputs are UTF-8 JSON passed as a pointer and length; results come back through an `AgBuf *out` parameter (a `ptr`/`len` pair the library owns and `ag_buf_free` releases), and every call returns an `AgStatus` (`AG_STATUS_OK`, `AG_STATUS_INVALID_ARGUMENT`, `AG_STATUS_CATALOG` or `AG_STATUS_INTERNAL`).
+The pricing engine is an opaque `AgPricing *` handle from `ag_pricing_new`.
 
-| Function                                                                                                    | Purpose                                                           |
-| ----------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------- |
-| `ag_abi_version`, `ag_schema_version`, `ag_version`                                                         | Compatibility checks before any other call                        |
-| `ag_default_cache_dir`                                                                                      | The platform cache path, as `defaultCacheDir`                     |
-| `ag_detect_harnesses`, `ag_read_usage`, `ag_rollup`, `ag_cost_usd`                                          | The four stateless operations                                     |
-| `ag_pricing_new`, `ag_pricing_free`                                                                         | Build an engine from catalogs JSON and options; release it        |
-| `ag_pricing_lookup_model`, `ag_pricing_price_rollups`, `ag_pricing_price_events`, `ag_pricing_catalog_info` | Engine queries                                                    |
-| `ag_buf_free`, `ag_string_free`                                                                             | Release returned memory                                           |
-| `ag_last_error_message`                                                                                     | The last error on this thread, when a call returned a null buffer |
+```c
+AgBuf out;
+if (ag_read_usage(opts_json, strlen(opts_json), &out) != AG_STATUS_OK) {
+  char *message = NULL;
+  ag_last_error_message(&message);
+  fputs(message, stderr);
+  ag_string_free(message);
+}
+ag_buf_free(out);
+```
+
+| Function                                                                                                    | Purpose                                                             |
+| ----------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------- |
+| `ag_abi_version`, `ag_schema_version`, `ag_version`                                                         | Compatibility checks before any other call                          |
+| `ag_default_cache_dir`                                                                                      | The platform cache path, as `defaultCacheDir`                       |
+| `ag_detect_harnesses`, `ag_read_usage`, `ag_rollup`, `ag_cost_usd`                                          | The four stateless operations                                       |
+| `ag_pricing_new`, `ag_pricing_free`                                                                         | Build an engine from catalogs JSON and options; release it          |
+| `ag_pricing_lookup_model`, `ag_pricing_price_rollups`, `ag_pricing_price_events`, `ag_pricing_catalog_info` | Engine queries                                                      |
+| `ag_buf_free`, `ag_string_free`                                                                             | Release a returned buffer or string                                 |
+| `ag_last_error_message`                                                                                     | The last error on this thread, when a call returned a non-OK status |
 
 The library opens no socket.
 Pass catalogs you fetched yourself, or build `skopli-capi` with `--features net` to enable the built-in sources inside the library.

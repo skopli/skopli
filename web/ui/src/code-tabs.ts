@@ -1,13 +1,20 @@
 import type { Element, Root } from "hast";
 import type { ShikiTransformer } from "shiki";
+import { languages } from "./data/languages.ts";
 
-// Fenced blocks written as ```ts tab=quickstart are grouped, when adjacent, into one
-// tab set that follows the site-wide language switch. The Markdown twin keeps them in sequence.
+const switchId = (shiki: string) => languages.find((l) => l.shiki === shiki)?.id;
+
+// Adjacent fences written as ```ts tab=quickstart form one tab set that follows the site-wide
+// language switch; `lang=py` pins a fence (an install line in sh, say) to a switch id.
 export const tabMetaTransformer: ShikiTransformer = {
   name: "skopli-tab-meta",
   pre(node) {
-    const tab = /\btab=([\w-]+)/.exec(this.options.meta?.__raw ?? "")?.[1];
-    if (tab) node.properties["data-tab"] = tab;
+    const meta = this.options.meta?.__raw ?? "";
+    const tab = /\btab=([\w-]+)/.exec(meta)?.[1];
+    if (!tab) return;
+    node.properties["data-tab"] = tab;
+    node.properties["data-switch"] =
+      /\blang=([\w-]+)/.exec(meta)?.[1] ?? switchId(this.options.lang);
   },
 };
 
@@ -50,7 +57,7 @@ function wrap(pres: Element[]): Element {
       tagName: "div",
       properties: {
         className: ["code-tab"],
-        "data-lang": pre.properties.dataLanguage ?? pre.properties["data-language"],
+        "data-lang": pre.properties["data-switch"],
         role: "tabpanel",
       },
       children: [pre],

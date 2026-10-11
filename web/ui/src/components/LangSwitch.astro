@@ -8,7 +8,10 @@ interface Props {
 const { locale = "en", compact = false } = Astro.props;
 ---
 
-<div class:list={["lang-switch", { compact }]} role="tablist" aria-label={t(locale, "lang.label")} data-lang-switch>
+<div class:list={["lang-switch", { compact }]} role="tablist" aria-label={t(locale, "lang.label")}
+  data-fallback={t(locale, "lang.fallback")}
+  data-lang-switch
+>
   {
     languages.map((l) => (
       <button type="button" role="tab" data-lang={l.id} aria-selected="false">
@@ -50,7 +53,6 @@ const { locale = "en", compact = false } = Astro.props;
 
 <script>
   const KEY = "skopli.lang";
-  const LANGS: Record<string, string> = { ts: "ts", py: "python", rust: "rust", ruby: "ruby", java: "java", csharp: "csharp", go: "go", swift: "swift", c: "c" };
   const root = document.documentElement;
   const tabs = document.querySelectorAll<HTMLButtonElement>("[data-lang-switch] [role=tab]");
   const apply = () => {
@@ -59,16 +61,30 @@ const { locale = "en", compact = false } = Astro.props;
       tab.setAttribute("aria-selected", String(on));
       tab.tabIndex = on ? 0 : -1;
     }
+    const current = tabs[0]?.closest<HTMLElement>("[data-lang-switch]");
+    const name = (id?: string) => current?.querySelector(`[data-lang="${id}"]`)?.textContent ?? id ?? "";
     for (const set of document.querySelectorAll<HTMLElement>(".code-tabs")) {
-      const has = set.querySelector(`.code-tab[data-lang="${LANGS[root.dataset.lang ?? "ts"] ?? "ts"}"]`);
+      const has = set.querySelector(`.code-tab[data-lang="${root.dataset.lang}"]`);
       set.toggleAttribute("data-fallback", !has);
+      let note = set.querySelector<HTMLParagraphElement>(".code-fallback");
+      if (!note) {
+        note = document.createElement("p");
+        note.className = "code-fallback";
+        set.prepend(note);
+      }
+      const shown = set.querySelector<HTMLElement>(".code-tab")?.dataset.lang;
+      note.textContent = (current?.dataset.fallback ?? "")
+        .replace("{lang}", name(root.dataset.lang))
+        .replace("{shown}", name(shown));
     }
   };
   apply();
   for (const tab of tabs) {
     tab.addEventListener("click", () => {
       root.dataset.lang = tab.dataset.lang;
-      localStorage.setItem(KEY, tab.dataset.lang ?? "ts");
+      try {
+        localStorage.setItem(KEY, tab.dataset.lang ?? "ts");
+      } catch {}
       apply();
     });
     tab.addEventListener("keydown", (e) => {

@@ -85,7 +85,9 @@ let hit = try pricing.lookupModel("claude-sonnet-4-5-20250929")
 ```
 
 ```c tab=lookup
-ag_buf hit = ag_pricing_lookup_model(pricing, "claude-sonnet-4-5-20250929");
+const char *model = "claude-sonnet-4-5-20250929";
+AgBuf hit;
+AgStatus st = ag_pricing_lookup_model(pricing, model, strlen(model), &hit);
 ```
 
 `key` is the catalog key that matched, which can differ from the name you asked for.

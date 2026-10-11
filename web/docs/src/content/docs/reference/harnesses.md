@@ -1,6 +1,6 @@
 ---
 title: Supported harnesses
-description: The 40 harnesses Skopli reads, their ids, and which optional event fields each one's log provides.
+description: The 40 harnesses Skopli reads, their ids, and which `UsageEvent` fields each one's log fills in.
 ---
 
 ## Detected but not read
@@ -11,13 +11,13 @@ If one of them starts logging usage, a reader can be added; see [Coverage and fi
 
 ## Reading the field columns
 
-Each column marks an optional `UsageEvent` field that is present in the harness's golden fixture.
+Each column marks a `UsageEvent` field that the harness's golden fixture fills in.
 
 - `costUsd`: the log itself records a cost. Still worth pricing: logged costs use the rates the vendor saw at the time.
 - `workspace`: the project directory the session ran in, enabling `rollup({ by: "workspace" })`.
 - `title`: a session title, when the harness stores one.
 - `calls`: the record aggregates several model calls and reports the count.
-- `subagent`: the log distinguishes sub-agent records, so `subagents: "exclude"` has an effect.
+- `subagent`: the fixture contains records with `subagent: true` (the field itself is always present), so `subagents: "exclude"` has an effect.
 
 A blank cell means the fixture does not contain the field.
 It does not prove the harness never writes it.

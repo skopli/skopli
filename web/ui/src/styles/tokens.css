@@ -1,4 +1,3 @@
-/* Skopli design tokens. Dark ("night") is the default; light ("day") is opt-in. */
 :root {
   --font-display: "Bricolage Grotesque Variable", system-ui, sans-serif;
   --font-body: "Atkinson Hyperlegible Next Variable", system-ui, sans-serif;
@@ -42,7 +41,7 @@
   --surface: #111a30;
   --sunken: #060b17;
   --rule-color: #24314f;
-  --rule-strong: #3a4a70;
+  --rule-strong: #5a6a94;
   --fg: #e8edf7;
   --fg-muted: #a9b4cc;
   --fg-faint: #7f8aa8;
@@ -60,7 +59,7 @@
   --surface: #efe8d8;
   --sunken: #fbf8f0;
   --rule-color: #d3cab5;
-  --rule-strong: #b2a78d;
+  --rule-strong: #8c826a;
   --fg: #141d36;
   --fg-muted: #46506e;
   --fg-faint: #5f6884;

@@ -44,23 +44,25 @@ groups = pricing.price_events(result.events, :day, tz: "UTC")
 ```
 
 ```go tab=events
-groups, err := pricing.PriceEvents(result.Events, skopli.PriceEventsOptions{By: skopli.ByDay, Tz: "UTC"})
+groups, err := pricing.PriceEvents(result.Events, skopli.RollupOptions{By: skopli.ByDay, TZ: "UTC"})
 ```
 
 ```java tab=events
-var groups = pricing.priceEvents(result.events(), new PriceEventsOptions(RollupBy.DAY).tz("UTC"));
+var groups = pricing.priceEvents(result.events(), RollupOptions.by(RollupBy.DAY, "UTC"));
 ```
 
 ```csharp tab=events
-var groups = pricing.PriceEvents(result.Events, new PriceEventsOptions { By = RollupBy.Day, Tz = "UTC" });
+var groups = pricing.PriceEvents(result.Events, new RollupOptions { By = RollupBy.Day, Tz = "UTC" });
 ```
 
 ```swift tab=events
-let groups = try pricing.priceEvents(events: result.events, options: PriceEventsOptions(by: .day, tz: "UTC"))
+let groups = try pricing.priceEvents(events: result.events, by: .day, tz: "UTC")
 ```
 
 ```c tab=events
-ag_buf groups = ag_pricing_price_events(p, events.ptr, "{\"by\":\"day\",\"tz\":\"UTC\"}");
+const char *opts = "{\"by\":\"day\",\"tz\":\"UTC\"}";
+AgBuf groups;
+AgStatus st = ag_pricing_price_events(p, (const char *)events.ptr, events.len, opts, strlen(opts), &groups);
 ```
 
 ## The group result

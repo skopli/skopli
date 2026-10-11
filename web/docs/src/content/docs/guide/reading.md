@@ -104,29 +104,32 @@ Treat Kiro totals as approximate.
 ## Custom homes
 
 Each reader looks in the harness's default location under your home directory.
-Override the home, or a single harness's directory, when logs live elsewhere (a synced folder, a container volume, a test fixture).
+Override the home when logs live elsewhere (a synced folder, a container volume, a test fixture).
+A single harness moves through the environment variable its reader honours, passed as `env`; the readers cannot see your process environment, so pass the whole map when you override it.
 
 ```ts tab=paths
-const { events } = await readUsage({
-  home: "/mnt/backup/home/me",
-  paths: { claude: "/mnt/backup/claude-projects" },
+const { events } = await readUsage({ home: "/mnt/backup/home/me" });
+const synced = await readUsage({
+  env: { ...process.env, CLAUDE_CONFIG_DIR: "/mnt/backup/claude" },
 });
 ```
 
 ```python tab=paths
-result = skopli.read_usage(home="/mnt/backup/home/me", paths={"claude": "/mnt/backup/claude-projects"})
+result = skopli.read_usage(home="/mnt/backup/home/me")
+synced = skopli.read_usage(env={**os.environ, "CLAUDE_CONFIG_DIR": "/mnt/backup/claude"})
 ```
 
 ```ruby tab=paths
-result = Skopli.read_usage(home: "/mnt/backup/home/me", paths: { claude: "/mnt/backup/claude-projects" })
+result = Skopli.read_usage(home: "/mnt/backup/home/me")
+synced = Skopli.read_usage(env: ENV.to_h.merge("CLAUDE_CONFIG_DIR" => "/mnt/backup/claude"))
 ```
 
 ```go tab=paths
-result, err := skopli.ReadUsage(skopli.ReadUsageOptions{Home: "/mnt/backup/home/me"})
+result, err := skopli.ReadUsage(skopli.ReadUsageOptions{Options: skopli.Options{Home: "/mnt/backup/home/me"}})
 ```
 
 ```java tab=paths
-var result = Skopli.readUsage(new ReadUsageOptions().home("/mnt/backup/home/me"));
+var result = Skopli.readUsage(ReadUsageOptions.builder().home("/mnt/backup/home/me").build());
 ```
 
 ```csharp tab=paths
@@ -138,7 +141,9 @@ let result = try Skopli.readUsage(options: ReadUsageOptions(home: "/mnt/backup/h
 ```
 
 ```c tab=paths
-ag_buf result = ag_read_usage("{\"home\":\"/mnt/backup/home/me\"}");
+const char *opts = "{\"home\":\"/mnt/backup/home/me\"}";
+AgBuf result;
+AgStatus st = ag_read_usage(opts, strlen(opts), &result);
 ```
 
 The same overrides apply to `detectHarnesses`.

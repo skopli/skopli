@@ -41,8 +41,8 @@ const fields: HarnessField[] = ["costUsd", "workspace", "title", "calls", "subag
 </table>
 </div>
 <p class="caption">
-  40 harnesses, ids as in <code>golden/registry/ids.json</code>. Detected but not read (no reliable local token data): {unsupported.join(", ")}.
-  {detailed && " Field columns show the optional UsageEvent fields present in each harness's golden fixture."}
+  40 harnesses; ids match the SDK registry (see Coverage and fixtures). Detected but not read (no reliable local token data): {unsupported.join(", ")}.
+  {detailed && " Field columns show which UsageEvent fields each harness's golden fixture fills in."}
 </p>
 
 <style>

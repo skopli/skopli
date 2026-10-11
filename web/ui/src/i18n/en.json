@@ -23,5 +23,6 @@
   "footer.source": "Source",
   "footer.docs": "Documentation",
   "footer.site": "skopli.com",
-  "nav.menu": "Menu"
+  "nav.menu": "Menu",
+  "lang.fallback": "No {lang} sample on this page; showing {shown}."
 }

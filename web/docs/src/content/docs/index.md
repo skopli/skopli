@@ -1,6 +1,6 @@
 ---
 title: What Skopli reads
-description: Skopli is an SDK that reads the session logs your AI coding agents already keep on disk, turns them into usage events, aggregates them, and prices them. This page is the five-minute version.
+description: Skopli is an SDK that reads the session logs your AI coding agents already keep on disk, turns them into usage events, aggregates them, and prices them.
 ---
 
 ## The data is already on your disk
@@ -26,6 +26,7 @@ Pass `sources: []` to price from overrides alone, or `offline: true` to use what
 ## Four calls
 
 Detect which harnesses are present, read their events, roll them up, price the result.
+The Rust core reads and aggregates; the facades fetch catalogs and hand them to the core, so in Rust you pass catalogs in yourself, and the C library behaves the same way.
 
 ```ts tab=quickstart
 import { detectHarnesses, readUsage, rollup, createPricing } from "skopli";
@@ -55,7 +56,7 @@ priced = Skopli.create_pricing.price_rollups(by_model)
 ```
 
 ```go tab=quickstart
-detection, _ := skopli.DetectHarnesses()
+detection, _ := skopli.DetectHarnesses(nil)
 result, _ := skopli.ReadUsage(skopli.ReadUsageOptions{Since: "2026-08-01"})
 byModel, _ := skopli.Rollup(result.Events, skopli.RollupOptions{By: skopli.ByModel})
 pricing, _ := skopli.NewPricing(skopli.PricingOptions{})
@@ -64,10 +65,10 @@ priced, _ := pricing.PriceRollups(byModel)
 ```
 
 ```java tab=quickstart
-var detection = Skopli.detectHarnesses();
-var result = Skopli.readUsage(new ReadUsageOptions().since("2026-08-01"));
-var byModel = Skopli.rollup(result.events(), new RollupOptions(RollupBy.MODEL));
-try (var pricing = Skopli.createPricing(new PricingOptions())) {
+var detection = Skopli.detectHarnesses(DetectOptions.defaults());
+var result = Skopli.readUsage(ReadUsageOptions.builder().since("2026-08-01").build());
+var byModel = Skopli.rollup(result.events(), RollupOptions.by(RollupBy.MODEL));
+try (var pricing = Skopli.createPricing(PricingOptions.builder().build())) {
   var priced = pricing.priceRollups(byModel);
 }
 ```
@@ -83,27 +84,36 @@ var priced = pricing.PriceRollups(byModel);
 ```swift tab=quickstart
 let detection = try Skopli.detectHarnesses()
 let result = try Skopli.readUsage(options: ReadUsageOptions(since: "2026-08-01"))
-let byModel = try Skopli.rollup(events: result.events, options: RollupOptions(by: .model))
+let byModel = try Skopli.rollup(events: result.events, by: .model)
 let pricing = try Skopli.createPricing()
 let priced = try pricing.priceRollups(rollups: byModel)
 ```
 
 ```rust tab=quickstart
-// The Rust core reads and aggregates; catalogs are passed in by the caller.
+use skopli_core::pricing::{Pricing, PricingMode};
+use skopli_core::readers::{registered_readers, ReaderContext};
+use skopli_core::rollup::{rollup, RollupBy, RollupOptions};
+
+let ctx = ReaderContext::new(std::env::var("HOME")?);
 let mut events = Vec::new();
 for reader in registered_readers() {
-    events.extend(reader.read(&context)?.events);
+    events.extend(reader.read(&ctx).events);
 }
 let by_model = rollup(&events, &RollupOptions::new(RollupBy::Model));
-let priced = Pricing::new(catalogs, None, PricingMode::Auto).price_rollups(&by_model);
+let priced = Pricing::new(catalogs, None, PricingMode::Calculate).price_rollups(&by_model);
 ```
 
 ```c tab=quickstart
-ag_buf detection = ag_detect_harnesses("{}");
-ag_buf events = ag_read_usage("{\"since\":\"2026-08-01\"}");
-ag_buf rollups = ag_rollup(events.ptr, "{\"by\":\"model\"}");
-ag_pricing *pricing = ag_pricing_new(catalogs_json, "{}");
-ag_buf priced = ag_pricing_price_rollups(pricing, rollups.ptr);
+const char *read_opts = "{\"since\":\"2026-08-01\"}";
+const char *by_model = "{\"by\":\"model\"}";
+AgBuf detection, events, rollups, priced;
+AgPricing *pricing = NULL;
+
+ag_detect_harnesses(NULL, 0, &detection);
+ag_read_usage(read_opts, strlen(read_opts), &events);
+ag_rollup((const char *)events.ptr, events.len, by_model, strlen(by_model), &rollups);
+ag_pricing_new(pricing_opts, strlen(pricing_opts), &pricing);
+ag_pricing_price_rollups(pricing, (const char *)rollups.ptr, rollups.len, &priced);
 ```
 
 Every priced row is either a hit, with the matched catalog key, the source it came from and a `usd` figure, or a miss with `priced: false` and the list of model names that were tried.

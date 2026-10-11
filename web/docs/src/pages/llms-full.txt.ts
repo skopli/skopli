@@ -1,5 +1,6 @@
 import type { APIRoute } from "astro";
 import { getCollection } from "astro:content";
+import { pageMarkdown } from "../harness-section.ts";
 import { order } from "../nav.ts";
 
 export const GET: APIRoute = async () => {
@@ -7,7 +8,7 @@ export const GET: APIRoute = async () => {
   const text = order
     .map((id) => entries.find((e) => e.id === id))
     .filter((e) => e !== undefined)
-    .map((e) => `# ${e.data.title}\n\n${e.data.description}\n\n${e.body ?? ""}`)
+    .map(pageMarkdown)
     .join("\n\n---\n\n");
   return new Response(text, { headers: { "content-type": "text/plain; charset=utf-8" } });
 };

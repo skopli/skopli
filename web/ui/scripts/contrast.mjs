@@ -30,16 +30,22 @@ const pairs = [
   ["fg-muted", "surface", 4.5],
   ["fg-muted", "sunken", 4.5],
   ["fg-faint", "ground", 4.5],
+  ["fg-faint", "surface", 4.5],
+  ["fg-faint", "sunken", 4.5],
   ["accent", "ground", 4.5],
   ["accent", "surface", 4.5],
   ["accent", "sunken", 4.5],
   ["accent-ink", "accent", 4.5],
   ["nodata", "ground", 4.5],
+  ["nodata", "surface", 4.5],
   ["nodata", "sunken", 4.5],
   ["fg", "selection", 4.5],
   ["ground", "fg", 4.5],
   ["focus", "ground", 3],
-  ["rule-strong", "ground", 1.5],
+  ["focus", "surface", 3],
+  ["focus", "sunken", 3],
+  ["rule-strong", "ground", 3],
+  ["rule-strong", "surface", 3],
 ];
 
 let failed = 0;

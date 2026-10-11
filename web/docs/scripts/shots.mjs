@@ -1,11 +1,11 @@
-// Screenshot matrix: every docs page at 1440/768/390, dark and light, from the built dist.
-// Usage: node scripts/shots.mjs [outDir]  (requires `pnpm run build` first)
 import { createServer } from "node:http";
 import { readFile } from "node:fs/promises";
-import { extname, join } from "node:path";
+import { dirname, extname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { chromium } from "playwright";
 
 const base = "/skopli/";
+const dist = join(dirname(fileURLToPath(import.meta.url)), "..", "dist");
 const out = process.argv[2] ?? "shots";
 const types = {
   ".html": "text/html",
@@ -30,7 +30,7 @@ const server = createServer(async (req, res) => {
     : url.pathname.slice(1);
   if (path === "" || path.endsWith("/")) path += "index.html";
   try {
-    const body = await readFile(join("dist", path));
+    const body = await readFile(join(dist, path));
     res.writeHead(200, { "content-type": types[extname(path)] ?? "application/octet-stream" });
     res.end(body);
   } catch {

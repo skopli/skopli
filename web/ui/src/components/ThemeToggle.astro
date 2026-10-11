@@ -46,7 +46,9 @@ const { locale = "en" } = Astro.props;
     button.addEventListener("click", () => {
       const next = root.dataset.theme === "light" ? "dark" : "light";
       root.dataset.theme = next;
-      localStorage.setItem(KEY, next);
+      try {
+        localStorage.setItem(KEY, next);
+      } catch {}
       label();
     });
   }
