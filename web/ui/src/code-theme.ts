@@ -4,10 +4,18 @@ export type Theme = Record<string, string>;
 
 export const parseThemes = (css: string): Record<string, Theme> => {
   const themes: Record<string, Theme> = {};
-  for (const block of css.matchAll(/:root(\[data-theme="(\w+)"\])?\s*\{([^}]*)\}/g)) {
-    themes[block[2] ?? "light"] = Object.fromEntries(
-      [...(block[3] ?? "").matchAll(/--([\w-]+):\s*(#[0-9a-fA-F]{6})/g)].map((m) => [m[1], m[2]]),
-    ) as Theme;
+  for (const block of css.split("}")) {
+    const [selector, body] = block.split("{");
+    if (!selector?.includes(":root") || body === undefined) continue;
+    const name = selector.includes('[data-theme="dark"]') ? "dark" : "light";
+    themes[name] = Object.fromEntries(
+      body.split(";").flatMap((decl) => {
+        const [key, value] = decl.split(":").map((s) => s.trim());
+        return key?.startsWith("--") && /^#[0-9a-fA-F]{6}$/.test(value ?? "")
+          ? [[key.slice(2), value as string]]
+          : [];
+      }),
+    );
   }
   return themes;
 };
