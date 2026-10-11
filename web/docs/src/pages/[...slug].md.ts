@@ -21,7 +21,9 @@ const installTabs = (locale: Locale): string => {
     [
       `**${l.name}**`,
       l.note ? t(`install.note.${l.note}`) : "",
-      ...l.install.map((s) => (s.label ? `${s.label}:\n\n` : "") + fence(s.lang, s.code)),
+      ...("options" in l
+        ? l.options.map((s) => `${s.label}:\n\n${fence(s.lang, s.code)}`)
+        : l.install.map((s) => fence(s.lang, s.code))),
     ]
       .filter(Boolean)
       .join("\n\n"),

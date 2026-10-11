@@ -25,6 +25,13 @@ const { syncKey, label } = Astro.props;
     scrollbar-width: none;
   }
 
+  @media (max-width: 47.9rem) {
+    .tabs .tablist {
+      flex-wrap: wrap;
+      overflow: visible;
+    }
+  }
+
   .tabs .tablist button {
     flex: none;
     min-height: var(--hit);
@@ -57,8 +64,8 @@ const { syncKey, label } = Astro.props;
     margin-top: var(--space-3);
   }
 
-  .tab-panel > pre,
-  .tab-panel > .tabs {
+  .tabs .tab-panel > pre,
+  .tabs .tab-panel > .tabs {
     border: 0;
     border-radius: 0;
     margin: calc(-1 * var(--space-4));
@@ -68,7 +75,7 @@ const { syncKey, label } = Astro.props;
     border-top: 1px solid var(--rule);
   }
 
-  .tab-panel > pre + * {
+  .tabs .tab-panel > pre + * {
     margin-top: var(--space-6);
   }
 

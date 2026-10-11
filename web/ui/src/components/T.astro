@@ -1,0 +1,13 @@
+---
+import { localeFromPath, useTranslations, type Key } from "../i18n/index.ts";
+
+interface Props {
+  k: Key;
+  params?: Record<string, string | number>;
+}
+
+const t = useTranslations(localeFromPath(Astro.url.pathname, import.meta.env.BASE_URL));
+const parts = t(Astro.props.k, Astro.props.params).split("`");
+---
+
+{parts.map((part, i) => (i % 2 ? <code>{part}</code> : part))}

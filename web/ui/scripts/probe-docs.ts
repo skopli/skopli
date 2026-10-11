@@ -1,9 +1,8 @@
-import { chromium } from "playwright";
+import { check, finish, launch } from "./probe.ts";
 import "../src/analytics.ts";
 
 const base = process.argv[2] ?? "http://localhost:4321/skopli/";
-const browser = await chromium.launch();
-const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
+const { browser, page } = await launch();
 await page.context().grantPermissions(["clipboard-read", "clipboard-write"]);
 const captured: string[] = [];
 await page.exposeFunction("__captured", (e: string) => captured.push(e));
@@ -12,11 +11,6 @@ await page.addInitScript(() => {
     capture: (e: string) => (window as unknown as { __captured(e: string): void }).__captured(e),
   };
 });
-const failures: string[] = [];
-const check = (name: string, ok: boolean, detail = "") => {
-  console.log(`${ok ? "ok  " : "FAIL"} ${name}${detail ? ` (${detail})` : ""}`);
-  if (!ok) failures.push(name);
-};
 
 await page.goto(`${base}guide/pricing-basics/`);
 const html = await page.content();
@@ -169,5 +163,4 @@ check(
   (await page.locator('link[rel="alternate"], [data-copy-md], [data-event]').count()) === 0,
 );
 
-await browser.close();
-process.exitCode = failures.length ? 1 : 0;
+await finish(browser);

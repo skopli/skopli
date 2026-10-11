@@ -3,7 +3,6 @@ import Head from "@skopli/ui/components/Head.astro";
 import SiteHeader from "@skopli/ui/components/SiteHeader.astro";
 import SiteFooter from "@skopli/ui/components/SiteFooter.astro";
 import { localeFromPath, useTranslations } from "@skopli/ui/i18n";
-import "@skopli/ui/styles/prose.css";
 
 interface Props {
   title: string;
@@ -27,9 +26,7 @@ const github = "https://github.com/skopli/skopli";
       description={description}
       canonical={notFound ? undefined : `https://skopli.com${Astro.url.pathname}`}
       noindex={notFound}
-    >
-      <link rel="icon" href={`${base}favicon.svg`} type="image/svg+xml" />
-    </Head>
+    />
   </head>
   <body>
     <a class="skip" href="#content">{t("nav.skip")}</a>
@@ -40,6 +37,7 @@ const github = "https://github.com/skopli/skopli";
         { href: docs, text: t("nav.docs"), external: true },
         { href: github, text: t("nav.github"), external: true },
       ]}
+      collapse={false}
     />
     <main id="content" class="wrap">
       <slot />
@@ -77,5 +75,9 @@ const github = "https://github.com/skopli/skopli";
   main .lede {
     font-size: var(--text-lg);
     color: var(--fg-muted);
+  }
+
+  main h1 + .lede {
+    margin-top: var(--space-5);
   }
 </style>

@@ -47,38 +47,6 @@
   color: var(--fg-muted);
 }
 
-.prose :not(pre) > code {
-  background: var(--bg-raised);
-  padding: 0.1em 0.35em;
-  border-radius: var(--radius-sm);
-  overflow-wrap: anywhere;
-}
-
-.prose pre {
-  background: var(--bg-raised);
-  border: 1px solid var(--rule);
-  border-radius: var(--radius-md);
-  padding: var(--space-4) var(--space-5);
-  overflow-x: auto;
-  font-size: var(--text-sm);
-  line-height: 1.55;
-  tab-size: 2;
-}
-
-.prose pre code {
-  font-size: inherit;
-  background: none;
-  padding: 0;
-}
-
-.prose .astro-code span {
-  color: var(--shiki-light);
-}
-
-[data-theme="dark"] .prose .astro-code span {
-  color: var(--shiki-dark);
-}
-
 .prose .table-wrap {
   overflow-x: auto;
 }

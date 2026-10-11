@@ -24,50 +24,50 @@ const cols = ["input", "output", "cacheRead", "cacheWrite"] as const;
 ---
 
 <figure class="priced">
-  <div class="table-wrap">
-    <table>
-      <caption class="visually-hidden">{t("home.ledger.caption")}</caption>
-      <thead>
-        <tr>
-          <th scope="col">{t("home.ledger.col.model")}</th>
-          {cols.map((c) => <th scope="col">{t(`home.ledger.col.${c}`)}</th>)}
-          <th scope="col">{t("home.ledger.col.usd")}</th>
-        </tr>
-      </thead>
-      <tbody>
-        {
-          rows.map((r, i) => (
-            <tr style={`--i: ${i}`}>
-              <th scope="row">{r.model}</th>
-              {cols.map((c) => (
-                <td data-label={t(`home.ledger.col.${c}`)}>{n.format(r[c])}</td>
-              ))}
+  <table class="stack-table">
+    <caption class="visually-hidden">{t("home.ledger.caption")}</caption>
+    <thead>
+      <tr>
+        <th scope="col">{t("home.ledger.col.model")}</th>
+        {cols.map((c) => <th scope="col">{t(`home.ledger.col.${c}`)}</th>)}
+        <th scope="col">{t("home.ledger.col.usd")}</th>
+      </tr>
+    </thead>
+    <tbody>
+      {
+        rows.map((r, i) => (
+          <tr style={`--i: ${i}`}>
+            <th scope="row">{r.model}</th>
+            {cols.map((c) => (
+              <td data-label={t(`home.ledger.col.${c}`)}>{n.format(r[c])}</td>
+            ))}
+            <td data-label={t("home.ledger.col.usd")}>
               {r.pricing.priced ? (
-                <td data-label={t("home.ledger.col.usd")}>
-                  {usd.format(r.pricing.usd ?? 0)}
+                <>
+                  <span>{usd.format(r.pricing.usd ?? 0)}</span>
                   <small>{r.pricing.source}</small>
-                </td>
+                </>
               ) : (
-                <td data-label={t("home.ledger.col.usd")} class="miss">
-                  {t("home.ledger.miss")}
+                <>
+                  <code class="miss">{t("home.ledger.miss")}</code>
                   <small>{t("home.ledger.tried", { keys: (r.pricing.attempted ?? []).join(", ") })}</small>
-                </td>
+                </>
               )}
-            </tr>
-          ))
-        }
-      </tbody>
-      <tfoot>
-        <tr style={`--i: ${rows.length}`}>
-          <th scope="row">{t("home.ledger.total")}</th>
-          <td colspan={cols.length} class="total-note">
-            {t("home.ledger.totalNote", { priced: hits.length, missed: rows.length - hits.length })}
-          </td>
-          <td data-label={t("home.ledger.col.usd")}>{usd.format(total)}</td>
-        </tr>
-      </tfoot>
-    </table>
-  </div>
+            </td>
+          </tr>
+        ))
+      }
+    </tbody>
+    <tfoot>
+      <tr style={`--i: ${rows.length}`}>
+        <th scope="row">{t("home.ledger.total")}</th>
+        <td colspan={cols.length} class="total-note">
+          {t("home.ledger.totalNote", { priced: hits.length, missed: rows.length - hits.length })}
+        </td>
+        <td data-label={t("home.ledger.col.usd")}>{usd.format(total)}</td>
+      </tr>
+    </tfoot>
+  </table>
   <figcaption>{t("home.ledger.note", { date })}</figcaption>
 </figure>
 
@@ -75,43 +75,22 @@ const cols = ["input", "output", "cacheRead", "cacheWrite"] as const;
   .priced {
     margin: 0;
     min-width: 0;
-  }
-
-  .table-wrap {
-    overflow-x: auto;
-  }
-
-  table {
-    width: 100%;
-    border-collapse: collapse;
-    font-variant-numeric: tabular-nums;
     font-size: var(--text-sm);
   }
 
-  th,
-  td {
-    padding: var(--space-3) var(--space-2);
+  td,
+  th[scope="col"]:not(:first-child) {
     text-align: right;
-    vertical-align: top;
-    border-bottom: 1px solid var(--rule);
   }
 
-  th[scope="col"] {
-    font: 600 var(--text-xs) / 1.4 var(--font-sans);
-    color: var(--fg-muted);
-    white-space: nowrap;
-  }
-
-  th[scope="row"],
-  th:first-child {
-    text-align: left;
+  tbody th {
     font-family: var(--font-mono);
     font-weight: 400;
-    word-break: break-all;
+    min-width: 12rem;
+    overflow-wrap: anywhere;
   }
 
-  tfoot th[scope="row"] {
-    font-family: var(--font-sans);
+  tfoot th {
     font-weight: 600;
   }
 
@@ -119,18 +98,21 @@ const cols = ["input", "output", "cacheRead", "cacheWrite"] as const;
     display: block;
     font-size: var(--text-xs);
     color: var(--fg-muted);
-    font-family: var(--font-sans);
     overflow-wrap: anywhere;
   }
 
   .miss {
     color: var(--miss);
-    font-family: var(--font-mono);
+    white-space: nowrap;
   }
 
   .total-note {
     text-align: left;
     color: var(--fg-muted);
+  }
+
+  td:last-child {
+    min-width: 10rem;
   }
 
   tfoot td:last-child {
@@ -145,47 +127,18 @@ const cols = ["input", "output", "cacheRead", "cacheWrite"] as const;
   }
 
   @media (max-width: 47.9rem) {
-    thead {
-      display: none;
-    }
-
-    tr {
-      display: grid;
-      padding-block: var(--space-3);
-      border-bottom: 1px solid var(--rule);
-    }
-
-    th,
-    td {
-      display: flex;
-      justify-content: space-between;
-      gap: var(--space-3);
-      padding: var(--space-1) 0;
-      border: 0;
-      text-align: right;
-    }
-
-    th[scope="row"] {
+    tbody th {
+      min-width: 0;
       padding-bottom: var(--space-2);
-    }
-
-    td::before {
-      content: attr(data-label);
-      color: var(--fg-muted);
-      font-family: var(--font-sans);
     }
 
     td small {
       flex-basis: 100%;
+      text-align: right;
     }
 
     .total-note {
       display: block;
-      text-align: left;
-    }
-
-    .total-note::before {
-      content: none;
     }
   }
 

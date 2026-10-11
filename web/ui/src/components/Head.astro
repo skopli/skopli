@@ -7,6 +7,7 @@ import "@fontsource/ibm-plex-mono/500.css";
 import "../styles/tokens.css";
 import "../styles/base.css";
 import { POSTHOG_SNIPPET } from "../analytics.ts";
+import favicon from "../assets/favicon.svg";
 
 interface Props {
   title: string;
@@ -25,6 +26,7 @@ const { title, description, canonical, noindex = false, analytics = false } = As
 <meta name="description" content={description} />
 {canonical && <link rel="canonical" href={canonical} />}
 {noindex && <meta name="robots" content="noindex" />}
+<link rel="icon" href={favicon.src} type="image/svg+xml" />
 <meta property="og:title" content={title} />
 <meta property="og:description" content={description} />
 {canonical && <meta property="og:url" content={canonical} />}

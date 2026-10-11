@@ -9,9 +9,10 @@ interface Props {
   home: string;
   label?: string;
   links: { href: string; text: string; external?: boolean }[];
+  collapse?: boolean;
 }
 
-const { locale, home, label, links } = Astro.props;
+const { locale, home, label, links, collapse = true } = Astro.props;
 const t = useTranslations(locale);
 ---
 
@@ -19,7 +20,7 @@ const t = useTranslations(locale);
   <div class="wrap bar">
     <Wordmark href={home} label={label} />
     <slot name="search" />
-    <nav class="links" aria-label={t("nav.label")}>
+    <nav class="links" data-collapse={collapse || undefined} aria-label={t("nav.label")}>
       {
         links.map((l) => (
           <a
@@ -73,7 +74,7 @@ const t = useTranslations(locale);
   }
 
   @media (max-width: 767px) {
-    .links a {
+    .links[data-collapse] a {
       display: none;
     }
   }
