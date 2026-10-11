@@ -18,6 +18,7 @@
   "search.unavailable": "Search is unavailable right now.",
   "sidebar.label": "Docs sections",
   "sidebar.toggle": "All pages",
+  "sidebar.overview": "Overview",
   "sidebar.start": "Start",
   "sidebar.guide": "Guide",
   "sidebar.pricing": "Pricing in depth",
@@ -46,6 +47,7 @@
   "harness.col.index": "#",
   "harness.col.name": "Harness",
   "harness.col.id": "id",
+  "harness.caption": "Supported harnesses with ids",
   "harness.note.sessions": "One event per session, not per turn: the harness stores only a per-session cumulative total. Skopli still includes sessions whose totals are marked estimated.",
   "harness.note.estimated": "Token counts are estimated from stored message length (about four characters per token). Treat these totals as estimates, not billed usage.",
   "harness.note.perModel": "One event per model per session: the harness stores real provider counts per model, not per turn. Skopli reads every session regardless of its billing state."

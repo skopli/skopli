@@ -58,7 +58,12 @@ const notFound = slug === "404";
     </SiteHeader>
     <div class="wrap docs">
       <aside class="sidebar">
-        <button class="btn sidebar-toggle" type="button" aria-expanded="false" aria-controls="sidebar-nav">
+        <button
+          class="btn sidebar-toggle"
+          type="button"
+          aria-expanded="false"
+          aria-controls="sidebar-nav"
+        >
           {t("sidebar.toggle")}
         </button>
         <Sidebar current={slug} label={t("sidebar.label")} locale={locale} />

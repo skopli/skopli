@@ -15,15 +15,27 @@ const t = useTranslations(locale);
   <Icon name="search" size={16} />
   <span class="search-text">{t("search.placeholder")}</span>
 </button>
-<dialog class="search" data-search data-base={base} data-empty={t("search.empty")} data-results-one={t("search.results.one")}
+<dialog
+  class="search"
+  data-search
+  data-base={base}
+  data-empty={t("search.empty")}
+  data-results-one={t("search.results.one")}
   data-results-other={t("search.results.other")}
   data-unavailable={t("search.unavailable")}
 >
   <form method="dialog" class="search-form">
     <label class="visually-hidden" for="search-input">{t("search.label")}</label>
     <Icon name="search" size={18} />
-    <input id="search-input" type="search" placeholder={t("search.placeholder")} autocomplete="off" />
-    <button class="icon-btn" type="submit" aria-label={t("nav.close")}><Icon name="close" size={18} /></button>
+    <input
+      id="search-input"
+      type="search"
+      placeholder={t("search.placeholder")}
+      autocomplete="off"
+    />
+    <button class="icon-btn" type="submit" aria-label={t("nav.close")}>
+      <Icon name="close" size={18} />
+    </button>
   </form>
   <p class="search-status" aria-live="polite"></p>
   <ol class="search-results"></ol>
@@ -137,9 +149,10 @@ const t = useTranslations(locale);
 </style>
 
 <script>
+  type Result = { data(): Promise<{ url: string; excerpt: string; meta: { title?: string } }> };
   type Pagefind = {
     init(): Promise<void>;
-    search(q: string): Promise<{ results: { data(): Promise<{ url: string; excerpt: string; meta: { title?: string } }> }[] }>;
+    search(q: string): Promise<{ results: Result[] }>;
   };
 
   const dialog = document.querySelector<HTMLDialogElement>("[data-search]");
@@ -150,7 +163,8 @@ const t = useTranslations(locale);
 
   const load = async () => {
     if (pagefind) return pagefind;
-    pagefind = (await import(/* @vite-ignore */ `${dialog!.dataset.base}pagefind/pagefind.js`)) as Pagefind;
+    const url = `${dialog!.dataset.base}pagefind/pagefind.js`;
+    pagefind = (await import(/* @vite-ignore */ url)) as Pagefind;
     await pagefind.init();
     return pagefind;
   };
@@ -180,8 +194,9 @@ const t = useTranslations(locale);
       if (!pf) return;
       const { results } = await pf.search(q);
       const data = await Promise.all(results.slice(0, 10).map((r) => r.data()));
+      const ds = dialog!.dataset;
       status!.textContent = data.length
-        ? (results.length === 1 ? dialog!.dataset.resultsOne! : dialog!.dataset.resultsOther!).replace("{count}", String(results.length))
+        ? (results.length === 1 ? ds.resultsOne! : ds.resultsOther!).replace("{count}", String(results.length))
         : dialog!.dataset.empty!.replace("{query}", q);
       for (const d of data) {
         const li = document.createElement("li");

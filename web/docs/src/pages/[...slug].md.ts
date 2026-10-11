@@ -9,7 +9,8 @@ const harnessTable = (locale: Locale): string => {
     (h, i) => `| ${i + 1} | ${h.name}${h.note ? ` [^${h.note}]` : ""} | \`${h.id}\` |`,
   );
   const notes = HARNESS_NOTES.map((n) => `[^${n}]: ${t(`harness.note.${n}`)}`);
-  return ["| # | Harness | id |", "| --: | --- | --- |", ...rows, "", ...notes].join("\n");
+  const head = `| ${t("harness.col.index")} | ${t("harness.col.name")} | ${t("harness.col.id")} |`;
+  return [head, "| --: | --- | --- |", ...rows, "", ...notes].join("\n");
 };
 
 const ledger = (block: string): string =>

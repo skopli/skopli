@@ -10,7 +10,15 @@ const path = harnessIconPaths[Astro.props.id as HarnessIconSlug];
 
 {
   path ? (
-    <svg class="harness-icon" viewBox="0 0 24 24" width="18" height="18" fill="currentColor" aria-hidden="true" set:html={path} />
+    <svg
+      class="harness-icon"
+      viewBox="0 0 24 24"
+      width="18"
+      height="18"
+      fill="currentColor"
+      aria-hidden="true"
+      set:html={path}
+    />
   ) : (
     <span class="harness-icon harness-dot" aria-hidden="true" />
   )

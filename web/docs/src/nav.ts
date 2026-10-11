@@ -26,7 +26,7 @@ export const getNav = async (locale: Locale): Promise<{ title: string; pages: Pa
   const docs = await getCollection("docs");
   const page = (slug: string): Page => ({
     slug,
-    title: docs.find((d) => d.id === (slug || "index"))?.data.title ?? slug,
+    title: slug ? (docs.find((d) => d.id === slug)?.data.title ?? slug) : t("sidebar.overview"),
   });
   return SECTIONS.map((s) => ({ title: t(s.title), pages: s.slugs.map(page) }));
 };

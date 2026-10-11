@@ -22,7 +22,11 @@ const t = useTranslations(locale);
     <nav class="links" aria-label={t("nav.label")}>
       {
         links.map((l) => (
-          <a href={l.href} target={l.external ? "_blank" : undefined} rel={l.external ? "noopener" : undefined}>
+          <a
+            href={l.href}
+            target={l.external ? "_blank" : undefined}
+            rel={l.external ? "noopener" : undefined}
+          >
             {l.text}
             {l.external && <Icon name="external" size={14} />}
           </a>

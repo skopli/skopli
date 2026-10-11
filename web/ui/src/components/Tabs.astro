@@ -107,7 +107,12 @@ const { syncKey, label } = Astro.props;
       button.addEventListener("click", () => select(i, true));
       button.addEventListener("keydown", (e) => {
         const n = panels.length;
-        const moves: Record<string, number> = { ArrowRight: (i + 1) % n, ArrowLeft: (i - 1 + n) % n, Home: 0, End: n - 1 };
+        const moves: Record<string, number> = {
+          ArrowRight: (i + 1) % n,
+          ArrowLeft: (i - 1 + n) % n,
+          Home: 0,
+          End: n - 1,
+        };
         const next = moves[e.key];
         if (next === undefined) return;
         e.preventDefault();

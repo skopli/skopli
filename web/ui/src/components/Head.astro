@@ -35,7 +35,11 @@ const { title, description, canonical, noindex = false, analytics = false } = As
   (() => {
     const s = localStorage.getItem("theme");
     document.documentElement.dataset.theme =
-      s === "light" || s === "dark" ? s : matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+      s === "light" || s === "dark"
+        ? s
+        : matchMedia("(prefers-color-scheme: dark)").matches
+          ? "dark"
+          : "light";
   })();
 </script>
 {analytics && <script is:inline set:html={POSTHOG_SNIPPET} />}

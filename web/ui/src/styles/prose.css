@@ -55,7 +55,7 @@
 }
 
 .prose pre {
-  background: var(--bg-raised) !important;
+  background: var(--bg-raised);
   border: 1px solid var(--rule);
   border-radius: var(--radius-md);
   padding: var(--space-4) var(--space-5);

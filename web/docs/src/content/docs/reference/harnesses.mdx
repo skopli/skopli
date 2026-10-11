@@ -7,7 +7,7 @@ import HarnessTable from "@skopli/ui/components/HarnessTable.astro";
 
 Skopli reads the session state each harness already writes to disk. Nothing is installed into the harness: no plugin, no proxy, no exporter. Pass the `id` column to `readUsage({ harnesses })` to restrict a read; the full `detectHarnesses()` result lists which of these have local data on the current machine.
 
-<HarnessTable locale="en" caption="Supported harnesses with ids" />
+<HarnessTable />
 
 ## Detected but not parsed
 
