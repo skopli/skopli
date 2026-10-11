@@ -28,7 +28,9 @@ An exact match is preferred over a normalized one, and a normalized one over an 
 
 The default sources are OpenRouter, then LiteLLM, then models.dev.
 Overrides you pass to `createPricing` are consulted first and win outright.
-Then each source is searched with the full candidate list in priority order; a hit that carries long-context tiers wins as soon as it is found, in any source, while a flat hit is remembered and the search continues so that a tiered price in a later source can still take it.
+Then the sources are searched in priority order, each with the full candidate list.
+A hit that carries long-context tiers wins as soon as it is found, in any source.
+A flat hit is kept while the later sources are checked for a tiered one.
 When no source has a tiered price, the first flat hit in priority order wins, so a lower-confidence key in OpenRouter beats an exact key in models.dev.
 
 ## Zero-cost placeholders

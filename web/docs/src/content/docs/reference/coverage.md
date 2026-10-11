@@ -34,7 +34,7 @@ The [harness table](/skopli/reference/harnesses/) is derived from the fixtures f
 ## The registry test
 
 `golden/registry/ids.json` is the single list of harness ids.
-The Rust core's conformance test, the TypeScript detect test, each facade's smoke test and this site's harness test all assert their ids equal that file, so a harness cannot be added in one place and forgotten in another.
+The Rust core's conformance test, the TypeScript detect test, the Python, Go, Java, C# and Swift smoke tests and this site's harness test all assert their ids equal that file, so a harness cannot be added in one place and forgotten in another.
 
 ## Facades share the core
 
@@ -51,4 +51,4 @@ Each facade has its own test that round-trips the golden cases through its bindi
 
 ## Schema version
 
-Events carry a schema version, and each facade exposes the core's as `schemaVersion`; compare it with the version your code was written against before trusting field names.
+Events carry a schema version, and the Go, Java, C# and Swift facades expose the loaded core's as `schemaVersion`; compare it with the version your code was written against before trusting field names.

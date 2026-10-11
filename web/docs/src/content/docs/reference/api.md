@@ -16,7 +16,7 @@ description: Every public function and type, with the TypeScript signatures as t
 
 The Rust crate `skopli-core` is the engine underneath all of these.
 It exposes the readers, `rollup`, `cost_usd` and a `Pricing` type that takes already-loaded catalogs.
-The built-in sources and their cache sit behind the crate's `net` feature, which the native facades and `libskopli-full` enable; the TypeScript facade fetches and caches on its own.
+The built-in sources and their cache sit behind the crate's `net` feature, which only the `libskopli-full` C ABI build enables; the TypeScript, Python and Ruby facades fetch and cache in their own language and hand the catalogs to the core.
 
 ## detectHarnesses
 
@@ -201,4 +201,5 @@ Go, Java, C# and Swift wrap this ABI, which is why they need `libskopli` on the 
 
 ## Versions
 
-`ag_schema_version` reports the event schema version, and each facade exposes it as `schemaVersion` so a caller can compare the binding it compiled against with the core it loaded.
+`ag_schema_version` reports the event schema version, and the Go, Java, C# and Swift facades expose it as `schemaVersion` so a caller can compare the binding it compiled against with the core it loaded.
+The TypeScript, Python and Ruby facades embed the core, so there is nothing to compare.
