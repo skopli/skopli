@@ -1,4 +1,5 @@
 ---
+import { SITE_URL } from "@skopli/ui/urls";
 import type { MarkdownHeading } from "astro";
 import Head from "@skopli/ui/components/Head.astro";
 import SiteHeader from "@skopli/ui/components/SiteHeader.astro";
@@ -49,7 +50,7 @@ const notFound = slug === "404";
       home={base}
       label={t("nav.docs")}
       links={[
-        { href: "https://skopli.com", text: t("nav.site"), external: true },
+        { href: SITE_URL, text: t("nav.site") },
         { href: "https://github.com/skopli/skopli", text: t("nav.github"), external: true },
       ]}
     >
@@ -83,7 +84,7 @@ const notFound = slug === "404";
     <SiteFooter
       locale={locale}
       links={[
-        { href: "https://skopli.com", text: t("nav.site") },
+        { href: SITE_URL, text: t("nav.site") },
         { href: "https://github.com/skopli/skopli", text: t("footer.source") },
       ]}
     />

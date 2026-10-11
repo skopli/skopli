@@ -1,13 +1,14 @@
 export type Snippet = { lang: "sh" | "xml" | "groovy" | "swift" | "c"; code: string };
 export type Language = { id: string; name: string; note?: "swift" | "c" } & (
   | { install: Snippet[] }
-  | { options: (Snippet & { label: string })[] }
+  | { options: (Snippet & { label: string })[]; optionsLabel: "pkg" | "build" }
 );
 
 export const LANGUAGES: readonly Language[] = [
   {
     id: "typescript",
     name: "TypeScript",
+    optionsLabel: "pkg",
     options: [
       { label: "npm", lang: "sh", code: "npm install skopli" },
       { label: "pnpm", lang: "sh", code: "pnpm add skopli" },
@@ -20,6 +21,7 @@ export const LANGUAGES: readonly Language[] = [
   {
     id: "java",
     name: "Java",
+    optionsLabel: "build",
     options: [
       {
         label: "Maven",

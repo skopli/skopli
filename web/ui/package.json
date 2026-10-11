@@ -8,6 +8,7 @@
     "./components/*": "./src/components/*",
     "./data/*": "./src/data/*.ts",
     "./i18n": "./src/i18n/index.ts",
+    "./urls": "./src/urls.ts",
     "./analytics": "./src/analytics.ts",
     "./code-theme": "./src/code-theme.ts"
   },

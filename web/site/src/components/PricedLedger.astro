@@ -1,4 +1,5 @@
 ---
+import T from "@skopli/ui/components/T.astro";
 import { useTranslations, type Locale } from "@skopli/ui/i18n";
 import fixture from "../../../../golden/pricing/basic/expected-priced-rollup.json";
 
@@ -26,7 +27,7 @@ const cols = ["input", "output", "cacheRead", "cacheWrite"] as const;
 
 <figure class="priced">
   <table class="stack-table">
-    <caption>{t("home.ledger.caption")}</caption>
+    <caption><T k="home.ledger.caption" /></caption>
     <thead>
       <tr>
         <th scope="col">{t("home.ledger.col.model")}</th>
@@ -44,7 +45,7 @@ const cols = ["input", "output", "cacheRead", "cacheWrite"] as const;
           <tr style={`--i: ${i}`}>
             <th scope="row">{r.model}</th>
             {cols.map((c) => (
-              <td class="num" data-label={t(`home.ledger.col.${c}`)}>
+              <td class="num" data-label={t(`home.ledger.col.${c}`)} data-zero={r[c] === 0 || undefined}>
                 {n.format(r[c])}
               </td>
             ))}
@@ -97,7 +98,7 @@ const cols = ["input", "output", "cacheRead", "cacheWrite"] as const;
   tbody th {
     font-family: var(--font-mono);
     font-weight: 400;
-    min-width: 12rem;
+    min-width: 14rem;
     overflow-wrap: anywhere;
   }
 
@@ -115,6 +116,10 @@ const cols = ["input", "output", "cacheRead", "cacheWrite"] as const;
   @media (max-width: 47.9rem) {
     .priced .num {
       text-align: left;
+    }
+
+    .priced td[data-zero] {
+      display: none;
     }
   }
 

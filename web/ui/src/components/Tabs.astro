@@ -30,6 +30,12 @@ const { syncKey, label } = Astro.props;
     .tabs .tablist {
       flex-wrap: wrap;
       overflow: visible;
+      border-bottom: 0;
+    }
+
+    .tabs .tablist button {
+      border-bottom-color: var(--rule);
+      margin-bottom: 0;
     }
   }
 
@@ -76,7 +82,7 @@ const { syncKey, label } = Astro.props;
     margin-top: calc(-1 * var(--space-4));
   }
 
-  .tabs .tab-panel > :is(pre, .tabs):last-child {
+  .tabs .tab-panel > :is(pre, .tabs):nth-last-child(1 of :not(script)) {
     margin-bottom: calc(-1 * var(--space-4));
   }
 
@@ -85,8 +91,20 @@ const { syncKey, label } = Astro.props;
     border-top: 1px solid var(--rule);
   }
 
+  .tabs .tab-panel > :is(pre, .tabs) + :is(pre, .tabs) {
+    margin-top: 0;
+  }
+
   .tabs .tab-panel > :is(pre, .tabs) + :not(pre, .tabs) {
     margin-top: var(--space-6);
+  }
+
+  .tabs .tabs .tablist {
+    background: var(--bg-raised);
+  }
+
+  .tabs .tabs .tablist button {
+    font-size: var(--text-xs);
   }
 
   .tabs:not([data-ready]) .tab-panel::before {

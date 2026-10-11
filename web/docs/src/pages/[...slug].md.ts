@@ -22,7 +22,7 @@ const installTabs = (locale: Locale): string => {
       `**${l.name}**`,
       l.note ? t(`install.note.${l.note}`) : "",
       ...("options" in l
-        ? l.options.map((s) => `${s.label}:\n\n${fence(s.lang, s.code)}`)
+        ? l.options.map((s) => `**${s.label}**\n\n${fence(s.lang, s.code)}`)
         : l.install.map((s) => fence(s.lang, s.code))),
     ]
       .filter(Boolean)
@@ -57,7 +57,7 @@ const flattenTabs = (body: string): string => {
 
 export const toMarkdown = (entry: CollectionEntry<"docs">): string => {
   const body = flattenTabs(entry.body ?? "")
-    .replace(/^import .*$\n?/gm, "")
+    .replace(/^import .* from "(?:@skopli\/ui|\.{1,2})\/.*;\n?/gm, "")
     .replace(/<HarnessTable\b[^>]*\/>/g, harnessTable(localeFromPath(`/${entry.id}`, "/")))
     .replace(/<InstallTabs\b[^>]*\/>/g, installTabs(localeFromPath(`/${entry.id}`, "/")))
     .replace(/<dl class="ledger">[\s\S]*?<\/dl>/g, ledger)

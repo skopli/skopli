@@ -1,4 +1,5 @@
 ---
+import { DOCS_URL } from "@skopli/ui/urls";
 import CodeBlock from "@skopli/ui/components/CodeBlock.astro";
 import HarnessIcon from "@skopli/ui/components/HarnessIcon.astro";
 import InstallTabs from "@skopli/ui/components/InstallTabs.astro";
@@ -11,7 +12,7 @@ import PricedLedger from "../components/PricedLedger.astro";
 
 const locale = localeFromPath(Astro.url.pathname, import.meta.env.BASE_URL);
 const t = useTranslations(locale);
-const docs = "https://docs.skopli.com/skopli/";
+const docs = DOCS_URL;
 const quickstart = `import { readUsage, rollup, createPricing } from "skopli";
 
 const { events } = await readUsage({ since: "2026-08-01" });
@@ -28,7 +29,7 @@ const layers = [
   { name: "price", what: "home.layers.price", net: "home.layers.net.price" },
 ] satisfies { name: string; what: Key; net: Key }[];
 const refusals = ["guess", "telemetry", "account", "double"] as const;
-const [refBefore, refAfter] = t("home.harness.linkP", { link: "|" }).split("|");
+const [refBefore, refAfter] = t("home.harness.linkP").split("{link}");
 ---
 
 <SiteLayout title={t("site.homeTitle")} description={t("site.homeDescription")}>

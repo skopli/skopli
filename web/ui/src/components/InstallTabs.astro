@@ -4,9 +4,12 @@ import TabItem from "./TabItem.astro";
 import CodeBlock from "./CodeBlock.astro";
 import T from "./T.astro";
 import { LANGUAGES } from "../data/languages.ts";
+import { localeFromPath, useTranslations } from "../i18n/index.ts";
+
+const t = useTranslations(localeFromPath(Astro.url.pathname, import.meta.env.BASE_URL));
 ---
 
-<Tabs syncKey="lang">
+<Tabs syncKey="lang" label={t("install.tabs.language")}>
   {
     LANGUAGES.map((l) => (
       <TabItem label={l.name}>
@@ -16,7 +19,7 @@ import { LANGUAGES } from "../data/languages.ts";
           </p>
         )}
         {"options" in l ? (
-          <Tabs syncKey={`pkg-${l.id}`}>
+          <Tabs syncKey={`pkg-${l.id}`} label={t(`install.tabs.${l.optionsLabel}`)}>
             {l.options.map((s) => (
               <TabItem label={s.label}>
                 <CodeBlock code={s.code} lang={s.lang} />

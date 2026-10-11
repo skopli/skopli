@@ -1,4 +1,5 @@
 ---
+import { DOCS_URL, SITE_URL } from "@skopli/ui/urls";
 import Head from "@skopli/ui/components/Head.astro";
 import SiteHeader from "@skopli/ui/components/SiteHeader.astro";
 import SiteFooter from "@skopli/ui/components/SiteFooter.astro";
@@ -14,7 +15,7 @@ const { title, description, notFound = false } = Astro.props;
 const base = import.meta.env.BASE_URL;
 const locale = localeFromPath(Astro.url.pathname, base);
 const t = useTranslations(locale);
-const docs = "https://docs.skopli.com/skopli/";
+const docs = DOCS_URL;
 const github = "https://github.com/skopli/skopli";
 ---
 
@@ -24,7 +25,7 @@ const github = "https://github.com/skopli/skopli";
     <Head
       title={title}
       description={description}
-      canonical={notFound ? undefined : `https://skopli.com${Astro.url.pathname}`}
+      canonical={notFound ? undefined : `${SITE_URL}${Astro.url.pathname}`}
       noindex={notFound}
     />
   </head>
@@ -34,7 +35,7 @@ const github = "https://github.com/skopli/skopli";
       locale={locale}
       home={base}
       links={[
-        { href: docs, text: t("nav.docs"), external: true },
+        { href: docs, text: t("nav.docs") },
         { href: github, text: t("nav.github"), external: true },
       ]}
       collapse={false}
