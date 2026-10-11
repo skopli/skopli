@@ -34,7 +34,9 @@ for (const route of routes) {
       const page = await browser.newPage({ viewport: { width, height: 900 }, colorScheme: theme });
       await page.addInitScript((t) => localStorage.setItem("theme", t), theme);
       await page.goto(new URL(route.replace(/^\/+/, ""), base).href, { waitUntil: "load" });
-      await page.evaluate(() => document.fonts.ready);
+      await page.evaluate(() =>
+        Promise.all([document.fonts.ready, ...document.getAnimations().map((a) => a.finished)]),
+      );
       const overflow = await page.evaluate(() => ({
         scroll: document.documentElement.scrollWidth,
         client: document.documentElement.clientWidth,

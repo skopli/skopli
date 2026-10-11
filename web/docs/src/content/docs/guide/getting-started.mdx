@@ -5,6 +5,7 @@ description: Install Skopli in your language and run a four-call quickstart from
 
 import Tabs from "@skopli/ui/components/Tabs.astro";
 import TabItem from "@skopli/ui/components/TabItem.astro";
+import InstallTabs from "@skopli/ui/components/InstallTabs.astro";
 
 Skopli is an SDK, not a CLI. It reads the session state your harnesses keep on disk (tokens, sessions, turns, calls), normalizes it, aggregates it, and prices it. Build your own dashboards, reports, or billing checks on top.
 
@@ -22,101 +23,7 @@ No accounts, no telemetry. The readers never touch the network. Pricing fetches 
 
 Pick your language. All packages publish with the first release. The TypeScript package requires Node >= 24 and is ESM only.
 
-<Tabs syncKey="lang">
-  <TabItem label="TypeScript">
-    <Tabs syncKey="pkg">
-      <TabItem label="npm">
-        ```sh
-        npm install skopli
-        ```
-
-      </TabItem>
-      <TabItem label="pnpm">
-        ```sh
-        pnpm add skopli
-        ```
-
-      </TabItem>
-      <TabItem label="bun">
-        ```sh
-        bun add skopli
-        ```
-
-      </TabItem>
-    </Tabs>
-
-  </TabItem>
-  <TabItem label="Python">
-    ```sh
-    pip install skopli
-    ```
-
-  </TabItem>
-  <TabItem label="Rust">
-    ```sh
-    cargo add skopli-core
-    ```
-
-  </TabItem>
-  <TabItem label="Ruby">
-    ```sh
-    gem install skopli
-    ```
-
-  </TabItem>
-  <TabItem label="Java">
-    <Tabs syncKey="build">
-      <TabItem label="Maven">
-        ```xml
-        <dependency>
-          <groupId>com.skopli</groupId>
-          <artifactId>skopli</artifactId>
-        </dependency>
-        ```
-
-      </TabItem>
-      <TabItem label="Gradle">
-        ```groovy
-        implementation("com.skopli:skopli")
-        ```
-
-      </TabItem>
-    </Tabs>
-
-  </TabItem>
-  <TabItem label="C#">
-    ```sh
-    dotnet add package Skopli
-    ```
-
-  </TabItem>
-  <TabItem label="Go">
-    ```sh
-    go get github.com/skopli/skopli/sdks/go
-    ```
-
-  </TabItem>
-  <TabItem label="Swift">
-    Add to the `dependencies` array in `Package.swift`:
-
-    ```swift
-    .package(url: "https://github.com/skopli/skopli", from: "1.0.0")
-    ```
-
-  </TabItem>
-  <TabItem label="C/C++">
-    Download `skopli.h` and the prebuilt library from the release assets, then include the header and link the library:
-
-    ```c
-    #include "skopli.h"
-    ```
-
-    ```sh
-    cc app.c -lskopli
-    ```
-
-  </TabItem>
-</Tabs>
+<InstallTabs />
 
 ## Quickstart
 

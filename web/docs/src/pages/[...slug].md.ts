@@ -1,6 +1,7 @@
 import type { APIRoute, GetStaticPaths } from "astro";
 import { getCollection, type CollectionEntry } from "astro:content";
 import { HARNESSES, HARNESS_NOTES } from "@skopli/ui/data/harnesses";
+import { LANGUAGES } from "@skopli/ui/data/languages";
 import { localeFromPath, useTranslations, type Locale } from "@skopli/ui/i18n";
 
 const harnessTable = (locale: Locale): string => {
@@ -11,6 +12,20 @@ const harnessTable = (locale: Locale): string => {
   const notes = HARNESS_NOTES.map((n) => `[^${n}]: ${t(`harness.note.${n}`)}`);
   const head = `| ${t("harness.col.index")} | ${t("harness.col.name")} | ${t("harness.col.id")} |`;
   return [head, "| --: | --- | --- |", ...rows, "", ...notes].join("\n");
+};
+
+const installTabs = (locale: Locale): string => {
+  const t = useTranslations(locale);
+  const fence = (lang: string, code: string) => `\`\`\`${lang}\n${code}\n\`\`\``;
+  return LANGUAGES.map((l) =>
+    [
+      `**${l.name}**`,
+      l.note ? t(`install.note.${l.note}`) : "",
+      ...l.install.map((s) => (s.label ? `${s.label}:\n\n` : "") + fence(s.lang, s.code)),
+    ]
+      .filter(Boolean)
+      .join("\n\n"),
+  ).join("\n\n");
 };
 
 const ledger = (block: string): string =>
@@ -42,6 +57,7 @@ export const toMarkdown = (entry: CollectionEntry<"docs">): string => {
   const body = flattenTabs(entry.body ?? "")
     .replace(/^import .*$\n?/gm, "")
     .replace(/<HarnessTable\b[^>]*\/>/g, harnessTable(localeFromPath(`/${entry.id}`, "/")))
+    .replace(/<InstallTabs\b[^>]*\/>/g, installTabs(localeFromPath(`/${entry.id}`, "/")))
     .replace(/<dl class="ledger">[\s\S]*?<\/dl>/g, ledger)
     .replace(/\n{3,}/g, "\n\n")
     .trim();

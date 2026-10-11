@@ -15,8 +15,8 @@ export const parseThemes = (css: string): Record<string, Theme> => {
 export const readTokens = (): Record<string, Theme> =>
   parseThemes(readFileSync(new URL("./styles/tokens.css", import.meta.url), "utf8"));
 
-export const codeTheme = (type: "light" | "dark") => {
-  const themes = readTokens();
+export const codeTheme = (type: "light" | "dark", css?: string) => {
+  const themes = css ? parseThemes(css) : readTokens();
   const c = { ...themes.light, ...(type === "dark" ? themes.dark : {}) };
   return {
     name: `ledger-${type}`,

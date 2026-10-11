@@ -1,7 +1,8 @@
 import { defineConfig } from "astro/config";
-import sitemap from "@astrojs/sitemap";
 
 export default defineConfig({
   site: "https://skopli.com",
-  integrations: [sitemap()],
+  trailingSlash: "always",
+  i18n: { defaultLocale: "en", locales: ["en"], routing: { prefixDefaultLocale: false } },
+  vite: { build: { assetsInlineLimit: 0 } },
 });

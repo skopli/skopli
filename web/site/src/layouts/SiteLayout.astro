@@ -1,0 +1,81 @@
+---
+import Head from "@skopli/ui/components/Head.astro";
+import SiteHeader from "@skopli/ui/components/SiteHeader.astro";
+import SiteFooter from "@skopli/ui/components/SiteFooter.astro";
+import { localeFromPath, useTranslations } from "@skopli/ui/i18n";
+import "@skopli/ui/styles/prose.css";
+
+interface Props {
+  title: string;
+  description: string;
+  notFound?: boolean;
+}
+
+const { title, description, notFound = false } = Astro.props;
+const base = import.meta.env.BASE_URL;
+const locale = localeFromPath(Astro.url.pathname, base);
+const t = useTranslations(locale);
+const docs = "https://docs.skopli.com/skopli/";
+const github = "https://github.com/skopli/skopli";
+---
+
+<!doctype html>
+<html lang={locale}>
+  <head>
+    <Head
+      title={title}
+      description={description}
+      canonical={notFound ? undefined : `https://skopli.com${Astro.url.pathname}`}
+      noindex={notFound}
+    >
+      <link rel="icon" href={`${base}favicon.svg`} type="image/svg+xml" />
+    </Head>
+  </head>
+  <body>
+    <a class="skip" href="#content">{t("nav.skip")}</a>
+    <SiteHeader
+      locale={locale}
+      home={base}
+      links={[
+        { href: docs, text: t("nav.docs"), external: true },
+        { href: github, text: t("nav.github"), external: true },
+      ]}
+    />
+    <main id="content" class="wrap">
+      <slot />
+    </main>
+    <SiteFooter
+      locale={locale}
+      links={[
+        { href: docs, text: t("nav.docs") },
+        { href: github, text: t("nav.github") },
+      ]}
+    />
+  </body>
+</html>
+
+<style is:global>
+  main > section {
+    padding-block: var(--space-7);
+    border-top: 1px solid var(--rule);
+  }
+
+  main > section:first-child {
+    border-top: 0;
+  }
+
+  main h2 {
+    max-width: 22ch;
+    text-wrap: balance;
+    margin-bottom: var(--space-5);
+  }
+
+  main p {
+    max-width: var(--measure);
+  }
+
+  main .lede {
+    font-size: var(--text-lg);
+    color: var(--fg-muted);
+  }
+</style>

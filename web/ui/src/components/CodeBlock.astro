@@ -1,0 +1,18 @@
+---
+import { Code } from "astro:components";
+import type { ComponentProps } from "astro/types";
+import tokens from "../styles/tokens.css?raw";
+import { codeTheme } from "../code-theme.ts";
+
+type CodeProps = ComponentProps<typeof Code>;
+type Theme = NonNullable<CodeProps["themes"]>[string];
+
+interface Props {
+  code: string;
+  lang: CodeProps["lang"];
+}
+
+const themes = { light: codeTheme("light", tokens) as Theme, dark: codeTheme("dark", tokens) as Theme };
+---
+
+<Code code={Astro.props.code} lang={Astro.props.lang} themes={themes} defaultColor={false} />

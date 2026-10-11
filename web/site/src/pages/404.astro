@@ -1,0 +1,18 @@
+---
+import { localeFromPath, useTranslations } from "@skopli/ui/i18n";
+import SiteLayout from "../layouts/SiteLayout.astro";
+
+const t = useTranslations(localeFromPath(Astro.url.pathname, import.meta.env.BASE_URL));
+const [before, middle, after] = t("notfound.p").split(/\{home\}|\{docs\}/);
+---
+
+<SiteLayout title={t("notfound.title")} description={t("notfound.description")} notFound>
+  <section>
+    <h1>{t("notfound.title")}</h1>
+    <p class="lede">
+      {before}<a href={import.meta.env.BASE_URL}>{t("notfound.home")}</a>{middle}<a
+        href="https://docs.skopli.com/skopli/">{t("notfound.docs")}</a
+      >{after}
+    </p>
+  </section>
+</SiteLayout>

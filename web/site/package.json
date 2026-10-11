@@ -6,21 +6,23 @@
   "scripts": {
     "dev": "astro dev",
     "build": "astro build",
-    "preview": "astro preview",
+    "preview": "astro preview --port 4322",
     "lint": "oxlint",
     "format": "oxfmt --check .",
     "format:write": "oxfmt .",
     "typecheck": "astro check",
+    "probe": "node ../ui/scripts/probe-site.ts http://localhost:4322/",
+    "screens": "node ../ui/scripts/screens.ts http://localhost:4322/ ../../artifacts/screens/site '' does-not-exist/",
     "check": "pnpm run lint && pnpm run format && pnpm run typecheck"
   },
   "dependencies": {
-    "@astrojs/sitemap": "^3.7.3",
-    "astro": "^7.2.2"
+    "@skopli/ui": "workspace:*"
   },
   "devDependencies": {
-    "@astrojs/check": "^0.9.10",
-    "oxfmt": "^0.63.0",
-    "oxlint": "^1.78.0",
-    "typescript": "^5.9.3"
+    "@astrojs/check": "0.9.10",
+    "astro": "7.3.5",
+    "oxfmt": "0.71.0",
+    "oxlint": "1.86.0",
+    "typescript": "5.9.3"
   }
 }

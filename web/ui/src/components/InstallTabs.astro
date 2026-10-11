@@ -1,0 +1,30 @@
+---
+import Tabs from "./Tabs.astro";
+import TabItem from "./TabItem.astro";
+import { LANGUAGES } from "../data/languages.ts";
+import CodeBlock from "./CodeBlock.astro";
+import { localeFromPath, useTranslations } from "../i18n/index.ts";
+
+const t = useTranslations(localeFromPath(Astro.url.pathname, import.meta.env.BASE_URL));
+---
+
+<Tabs syncKey="lang">
+  {
+    LANGUAGES.map((l) => (
+      <TabItem label={l.name}>
+        {l.note && <p>{t(`install.note.${l.note}`)}</p>}
+        {l.install[0]?.label ? (
+          <Tabs syncKey={`pkg-${l.id}`}>
+            {l.install.map((s) => (
+              <TabItem label={s.label ?? ""}>
+                <CodeBlock code={s.code} lang={s.lang} />
+              </TabItem>
+            ))}
+          </Tabs>
+        ) : (
+          l.install.map((s) => <CodeBlock code={s.code} lang={s.lang} />)
+        )}
+      </TabItem>
+    ))
+  }
+</Tabs>
