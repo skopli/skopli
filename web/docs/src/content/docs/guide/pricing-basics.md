@@ -63,14 +63,15 @@ let cached = try Skopli.createPricing(options: PricingOptions(offline: true))
 ```
 
 ```c tab=offline
-const char *opts = "{\"mode\":\"calculate\",\"catalogs\":[...]}";
+const char *opts = "{\"mode\":\"calculate\",\"builtinSources\":false,\"catalogs\":[...]}";
 AgPricing *p = NULL;
 AgStatus st = ag_pricing_new(opts, strlen(opts), &p);
 ```
 
 Overrides are consulted before any source, so an override also pins a price for a model the catalogs list differently.
 
-The C library never fetches: the caller loads catalogs itself and passes them in `opts_json` (`libskopli-full`, built with the `net` feature, adds the built-in sources).
+The default `libskopli` build has no built-in sources: pass `"builtinSources":false` and your own `catalogs`, or `ag_pricing_new` returns `AG_STATUS_CATALOG`.
+`libskopli-full` (built with the `net` feature) fetches the three default catalogs unless you set `builtinSources` to false.
 
 ## Pricing a rollup
 

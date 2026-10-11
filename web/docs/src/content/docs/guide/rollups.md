@@ -72,14 +72,14 @@ Token counters are summed per counter, so they remain disjoint after aggregation
 
 ## Dimensions
 
-| `by`        | Key                              | Notes                                                                                                          |
-| ----------- | -------------------------------- | -------------------------------------------------------------------------------------------------------------- |
-| `model`     | model name as logged             | The same model can appear under several names across harnesses; pricing normalizes them, rollup does not       |
-| `day`       | `YYYY-MM-DD` in `tz`             | Day boundaries follow the zone you pass, not the machine's                                                     |
-| `session`   | `sessionId`                      | Session ids are only unique within a harness                                                                   |
-| `harness`   | harness id                       | Useful for "which agent is spending"                                                                           |
-| `workspace` | `workspace`                      | Events without a workspace group under the key `(unknown)`                                                     |
-| `block`     | ISO timestamp of the block start | Fixed-width windows aligned to the hour in `tz`; 5 hours by default to match common subscription quota windows |
+| `by`        | Key                              | Notes                                                                                                                                                                                                                                              |
+| ----------- | -------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `model`     | model name as logged             | The same model can appear under several names across harnesses; pricing normalizes them, rollup does not                                                                                                                                           |
+| `day`       | `YYYY-MM-DD` in `tz`             | Day boundaries follow the zone you pass, not the machine's                                                                                                                                                                                         |
+| `session`   | `sessionId`                      | Session ids are only unique within a harness                                                                                                                                                                                                       |
+| `harness`   | harness id                       | Useful for "which agent is spending"                                                                                                                                                                                                               |
+| `workspace` | `workspace`                      | Events without a workspace group under the key `(unknown)`                                                                                                                                                                                         |
+| `block`     | ISO timestamp of the block start | A block opens at the first event's timestamp floored to the hour in `tz` and lasts `blockMs` (5 hours by default, matching common subscription quota windows); the next block opens at the first event after it ends, so there are no empty blocks |
 
 ## `costUsd` on a rollup
 

@@ -5,7 +5,7 @@ description: Skopli is an SDK that reads the session logs your AI coding agents 
 
 ## The data is already on your disk
 
-Every coding agent writes a session log while it works: Claude Code, Codex CLI, Gemini CLI, OpenCode and 36 more.
+Most coding agents write a session log while they work: Claude Code, Codex CLI, Gemini CLI, OpenCode and 36 more.
 Those logs record which model answered, how many tokens went in and out, what was served from cache, and when.
 Skopli reads those files and nothing else.
 It does not sit between you and the model, does not install a proxy, and does not need an account or an API key.
@@ -26,7 +26,8 @@ Pass `sources: []` to price from overrides alone, or `offline: true` to use what
 ## Four calls
 
 Detect which harnesses are present, read their events, roll them up, price the result.
-The Rust core reads and aggregates; the facades fetch catalogs and hand them to the core, so in Rust you pass catalogs in yourself, and the C library behaves the same way: the C sample below passes an empty `catalogs` list, so every row comes back `priced: false` until you put catalog JSON in it or link `libskopli-full`.
+The Rust core's `Pricing` takes catalogs you already hold; with the crate's `net` feature on, `load_builtin_catalogs` fetches and caches the three defaults, as the Rust sample does.
+The default `libskopli` build has no `net`, so the C sample passes `builtinSources: false` with an empty `catalogs` list and every row comes back `priced: false` until you put catalog JSON in it or link `libskopli-full`.
 
 ```ts tab=quickstart
 import { detectHarnesses, readUsage, rollup, createPricing } from "skopli";
@@ -148,7 +149,7 @@ Token counters are disjoint: `input`, `output`, `cacheRead`, `cacheWrite` and `r
 
 ## What Skopli is not
 
-- Not a CLI. It is a library with facades in nine languages; you build the report, dashboard or alert.
+- Not a CLI. It is a library with eight language facades and a C ABI; you build the report, dashboard or alert.
 - Not a proxy or instrumentation layer. It reads logs after the fact.
 - Not a price authority. Catalog prices are market listings; your invoice is the truth.
 - Not a telemetry service. Nothing you read leaves your machine.

@@ -113,7 +113,7 @@ printf("%.*s\n", (int)detection.len, (const char *)detection.ptr);
 ag_buf_free(detection);
 ```
 
-Detection reads directory listings only.
+Detection checks that paths exist.
 It does not open or parse log files.
 
 ## Read
@@ -177,7 +177,8 @@ The buffer holds the same JSON object the other facades return: `events`, `diagn
 
 A malformed line does not throw.
 It becomes a diagnostic, and a file Skopli could not use at all is listed under `skipped` by harness.
-Check both before trusting a total. An empty result with a dozen diagnostics is a permissions problem, not a quiet month.
+Check both before trusting a total.
+An empty result with many diagnostics usually means a permissions problem.
 
 ## Next
 

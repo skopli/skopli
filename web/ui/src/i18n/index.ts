@@ -12,7 +12,6 @@ export function t(locale: Locale, key: Key, vars: Record<string, string> = {}): 
   return text.replace(/\{(\w+)\}/g, (match, name: string) => vars[name] ?? match);
 }
 
-// Strips a leading locale segment so one page source serves every locale.
 export function localeFromPath(path: string): Locale {
   const first = path.split("/").find(Boolean);
   return locales.find((l) => l === first) ?? defaultLocale;

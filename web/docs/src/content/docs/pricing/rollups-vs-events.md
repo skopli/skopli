@@ -71,7 +71,7 @@ A group's `pricing` is one of three shapes:
 
 - A hit, when every event in the group was priced and they all share one model. It carries the usual `key`, `source`, `fetchedAt` and the summed `usd`.
 - An aggregate hit, `{ priced: true, usd, models: [...] }`, when every event was priced but the group spans several models (a day, a session). There is no single catalog key to report, so the distinct model list is given instead.
-- A miss, when at least one event could not be priced. `attempted` lists the candidates for the unpriced model; `usd` is present only in `display` or `auto` mode when the log recorded costs.
+- A miss, when at least one event could not be priced. `attempted` lists the candidates tried for the unpriced model or models; `usd` is present only in `display` or `auto` mode when the log recorded costs.
 
 A group is a miss as soon as one event is unpriced.
 Partial sums are not reported as totals.

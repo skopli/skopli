@@ -105,7 +105,7 @@ Treat Kiro totals as approximate.
 
 Each reader looks in the harness's default location under your home directory.
 Override the home when logs live elsewhere (a synced folder, a container volume, a test fixture).
-A single harness moves through the environment variable its reader honours, passed as `env`; the readers cannot see your process environment, so pass the whole map when you override it.
+A single harness moves through the environment variable its reader honours, passed as `env`; an explicit `env` replaces the process environment instead of merging with it, so include every variable you still need.
 
 ```ts tab=paths
 const { events } = await readUsage({ home: "/mnt/backup/home/me" });

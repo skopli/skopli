@@ -26,7 +26,7 @@ const types = {
 const server = createServer(async (req, res) => {
   const url = new URL(req.url ?? "/", "http://x");
   let path = url.pathname.startsWith(base)
-    ? url.pathname.slice(base.length)
+    ? "skopli/" + url.pathname.slice(base.length)
     : url.pathname.slice(1);
   if (path === "" || path.endsWith("/")) path += "index.html";
   try {

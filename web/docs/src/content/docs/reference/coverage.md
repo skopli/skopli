@@ -34,7 +34,7 @@ The [harness table](/skopli/reference/harnesses/) is derived from the fixtures f
 ## The registry test
 
 `golden/registry/ids.json` is the single list of harness ids.
-The SDK's harness list, the C ABI's schema and this documentation site all carry a test asserting their ids equal that file, so a harness cannot be added in one place and forgotten in another.
+The Rust core's conformance test, the TypeScript detect test, each facade's smoke test and this site's harness test all assert their ids equal that file, so a harness cannot be added in one place and forgotten in another.
 
 ## Facades share the core
 
@@ -45,9 +45,9 @@ Each facade has its own test that round-trips the golden cases through its bindi
 
 1. Capture a session log from the tool with any personal content removed, and place it under `golden/<id>/<case>/input/`.
 2. Write or adjust the reader in `crates/skopli-core/src/readers/`.
-3. Generate `expected-events.json` and `expected-rollup.json`, then read them: every number should be explainable from the input.
+3. Produce `expected-events.json` and `expected-rollup.json` (the Rust implementation can generate them), then review the numbers: every one should be explainable from the input.
 4. If the harness is new, append its id to `golden/registry/ids.json` and its display name to the harness list.
-5. Run the workspace check. CI repeats it and also asserts that regenerated files produce no diff.
+5. Run the workspace check. CI repeats it and also asserts that the generated C header and the C# and Java bindings produce no diff.
 
 ## Schema version
 

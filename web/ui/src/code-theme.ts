@@ -1,7 +1,5 @@
 import type { ThemeRegistrationRaw } from "shiki";
 
-// Two Shiki themes drawn from the tokens: a pale ink on the sunken ground at night,
-// dark ink on paper by day. Few colours: the code reads like a table, not a parade.
 type Palette = {
   bg: string;
   fg: string;

@@ -15,7 +15,8 @@ description: Every public function and type, with the TypeScript signatures as t
 | `defaultCacheDir` | `default_cache_dir` | `Skopli.default_cache_dir` | `DefaultCacheDir` | `Skopli.defaultCacheDir` | `SkopliClient.DefaultCacheDir` | `Skopli.defaultCacheDir` | `ag_default_cache_dir` |
 
 The Rust crate `skopli-core` is the engine underneath all of these.
-It exposes the readers, `rollup`, `cost_usd` and a `Pricing` type that takes already-loaded catalogs; catalog fetching and caching live in each facade.
+It exposes the readers, `rollup`, `cost_usd` and a `Pricing` type that takes already-loaded catalogs.
+The built-in sources and their cache sit behind the crate's `net` feature, which the native facades and `libskopli-full` enable; the TypeScript facade fetches and caches on its own.
 
 ## detectHarnesses
 
@@ -28,7 +29,7 @@ type Detection = {
 };
 ```
 
-Reads directory listings only.
+Checks that paths exist; it never opens or parses a log file.
 
 ## readUsage
 
@@ -194,8 +195,8 @@ ag_buf_free(out);
 | `ag_buf_free`, `ag_string_free`                                                                             | Release a returned buffer or string                                 |
 | `ag_last_error_message`                                                                                     | The last error on this thread, when a call returned a non-OK status |
 
-The library opens no socket.
-Pass catalogs you fetched yourself, or build `skopli-capi` with `--features net` to enable the built-in sources inside the library.
+The default build opens no socket: `ag_pricing_new` needs `"builtinSources":false` plus the catalogs you loaded, and returns `AG_STATUS_CATALOG` otherwise.
+Building `skopli-capi` with `--features net` adds the built-in sources, which that build fetches by default.
 Go, Java, C# and Swift wrap this ABI, which is why they need `libskopli` on the library path.
 
 ## Versions

@@ -42,10 +42,10 @@ Tokens up to the first threshold bill at the base rate, tokens between threshold
 Context tokens are blended into one per-token rate (input, cache read and cache write weighted by their counts) so the brackets apply to the footprint as a whole.
 Output always bills at the base output rate.
 
-## Tier rates default upward, not sideways
+## How tier rates fill in
 
-A tier that omits `cacheRead` or `cacheWrite` falls back to its own `input` rate, and a missing `cacheWrite1h` falls back to twice its own `input`.
-A tier never inherits a rate from the level below it.
+A tier that omits `cacheRead` or `cacheWrite` inherits the nearest lower level's value; when no level sets one, the tier falls back to its own `input` rate.
+`cacheWrite1h` never inherits: a tier that omits it gets twice its own `input`.
 
 ## Why aggregation can pick the wrong tier
 
