@@ -16,6 +16,7 @@ const { syncKey, label } = Astro.props;
     margin-block: var(--space-4);
     border: 1px solid var(--rule);
     border-radius: var(--radius-md);
+    overflow: clip;
   }
 
   .tabs .tablist {
@@ -68,14 +69,23 @@ const { syncKey, label } = Astro.props;
   .tabs .tab-panel > .tabs {
     border: 0;
     border-radius: 0;
-    margin: calc(-1 * var(--space-4));
+    margin-inline: calc(-1 * var(--space-4));
   }
 
-  .tab-panel > .tabs {
+  .tabs .tab-panel > :is(pre, .tabs):first-child {
+    margin-top: calc(-1 * var(--space-4));
+  }
+
+  .tabs .tab-panel > :is(pre, .tabs):last-child {
+    margin-bottom: calc(-1 * var(--space-4));
+  }
+
+  .tabs .tab-panel > * + :is(pre, .tabs) {
+    margin-top: var(--space-4);
     border-top: 1px solid var(--rule);
   }
 
-  .tabs .tab-panel > pre + * {
+  .tabs .tab-panel > :is(pre, .tabs) + :not(pre, .tabs) {
     margin-top: var(--space-6);
   }
 

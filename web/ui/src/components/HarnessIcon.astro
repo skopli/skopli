@@ -20,7 +20,7 @@ const path = harnessIconPaths[Astro.props.id as HarnessIconSlug];
       set:html={path}
     />
   ) : (
-    <span class="harness-icon harness-dot" aria-hidden="true" />
+    <span class="harness-icon" aria-hidden="true" />
   )
 }
 
@@ -31,13 +31,5 @@ const path = harnessIconPaths[Astro.props.id as HarnessIconSlug];
     width: 18px;
     height: 18px;
     vertical-align: -0.2em;
-  }
-
-  .harness-dot {
-    border: 1.5px solid var(--rule);
-    border-radius: 50%;
-    width: 14px;
-    height: 14px;
-    margin: 2px;
   }
 </style>

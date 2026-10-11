@@ -28,6 +28,7 @@ const layers = [
   { name: "price", what: "home.layers.price", net: "home.layers.net.price" },
 ] satisfies { name: string; what: Key; net: Key }[];
 const refusals = ["guess", "telemetry", "account", "double"] as const;
+const [refBefore, refAfter] = t("home.harness.linkP", { link: "|" }).split("|");
 ---
 
 <SiteLayout title={t("site.homeTitle")} description={t("site.homeDescription")}>
@@ -103,7 +104,9 @@ const refusals = ["guess", "telemetry", "account", "double"] as const;
         ))
       }
     </ul>
-    <p class="after"><a href={`${docs}reference/harnesses/`}>{t("home.harness.link")}</a>.</p>
+    <p class="after">
+      {refBefore}<a href={`${docs}reference/harnesses/`}>{t("home.harness.link")}</a>{refAfter}
+    </p>
   </section>
 
   <section>
@@ -166,14 +169,11 @@ const refusals = ["guess", "telemetry", "account", "double"] as const;
   .layers tbody th {
     font-size: var(--text-lg);
     font-weight: 400;
+    white-space: nowrap;
   }
 
   .layers .net {
     color: var(--fg-muted);
-  }
-
-  .layers tbody th {
-    white-space: nowrap;
   }
 
   @media (min-width: 48rem) {
@@ -187,7 +187,8 @@ const refusals = ["guess", "telemetry", "account", "double"] as const;
   }
 
   section > :global(pre),
-  section > p + :global(.tabs) {
+  section > :global(.tabs) {
+    max-width: 46rem;
     margin-top: var(--space-5);
   }
 
@@ -200,7 +201,7 @@ const refusals = ["guess", "telemetry", "account", "double"] as const;
     margin: var(--space-5) 0 0;
     padding: 0;
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(17rem, 1fr));
     column-gap: var(--space-6);
   }
 
@@ -214,6 +215,7 @@ const refusals = ["guess", "telemetry", "account", "double"] as const;
 
   .harnesses code {
     margin-left: auto;
+    white-space: nowrap;
     font-size: var(--text-xs);
     color: var(--fg-muted);
   }

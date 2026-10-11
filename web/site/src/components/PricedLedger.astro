@@ -19,18 +19,23 @@ const rows = fixture.rollups.map((r) => ({
 }));
 const hits = rows.filter((r) => r.pricing.priced);
 const total = hits.reduce((sum, r) => sum + (r.pricing.usd ?? 0), 0);
-const date = hits[0]?.pricing.fetchedAt?.slice(0, 10) ?? "";
+const date = hits[0]?.pricing.fetchedAt?.slice(0, 10);
+if (!date) throw new Error("pricing fixture has no fetchedAt");
 const cols = ["input", "output", "cacheRead", "cacheWrite"] as const;
 ---
 
 <figure class="priced">
   <table class="stack-table">
-    <caption class="visually-hidden">{t("home.ledger.caption")}</caption>
+    <caption>{t("home.ledger.caption")}</caption>
     <thead>
       <tr>
         <th scope="col">{t("home.ledger.col.model")}</th>
-        {cols.map((c) => <th scope="col">{t(`home.ledger.col.${c}`)}</th>)}
-        <th scope="col">{t("home.ledger.col.usd")}</th>
+        {cols.map((c) => (
+          <th scope="col" class="num">
+            {t(`home.ledger.col.${c}`)}
+          </th>
+        ))}
+        <th scope="col" class="num">{t("home.ledger.col.usd")}</th>
       </tr>
     </thead>
     <tbody>
@@ -39,9 +44,11 @@ const cols = ["input", "output", "cacheRead", "cacheWrite"] as const;
           <tr style={`--i: ${i}`}>
             <th scope="row">{r.model}</th>
             {cols.map((c) => (
-              <td data-label={t(`home.ledger.col.${c}`)}>{n.format(r[c])}</td>
+              <td class="num" data-label={t(`home.ledger.col.${c}`)}>
+                {n.format(r[c])}
+              </td>
             ))}
-            <td data-label={t("home.ledger.col.usd")}>
+            <td class="num" data-label={t("home.ledger.col.usd")}>
               {r.pricing.priced ? (
                 <>
                   <span>{usd.format(r.pricing.usd ?? 0)}</span>
@@ -64,7 +71,9 @@ const cols = ["input", "output", "cacheRead", "cacheWrite"] as const;
         <td colspan={cols.length} class="total-note">
           {t("home.ledger.totalNote", { priced: hits.length, missed: rows.length - hits.length })}
         </td>
-        <td data-label={t("home.ledger.col.usd")}>{usd.format(total)}</td>
+        <td class="num" data-label={t("home.ledger.col.usd")}>
+          {usd.format(total)}
+        </td>
       </tr>
     </tfoot>
   </table>
@@ -78,9 +87,11 @@ const cols = ["input", "output", "cacheRead", "cacheWrite"] as const;
     font-size: var(--text-sm);
   }
 
-  td,
-  th[scope="col"]:not(:first-child) {
-    text-align: right;
+  caption {
+    padding-bottom: var(--space-2);
+    text-align: left;
+    font-size: var(--text-xs);
+    color: var(--fg-muted);
   }
 
   tbody th {
@@ -99,6 +110,12 @@ const cols = ["input", "output", "cacheRead", "cacheWrite"] as const;
     font-size: var(--text-xs);
     color: var(--fg-muted);
     overflow-wrap: anywhere;
+  }
+
+  @media (max-width: 47.9rem) {
+    .priced .num {
+      text-align: left;
+    }
   }
 
   .miss {
@@ -130,15 +147,6 @@ const cols = ["input", "output", "cacheRead", "cacheWrite"] as const;
     tbody th {
       min-width: 0;
       padding-bottom: var(--space-2);
-    }
-
-    td small {
-      flex-basis: 100%;
-      text-align: right;
-    }
-
-    .total-note {
-      display: block;
     }
   }
 

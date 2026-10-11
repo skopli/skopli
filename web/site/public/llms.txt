@@ -2,9 +2,9 @@
 
 > An open-source SDK (MIT) that reads the session logs of 40 coding-agent harnesses from local disk, rolls them up, and prices them against market catalogs. 9 languages over one Rust core. No account, no telemetry.
 
-Read and Rollup never touch the network. Price fetches OpenRouter, LiteLLM, and models.dev catalogs by default, caches them, and works offline from the cache; an unmatched model returns `priced: false` with the keys it tried instead of a guessed rate.
+Read and Rollup never touch the network. Price fetches OpenRouter, LiteLLM, and models.dev catalogs by default, caches them, and works offline from the cache. An unmatched model returns `priced: false` with the keys it tried instead of a guessed rate.
 
 ## Links
 
-- [Documentation](https://docs.skopli.com/skopli/): guides and reference; every page has a Markdown twin (append .md), plus /skopli/llms.txt and /skopli/llms-full.txt
-- [GitHub](https://github.com/skopli/skopli): source and issues
+- [Documentation](https://docs.skopli.com/skopli/): guides and reference. Every page has a Markdown twin (append .md), and the site serves /skopli/llms.txt and /skopli/llms-full.txt.
+- [GitHub](https://github.com/skopli/skopli): source and issues.

@@ -285,30 +285,34 @@ pre code {
   white-space: nowrap;
 }
 
+.stack-table .num {
+  text-align: right;
+}
+
 @media (max-width: 47.9rem) {
   .stack-table thead {
     display: none;
   }
 
   .stack-table tr {
-    display: grid;
+    display: block;
     padding-block: var(--space-3);
     border-bottom: 1px solid var(--rule);
   }
 
   .stack-table th,
   .stack-table td {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: space-between;
-    gap: var(--space-1) var(--space-3);
+    display: block;
     padding: var(--space-1) 0;
     border: 0;
+    text-align: left;
   }
 
   .stack-table td[data-label]::before {
     content: attr(data-label);
+    display: block;
     color: var(--fg-muted);
     font-family: var(--font-sans);
+    font-size: var(--text-xs);
   }
 }

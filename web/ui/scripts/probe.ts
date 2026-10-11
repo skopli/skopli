@@ -1,4 +1,4 @@
-import { chromium, type Browser, type BrowserContextOptions } from "playwright";
+import { chromium, type Browser } from "playwright";
 
 const failures: string[] = [];
 
@@ -7,9 +7,9 @@ export const check = (name: string, ok: boolean, detail = "") => {
   if (!ok) failures.push(name);
 };
 
-export const launch = async (options: BrowserContextOptions = {}) => {
+export const launch = async () => {
   const browser = await chromium.launch();
-  const page = await browser.newPage({ viewport: { width: 1440, height: 900 }, ...options });
+  const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
   return { browser, page };
 };
 
