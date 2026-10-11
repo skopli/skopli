@@ -11,9 +11,7 @@ Reasoning tokens bill at the output rate. Cache rates fall back to the input rat
 
 Token buckets are disjoint. Readers whose sources report reasoning-inclusive output (Codex, Grok, ZCode) subtract reasoning from output before emitting events, so `output + reasoning` reconstructs the source's raw output count and nothing bills twice.
 
-:::caution[One documented assumption]
-The OTel GenAI semantic conventions do not state whether `gen_ai.usage.output_tokens` includes reasoning tokens, so the Copilot CLI (OTel) reader assumes the vendor reports them as disjoint and keeps `gen_ai.usage.reasoning*` in its own bucket without subtraction. If Copilot's telemetry turns out to be reasoning-inclusive, its reasoning tokens would be double-billed.
-:::
+> **One documented assumption.** The OTel GenAI semantic conventions do not state whether `gen_ai.usage.output_tokens` includes reasoning tokens, so the GitHub Copilot CLI (OTel) reader assumes the vendor reports them as disjoint and keeps `gen_ai.usage.reasoning*` in its own bucket without subtraction. If Copilot's telemetry turns out to be reasoning-inclusive, its reasoning tokens would be double-billed.
 
 Every rate below is USD per 1M tokens.
 
@@ -42,7 +40,7 @@ The 1h fallback is the only rate this page derives, so the example uses it. Assu
 | ------------------- | -----: | ---------------: | ---------------------- | -----: |
 | 1h (fallback)       | 10,000 |            $6.00 | 0.010M × ($3.00 × 2.0) |  $0.06 |
 | 5m (base)           | 30,000 |            $3.75 | 0.030M × $3.75         | $0.113 |
-| **Total**           | 40,000 |                — | —                      | $0.173 |
+| **Total**           | 40,000 |                - | -                      | $0.173 |
 
 The $3.00 and $3.75 figures are illustrative catalog values, not a quoted rate for any model; only the `× 2.0` multiplier is Skopli's own documented rule.
 

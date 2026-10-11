@@ -1,0 +1,78 @@
+---
+import type { MarkdownHeading } from "astro";
+
+interface Props {
+  headings: MarkdownHeading[];
+  label: string;
+}
+
+const { headings, label } = Astro.props;
+---
+
+<nav class="toc-nav" aria-label={label}>
+  <h2>{label}</h2>
+  <ul>
+    {
+      headings.map((h) => (
+        <li class={`d${h.depth}`}>
+          <a href={`#${h.slug}`}>{h.text}</a>
+        </li>
+      ))
+    }
+  </ul>
+</nav>
+
+<style>
+  h2 {
+    font: 600 var(--text-xs) / 1.4 var(--font-sans);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--fg-muted);
+    padding-bottom: var(--space-2);
+    border-bottom: 1px solid var(--rule);
+  }
+
+  ul {
+    list-style: none;
+    padding: 0;
+    margin-top: var(--space-2);
+  }
+
+  .d3 {
+    padding-inline-start: var(--space-4);
+  }
+
+  a {
+    display: flex;
+    align-items: center;
+    min-height: var(--hit);
+    padding-block: var(--space-1);
+    color: var(--fg-muted);
+    text-decoration: none;
+    line-height: 1.4;
+  }
+
+  a:hover,
+  a[aria-current="true"] {
+    color: var(--fg);
+  }
+</style>
+
+<script>
+  const links = [...document.querySelectorAll<HTMLAnchorElement>(".toc-nav a")];
+  const byId = new Map(links.map((a) => [decodeURIComponent(a.hash.slice(1)), a]));
+  const observer = new IntersectionObserver(
+    (entries) => {
+      for (const entry of entries) {
+        if (!entry.isIntersecting) continue;
+        for (const a of links) a.removeAttribute("aria-current");
+        byId.get(entry.target.id)?.setAttribute("aria-current", "true");
+      }
+    },
+    { rootMargin: "-10% 0px -75% 0px" },
+  );
+  for (const id of byId.keys()) {
+    const el = document.getElementById(id);
+    if (el) observer.observe(el);
+  }
+</script>

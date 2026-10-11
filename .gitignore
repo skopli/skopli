@@ -56,3 +56,6 @@ sdks/swift/.build/
 # OS noise
 .DS_Store
 Thumbs.db
+
+# screenshot matrices
+artifacts/

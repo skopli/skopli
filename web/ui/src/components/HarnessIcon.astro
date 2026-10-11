@@ -1,0 +1,37 @@
+---
+import { harnessIconPaths, type HarnessIconSlug } from "../data/harness-icons.ts";
+
+interface Props {
+  id: string;
+}
+
+const path = harnessIconPaths[Astro.props.id as HarnessIconSlug];
+---
+
+{
+  path ? (
+    <svg class="harness-icon" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+      <path d={path} fill="currentColor" />
+    </svg>
+  ) : (
+    <span class="harness-icon harness-dot" aria-hidden="true" />
+  )
+}
+
+<style>
+  .harness-icon {
+    flex: none;
+    display: inline-block;
+    width: 18px;
+    height: 18px;
+    vertical-align: -0.2em;
+  }
+
+  .harness-dot {
+    border: 1.5px solid var(--rule);
+    border-radius: 50%;
+    width: 14px;
+    height: 14px;
+    margin: 2px;
+  }
+</style>

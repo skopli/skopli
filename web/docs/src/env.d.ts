@@ -1,0 +1,1 @@
+import "@skopli/ui/analytics";

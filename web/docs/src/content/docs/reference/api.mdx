@@ -3,13 +3,12 @@ title: API reference
 description: The Skopli API in every language. Read, Rollup, and Price layers, model matching, and semantics, with the same pricing operations across every facade.
 ---
 
-import { Tabs, TabItem } from "@astrojs/starlight/components";
+import Tabs from "@skopli/ui/components/Tabs.astro";
+import TabItem from "@skopli/ui/components/TabItem.astro";
 
 Skopli reads AI coding-agent usage (tokens, sessions, turns, calls) from local harness state, aggregates it, and prices it against market catalogs (OpenRouter, LiteLLM, models.dev). Every language calls into one Rust core, so the layers, options, and return shapes are the same everywhere. Only naming conventions differ. TypeScript, Java, C#, and Swift use camelCase. Python, Ruby, and Rust use snake_case. C# and Go use PascalCase methods. C uses a JSON-buffer ABI. The TypeScript package is ESM only and requires Node >= 24.
 
-:::note[Full pricing parity across every facade]
-The Read, Rollup, and Price layers expose the same operations and return shapes in every language. The seven handle-based facades (TypeScript, Python, Ruby, Java, C#, Go, Swift) each expose the full pricing set: `createPricing`, plus `lookupModel`, `priceRollups`, `priceEvents`, and `catalogs`. `priceTokens` is a convenience on the TypeScript, Python, and Ruby handles. The others cover it through `priceRollups` and `priceEvents`. The constructor options are shared but not byte-identical: the other six facades (Python, Ruby, Java, C#, Go, Swift) accept explicit pre-fetched `catalogs`, while TypeScript covers the same need through its `sources` plus an injectable `fetch`. Those seven run the same built-in fetch and cache lifecycle: sources on by default in priority order OpenRouter, LiteLLM, models.dev, a byte-compatible disk cache, and TTL, refresh, offline, and stale-fallback. In the FFI ones (Java, C#, Go, Swift) the fetch runs facade-side, since the embedded `libskopli` opens no socket by default. Rust (`skopli-core`) has no `createPricing`: you build a `Pricing` from injected catalogs and call `lookup_model`, `price_rollups`, or `price_events`, with `cost_usd` and `match_model` as lower-level free functions. The bare C ABI has no host lifecycle: the default `libskopli` prices against the pre-fetched `catalogs` you pass to `ag_pricing_new`, and built-in sources return an error unless the library is built with `net` as `libskopli-full`.
-:::
+> **Full pricing parity across every facade.** The Read, Rollup, and Price layers expose the same operations and return shapes in every language. The seven handle-based facades (TypeScript, Python, Ruby, Java, C#, Go, Swift) each expose the full pricing set: `createPricing`, plus `lookupModel`, `priceRollups`, `priceEvents`, and `catalogs`. `priceTokens` is a convenience on the TypeScript, Python, and Ruby handles. The others cover it through `priceRollups` and `priceEvents`. The constructor options are shared but not byte-identical: the other six facades (Python, Ruby, Java, C#, Go, Swift) accept explicit pre-fetched `catalogs`, while TypeScript covers the same need through its `sources` plus an injectable `fetch`. Those seven run the same built-in fetch and cache lifecycle: sources on by default in priority order OpenRouter, LiteLLM, models.dev, a byte-compatible disk cache, and TTL, refresh, offline, and stale-fallback. In the FFI ones (Java, C#, Go, Swift) the fetch runs facade-side, since the embedded `libskopli` opens no socket by default. Rust (`skopli-core`) has no `createPricing`: you build a `Pricing` from injected catalogs and call `lookup_model`, `price_rollups`, or `price_events`, with `cost_usd` and `match_model` as lower-level free functions. The bare C ABI has no host lifecycle: the default `libskopli` prices against the pre-fetched `catalogs` you pass to `ag_pricing_new`, and built-in sources return an error unless the library is built with `net` as `libskopli-full`.
 
 Option keys follow each language's convention: `camelCase` in TypeScript, Java, C#, and Swift (`cacheDir`, `ttlMs`), `snake_case` in Python, Ruby, and Rust (`cache_dir`, `ttl_ms`), and JSON keys in the C ABI. The semantics are identical, only the spelling changes. Each section's table describes an option once, and the tabs show the per-language spelling.
 
@@ -21,7 +20,7 @@ Option keys follow each language's convention: `camelCase` in TypeScript, Java, 
 
 <Tabs syncKey="lang">
   <TabItem label="TypeScript">
-    ```ts frame="code"
+    ```ts
     detectHarnesses(): { supported, unsupported };
 
     readUsage(options?: {
@@ -37,7 +36,7 @@ Option keys follow each language's convention: `camelCase` in TypeScript, Java, 
 
   </TabItem>
   <TabItem label="Python">
-    ```python frame="code"
+    ```python
     skopli.detect_harnesses()  # -> Detection(supported, unsupported)
 
     skopli.read_usage(
@@ -55,7 +54,7 @@ Option keys follow each language's convention: `camelCase` in TypeScript, Java, 
   <TabItem label="Rust">
     `skopli-core` has no `read_usage` facade. It exposes the reader one level lower: each harness has a `Reader` you drive with a `ReaderContext` (a home directory plus env overrides), and each `read` returns a `ReaderResult` of events, skipped paths, and warnings. The host-language facades add detection, filtering (`since`/`until`/`tz`/`subagents`), and the canonical event sort on top.
 
-    ```rust frame="code"
+    ```rust
     use skopli_core::readers::{registered_reader, registered_readers, Reader, ReaderContext};
 
     // resolve a context from a home dir, with optional env overrides
@@ -73,7 +72,7 @@ Option keys follow each language's convention: `camelCase` in TypeScript, Java, 
 
   </TabItem>
   <TabItem label="Ruby">
-    ```ruby frame="code"
+    ```ruby
     Skopli.detect_harnesses # -> Detection(supported, unsupported)
 
     Skopli.read_usage(
@@ -89,7 +88,7 @@ Option keys follow each language's convention: `camelCase` in TypeScript, Java, 
 
   </TabItem>
   <TabItem label="Java">
-    ```java frame="code"
+    ```java
     Detection detection = Skopli.detectHarnesses(DetectOptions.defaults());
 
     ReadUsageResult result = Skopli.readUsage(ReadUsageOptions.builder()
@@ -107,7 +106,7 @@ Option keys follow each language's convention: `camelCase` in TypeScript, Java, 
 
   </TabItem>
   <TabItem label="C#">
-    ```csharp frame="code"
+    ```csharp
     Detection detection = SkopliClient.DetectHarnesses();
 
     ReadUsageResult result = SkopliClient.ReadUsage(new ReadUsageOptions {
@@ -124,7 +123,7 @@ Option keys follow each language's convention: `camelCase` in TypeScript, Java, 
 
   </TabItem>
   <TabItem label="Go">
-    ```go frame="code"
+    ```go
     detection, _ := skopli.DetectHarnesses(nil)
 
     result, _ := skopli.ReadUsage(skopli.ReadUsageOptions{
@@ -143,7 +142,7 @@ Option keys follow each language's convention: `camelCase` in TypeScript, Java, 
 
   </TabItem>
   <TabItem label="Swift">
-    ```swift frame="code"
+    ```swift
     let detection = try Skopli.detectHarnesses()
 
     let result = try Skopli.readUsage(options: ReadUsageOptions(
@@ -161,7 +160,7 @@ Option keys follow each language's convention: `camelCase` in TypeScript, Java, 
   <TabItem label="C/C++">
     The C ABI exchanges JSON buffers. Pass the read options as a JSON object and free the returned buffer:
 
-    ```c frame="code"
+    ```c
     #include <stdio.h>
     #include <string.h>
     #include "skopli.h"
@@ -214,7 +213,7 @@ See [Reading usage](/skopli/guide/reading/) for the full guide.
 
 <Tabs syncKey="lang">
   <TabItem label="TypeScript">
-    ```ts frame="code"
+    ```ts
     rollup(
       events: UsageEvent[],
       options: {
@@ -227,7 +226,7 @@ See [Reading usage](/skopli/guide/reading/) for the full guide.
 
   </TabItem>
   <TabItem label="Python">
-    ```python frame="code"
+    ```python
     skopli.rollup(
         events,                # list[UsageEvent]
         by,                    # "model" | "day" | "session" | "harness" | "workspace" | "block"
@@ -238,7 +237,7 @@ See [Reading usage](/skopli/guide/reading/) for the full guide.
 
   </TabItem>
   <TabItem label="Rust">
-    ```rust frame="code"
+    ```rust
     use skopli_core::rollup::{rollup, RollupBy, RollupOptions};
 
     // RollupBy: Model | Day | Session | Harness | Workspace | Block
@@ -249,7 +248,7 @@ See [Reading usage](/skopli/guide/reading/) for the full guide.
 
   </TabItem>
   <TabItem label="Ruby">
-    ```ruby frame="code"
+    ```ruby
     Skopli.rollup(
       events,                # Array(UsageEvent)
       by,                    # :model | :day | :session | :harness | :workspace | :block
@@ -260,7 +259,7 @@ See [Reading usage](/skopli/guide/reading/) for the full guide.
 
   </TabItem>
   <TabItem label="Java">
-    ```java frame="code"
+    ```java
     // RollupBy: MODEL | DAY | SESSION | HARNESS | WORKSPACE | BLOCK
     List<Rollup> byModel = Skopli.rollup(events, RollupOptions.by(RollupBy.MODEL));
     List<Rollup> byDay = Skopli.rollup(events, RollupOptions.by(RollupBy.DAY, "Asia/Tokyo"));
@@ -269,7 +268,7 @@ See [Reading usage](/skopli/guide/reading/) for the full guide.
 
   </TabItem>
   <TabItem label="C#">
-    ```csharp frame="code"
+    ```csharp
     // RollupBy: Model | Day | Session | Harness | Workspace | Block
     IReadOnlyList<Rollup> byModel =
         SkopliClient.Rollup(events, new RollupOptions { By = RollupBy.Model });
@@ -281,7 +280,7 @@ See [Reading usage](/skopli/guide/reading/) for the full guide.
 
   </TabItem>
   <TabItem label="Go">
-    ```go frame="code"
+    ```go
     // By: ByModel | ByDay | BySession | ByHarness | ByWorkspace | ByBlock
     byModel, _ := skopli.Rollup(events, skopli.RollupOptions{By: skopli.ByModel})
     byDay, _ := skopli.Rollup(events, skopli.RollupOptions{By: skopli.ByDay, TZ: "Asia/Tokyo"})
@@ -290,7 +289,7 @@ See [Reading usage](/skopli/guide/reading/) for the full guide.
 
   </TabItem>
   <TabItem label="Swift">
-    ```swift frame="code"
+    ```swift
     // by: .model | .day | .session | .harness | .workspace | .block
     let byModel = try Skopli.rollup(events: events, by: .model)
     let byDay = try Skopli.rollup(events: events, by: .day, tz: "Asia/Tokyo")
@@ -301,7 +300,7 @@ See [Reading usage](/skopli/guide/reading/) for the full guide.
   <TabItem label="C/C++">
     The C ABI exchanges JSON buffers. Pass the rollup options as a JSON object and free the returned buffer:
 
-    ```c frame="code"
+    ```c
     #include <stdio.h>
     #include <string.h>
     #include "skopli.h"
@@ -330,7 +329,7 @@ See [Rollups](/skopli/guide/rollups/).
 
 ### 3. Price (network, opt-in)
 
-The Price layer is the only layer that touches the network, and only when you opt in. It fetches catalogs, caches them, and reads from cache when offline. Every facade exposes the same operations.
+The Price layer is the only layer that touches the network. It fetches catalogs by default, caches them on disk, and reads from cache when offline; `sources: []` or `offline: true` keeps it off the network. Every facade exposes the same operations.
 
 #### 3a. Pricing constructor
 
@@ -338,7 +337,7 @@ The seven handle-based facades (TypeScript, Python, Ruby, Java, C#, Go, Swift) c
 
 <Tabs syncKey="lang">
   <TabItem label="TypeScript">
-    ```ts frame="code"
+    ```ts
     createPricing(options?: {
       sources?: PricingSource[]; // priority order; default OpenRouter, LiteLLM, models.dev
       overrides?: PriceOverride[]; // highest priority
@@ -354,7 +353,7 @@ The seven handle-based facades (TypeScript, Python, Ruby, Java, C#, Go, Swift) c
 
   </TabItem>
   <TabItem label="Python">
-    ```python frame="code"
+    ```python
     skopli.create_pricing(
         sources=None,          # priority order; default OpenRouter, LiteLLM, models.dev
         overrides=None,        # highest priority
@@ -370,7 +369,7 @@ The seven handle-based facades (TypeScript, Python, Ruby, Java, C#, Go, Swift) c
   <TabItem label="Rust">
     `skopli-core` has no `create_pricing` facade. You build a `Pricing` from injected catalogs in priority order and call its methods, or drop lower still to the free primitives `match_model` and `cost_usd`.
 
-    ```rust frame="code"
+    ```rust
     use skopli_core::pricing::{cost_usd, ModelPrice, Pricing, PricingMode};
     use skopli_core::types::TokenCounts;
 
@@ -385,7 +384,7 @@ The seven handle-based facades (TypeScript, Python, Ruby, Java, C#, Go, Swift) c
 
   </TabItem>
   <TabItem label="Ruby">
-    ```ruby frame="code"
+    ```ruby
     Skopli.create_pricing(
       sources: nil,          # priority order; default OpenRouter, LiteLLM, models.dev
       overrides: nil,        # highest priority
@@ -401,7 +400,7 @@ The seven handle-based facades (TypeScript, Python, Ruby, Java, C#, Go, Swift) c
   <TabItem label="Java">
     The fetch runs facade-side, and the facade hands the catalogs to the network-free core. `Pricing` is `AutoCloseable`. It exposes `lookupModel`, `priceRollups`, `priceEvents`, and `catalogs`.
 
-    ```java frame="code"
+    ```java
     try (Pricing pricing = Skopli.createPricing(PricingOptions.builder()
         .mode(PricingMode.CALCULATE)                             // CALCULATE (default) | DISPLAY | AUTO
         .override(PriceOverride.flat("my-fine-tune", 5.0, 15.0)) // highest priority
@@ -416,7 +415,7 @@ The seven handle-based facades (TypeScript, Python, Ruby, Java, C#, Go, Swift) c
   <TabItem label="C#">
     The fetch runs facade-side, and the facade hands the catalogs to the network-free core. `Pricing` is `IDisposable`. It exposes `LookupModel`, `PriceRollups`, `PriceEvents`, and `Catalogs`.
 
-    ```csharp frame="code"
+    ```csharp
     using Pricing pricing = SkopliClient.CreatePricing(new PricingOptions {
         Mode = PricingMode.Calculate,                             // Calculate (default) | Display | Auto
         Overrides = new[] { new PriceOverride {                   // highest priority
@@ -431,7 +430,7 @@ The seven handle-based facades (TypeScript, Python, Ruby, Java, C#, Go, Swift) c
   <TabItem label="Go">
     The fetch runs facade-side, and the facade hands the catalogs to the network-free core. Close the handle when done. It exposes `LookupModel`, `PriceRollups`, `PriceEvents`, and `Catalogs`.
 
-    ```go frame="code"
+    ```go
     pricing, _ := skopli.NewPricing(skopli.PricingOptions{
         Mode: skopli.ModeCalculate, // ModeCalculate (default) | ModeDisplay | ModeAuto
         Overrides: []skopli.Override{ // highest priority
@@ -448,7 +447,7 @@ The seven handle-based facades (TypeScript, Python, Ruby, Java, C#, Go, Swift) c
   <TabItem label="Swift">
     The fetch runs facade-side, and the facade hands the catalogs to the network-free core. Close the handle when done. It exposes `lookupModel`, `priceRollups`, `priceEvents`, and `catalogs`.
 
-    ```swift frame="code"
+    ```swift
     let pricing = try Skopli.createPricing(options: PricingOptions(
         mode: .calculate,                                     // .calculate (default) | .display | .auto
         overrides: [Override(model: "my-fine-tune", input: 5, output: 15)], // highest priority
@@ -462,7 +461,7 @@ The seven handle-based facades (TypeScript, Python, Ruby, Java, C#, Go, Swift) c
   <TabItem label="C/C++">
     The C ABI exchanges JSON buffers. Create a pricing handle from options JSON, then free it with `ag_pricing_free`. It exposes the full pipeline: `ag_pricing_lookup_model`, `ag_pricing_price_rollups`, `ag_pricing_price_events`, and `ag_pricing_catalog_info`. The default `libskopli` opens no socket, so pass pre-fetched catalogs and keep `builtinSources:false`.
 
-    ```c frame="code"
+    ```c
     #include <string.h>
     #include "skopli.h"
 
@@ -500,7 +499,7 @@ The options carry the same semantics in every language, only the key spelling ch
 
 <Tabs syncKey="lang">
   <TabItem label="TypeScript">
-    ```ts frame="code"
+    ```ts
     const hit = await pricing.lookupModel("openai/gpt-5");
     // { priced: true, key: "gpt-5", price: {...}, source: "litellm", fetchedAt: "..." }
     const result = await pricing.priceTokens("openai/gpt-5", { input: 1000, output: 500 });
@@ -509,7 +508,7 @@ The options carry the same semantics in every language, only the key spelling ch
 
   </TabItem>
   <TabItem label="Python">
-    ```python frame="code"
+    ```python
     hit = pricing.lookup_model("openai/gpt-5")
     # { priced: True, key: "gpt-5", price: {...}, source: "litellm", fetched_at: "..." }
     usd = pricing.price_tokens({"input": 1000, "output": 500}, "openai/gpt-5")
@@ -518,7 +517,7 @@ The options carry the same semantics in every language, only the key spelling ch
 
   </TabItem>
   <TabItem label="Rust">
-    ```rust frame="code"
+    ```rust
     use skopli_core::pricing::{cost_usd, ModelPrice, PriceLookup};
     use skopli_core::types::TokenCounts;
 
@@ -532,7 +531,7 @@ The options carry the same semantics in every language, only the key spelling ch
 
   </TabItem>
   <TabItem label="Ruby">
-    ```ruby frame="code"
+    ```ruby
     hit = pricing.lookup_model("openai/gpt-5")
     # { priced: true, key: "gpt-5", price: {...}, source: "litellm", fetched_at: "..." }
     usd = pricing.price_tokens({ input: 1000, output: 500 }, "openai/gpt-5")
@@ -541,7 +540,7 @@ The options carry the same semantics in every language, only the key spelling ch
 
   </TabItem>
   <TabItem label="Java">
-    ```java frame="code"
+    ```java
     PriceLookup hit = pricing.lookupModel("openai/gpt-5");
     // PriceHit { priced=true, key="gpt-5", source="litellm", ... } or a PriceMiss
     ```
@@ -550,7 +549,7 @@ The options carry the same semantics in every language, only the key spelling ch
 
   </TabItem>
   <TabItem label="C#">
-    ```csharp frame="code"
+    ```csharp
     PriceLookup hit = pricing.LookupModel("openai/gpt-5");
     // PriceHit { Priced=true, Key="gpt-5", Source="litellm", ... } or a PriceMiss
     ```
@@ -559,7 +558,7 @@ The options carry the same semantics in every language, only the key spelling ch
 
   </TabItem>
   <TabItem label="Go">
-    ```go frame="code"
+    ```go
     hit, _ := pricing.LookupModel("openai/gpt-5")
     // PriceLookup{ Priced: true, Key: "gpt-5", Source: "litellm", ... } or a miss
     ```
@@ -568,7 +567,7 @@ The options carry the same semantics in every language, only the key spelling ch
 
   </TabItem>
   <TabItem label="Swift">
-    ```swift frame="code"
+    ```swift
     let hit = try pricing.lookupModel("openai/gpt-5")
     // .hit(PriceHit(priced: true, key: "gpt-5", source: "litellm", ...)) or a miss
     ```
@@ -577,7 +576,7 @@ The options carry the same semantics in every language, only the key spelling ch
 
   </TabItem>
   <TabItem label="C/C++">
-    ```c frame="code"
+    ```c
     #include <string.h>
     #include "skopli.h"
 
@@ -603,13 +602,13 @@ A miss returns `{ priced: false, attempted }` (or `{ priced: false, reason: "zer
 
 <Tabs syncKey="lang">
   <TabItem label="TypeScript">
-    ```ts frame="code"
+    ```ts
     const priced = await pricing.priceRollups(byModel); // -> PricedRollup[]
     ```
 
   </TabItem>
   <TabItem label="Python">
-    ```python frame="code"
+    ```python
     priced = pricing.price_rollups(by_model)  # -> list[PricedRollup]
     ```
 
@@ -617,7 +616,7 @@ A miss returns `{ priced: false, attempted }` (or `{ priced: false, reason: "zer
   <TabItem label="Rust">
     Call `price_rollups` on the handle, or compose the primitives yourself: `lookup_model` each rollup key, then `cost_usd` on its summed `TokenCounts`. For tiered models prefer per-event pricing.
 
-    ```rust frame="code"
+    ```rust
     use skopli_core::pricing::{cost_usd, PriceLookup};
 
     let priced = pricing.price_rollups(&by_model); // Vec<PricedRollup>
@@ -632,37 +631,37 @@ A miss returns `{ priced: false, attempted }` (or `{ priced: false, reason: "zer
 
   </TabItem>
   <TabItem label="Ruby">
-    ```ruby frame="code"
+    ```ruby
     priced = pricing.price_rollups(by_model) # -> Array(PricedRollup)
     ```
 
   </TabItem>
   <TabItem label="Java">
-    ```java frame="code"
+    ```java
     List<PricedRollup> priced = pricing.priceRollups(byModel); // -> List<PricedRollup>
     ```
 
   </TabItem>
   <TabItem label="C#">
-    ```csharp frame="code"
+    ```csharp
     IReadOnlyList<PricedRollup> priced = pricing.PriceRollups(byModel);
     ```
 
   </TabItem>
   <TabItem label="Go">
-    ```go frame="code"
+    ```go
     priced, _ := pricing.PriceRollups(byModel) // -> []PricedRollup
     ```
 
   </TabItem>
   <TabItem label="Swift">
-    ```swift frame="code"
+    ```swift
     let priced = try pricing.priceRollups(rollups: byModel) // -> [PricedRollup]
     ```
 
   </TabItem>
   <TabItem label="C/C++">
-    ```c frame="code"
+    ```c
     #include "skopli.h"
 
     // pricing is an AgPricing* from ag_pricing_new; rollups_json / rollups_len
@@ -681,19 +680,19 @@ A miss returns `{ priced: false, attempted }` (or `{ priced: false, reason: "zer
 
 <Tabs syncKey="lang">
   <TabItem label="TypeScript">
-    ```ts frame="code"
+    ```ts
     const priced = await pricing.priceEvents(events, { by: "model", tz: "Asia/Tokyo" });
     ```
 
   </TabItem>
   <TabItem label="Python">
-    ```python frame="code"
+    ```python
     priced = pricing.price_events(events, "model", tz="Asia/Tokyo")
     ```
 
   </TabItem>
   <TabItem label="Rust">
-    ```rust frame="code"
+    ```rust
     use skopli_core::rollup::{RollupBy, RollupOptions};
 
     let priced = pricing.price_events(&events, &RollupOptions::new(RollupBy::Model));
@@ -701,38 +700,38 @@ A miss returns `{ priced: false, attempted }` (or `{ priced: false, reason: "zer
 
   </TabItem>
   <TabItem label="Ruby">
-    ```ruby frame="code"
+    ```ruby
     priced = pricing.price_events(events, :model, tz: "Asia/Tokyo")
     ```
 
   </TabItem>
   <TabItem label="Java">
-    ```java frame="code"
+    ```java
     List<PricedRollup> priced = pricing.priceEvents(events, RollupOptions.by(RollupBy.MODEL));
     ```
 
   </TabItem>
   <TabItem label="C#">
-    ```csharp frame="code"
+    ```csharp
     IReadOnlyList<PricedRollup> priced =
         pricing.PriceEvents(events, new RollupOptions { By = RollupBy.Model });
     ```
 
   </TabItem>
   <TabItem label="Go">
-    ```go frame="code"
+    ```go
     priced, _ := pricing.PriceEvents(events, skopli.RollupOptions{By: skopli.ByModel})
     ```
 
   </TabItem>
   <TabItem label="Swift">
-    ```swift frame="code"
+    ```swift
     let priced = try pricing.priceEvents(events: events, by: .model)
     ```
 
   </TabItem>
   <TabItem label="C/C++">
-    ```c frame="code"
+    ```c
     #include <stdio.h>
     #include <string.h>
     #include "skopli.h"
@@ -789,7 +788,7 @@ See [Model matching](/skopli/pricing/model-matching/).
 - Unusable timestamps warn and skip, never epoch-0.
 - `calls` aggregation uses the reported count only when finite, else 1 per event.
 - Reasoning tokens bill as output. Cache price tiers fall back to the input rate when a catalog omits them.
-- Codex, Grok, and ZCode report reasoning inside their output count, so the reader subtracts reasoning from output (`output + reasoning` reconstructs the source's raw output). Copilot OTel is the deliberate exception: the OTel GenAI conventions do not state whether `output_tokens` includes reasoning, so the reader assumes they are disjoint and does not subtract. If Copilot output turns out to be reasoning-inclusive, its reasoning would be double-billed.
+- Codex CLI, Grok Build, and ZCode report reasoning inside their output count, so the reader subtracts reasoning from output (`output + reasoning` reconstructs the source's raw output). Copilot OTel is the deliberate exception: the OTel GenAI conventions do not state whether `output_tokens` includes reasoning, so the reader assumes they are disjoint and does not subtract. If Copilot output turns out to be reasoning-inclusive, its reasoning would be double-billed.
 - Codex cache-write tokens come from `cache_write_input_tokens` (a 2026-07 protocol addition), a disjoint subset of `input_tokens` like cache reads, so the reader subtracts them from input (`input = raw_input - cacheRead - cacheWrite`) and emits them as `tokens.cacheWrite`. Older session files that lack the field count as 0.
 - 1h cache writes (`tokens.cacheWrite1h`) bill at the catalog above-1hr rate (LiteLLM `cache_creation_input_token_cost_above_1hr`) when present, else input × 2.0. The rest of cacheWrite bills at the base cacheWrite rate. Source priority is per-model, not per-field.
 - Long-context tiers (LiteLLM only): the tier is chosen by total context (`input + cacheRead + cacheWrite`), with marginal billing by default and whole-request repricing for claude models. The cacheWrite 5m/1h split composes per tier: the 1h portion bills at the selected level's 1h rate, the 5m remainder at its cacheWrite rate.

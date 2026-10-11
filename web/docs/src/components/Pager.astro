@@ -1,0 +1,87 @@
+---
+import Icon from "@skopli/ui/components/Icon.astro";
+import { useTranslations, type Locale } from "@skopli/ui/i18n";
+import { PAGES, pageHref } from "../nav.ts";
+
+interface Props {
+  current: string;
+  locale: Locale;
+}
+
+const { current, locale } = Astro.props;
+const t = useTranslations(locale);
+const i = PAGES.findIndex((p) => p.slug === current);
+const prev = i > 0 ? PAGES[i - 1] : undefined;
+const next = i >= 0 ? PAGES[i + 1] : undefined;
+---
+
+{
+  (prev || next) && (
+    <nav class="pager" aria-label={`${t("pager.prev")} / ${t("pager.next")}`}>
+      {prev && (
+        <a href={pageHref(prev.slug)} rel="prev">
+          <span class="dir">
+            <Icon name="arrowLeft" size={16} />
+            {t("pager.prev")}
+          </span>
+          <span class="title">{prev.title}</span>
+        </a>
+      )}
+      {next && (
+        <a href={pageHref(next.slug)} rel="next" class="next">
+          <span class="dir">
+            {t("pager.next")}
+            <Icon name="arrowRight" size={16} />
+          </span>
+          <span class="title">{next.title}</span>
+        </a>
+      )}
+    </nav>
+  )
+}
+
+<style>
+  .pager {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-4);
+    margin-top: var(--space-8);
+    padding-top: var(--space-5);
+    border-top: 1px solid var(--rule);
+    max-width: var(--measure);
+  }
+
+  a {
+    display: grid;
+    gap: var(--space-1);
+    min-height: var(--hit);
+    text-decoration: none;
+    color: var(--fg);
+  }
+
+  .next {
+    grid-column: 2;
+    text-align: right;
+  }
+
+  .dir {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-1);
+    font-size: var(--text-sm);
+    color: var(--fg-muted);
+  }
+
+  .next .dir {
+    justify-content: flex-end;
+  }
+
+  .title {
+    font-family: var(--font-serif);
+    font-size: var(--text-lg);
+  }
+
+  a:hover .title {
+    color: var(--accent);
+  }
+</style>

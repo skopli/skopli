@@ -1,0 +1,9 @@
+---
+interface Props {
+  label: string;
+}
+---
+
+<section class="tab-panel" data-label={Astro.props.label} role="tabpanel" tabindex="0">
+  <slot />
+</section>

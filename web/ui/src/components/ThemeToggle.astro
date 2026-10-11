@@ -1,0 +1,36 @@
+---
+import Icon from "./Icon.astro";
+import { useTranslations, type Locale } from "../i18n/index.ts";
+
+interface Props {
+  locale: Locale;
+}
+
+const t = useTranslations(Astro.props.locale);
+---
+
+<button class="icon-btn theme-toggle" type="button" data-theme-toggle aria-label={t("theme.label")}>
+  <Icon name="sun" class="when-dark" />
+  <Icon name="moon" class="when-light" />
+</button>
+
+<style>
+  .theme-toggle :global(svg) {
+    display: none;
+  }
+
+  :global([data-theme="dark"]) .theme-toggle :global(.when-dark),
+  :global([data-theme="light"]) .theme-toggle :global(.when-light) {
+    display: block;
+  }
+</style>
+
+<script>
+  for (const button of document.querySelectorAll<HTMLButtonElement>("[data-theme-toggle]")) {
+    button.addEventListener("click", () => {
+      const next = document.documentElement.dataset.theme === "dark" ? "light" : "dark";
+      document.documentElement.dataset.theme = next;
+      localStorage.setItem("theme", next);
+    });
+  }
+</script>

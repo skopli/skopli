@@ -1,0 +1,41 @@
+---
+interface Props {
+  href: string;
+  label?: string;
+}
+
+const { href, label } = Astro.props;
+---
+
+<a class="wordmark" href={href}>
+  <svg width="22" height="22" viewBox="0 0 22 22" aria-hidden="true">
+    <rect x="1" y="1" width="20" height="20" rx="3" fill="none" stroke="currentColor" stroke-width="1.6"></rect>
+    <path d="M5 8h12M5 12h7M5 16h9" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"></path>
+    <circle cx="16.5" cy="15.5" r="1.6" fill="currentColor"></circle>
+  </svg>
+  <span>Skopli</span>
+  {label && <span class="wordmark-label">{label}</span>}
+</a>
+
+<style>
+  .wordmark {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    min-height: var(--hit);
+    color: var(--fg);
+    text-decoration: none;
+    font-family: var(--font-serif);
+    font-size: var(--text-lg);
+    letter-spacing: -0.01em;
+  }
+
+  .wordmark-label {
+    font-family: var(--font-sans);
+    font-size: var(--text-sm);
+    color: var(--fg-muted);
+    padding-inline-start: var(--space-2);
+    border-inline-start: 1px solid var(--rule);
+    line-height: 1;
+  }
+</style>

@@ -3,9 +3,10 @@ title: Pricing basics
 description: How Skopli's Price layer works at a glance, and where to go deeper.
 ---
 
-import { Tabs, TabItem } from "@astrojs/starlight/components";
+import Tabs from "@skopli/ui/components/Tabs.astro";
+import TabItem from "@skopli/ui/components/TabItem.astro";
 
-The Price layer matches models against market catalogs and computes USD costs. It is the only layer that touches the network, and only when you opt in. It caches what it fetches and works offline from that cache. Prices are USD per million tokens.
+The Price layer matches models against market catalogs and computes USD costs. It is the only layer that touches the network: by default it fetches the OpenRouter, LiteLLM, and models.dev catalogs, caches them on disk, and keeps working offline from that cache. Pass `sources: []` or `offline: true` to keep it off the network. Prices are USD per million tokens.
 
 The seven handle-based facades (TypeScript, Python, Ruby, Java, C#, Go, Swift) run the same lifecycle. Built-in sources are on by default in priority order OpenRouter, LiteLLM, then models.dev, unless you pass your own `sources`. To make the handle network-free without `offline`, pass an empty `sources` list (`sources: []` in TypeScript, Ruby, and Swift, `sources=[]` in Python, an empty `sources(...)` in Java, `Sources = []` in C#, empty `Sources` in Go), which disables every built-in source. Each source caches to disk under `cacheDir` (default: the platform cache directory, shared byte-for-byte across facades) as `pricing-<source>.json` (`pricing-openrouter.json`, `pricing-litellm.json`, `pricing-models-dev.json`). A source is served from cache within `ttlMs` (default 1 hour), from cache alone under `offline`, and stale rather than failing when a fetch fails. A long-lived handle reloads its sources once the in-memory `ttlMs` window elapses, picking up refreshed prices on a later query. `refresh` is one-shot and applies only to the first load, not to those TTL reloads. In the four FFI facades (Java, C#, Go, Swift) the fetch and cache run in the host language, since the embedded `libskopli` opens no socket by default, and the results match the direct-core facades.
 
@@ -13,7 +14,7 @@ The bare C ABI has no host-language lifecycle. The default `libskopli` prices on
 
 <Tabs syncKey="lang">
   <TabItem label="TypeScript">
-    ```ts frame="code"
+    ```ts
     const pricing = createPricing({
       // priority order; defaults shown
       sources: [openRouterSource(), liteLlmSource(), modelsDevSource()],
@@ -33,7 +34,7 @@ The bare C ABI has no host-language lifecycle. The default `libskopli` prices on
 
   </TabItem>
   <TabItem label="Python">
-    ```python frame="code"
+    ```python
     pricing = skopli.create_pricing(
         # priority order; defaults shown
         sources=[  # BuiltinSource(name, format, url); pass sources=[] for no network
@@ -58,7 +59,7 @@ The bare C ABI has no host-language lifecycle. The default `libskopli` prices on
   <TabItem label="Rust">
     `skopli-core` has no `create_pricing` facade. Build a `Pricing` from injected catalogs and call its methods, with `cost_usd` as a free function:
 
-    ```rust frame="code"
+    ```rust
     use skopli_core::pricing::{cost_usd, ModelPrice, PriceLookup, Pricing, PricingMode};
     use skopli_core::types::TokenCounts;
 
@@ -76,7 +77,7 @@ The bare C ABI has no host-language lifecycle. The default `libskopli` prices on
 
   </TabItem>
   <TabItem label="Ruby">
-    ```ruby frame="code"
+    ```ruby
     pricing = Skopli.create_pricing(
       # priority order; defaults shown
       sources: [ # BuiltinSource.new(name, format, url); pass sources: [] for no network
@@ -101,7 +102,7 @@ The bare C ABI has no host-language lifecycle. The default `libskopli` prices on
   <TabItem label="Java">
     The fetch runs facade-side, and the facade hands the catalogs to the network-free core. Configure a handle and price a batch:
 
-    ```java frame="code"
+    ```java
     try (Pricing pricing = Skopli.createPricing(PricingOptions.builder()
         .mode(PricingMode.CALCULATE)                              // CALCULATE (default) | DISPLAY | AUTO
         .override(PriceOverride.flat("my-fine-tune", 5.0, 15.0))  // highest priority
@@ -117,7 +118,7 @@ The bare C ABI has no host-language lifecycle. The default `libskopli` prices on
   <TabItem label="C#">
     The fetch runs facade-side, and the facade hands the catalogs to the network-free core. Configure a handle and price a batch:
 
-    ```csharp frame="code"
+    ```csharp
     using Pricing pricing = SkopliClient.CreatePricing(new PricingOptions {
         Mode = PricingMode.Calculate,                              // Calculate (default) | Display | Auto
         Overrides = new[] { new PriceOverride {                    // highest priority
@@ -133,7 +134,7 @@ The bare C ABI has no host-language lifecycle. The default `libskopli` prices on
   <TabItem label="Go">
     The fetch runs facade-side, and the facade hands the catalogs to the network-free core. Configure a handle and price a batch:
 
-    ```go frame="code"
+    ```go
     pricing, _ := skopli.NewPricing(skopli.PricingOptions{
         Mode: skopli.ModeCalculate, // ModeCalculate (default) | ModeDisplay | ModeAuto
         Overrides: []skopli.Override{ // highest priority
@@ -151,7 +152,7 @@ The bare C ABI has no host-language lifecycle. The default `libskopli` prices on
   <TabItem label="Swift">
     The fetch runs facade-side, and the facade hands the catalogs to the network-free core. Configure a handle and price a batch:
 
-    ```swift frame="code"
+    ```swift
     let pricing = try Skopli.createPricing(options: PricingOptions(
         mode: .calculate,                                     // .calculate (default) | .display | .auto
         overrides: [Override(model: "my-fine-tune", input: 5, output: 15)], // highest priority
@@ -166,7 +167,7 @@ The bare C ABI has no host-language lifecycle. The default `libskopli` prices on
   <TabItem label="C/C++">
     The C ABI exchanges JSON buffers. Create a pricing handle from options JSON, price an event array, then free the handle and buffer:
 
-    ```c frame="code"
+    ```c
     #include <stdio.h>
     #include <string.h>
     #include "skopli.h"

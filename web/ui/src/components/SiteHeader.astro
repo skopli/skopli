@@ -1,0 +1,77 @@
+---
+import ThemeToggle from "./ThemeToggle.astro";
+import Wordmark from "./Wordmark.astro";
+import Icon from "./Icon.astro";
+import { useTranslations, type Locale } from "../i18n/index.ts";
+
+interface Props {
+  locale: Locale;
+  home: string;
+  label?: string;
+  links: { href: string; text: string; external?: boolean }[];
+}
+
+const { locale, home, label, links } = Astro.props;
+const t = useTranslations(locale);
+---
+
+<header class="site-header">
+  <div class="wrap bar">
+    <Wordmark href={home} label={label} />
+    <slot name="search" />
+    <nav class="links" aria-label={t("nav.menu")}>
+      {
+        links.map((l) => (
+          <a href={l.href} target={l.external ? "_blank" : undefined} rel={l.external ? "noopener" : undefined}>
+            {l.text}
+            {l.external && <Icon name="external" size={14} />}
+          </a>
+        ))
+      }
+      <ThemeToggle locale={locale} />
+    </nav>
+    <slot name="menu" />
+  </div>
+</header>
+
+<style>
+  .site-header {
+    border-bottom: 1px solid var(--rule);
+    background: var(--bg);
+  }
+
+  .bar {
+    display: flex;
+    align-items: center;
+    gap: var(--space-4);
+    min-height: 3.5rem;
+  }
+
+  .links {
+    margin-inline-start: auto;
+    display: flex;
+    align-items: center;
+    gap: var(--space-1);
+  }
+
+  .links a {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-1);
+    min-height: var(--hit);
+    padding-inline: var(--space-3);
+    color: var(--fg);
+    text-decoration: none;
+    font-size: var(--text-sm);
+  }
+
+  .links a:hover {
+    color: var(--accent);
+  }
+
+  @media (max-width: 767px) {
+    .links a {
+      display: none;
+    }
+  }
+</style>

@@ -3,7 +3,8 @@ title: Rollups
 description: The Rollup layer groups usage events by model, day, session, harness, workspace, or billing block, offline.
 ---
 
-import { Tabs, TabItem } from "@astrojs/starlight/components";
+import Tabs from "@skopli/ui/components/Tabs.astro";
+import TabItem from "@skopli/ui/components/TabItem.astro";
 
 The Rollup layer groups events. Like the Read layer, it never touches the network.
 
@@ -13,7 +14,7 @@ The Rollup layer groups events. Like the Read layer, it never touches the networ
 
 <Tabs syncKey="lang">
   <TabItem label="TypeScript">
-    ```ts frame="code"
+    ```ts
     rollup(events, { by: "model" });
     rollup(events, { by: "day", tz: "Asia/Tokyo" }); // timezone-aware day bucketing
     rollup(events, { by: "session" });
@@ -23,7 +24,7 @@ The Rollup layer groups events. Like the Read layer, it never touches the networ
 
   </TabItem>
   <TabItem label="Python">
-    ```python frame="code"
+    ```python
     skopli.rollup(events, "model")
     skopli.rollup(events, "day", tz="Asia/Tokyo")  # timezone-aware day bucketing
     skopli.rollup(events, "session")
@@ -33,7 +34,7 @@ The Rollup layer groups events. Like the Read layer, it never touches the networ
 
   </TabItem>
   <TabItem label="Rust">
-    ```rust frame="code"
+    ```rust
     use skopli_core::rollup::{rollup, RollupBy, RollupOptions};
 
     rollup(&events, &RollupOptions::new(RollupBy::Model));
@@ -45,7 +46,7 @@ The Rollup layer groups events. Like the Read layer, it never touches the networ
 
   </TabItem>
   <TabItem label="Ruby">
-    ```ruby frame="code"
+    ```ruby
     Skopli.rollup(events, :model)
     Skopli.rollup(events, :day, tz: "Asia/Tokyo") # timezone-aware day bucketing
     Skopli.rollup(events, :session)
@@ -55,7 +56,7 @@ The Rollup layer groups events. Like the Read layer, it never touches the networ
 
   </TabItem>
   <TabItem label="Java">
-    ```java frame="code"
+    ```java
     Skopli.rollup(events, RollupOptions.by(RollupBy.MODEL));
     Skopli.rollup(events, RollupOptions.by(RollupBy.DAY, "Asia/Tokyo")); // timezone-aware day bucketing
     Skopli.rollup(events, RollupOptions.by(RollupBy.SESSION));
@@ -65,7 +66,7 @@ The Rollup layer groups events. Like the Read layer, it never touches the networ
 
   </TabItem>
   <TabItem label="C#">
-    ```csharp frame="code"
+    ```csharp
     SkopliClient.Rollup(events, new RollupOptions { By = RollupBy.Model });
     SkopliClient.Rollup(events, new RollupOptions { By = RollupBy.Day, Tz = "Asia/Tokyo" }); // timezone-aware day bucketing
     SkopliClient.Rollup(events, new RollupOptions { By = RollupBy.Session });
@@ -75,7 +76,7 @@ The Rollup layer groups events. Like the Read layer, it never touches the networ
 
   </TabItem>
   <TabItem label="Go">
-    ```go frame="code"
+    ```go
     skopli.Rollup(events, skopli.RollupOptions{By: skopli.ByModel})
     skopli.Rollup(events, skopli.RollupOptions{By: skopli.ByDay, TZ: "Asia/Tokyo"}) // timezone-aware day bucketing
     skopli.Rollup(events, skopli.RollupOptions{By: skopli.BySession})
@@ -85,7 +86,7 @@ The Rollup layer groups events. Like the Read layer, it never touches the networ
 
   </TabItem>
   <TabItem label="Swift">
-    ```swift frame="code"
+    ```swift
     try Skopli.rollup(events: events, by: .model)
     try Skopli.rollup(events: events, by: .day, tz: "Asia/Tokyo") // timezone-aware day bucketing
     try Skopli.rollup(events: events, by: .session)
@@ -97,7 +98,7 @@ The Rollup layer groups events. Like the Read layer, it never touches the networ
   <TabItem label="C/C++">
     The C ABI exchanges JSON buffers. Pass the rollup options as a JSON object and free the returned buffer:
 
-    ```c frame="code"
+    ```c
     #include <stdio.h>
     #include <string.h>
     #include "skopli.h"
@@ -126,21 +127,21 @@ A block opens at the first event's timestamp floored to the hour (in `tz`, or th
 
 <Tabs syncKey="lang">
   <TabItem label="TypeScript">
-    ```ts frame="code"
+    ```ts
     rollup(events, { by: "block" }); // default five-hour blocks, system timezone
     rollup(events, { by: "block", blockMs: 3_600_000, tz: "Asia/Tokyo" }); // one-hour blocks anchored in Tokyo
     ```
 
   </TabItem>
   <TabItem label="Python">
-    ```python frame="code"
+    ```python
     skopli.rollup(events, "block")  # default five-hour blocks, system timezone
     skopli.rollup(events, "block", block_ms=3_600_000, tz="Asia/Tokyo")  # one-hour blocks anchored in Tokyo
     ```
 
   </TabItem>
   <TabItem label="Rust">
-    ```rust frame="code"
+    ```rust
     use skopli_core::rollup::{rollup, RollupBy, RollupOptions};
 
     rollup(&events, &RollupOptions::new(RollupBy::Block)); // default five-hour blocks
@@ -149,42 +150,42 @@ A block opens at the first event's timestamp floored to the hour (in `tz`, or th
 
   </TabItem>
   <TabItem label="Ruby">
-    ```ruby frame="code"
+    ```ruby
     Skopli.rollup(events, :block) # default five-hour blocks, system timezone
     Skopli.rollup(events, :block, block_ms: 3_600_000, tz: "Asia/Tokyo") # one-hour blocks anchored in Tokyo
     ```
 
   </TabItem>
   <TabItem label="Java">
-    ```java frame="code"
+    ```java
     Skopli.rollup(events, RollupOptions.block(RollupOptions.DEFAULT_BLOCK_MS));
     Skopli.rollup(events, RollupOptions.block(3_600_000L, "Asia/Tokyo")); // one-hour blocks anchored in Tokyo
     ```
 
   </TabItem>
   <TabItem label="C#">
-    ```csharp frame="code"
+    ```csharp
     SkopliClient.Rollup(events, new RollupOptions { By = RollupBy.Block });
     SkopliClient.Rollup(events, new RollupOptions { By = RollupBy.Block, BlockMs = 3_600_000, Tz = "Asia/Tokyo" });
     ```
 
   </TabItem>
   <TabItem label="Go">
-    ```go frame="code"
+    ```go
     skopli.Rollup(events, skopli.RollupOptions{By: skopli.ByBlock})
     skopli.Rollup(events, skopli.RollupOptions{By: skopli.ByBlock, BlockMs: 3_600_000, TZ: "Asia/Tokyo"})
     ```
 
   </TabItem>
   <TabItem label="Swift">
-    ```swift frame="code"
+    ```swift
     try Skopli.rollup(events: events, by: .block)
     try Skopli.rollup(events: events, by: .block, tz: "Asia/Tokyo", blockMs: 3_600_000)
     ```
 
   </TabItem>
   <TabItem label="C/C++">
-    ```c frame="code"
+    ```c
     const char *block_opts = "{\"by\":\"block\",\"blockMs\":18000000}";
     AgBuf out = {0};
     AgStatus st = ag_rollup(events_json, events_len, block_opts, strlen(block_opts), &out);

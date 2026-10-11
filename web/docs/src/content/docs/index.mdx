@@ -1,28 +1,45 @@
 ---
 title: Skopli
-description: An SDK that reads AI coding-agent usage from 40 harnesses offline and prices it against market catalogs.
+description: An SDK that reads AI coding-agent usage from 40 harnesses offline, rolls it up, and prices it against market catalogs.
 ---
 
-Skopli is an open-source SDK that reads the session state your AI coding agents store on local disk, aggregates it, and prices it against market catalogs. It is an SDK, not a CLI. You build the dashboards, reports, and billing checks on top. No accounts, no telemetry.
+Skopli is a library, not a CLI or a service. It parses the session state that coding agents already write to disk, normalizes it into one event shape, aggregates it, and prices it. Your code decides what to do with the numbers.
 
-## What Skopli is
+<dl class="ledger">
+  <div>
+    <dt>Harnesses read from local files</dt>
+    <dd>40</dd>
+  </div>
+  <div>
+    <dt>Language facades over one Rust core</dt>
+    <dd>9</dd>
+  </div>
+  <div>
+    <dt>Market catalogs matched by default</dt>
+    <dd>3</dd>
+  </div>
+  <div>
+    <dt>Network calls made by Read and Rollup</dt>
+    <dd>0</dd>
+  </div>
+  <div>
+    <dt>Prices guessed for unmatched models</dt>
+    <dd class="miss">0</dd>
+  </div>
+</dl>
 
-Skopli reads the session state your harnesses keep on disk (tokens, sessions, turns, calls), normalizes it, aggregates it, and prices it. The readers never touch the network. Only pricing fetches, and it is opt-in, cached, and reads from cache when offline. The same API ships in TypeScript, Python, Rust, Ruby, Java, C#, Go, Swift, and C, all calling one Rust core.
+## What each layer returns
 
-## The three layers
+**Read** takes `readUsage({ harnesses, since, until, tz })` and returns usage events plus structured diagnostics for any file it could not parse. It never opens a socket.
 
-Read, rollup, and price are independent. Use any subset.
+**Rollup** takes those events and a `by` key (`model`, `day`, `session`, `harness`, or `workspace`) and returns grouped token totals. Also offline.
 
-- **Read** parses local session state from 40 harnesses into normalized usage events, with structured diagnostics. See [Reading usage](/skopli/guide/reading/).
-- **Rollup** groups events by model, day, session, harness, or workspace. See [Rollups](/skopli/guide/rollups/).
-- **Price** matches models against market catalogs and computes USD costs, and reports an unmatched model as a miss rather than a guess. See [Pricing basics](/skopli/guide/pricing-basics/).
+**Price** matches rollups or events against OpenRouter, LiteLLM, and models.dev (or catalogs you supply), applies long-context tiers and cache-write rates, and returns USD per row. A model it cannot match comes back as `priced: false` with the catalogs it tried. Catalogs are fetched by default, cached on disk, and reused offline.
 
-## Pricing that admits what it does not know
+## Where to go
 
-Per-event tiered pricing, cache-write splits, and long-context tier rates. An unmatched model returns `priced: false` with the sources it tried, never an invented rate. A miss is a result, not a hidden gap.
-
-## Where to start
-
-- [Getting started](/skopli/guide/getting-started/): install and a four-call quickstart in every language.
-- [Supported harnesses](/skopli/reference/harnesses/): the full table of harness ids.
-- [API reference](/skopli/reference/api/): the functions and types across the facades.
+- [Getting started](/skopli/guide/getting-started/): install in your language and run four calls from local logs to a priced total.
+- [Reading usage](/skopli/guide/reading/): options, time semantics, event fields, subagents, diagnostics.
+- [Pricing basics](/skopli/guide/pricing-basics/): sources, cache, modes, and what a miss looks like.
+- [Supported harnesses](/skopli/reference/harnesses/): all 40 ids.
+- [API reference](/skopli/reference/api/): every call, in every facade.

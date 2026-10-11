@@ -3,13 +3,14 @@ title: Reading usage
 description: The Read layer parses local session state into normalized usage events, entirely offline.
 ---
 
-import { Tabs, TabItem } from "@astrojs/starlight/components";
+import Tabs from "@skopli/ui/components/Tabs.astro";
+import TabItem from "@skopli/ui/components/TabItem.astro";
 
 The Read layer parses local session state into normalized usage events. It never touches the network.
 
 <Tabs syncKey="lang">
   <TabItem label="TypeScript">
-    ```ts frame="code"
+    ```ts
     const { events, diagnostics, skipped } = await readUsage({
       harnesses: ["claude"], // default: all detected
       since: "2026-08-01", // inclusive lower bound
@@ -23,7 +24,7 @@ The Read layer parses local session state into normalized usage events. It never
 
   </TabItem>
   <TabItem label="Python">
-    ```python frame="code"
+    ```python
     result = skopli.read_usage(
         harnesses=["claude"],            # default: all detected
         since="2026-08-01",              # inclusive lower bound
@@ -40,7 +41,7 @@ The Read layer parses local session state into normalized usage events. It never
   <TabItem label="Rust">
     `skopli-core` has no `read_usage` facade. It exposes the reader one level lower: drive a harness `Reader` with a `ReaderContext` (home directory plus env overrides) and read a `ReaderResult`. The host-language facades add detection, `since`/`until`/`tz`/`subagents` filtering, and the canonical event sort on top.
 
-    ```rust frame="code"
+    ```rust
     use skopli_core::readers::{registered_reader, ReaderContext};
 
     let ctx = ReaderContext::new("/home/you")
@@ -55,7 +56,7 @@ The Read layer parses local session state into normalized usage events. It never
 
   </TabItem>
   <TabItem label="Ruby">
-    ```ruby frame="code"
+    ```ruby
     result = Skopli.read_usage(
       harnesses: ["claude"],           # default: all detected
       since: "2026-08-01",             # inclusive lower bound
@@ -70,7 +71,7 @@ The Read layer parses local session state into normalized usage events. It never
 
   </TabItem>
   <TabItem label="Java">
-    ```java frame="code"
+    ```java
     ReadUsageResult result = Skopli.readUsage(ReadUsageOptions.builder()
         .harness(Harness.CLAUDE)                 // default: all detected
         .since("2026-08-01")                     // inclusive lower bound
@@ -86,7 +87,7 @@ The Read layer parses local session state into normalized usage events. It never
 
   </TabItem>
   <TabItem label="C#">
-    ```csharp frame="code"
+    ```csharp
     ReadUsageResult result = SkopliClient.ReadUsage(new ReadUsageOptions {
         Harnesses = new[] { "claude" },          // default: all detected
         Since = "2026-08-01",                    // inclusive lower bound
@@ -101,7 +102,7 @@ The Read layer parses local session state into normalized usage events. It never
 
   </TabItem>
   <TabItem label="Go">
-    ```go frame="code"
+    ```go
     result, _ := skopli.ReadUsage(skopli.ReadUsageOptions{
         Harnesses: []skopli.Harness{skopli.HarnessClaude}, // default: all detected
         Since:     "2026-08-01",                           // inclusive lower bound
@@ -118,7 +119,7 @@ The Read layer parses local session state into normalized usage events. It never
 
   </TabItem>
   <TabItem label="Swift">
-    ```swift frame="code"
+    ```swift
     let result = try Skopli.readUsage(options: ReadUsageOptions(
         home: "/custom/home",                    // optional PathResolver injection
         env: ["CLAUDE_CONFIG_DIR": "/synced/claude"],
@@ -134,7 +135,7 @@ The Read layer parses local session state into normalized usage events. It never
   <TabItem label="C/C++">
     The C ABI exchanges JSON buffers. Pass the read options as a JSON object and free the returned buffer:
 
-    ```c frame="code"
+    ```c
     #include <stdio.h>
     #include <string.h>
     #include "skopli.h"
@@ -180,9 +181,7 @@ Every event carries:
 - `workspace`: optional normalized project directory path. OpenCode records it from its session directory, Claude Code from each record's `cwd`. Readers without the concept leave it undefined. Workspace paths are normalized cross-platform (forward slashes, no trailing separator, case-folded on Windows) so one repository is one key.
 - `title`: optional session title. OpenCode records it from its session title. Readers without the concept leave it undefined.
 
-:::tip[Disjoint token buckets]
-`cacheWrite1h` is a portion of the `cacheWrite` total, not additive to it. Readers subtract reasoning-inclusive output at the source, so `output + reasoning` reconstructs the source's raw output count and nothing bills twice.
-:::
+> **Disjoint token buckets.** `cacheWrite1h` is a portion of the `cacheWrite` total, not additive to it. Readers subtract reasoning-inclusive output at the source, so `output + reasoning` reconstructs the source's raw output count and nothing bills twice.
 
 ## Subagents
 
@@ -191,10 +190,10 @@ Subagent (child) sessions are real spend, so Skopli includes and tags them by de
 `event.subagent` is `true` when the harness's native marker says the event came from a subagent:
 
 - **OpenCode**: the session has a non-null `parent_id` or `parentID` (SQLite and legacy JSON stores).
-- **claude**: the JSONL entry has `isSidechain === true`.
-- **pi** and **omp**: the session's `rlmDepth` is greater than 0.
-- **deepseek**: the session has a parent session, an `origin` of `subagent`, or a delegation depth above 0 (both the JSONL and SQLite backends).
-- **codex**: always `false` for now. codex exposes no reliable per-event subagent marker today.
+- **Claude Code**: the JSONL entry has `isSidechain === true`.
+- **Pi** and **omp**: the session's `rlmDepth` is greater than 0.
+- **DeepSeek Harness**: the session has a parent session, an `origin` of `subagent`, or a delegation depth above 0 (both the JSONL and SQLite backends).
+- **Codex CLI**: always `false` for now. Codex CLI exposes no reliable per-event subagent marker today.
 - every other harness: always `false`, since they have no subagent concept.
 
 ## Diagnostics

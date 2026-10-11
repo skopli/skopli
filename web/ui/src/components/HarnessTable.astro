@@ -1,0 +1,97 @@
+---
+import HarnessIcon from "./HarnessIcon.astro";
+import { HARNESSES } from "../data/harnesses.ts";
+import { useTranslations, type Locale } from "../i18n/index.ts";
+
+interface Props {
+  locale: Locale;
+  caption: string;
+}
+
+const { locale, caption } = Astro.props;
+const t = useTranslations(locale);
+const notes = ["sessions", "estimated", "perModel"] as const;
+const marker = (note: (typeof notes)[number]) => notes.indexOf(note) + 1;
+---
+
+<div class="table-wrap">
+  <table class="harness-table">
+    <caption class="visually-hidden">{caption}</caption>
+    <thead>
+      <tr><th class="n">#</th><th>Harness</th><th>id</th></tr>
+    </thead>
+    <tbody>
+      {
+        HARNESSES.map((h, i) => (
+          <tr>
+            <td class="n">{i + 1}</td>
+            <td>
+              <span class="name">
+                <HarnessIcon id={h.id} />
+                {h.name}
+                {h.note && (
+                  <sup>
+                    <a href={`#harness-note-${marker(h.note)}`} aria-label={t(`harness.note.${h.note}`)}>
+                      {marker(h.note)}
+                    </a>
+                  </sup>
+                )}
+              </span>
+            </td>
+            <td>
+              <code>{h.id}</code>
+            </td>
+          </tr>
+        ))
+      }
+    </tbody>
+  </table>
+</div>
+<ol class="harness-notes">
+  {notes.map((note) => <li id={`harness-note-${marker(note)}`}>{t(`harness.note.${note}`)}</li>)}
+</ol>
+
+<style>
+  .table-wrap {
+    overflow-x: auto;
+  }
+
+  .harness-table {
+    width: 100%;
+    font-size: var(--text-sm);
+  }
+
+  .harness-table th,
+  .harness-table td {
+    padding: var(--space-2) var(--space-3);
+    border-bottom: 1px solid var(--rule);
+    text-align: left;
+    white-space: nowrap;
+  }
+
+  .harness-table th:first-child,
+  .harness-table td:first-child {
+    padding-inline-start: 0;
+    color: var(--fg-muted);
+    width: 2.5rem;
+  }
+
+  .harness-table th {
+    font-weight: 600;
+    color: var(--fg-muted);
+    border-bottom-color: var(--fg);
+  }
+
+  .name {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+  }
+
+  .harness-notes {
+    margin-top: var(--space-4);
+    padding-inline-start: 1.2em;
+    font-size: var(--text-sm);
+    color: var(--fg-muted);
+  }
+</style>

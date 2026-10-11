@@ -5,26 +5,26 @@
   "type": "module",
   "scripts": {
     "dev": "astro dev",
-    "start": "astro dev",
-    "build": "astro build",
+    "build": "astro build && pagefind --site dist/skopli",
     "preview": "astro preview",
-    "astro": "astro",
     "lint": "oxlint",
     "format": "oxfmt --check .",
     "format:write": "oxfmt .",
     "typecheck": "astro check",
+    "probe": "node ../ui/scripts/probe-docs.ts http://localhost:4321/skopli/",
+    "screens": "node ../ui/scripts/screens.ts http://localhost:4321/skopli/ ../../artifacts/screens/docs",
     "check": "pnpm run lint && pnpm run format && pnpm run typecheck"
   },
   "dependencies": {
-    "@astrojs/starlight": "^0.36.0",
-    "astro": "^5.14.1",
-    "sharp": "^0.34.4"
+    "@astrojs/mdx": "8.0.2",
+    "@skopli/ui": "workspace:*",
+    "astro": "7.3.5"
   },
   "devDependencies": {
-    "@astrojs/check": "^0.9.10",
-    "@shikijs/themes": "3.23.0",
-    "oxfmt": "^0.63.0",
-    "oxlint": "^1.78.0",
-    "typescript": "^5.9.3"
+    "@astrojs/check": "0.9.10",
+    "oxfmt": "0.71.0",
+    "oxlint": "1.86.0",
+    "pagefind": "1.5.2",
+    "typescript": "5.9.3"
   }
 }

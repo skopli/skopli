@@ -1,0 +1,71 @@
+---
+import { NAV, pageHref } from "../nav.ts";
+
+interface Props {
+  current: string;
+  label: string;
+}
+
+const { current, label } = Astro.props;
+---
+
+<nav class="sidebar-nav" aria-label={label}>
+  {
+    NAV.map((section) => (
+      <section>
+        <h2>{section.title}</h2>
+        <ul>
+          {section.pages.map((p) => (
+            <li>
+              <a href={pageHref(p.slug)} aria-current={p.slug === current ? "page" : undefined}>
+                {p.title}
+              </a>
+            </li>
+          ))}
+        </ul>
+      </section>
+    ))
+  }
+</nav>
+
+<style>
+  .sidebar-nav {
+    display: grid;
+    gap: var(--space-5);
+  }
+
+  h2 {
+    font: 600 var(--text-xs) / 1.4 var(--font-sans);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--fg-muted);
+    padding-bottom: var(--space-2);
+    border-bottom: 1px solid var(--rule);
+  }
+
+  ul {
+    list-style: none;
+    padding: 0;
+    margin-top: var(--space-2);
+  }
+
+  a {
+    display: flex;
+    align-items: center;
+    min-height: var(--hit);
+    padding-inline: var(--space-2);
+    margin-inline: calc(-1 * var(--space-2));
+    color: var(--fg);
+    text-decoration: none;
+    border-radius: var(--radius-sm);
+  }
+
+  a:hover {
+    color: var(--accent);
+  }
+
+  a[aria-current="page"] {
+    color: var(--accent);
+    font-weight: 600;
+  }
+</style>

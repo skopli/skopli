@@ -1,0 +1,40 @@
+---
+import "@fontsource-variable/ibm-plex-sans";
+import "@fontsource/ibm-plex-serif/500.css";
+import "@fontsource/ibm-plex-serif/500-italic.css";
+import "@fontsource/ibm-plex-mono/400.css";
+import "@fontsource/ibm-plex-mono/500.css";
+import "../styles/tokens.css";
+import "../styles/base.css";
+import { POSTHOG_SNIPPET } from "../analytics.ts";
+
+interface Props {
+  title: string;
+  description: string;
+  canonical: string;
+  analytics?: boolean;
+}
+
+const { title, description, canonical, analytics = false } = Astro.props;
+---
+
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>{title}</title>
+<meta name="description" content={description} />
+<link rel="canonical" href={canonical} />
+<meta property="og:title" content={title} />
+<meta property="og:description" content={description} />
+<meta property="og:url" content={canonical} />
+<meta property="og:type" content="website" />
+<meta name="twitter:card" content="summary" />
+<meta name="color-scheme" content="light dark" />
+<script is:inline>
+  (() => {
+    const s = localStorage.getItem("theme");
+    document.documentElement.dataset.theme =
+      s === "light" || s === "dark" ? s : matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+  })();
+</script>
+{analytics && <script is:inline set:html={POSTHOG_SNIPPET} />}
+<slot />

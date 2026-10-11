@@ -1,0 +1,159 @@
+---
+import type { MarkdownHeading } from "astro";
+import Head from "@skopli/ui/components/Head.astro";
+import SiteHeader from "@skopli/ui/components/SiteHeader.astro";
+import SiteFooter from "@skopli/ui/components/SiteFooter.astro";
+import { localeFromPath, useTranslations } from "@skopli/ui/i18n";
+import "@skopli/ui/styles/prose.css";
+import Sidebar from "../components/Sidebar.astro";
+import Toc from "../components/Toc.astro";
+import PageActions from "../components/PageActions.astro";
+import Pager from "../components/Pager.astro";
+import Search from "../components/Search.astro";
+
+interface Props {
+  title: string;
+  description: string;
+  slug: string;
+  headings: MarkdownHeading[];
+}
+
+const { title, description, slug, headings } = Astro.props;
+const base = import.meta.env.BASE_URL;
+const locale = localeFromPath(Astro.url.pathname, base);
+const t = useTranslations(locale);
+const path = `${base}${slug ? `${slug}/` : ""}`;
+const mdPath = `${base}${slug || "index"}.md`;
+const canonical = `https://docs.skopli.com${path}`;
+const toc = headings.filter((h) => h.depth === 2 || h.depth === 3);
+---
+
+<!doctype html>
+<html lang={locale}>
+  <head>
+    <Head title={`${title} | Skopli docs`} description={description} canonical={canonical} analytics>
+      <link rel="alternate" type="text/markdown" href={mdPath} />
+      <link rel="icon" href={`${base}favicon.svg`} type="image/svg+xml" />
+    </Head>
+  </head>
+  <body>
+    <a class="skip" href="#content">{t("nav.skip")}</a>
+    <SiteHeader
+      locale={locale}
+      home={base}
+      label={t("nav.docs")}
+      links={[
+        { href: "https://skopli.com", text: t("nav.site"), external: true },
+        { href: "https://github.com/skopli/skopli", text: t("nav.github"), external: true },
+      ]}
+    >
+      <Search slot="search" locale={locale} base={base} />
+    </SiteHeader>
+    <div class="wrap docs">
+      <details class="sidebar-mobile">
+        <summary class="btn">{t("sidebar.open")}</summary>
+        <Sidebar current={slug} label={t("sidebar.label")} />
+      </details>
+      <aside class="sidebar"><Sidebar current={slug} label={t("sidebar.label")} /></aside>
+      <main id="content" class="content" data-pagefind-body={slug === "404" ? undefined : ""}>
+        <article class="prose">
+          <header class="page-head">
+            <h1>{title}</h1>
+            <p class="lede">{description}</p>
+            <PageActions locale={locale} mdPath={mdPath} />
+          </header>
+          <slot />
+        </article>
+        <Pager current={slug} locale={locale} />
+      </main>
+      <aside class="toc">{toc.length > 1 && <Toc headings={toc} label={t("toc.label")} />}</aside>
+    </div>
+    <SiteFooter
+      locale={locale}
+      links={[
+        { href: "https://skopli.com", text: t("nav.site") },
+        { href: "https://github.com/skopli/skopli", text: t("footer.source") },
+      ]}
+    />
+  </body>
+</html>
+
+<style>
+  .docs {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--space-6);
+    padding-block: var(--space-5) var(--space-7);
+    align-items: start;
+  }
+
+  .sidebar,
+  .toc {
+    display: none;
+    position: sticky;
+    top: var(--space-5);
+    max-height: calc(100dvh - var(--space-6));
+    overflow-y: auto;
+    font-size: var(--text-sm);
+  }
+
+  .sidebar-mobile summary {
+    list-style: none;
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .sidebar-mobile summary::after {
+    content: "+";
+    color: var(--fg-muted);
+  }
+
+  .sidebar-mobile[open] summary::after {
+    content: "\2212";
+  }
+
+  .sidebar-mobile > :global(nav) {
+    padding: var(--space-4) 0;
+    border-bottom: 1px solid var(--rule);
+  }
+
+  .page-head {
+    padding-bottom: var(--space-5);
+    border-bottom: 1px solid var(--rule);
+    display: grid;
+    gap: var(--space-4);
+  }
+
+  @media (min-width: 1024px) {
+    .docs {
+      grid-template-columns: 14rem minmax(0, 1fr);
+      gap: var(--space-8);
+      padding-block: var(--space-7) var(--space-8);
+    }
+
+    .sidebar-mobile {
+      display: none;
+    }
+
+    .sidebar {
+      display: block;
+    }
+  }
+
+  @media (min-width: 1280px) {
+    .docs {
+      grid-template-columns: 14rem minmax(0, 1fr) 12rem;
+    }
+
+    .toc {
+      display: block;
+    }
+  }
+</style>
+
+<script>
+  document.addEventListener("click", (e) => {
+    const target = (e.target as HTMLElement).closest<HTMLElement>("[data-event]");
+    if (target) window.posthog?.capture(target.dataset.event!);
+  });
+</script>

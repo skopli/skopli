@@ -3,19 +3,20 @@ title: Getting started
 description: Install Skopli in your language and run a four-call quickstart from local logs to a priced total.
 ---
 
-import { Tabs, TabItem } from "@astrojs/starlight/components";
+import Tabs from "@skopli/ui/components/Tabs.astro";
+import TabItem from "@skopli/ui/components/TabItem.astro";
 
 Skopli is an SDK, not a CLI. It reads the session state your harnesses keep on disk (tokens, sessions, turns, calls), normalizes it, aggregates it, and prices it. Build your own dashboards, reports, or billing checks on top.
 
 Three independent layers. Use any subset.
 
-| Layer      | What it does                                                                                                                                                                             | Network        |
-| ---------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------- |
-| **Read**   | Parse local session state from 40 harnesses into normalized usage events, with structured diagnostics                                                                                    | Never          |
-| **Rollup** | Group events by model, day (timezone-aware in every SDK), session, harness, or workspace                                                                                                 | Never          |
-| **Price**  | Match models against OpenRouter, LiteLLM, and models.dev catalogs (or your own) and compute USD costs, with tiered long-context rates, cache-write splits, and misses reported as misses | Opt-in, cached |
+| Layer      | What it does                                                                                                                                                                             | Network                                   |
+| ---------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------- |
+| **Read**   | Parse local session state from 40 harnesses into normalized usage events, with structured diagnostics                                                                                    | Never                                     |
+| **Rollup** | Group events by model, day (timezone-aware in every SDK), session, harness, or workspace                                                                                                 | Never                                     |
+| **Price**  | Match models against OpenRouter, LiteLLM, and models.dev catalogs (or your own) and compute USD costs, with tiered long-context rates, cache-write splits, and misses reported as misses | Fetches by default, cached, works offline |
 
-No accounts, no telemetry. The readers never touch the network. Pricing fetches only when you opt in, caches what it fetches, and reads from cache when offline.
+No accounts, no telemetry. The readers never touch the network. Pricing fetches catalogs by default, caches what it fetches, and reads from cache when offline; pass `sources: []` or `offline: true` to keep it off the network.
 
 ## Install
 
@@ -25,19 +26,19 @@ Pick your language. The TypeScript package requires Node >= 24 and is ESM only. 
   <TabItem label="TypeScript">
     <Tabs syncKey="pkg">
       <TabItem label="npm">
-        ```sh frame="code"
+        ```sh
         npm install skopli
         ```
 
       </TabItem>
       <TabItem label="pnpm">
-        ```sh frame="code"
+        ```sh
         pnpm add skopli
         ```
 
       </TabItem>
       <TabItem label="bun">
-        ```sh frame="code"
+        ```sh
         bun add skopli
         ```
 
@@ -46,19 +47,19 @@ Pick your language. The TypeScript package requires Node >= 24 and is ESM only. 
 
   </TabItem>
   <TabItem label="Python">
-    ```sh frame="code"
+    ```sh
     pip install skopli
     ```
 
   </TabItem>
   <TabItem label="Rust">
-    ```sh frame="code"
+    ```sh
     cargo add skopli-core
     ```
 
   </TabItem>
   <TabItem label="Ruby">
-    ```sh frame="code"
+    ```sh
     gem install skopli
     ```
 
@@ -66,7 +67,7 @@ Pick your language. The TypeScript package requires Node >= 24 and is ESM only. 
   <TabItem label="Java">
     <Tabs syncKey="build">
       <TabItem label="Maven">
-        ```xml frame="code"
+        ```xml
         <dependency>
           <groupId>com.skopli</groupId>
           <artifactId>skopli</artifactId>
@@ -75,7 +76,7 @@ Pick your language. The TypeScript package requires Node >= 24 and is ESM only. 
 
       </TabItem>
       <TabItem label="Gradle">
-        ```groovy frame="code"
+        ```groovy
         implementation("com.skopli:skopli")
         ```
 
@@ -84,13 +85,13 @@ Pick your language. The TypeScript package requires Node >= 24 and is ESM only. 
 
   </TabItem>
   <TabItem label="C#">
-    ```sh frame="code"
+    ```sh
     dotnet add package Skopli
     ```
 
   </TabItem>
   <TabItem label="Go">
-    ```sh frame="code"
+    ```sh
     go get github.com/skopli/skopli/sdks/go
     ```
 
@@ -98,7 +99,7 @@ Pick your language. The TypeScript package requires Node >= 24 and is ESM only. 
   <TabItem label="Swift">
     Add to the `dependencies` array in `Package.swift`:
 
-    ```swift frame="code"
+    ```swift
     .package(url: "https://github.com/skopli/skopli", from: "1.0.0")
     ```
 
@@ -106,11 +107,11 @@ Pick your language. The TypeScript package requires Node >= 24 and is ESM only. 
   <TabItem label="C/C++">
     Download `skopli.h` and the prebuilt library from the release assets, then include the header and link the library:
 
-    ```c frame="code"
+    ```c
     #include "skopli.h"
     ```
 
-    ```sh frame="code"
+    ```sh
     cc app.c -lskopli
     ```
 

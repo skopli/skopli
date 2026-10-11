@@ -3,7 +3,8 @@ title: Rollup pricing vs per-event pricing
 description: How the two pricing entry points differ in handling context-sensitive (tiered) models.
 ---
 
-import { Tabs, TabItem } from "@astrojs/starlight/components";
+import Tabs from "@skopli/ui/components/Tabs.astro";
+import TabItem from "@skopli/ui/components/TabItem.astro";
 
 Both entry points turn usage into USD. They differ in how they handle context-sensitive (tiered) models.
 
@@ -27,19 +28,19 @@ Rather than misprice silently, such a row is flagged `pricing.tieredAggregate: t
 
 <Tabs syncKey="lang">
   <TabItem label="TypeScript">
-    ```ts frame="code"
+    ```ts
     const priced = await pricing.priceEvents(events, { by: "model" });
     ```
 
   </TabItem>
   <TabItem label="Python">
-    ```python frame="code"
+    ```python
     priced = pricing.price_events(events, "model")
     ```
 
   </TabItem>
   <TabItem label="Rust">
-    ```rust frame="code"
+    ```rust
     use skopli_core::rollup::{RollupBy, RollupOptions};
 
     let priced = pricing.price_events(&events, &RollupOptions::new(RollupBy::Model));
@@ -47,38 +48,38 @@ Rather than misprice silently, such a row is flagged `pricing.tieredAggregate: t
 
   </TabItem>
   <TabItem label="Ruby">
-    ```ruby frame="code"
+    ```ruby
     priced = pricing.price_events(events, :model)
     ```
 
   </TabItem>
   <TabItem label="Java">
-    ```java frame="code"
+    ```java
     List<PricedRollup> priced = pricing.priceEvents(events, RollupOptions.by(RollupBy.MODEL));
     ```
 
   </TabItem>
   <TabItem label="C#">
-    ```csharp frame="code"
+    ```csharp
     IReadOnlyList<PricedRollup> priced =
         pricing.PriceEvents(events, new RollupOptions { By = RollupBy.Model });
     ```
 
   </TabItem>
   <TabItem label="Go">
-    ```go frame="code"
+    ```go
     priced, _ := pricing.PriceEvents(events, skopli.RollupOptions{By: skopli.ByModel})
     ```
 
   </TabItem>
   <TabItem label="Swift">
-    ```swift frame="code"
+    ```swift
     let priced = try pricing.priceEvents(events: events, by: .model)
     ```
 
   </TabItem>
   <TabItem label="C/C++">
-    ```c frame="code"
+    ```c
     #include <string.h>
     #include "skopli.h"
 

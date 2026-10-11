@@ -1,0 +1,144 @@
+---
+interface Props {
+  syncKey?: string;
+  label?: string;
+}
+
+const { syncKey, label } = Astro.props;
+---
+
+<div class="tabs" data-tabs data-sync={syncKey} data-label={label}>
+  <slot />
+</div>
+
+<style is:global>
+  .tabs {
+    margin-block: var(--space-4);
+    border: 1px solid var(--rule);
+    border-radius: var(--radius-md);
+  }
+
+  .tabs .tablist {
+    display: flex;
+    overflow-x: auto;
+    border-bottom: 1px solid var(--rule);
+    scrollbar-width: none;
+  }
+
+  .tabs .tablist button {
+    flex: none;
+    min-height: var(--hit);
+    padding-inline: var(--space-4);
+    font-size: var(--text-sm);
+    color: var(--fg-muted);
+    border-bottom: 2px solid transparent;
+    margin-bottom: -1px;
+    white-space: nowrap;
+  }
+
+  .tabs .tablist button[aria-selected="true"] {
+    color: var(--fg);
+    border-bottom-color: var(--fg);
+  }
+
+  .tabs .tablist button:focus-visible {
+    outline-offset: -2px;
+  }
+
+  .tab-panel {
+    padding: var(--space-4);
+  }
+
+  .tab-panel[hidden] {
+    display: none;
+  }
+
+  .tab-panel > * + * {
+    margin-top: var(--space-3);
+  }
+
+  .tab-panel > pre,
+  .tab-panel > .tabs {
+    border: 0;
+    border-radius: 0;
+    margin: calc(-1 * var(--space-4));
+  }
+
+  .tab-panel > .tabs {
+    border-top: 1px solid var(--rule);
+  }
+
+  .tab-panel > pre + * {
+    margin-top: var(--space-6);
+  }
+
+  .tabs:not([data-ready]) .tab-panel::before {
+    content: attr(data-label);
+    display: block;
+    font-weight: 600;
+    margin-bottom: var(--space-2);
+  }
+</style>
+
+<script>
+  const slug = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, "-");
+
+  for (const tabs of document.querySelectorAll<HTMLElement>("[data-tabs]")) {
+    const panels = [...tabs.children].filter((el): el is HTMLElement => el.matches(".tab-panel"));
+    if (!panels.length) continue;
+    const sync = tabs.dataset.sync;
+    const list = document.createElement("div");
+    list.className = "tablist";
+    list.setAttribute("role", "tablist");
+    if (tabs.dataset.label) list.setAttribute("aria-label", tabs.dataset.label);
+    const buttons = panels.map((panel, i) => {
+      const label = panel.dataset.label ?? "";
+      const id = `${sync ?? "tab"}-${slug(label)}-${Math.random().toString(36).slice(2, 7)}`;
+      const button = document.createElement("button");
+      button.type = "button";
+      button.id = id;
+      button.textContent = label;
+      button.setAttribute("role", "tab");
+      panel.id = `${id}-panel`;
+      panel.setAttribute("aria-labelledby", id);
+      button.setAttribute("aria-controls", panel.id);
+      button.addEventListener("click", () => select(i, true));
+      button.addEventListener("keydown", (e) => {
+        const delta = e.key === "ArrowRight" ? 1 : e.key === "ArrowLeft" ? -1 : 0;
+        if (!delta) return;
+        e.preventDefault();
+        const next = (i + delta + panels.length) % panels.length;
+        select(next, true);
+        buttons[next]?.focus();
+      });
+      return button;
+    });
+    list.append(...buttons);
+    tabs.prepend(list);
+
+    const select = (i: number, remember: boolean) => {
+      panels.forEach((panel, j) => {
+        panel.hidden = j !== i;
+        buttons[j]?.setAttribute("aria-selected", String(j === i));
+        buttons[j]?.setAttribute("tabindex", j === i ? "0" : "-1");
+      });
+      const label = panels[i]?.dataset.label;
+      if (remember && sync && label) {
+        localStorage.setItem(`tabs:${sync}`, label);
+        document.dispatchEvent(new CustomEvent("tabs-sync", { detail: { sync, label } }));
+      }
+    };
+
+    const byLabel = (label: string | null) => panels.findIndex((p) => p.dataset.label === label);
+    const initial = sync ? byLabel(localStorage.getItem(`tabs:${sync}`)) : -1;
+    select(initial === -1 ? 0 : initial, false);
+    tabs.dataset.ready = "";
+
+    document.addEventListener("tabs-sync", (e) => {
+      const detail = (e as CustomEvent<{ sync: string; label: string }>).detail;
+      if (detail.sync !== sync) return;
+      const i = byLabel(detail.label);
+      if (i !== -1 && panels[i]?.hidden) select(i, false);
+    });
+  }
+</script>
