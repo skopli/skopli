@@ -1,5 +1,3 @@
-// One copy of the harness list. Ids must equal golden/registry/ids.json (asserted in test/).
-// `fields` lists the optional UsageEvent fields present in that harness's golden fixture.
 export type HarnessField = "costUsd" | "workspace" | "title" | "calls" | "subagent";
 
 export type HarnessEntry = {
@@ -56,7 +54,6 @@ export const harnesses: HarnessEntry[] = [
   { id: "fx", name: "fx", fields: ["calls", "costUsd"] },
 ];
 
-// Detected by detectHarnesses() but not read: their local state carries no reliable token data.
 export const unsupported = ["Cursor", "aider", "Crush", "GitLab Duo CLI"];
 
 export const harnessName = (id: string): string => harnesses.find((h) => h.id === id)?.name ?? id;

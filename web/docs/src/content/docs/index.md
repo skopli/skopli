@@ -90,6 +90,8 @@ let priced = try pricing.priceRollups(rollups: byModel)
 ```
 
 ```rust tab=quickstart
+use skopli_core::pricing::sources::{load_builtin_catalogs, BuiltinOptions};
+use skopli_core::paths::default_cache_dir;
 use skopli_core::pricing::{Pricing, PricingMode};
 use skopli_core::readers::{registered_readers, ReaderContext};
 use skopli_core::rollup::{rollup, RollupBy, RollupOptions};
@@ -100,20 +102,34 @@ for reader in registered_readers() {
     events.extend(reader.read(&ctx).events);
 }
 let by_model = rollup(&events, &RollupOptions::new(RollupBy::Model));
+let catalogs = load_builtin_catalogs(
+    &BuiltinOptions { cache_dir: default_cache_dir(), offline: false, max_cache_age_ms: None },
+    false,
+);
 let priced = Pricing::new(catalogs, None, PricingMode::Calculate).price_rollups(&by_model);
 ```
 
 ```c tab=quickstart
+#include <string.h>
+#include "skopli.h"
+
 const char *read_opts = "{\"since\":\"2026-08-01\"}";
 const char *by_model = "{\"by\":\"model\"}";
+const char *pricing_opts = "{}";
 AgBuf detection, events, rollups, priced;
 AgPricing *pricing = NULL;
 
-ag_detect_harnesses(NULL, 0, &detection);
-ag_read_usage(read_opts, strlen(read_opts), &events);
-ag_rollup((const char *)events.ptr, events.len, by_model, strlen(by_model), &rollups);
-ag_pricing_new(pricing_opts, strlen(pricing_opts), &pricing);
-ag_pricing_price_rollups(pricing, (const char *)rollups.ptr, rollups.len, &priced);
+if (ag_detect_harnesses(NULL, 0, &detection) != AG_STATUS_OK) return 1;
+if (ag_read_usage(read_opts, strlen(read_opts), &events) != AG_STATUS_OK) return 1;
+if (ag_rollup((const char *)events.ptr, events.len, by_model, strlen(by_model), &rollups) != AG_STATUS_OK) return 1;
+if (ag_pricing_new(pricing_opts, strlen(pricing_opts), &pricing) != AG_STATUS_OK) return 1;
+if (ag_pricing_price_rollups(pricing, (const char *)rollups.ptr, rollups.len, &priced) != AG_STATUS_OK) return 1;
+
+ag_pricing_free(pricing);
+ag_buf_free(detection);
+ag_buf_free(events);
+ag_buf_free(rollups);
+ag_buf_free(priced);
 ```
 
 Every priced row is either a hit, with the matched catalog key, the source it came from and a `usd` figure, or a miss with `priced: false` and the list of model names that were tried.

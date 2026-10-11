@@ -48,8 +48,10 @@ for row in pricing.price_rollups(by_model):
     id: "rust",
     name: "Rust",
     shiki: "rust",
-    install: `skopli-core = { path = "crates/skopli-core" }`,
-    quickstart: `use skopli_core::pricing::{Pricing, PricingMode};
+    install: `skopli-core = { path = "crates/skopli-core", features = ["net"] }`,
+    quickstart: `use skopli_core::pricing::sources::{load_builtin_catalogs, BuiltinOptions};
+use skopli_core::paths::default_cache_dir;
+use skopli_core::pricing::{Pricing, PricingMode};
 use skopli_core::readers::{registered_readers, ReaderContext};
 use skopli_core::rollup::{rollup, RollupBy, RollupOptions};
 
@@ -59,6 +61,10 @@ for reader in registered_readers() {
     events.extend(reader.read(&ctx).events);
 }
 let by_model = rollup(&events, &RollupOptions::new(RollupBy::Model));
+let catalogs = load_builtin_catalogs(
+    &BuiltinOptions { cache_dir: default_cache_dir(), offline: false, max_cache_age_ms: None },
+    false,
+);
 
 let pricing = Pricing::new(catalogs, None, PricingMode::Calculate);
 for row in pricing.price_rollups(&by_model) {
@@ -116,7 +122,7 @@ var byModel = SkopliClient.Rollup(result.Events, new RollupOptions { By = Rollup
 using var pricing = SkopliClient.CreatePricing(new PricingOptions());
 foreach (var row in pricing.PriceRollups(byModel))
 {
-    Console.WriteLine($"{row.Key} {row.Pricing}");
+    Console.WriteLine($"{row.Rollup.Key} {row.Pricing}");
 }`,
   },
   {
@@ -159,19 +165,23 @@ for row in try pricing.priceRollups(rollups: byModel) {
     name: "C",
     shiki: "c",
     install: `${native}  # add --features net to fetch catalogs from inside the library`,
-    quickstart: `#include "skopli.h"
+    quickstart: `#include <string.h>
+#include "skopli.h"
 
-const char *read_opts = "{\\"since\\":\\"2026-08-01\\",\\"tz\\":\\"UTC\\"}";
+const char *read_opts = "{\\"since\\":\\"2026-08-01\\"}";
 const char *by_model = "{\\"by\\":\\"model\\"}";
-AgBuf events, rollups, priced;
+const char *pricing_opts = "{}";
+AgBuf detection, events, rollups, priced;
 AgPricing *pricing = NULL;
 
+if (ag_detect_harnesses(NULL, 0, &detection) != AG_STATUS_OK) return 1;
 if (ag_read_usage(read_opts, strlen(read_opts), &events) != AG_STATUS_OK) return 1;
-ag_rollup((const char *)events.ptr, events.len, by_model, strlen(by_model), &rollups);
-ag_pricing_new(pricing_opts, strlen(pricing_opts), &pricing);
-ag_pricing_price_rollups(pricing, (const char *)rollups.ptr, rollups.len, &priced);
+if (ag_rollup((const char *)events.ptr, events.len, by_model, strlen(by_model), &rollups) != AG_STATUS_OK) return 1;
+if (ag_pricing_new(pricing_opts, strlen(pricing_opts), &pricing) != AG_STATUS_OK) return 1;
+if (ag_pricing_price_rollups(pricing, (const char *)rollups.ptr, rollups.len, &priced) != AG_STATUS_OK) return 1;
 
 ag_pricing_free(pricing);
+ag_buf_free(detection);
 ag_buf_free(events);
 ag_buf_free(rollups);
 ag_buf_free(priced);`,

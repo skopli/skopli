@@ -51,7 +51,7 @@ swift build --package-path sdks/swift
 
 ```toml tab=install lang=rust
 [dependencies]
-skopli-core = { path = "crates/skopli-core" }
+skopli-core = { path = "crates/skopli-core", features = ["net"] }
 ```
 
 ```sh tab=install lang=c
@@ -107,8 +107,9 @@ print(detection.supported, detection.unsupported)
 ```
 
 ```c tab=detect
-ag_buf detection = ag_detect_harnesses("{}");
-printf("%.*s\n", (int)detection.len, detection.ptr);
+AgBuf detection;
+if (ag_detect_harnesses(NULL, 0, &detection) != AG_STATUS_OK) return 1;
+printf("%.*s\n", (int)detection.len, (const char *)detection.ptr);
 ag_buf_free(detection);
 ```
 
@@ -145,12 +146,12 @@ result.diagnostics.each { |d| warn "#{d.severity} #{d.harness} #{d.message}" }
 ```
 
 ```go tab=read
-result, err := skopli.ReadUsage(skopli.ReadUsageOptions{Since: "2026-08-01", Tz: "Europe/London"})
+result, err := skopli.ReadUsage(skopli.ReadUsageOptions{Since: "2026-08-01", TZ: "Europe/London"})
 fmt.Println(len(result.Events), "events")
 ```
 
 ```java tab=read
-var result = Skopli.readUsage(new ReadUsageOptions().since("2026-08-01").tz("Europe/London"));
+var result = Skopli.readUsage(ReadUsageOptions.builder().since("2026-08-01").tz("Europe/London").build());
 System.out.println(result.events().size() + " events");
 ```
 
@@ -165,10 +166,14 @@ print(result.events.count, "events")
 ```
 
 ```c tab=read
-ag_buf result = ag_read_usage("{\"since\":\"2026-08-01\",\"tz\":\"Europe/London\"}");
-/* result.ptr is JSON: {"events":[...],"diagnostics":[...],"skipped":{...}} */
+const char *opts = "{\"since\":\"2026-08-01\",\"tz\":\"Europe/London\"}";
+AgBuf result;
+if (ag_read_usage(opts, strlen(opts), &result) != AG_STATUS_OK) return 1;
+printf("%.*s\n", (int)result.len, (const char *)result.ptr);
 ag_buf_free(result);
 ```
+
+The buffer holds the same JSON object the other facades return: `events`, `diagnostics` and `skipped`.
 
 A malformed line does not throw.
 It becomes a diagnostic, and a file Skopli could not use at all is listed under `skipped` by harness.

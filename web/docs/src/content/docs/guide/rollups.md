@@ -63,7 +63,7 @@ type Rollup = {
   events: number;
   turns: number;
   calls: number; // each event contributes its reported count, else 1
-  costUsd?: number; // summed only when every event in the group reported one
+  costUsd?: number; // sum over the events that reported one
 };
 ```
 
@@ -78,13 +78,14 @@ Token counters are summed per counter, so they remain disjoint after aggregation
 | `day`       | `YYYY-MM-DD` in `tz`             | Day boundaries follow the zone you pass, not the machine's                                                     |
 | `session`   | `sessionId`                      | Session ids are only unique within a harness                                                                   |
 | `harness`   | harness id                       | Useful for "which agent is spending"                                                                           |
-| `workspace` | `workspace`                      | Events without a workspace group under an empty key                                                            |
+| `workspace` | `workspace`                      | Events without a workspace group under the key `(unknown)`                                                     |
 | `block`     | ISO timestamp of the block start | Fixed-width windows aligned to the hour in `tz`; 5 hours by default to match common subscription quota windows |
 
 ## `costUsd` on a rollup
 
-A rollup carries `costUsd` only when every event in the group carried one.
-A single unpriced event drops the field for the whole group rather than reporting a partial sum as if it were complete.
+A rollup's `costUsd` is the sum over the events in the group that reported a cost; events without one contribute nothing, and the field is absent only when no event carried a cost.
+The figure can therefore be partial: a group of 50 events where 10 report a cost gives you the sum of those 10, with nothing to say the other 40 are missing.
+Price the rollup to get a complete figure, or compare `events` with the per-harness `costUsd` column on the harness page to see which logs record a cost at all.
 To get a cost for every row, price the rollup; see [Pricing basics](/skopli/guide/pricing-basics/).
 
 ## Rollup first or price first?
