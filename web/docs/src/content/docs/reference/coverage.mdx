@@ -23,7 +23,7 @@ Every `Rollup` has `key`, `tokens`, `events`, `turns` and `calls`.
 ## Guarantees
 
 - Reading and rollups never open a network connection.
-- Nothing is written to stdout or stderr; problems arrive as `diagnostics` and `skipped`.
+- Nothing is written to stdout or stderr. Problems arrive as `diagnostics` and `skipped`.
 - Zero-token rows are dropped regardless of recorded cost.
 - Unusable timestamps are skipped with a warning rather than defaulting to epoch zero.
 - Token buckets are disjoint after normalization, so summing them gives total tokens.
@@ -34,7 +34,7 @@ Every `Rollup` has `key`, `tokens`, `events`, `turns` and `calls`.
 
 - Kiro CLI token counts are estimates.
 - Reasonix and fx.sh expose session-level rows only, so per-message `turn` and `calls` detail is unavailable.
-- Copilot CLI reasoning is assumed disjoint from output; if the OTel export turns out to include it, reasoning would be counted twice for that harness.
-- `priceRollups` on a tiered model can overbill when a rollup sums several events; the row is flagged `tieredAggregate` and `priceEvents` is the exact path.
+- Copilot CLI reasoning is assumed disjoint from output. If the OTel export turns out to include it, reasoning would be counted twice for that harness.
+- `priceRollups` on a tiered model can overbill when a rollup sums several events. The row is flagged `tieredAggregate` and `priceEvents` is the exact path.
 - Long-context tiers come from LiteLLM only.
-- A `costUsd` is whatever the harness recorded; Skopli does not audit it.
+- A `costUsd` is whatever the harness recorded. Skopli does not audit it.

@@ -4,7 +4,8 @@ description: How tiered catalog entries change the rate once a request's context
 ---
 
 Some models charge more once a request's context exceeds a threshold.
-LiteLLM is the only shipped catalog that publishes these tiers; OpenRouter and models.dev entries are flat.
+LiteLLM is the only shipped catalog that publishes these tiers.
+OpenRouter and models.dev entries are flat.
 Skopli reads thresholds at 128k, 200k, 256k, 272k and 512k tokens.
 
 ## Tier selection
@@ -53,5 +54,6 @@ In practice LiteLLM's tiered Claude entries beat OpenRouter's flat ones, so you 
 
 A rollup sums tokens across many events.
 Pricing that sum can cross a tier none of the individual requests reached and overbill.
-`priceRollups` flags such rows with `tieredAggregate: true`; `priceEvents` avoids the problem by pricing each event at its own context.
+`priceRollups` flags such rows with `tieredAggregate: true`.
+`priceEvents` avoids the problem by pricing each event at its own context.
 See [Rollups vs events](/skopli/pricing/rollups-vs-events/).

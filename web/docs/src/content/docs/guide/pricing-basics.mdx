@@ -68,13 +68,14 @@ if (lookup.priced) {
 
 Skopli refuses to guess.
 A model no catalog knows comes back as `{ priced: false, attempted }`.
-Catalog entries priced at $0 are treated as placeholders and skipped so matching falls through to the next source; when only such entries match, the miss carries `reason: "zeroCost"` and the `key` that was found.
+Catalog entries priced at $0 are treated as placeholders and skipped so matching falls through to the next source.
+When only such entries match, the miss carries `reason: "zeroCost"` and the `key` that was found.
 An explicit $0 in `overrides` is honored as a real price.
 
 ## Pricing tokens, rollups and events
 
 `priceTokens(model, tokens)` prices one token bundle and returns the lookup plus `usd`.
-`priceRollups(rollups)` prices already-summed tokens; this is exact for flat-rate models.
+`priceRollups(rollups)` prices already-summed tokens, which is exact for flat-rate models.
 `priceEvents(events, { by, tz })` prices each event at its own context and then groups, which is the correct path for models with long-context tiers.
 [Rollups vs events](/skopli/pricing/rollups-vs-events/) explains the difference and the `tieredAggregate` flag.
 

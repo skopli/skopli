@@ -30,7 +30,7 @@ type Rollup = {
 ## Keys
 
 **model** uses the harness's own model name without normalization, so `openai/gpt-5` and `gpt-5` are separate rows.
-Pricing matches them to the same catalog entry later; see [Model matching](/skopli/pricing/model-matching/).
+Pricing matches them to the same catalog entry later, as [Model matching](/skopli/pricing/model-matching/) describes.
 
 **day** buckets by calendar day in `tz`, defaulting to the system timezone.
 The same `tz` passed to `readUsage` keeps date bounds and day buckets in step.
@@ -42,7 +42,8 @@ Every facade uses the same timezone logic, so a Ruby day rollup and a Go day rol
 Events without one fall under the `(unknown)` sentinel rather than disappearing.
 
 **block** groups into fixed billing windows.
-`blockMs` sets the width; a missing or non-positive value uses the default of five hours (18,000,000 ms).
+`blockMs` sets the width.
+A missing or non-positive value uses the default of five hours (18,000,000 ms).
 Block starts are floored to the hour in `tz`.
 
 ## Counting
@@ -50,5 +51,6 @@ Block starts are floored to the hour in `tz`.
 `events` counts rows.
 `turns` counts rows where `turn` is true.
 `calls` sums each event's reported `calls` when that value is finite, else counts 1, so a Hermes row that aggregates eight calls adds eight.
-`costUsd` is only the recorded cost and only when at least one event in the group recorded one; it is not a price.
+`costUsd` is only the recorded cost, present only when at least one event in the group recorded one.
+It is not a price.
 For prices, hand the rollups to [`priceRollups`](/skopli/guide/pricing-basics/), or use [`priceEvents`](/skopli/pricing/rollups-vs-events/) when any model has long-context tiers.

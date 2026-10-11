@@ -24,7 +24,7 @@ export const nav: { label: string; items: NavItem[] }[] = [
     items: [
       { label: "Supported harnesses", slug: "reference/harnesses" },
       { label: "Coverage", slug: "reference/coverage" },
-      { label: "API surface", slug: "reference/api" },
+      { label: "API reference", slug: "reference/api" },
     ],
   },
 ];

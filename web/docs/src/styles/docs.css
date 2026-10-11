@@ -54,10 +54,16 @@
   display: none;
   min-height: var(--tap);
   padding: 0 var(--space-3);
-  border: 1px solid var(--rule-strong);
+  border: 0;
   border-radius: var(--radius);
   background: transparent;
+  color: var(--ink-2);
   font-size: var(--text-sm);
+}
+.docs__menu:hover,
+.docs__search-toggle:hover {
+  color: var(--ink);
+  background: var(--paper-2);
 }
 
 .docs__shell {
@@ -255,9 +261,10 @@
 }
 .prose table {
   display: block;
-  max-width: 100%;
-  width: max-content;
+  width: 100%;
   overflow-x: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--rule-strong) transparent;
   border-collapse: collapse;
   font-size: var(--text-sm);
   font-variant-numeric: tabular-nums;
@@ -270,7 +277,7 @@
   vertical-align: top;
 }
 .prose td code {
-  overflow-wrap: anywhere;
+  white-space: nowrap;
 }
 .prose th {
   font-weight: 500;
@@ -304,7 +311,13 @@
 .tabs__list {
   display: flex;
   overflow-x: auto;
+  scroll-snap-type: x proximity;
+  scrollbar-width: thin;
+  scrollbar-color: var(--rule-strong) transparent;
   border-bottom: 1px solid var(--rule);
+}
+.tabs__tab {
+  scroll-snap-align: start;
 }
 .tabs__tab {
   flex: none;
@@ -449,10 +462,6 @@
   .docs__search-toggle {
     width: var(--tap);
     padding: 0;
-    border: 0;
-    border-radius: var(--radius);
-    background: transparent;
-    color: var(--ink-2);
   }
   .search:not([data-open]) {
     display: none;
@@ -460,6 +469,10 @@
   .docs__shell {
     grid-template-columns: minmax(0, 1fr);
     gap: 0;
+  }
+  .prose table {
+    width: max-content;
+    max-width: 100%;
   }
   .sidebar {
     display: none;

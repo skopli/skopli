@@ -38,7 +38,8 @@ Each `PricedEventGroup` carries the same token sums and counts as a `Rollup` plu
 | `AggregatePriceHit` | The group spans several models (possible by session, day, harness, workspace) | `models`, `usd`                                       |
 | `PriceMiss`         | Any member model failed to price                                              | `model`, `attempted`, optional `reason`               |
 
-A group prices only when every member model priced; one unknown model makes the whole group a miss rather than a partial total that looks complete.
+A group prices only when every member model priced.
+One unknown model makes the whole group a miss rather than a partial total that looks complete.
 A multi-model group returns `AggregatePriceHit` instead of claiming one model's rate for all of them.
 
 A single-model group whose events aggregate several calls on a tiered model is still flagged `tieredAggregate: true`, because the per-call token split is not recoverable from the log.

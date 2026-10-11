@@ -20,7 +20,8 @@ import Tabs from "../../../components/Tabs.astro";
 | C          | Prebuilt `libskopli` and `skopli.h` from GitHub Releases         |
 
 The TypeScript package is ESM only and needs Node 24 or later.
-The Go, Java, C# and Swift facades load the native `skopli` library; their READMEs in the repository describe where each runtime looks for it.
+The Go, Java, C# and Swift facades load the native `skopli` library.
+Their READMEs in the repository describe where each runtime looks for it.
 
 ## Read, roll up, price
 
@@ -112,7 +113,8 @@ let priced = try pricing.priceRollups(byModel)
 
 The first two steps never touch the network.
 `createPricing()` fetches the OpenRouter, LiteLLM and models.dev catalogs the first time it needs them, caches them on disk for about an hour, and keeps using the cache when a fetch fails.
-Pass `offline: true` or `sources: []` to price without any network access; see [Pricing basics](/skopli/guide/pricing-basics/).
+Pass `offline: true` or `sources: []` to price without any network access.
+[Pricing basics](/skopli/guide/pricing-basics/) has the details.
 
 ## What comes back
 

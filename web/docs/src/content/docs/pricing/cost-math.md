@@ -18,7 +18,8 @@ For a flat-rate model the cost of a token bundle is the sum over buckets of `tok
 | `cacheWrite1h` | `price.cacheWrite1h`, falling back to `price.input x 2` when omitted       |
 
 Buckets are disjoint, so nothing is billed twice.
-`cacheWrite` is the total across cache TTLs; `cacheWrite1h` is the part of it written with a one-hour TTL.
+`cacheWrite` is the total across cache TTLs.
+`cacheWrite1h` is the part of it written with a one-hour TTL.
 Only the remainder (`cacheWrite - cacheWrite1h`) bills at the 5-minute `cacheWrite` rate.
 Source priority is per model, not per field: once a catalog wins the match, all of its rates are used, including its omissions.
 
@@ -58,7 +59,8 @@ Claude models reprice the whole request at the tier's rates (input 6.00, output 
                   1,842,450 / 1e6 = 1.84245
 ```
 
-Those are synthetic token counts against a catalog snapshot dated 2026-08-01; the arithmetic is what matters.
+Those are synthetic token counts against a catalog snapshot dated 2026-08-01.
+The arithmetic is what matters.
 [Long-context tiers](/skopli/pricing/long-context-tiers/) covers how the tier was chosen.
 
 ## costUsd

@@ -19,7 +19,7 @@ const targets = [
 ---
 
 <div class="actions" data-actions data-md={md}>
-  <button class="actions__btn" type="button" data-copy>Copy page</button>
+  <button class="actions__btn" type="button" data-copy aria-live="polite">Copy page</button>
   <a class="actions__btn" href={md}>View as Markdown</a>
   <details class="actions__menu">
     <summary class="actions__btn">Open in</summary>
@@ -36,14 +36,17 @@ const targets = [
 <script>
   const root = document.querySelector<HTMLElement>("[data-actions]");
   const copy = root?.querySelector<HTMLButtonElement>("[data-copy]");
-  copy?.addEventListener("click", async () => {
-    const text = await (await fetch(root!.dataset.md!)).text();
-    await navigator.clipboard.writeText(text);
-    copy.textContent = "Copied";
-    setTimeout(() => (copy.textContent = "Copy page"), 1500);
-  });
-  document.addEventListener("click", (event) => {
-    const menu = root?.querySelector<HTMLDetailsElement>("details[open]");
-    if (menu && !menu.contains(event.target as Node)) menu.open = false;
-  });
+  const md = root?.dataset.md;
+  if (root && copy && md) {
+    copy.addEventListener("click", async () => {
+      const text = await (await fetch(md)).text();
+      await navigator.clipboard.writeText(text);
+      copy.textContent = "Copied";
+      setTimeout(() => (copy.textContent = "Copy page"), 1500);
+    });
+    document.addEventListener("click", (event) => {
+      const menu = root.querySelector<HTMLDetailsElement>("details[open]");
+      if (menu && !menu.contains(event.target as Node)) menu.open = false;
+    });
+  }
 </script>

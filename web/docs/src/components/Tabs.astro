@@ -60,10 +60,13 @@ const uid = nextTabsId();
         if (tab?.dataset.lang) this.select(tab.dataset.lang, true);
       });
       this.addEventListener("keydown", (e) => {
-        if (e.key !== "ArrowRight" && e.key !== "ArrowLeft") return;
         const i = this.tabs.findIndex((t) => t === document.activeElement);
         if (i < 0) return;
-        const next = this.tabs[(i + (e.key === "ArrowRight" ? 1 : this.tabs.length - 1)) % this.tabs.length]!;
+        const n = this.tabs.length;
+        const target = { ArrowRight: (i + 1) % n, ArrowLeft: (i + n - 1) % n, Home: 0, End: n - 1 }[e.key];
+        if (target === undefined) return;
+        e.preventDefault();
+        const next = this.tabs[target]!;
         next.focus();
         if (next.dataset.lang) this.select(next.dataset.lang, true);
       });

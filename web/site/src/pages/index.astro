@@ -19,15 +19,19 @@ const output = `[
     "pricing": { "priced": true, "usd": 1.84245, "source": "litellm",
                  "tieredAggregate": true } },
   { "key": "gpt-5",
-    "tokens": { "input": 1000, "output": 500, "cacheRead": 0, "cacheWrite": 0, "reasoning": 0 },
+    "tokens": { "input": 1000, "output": 500, "cacheRead": 0,
+                "cacheWrite": 0, "reasoning": 0 },
     "pricing": { "priced": true, "usd": 0.00625, "source": "litellm" } },
   { "key": "us.anthropic.claude-opus-4-6-20260115-v1:0",
-    "tokens": { "input": 800, "output": 200, "cacheRead": 0, "cacheWrite": 0, "reasoning": 0 },
-    "pricing": { "priced": true, "usd": 0.009, "key": "anthropic/claude-opus-4.6",
-                 "source": "openrouter" } },
+    "tokens": { "input": 800, "output": 200, "cacheRead": 0,
+                "cacheWrite": 0, "reasoning": 0 },
+    "pricing": { "priced": true, "usd": 0.009, "source": "openrouter",
+                 "key": "anthropic/claude-opus-4.6" } },
   { "key": "totally-unknown-model-9000",
-    "tokens": { "input": 100, "output": 100, "cacheRead": 0, "cacheWrite": 0, "reasoning": 0 },
-    "pricing": { "priced": false, "attempted": ["totally-unknown-model-9000"] } }
+    "tokens": { "input": 100, "output": 100, "cacheRead": 0,
+                "cacheWrite": 0, "reasoning": 0 },
+    "pricing": { "priced": false,
+                 "attempted": ["totally-unknown-model-9000"] } }
 ]`;
 
 const layers = [
@@ -43,7 +47,7 @@ const layers = [
   },
   {
     name: "Price",
-    does: "Looks each model up in OpenRouter, LiteLLM and models.dev, caches the catalogs for an hour and keeps serving the cache when the network is gone. Pass offline or an empty source list and it never connects.",
+    does: "Looks each model up in OpenRouter, LiteLLM and models.dev, caches the catalogs for an hour and keeps serving the cache when the network is gone. Pass <code>offline</code> or an empty source list and it never connects.",
     network: "Cached, optional",
   },
 ];
@@ -51,10 +55,10 @@ const layers = [
 const rules = [
   ["Reasoning tokens", "billed at the output rate"],
   ["Cache read and write", "fall back to the input rate when a catalog omits them"],
-  ["1h cache writes", "billed at the above-1hr rate when the catalog has one, else input x 2"],
+  ["1h cache writes", "billed at the catalog's 1h rate when it has one, else input x 2"],
   ["Long-context tiers", "128k, 200k, 256k, 272k and 512k thresholds; marginal by default, whole-request for Claude models"],
   ["Zero-token rows", "dropped, whatever cost the vendor reported"],
-  ["Unmatched models", "priced: false with the keys that were tried; never a guess"],
+  ["Unmatched models", "<code>priced: false</code> with the keys that were tried, never a guess"],
 ];
 
 const harnesses: [string, string][] = [
@@ -125,7 +129,7 @@ const themes = { light: "github-light", dark: "github-dark" };
       {layers.map((layer) => (
         <div class="layers__row">
           <dt>{layer.name}</dt>
-          <dd>{layer.does}</dd>
+          <dd set:html={layer.does} />
           <dd class="layers__net"><span class="label">Network</span>{layer.network}</dd>
         </div>
       ))}
@@ -145,7 +149,7 @@ const themes = { light: "github-light", dark: "github-dark" };
       {rules.map(([term, rule]) => (
         <div class="rules__row">
           <dt>{term}</dt>
-          <dd>{rule}</dd>
+          <dd set:html={rule} />
         </div>
       ))}
     </dl>
@@ -169,10 +173,10 @@ const themes = { light: "github-light", dark: "github-dark" };
       ))}
     </ul>
     <p class="harnesses__note">
-      Kiro CLI stores no token counts, so its events are estimates and flagged as such. Reasonix emits
-      one event per session, fx.sh one per model per session.
-      <a href={`${docs}reference/harnesses/`}>Per-harness details</a>
+      Kiro CLI stores no token counts, so its events carry estimated tokens. Reasonix emits one event
+      per session, fx.sh one per model per session.
     </p>
+    <a class="harnesses__link" href={`${docs}reference/harnesses/`}>Per-harness details</a>
   </section>
 
   <section class="langs wrap" aria-labelledby="langs-h">
@@ -370,8 +374,7 @@ const themes = { light: "github-light", dark: "github-dark" };
     color: var(--ink-2);
     max-width: 44ch;
   }
-  .rules__lead a,
-  .harnesses__note a {
+  .rules__lead a {
     color: var(--accent);
   }
   .rules__lead a {
@@ -420,14 +423,15 @@ const themes = { light: "github-light", dark: "github-dark" };
     padding: 0;
     margin-top: var(--space-6);
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(14rem, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(16rem, 1fr));
     border-top: 1px solid var(--rule);
     border-left: 1px solid var(--rule);
   }
   .harnesses__grid li {
     display: flex;
+    flex-wrap: wrap;
     justify-content: space-between;
-    gap: var(--space-3);
+    gap: var(--space-1) var(--space-3);
     padding: var(--space-3) var(--space-4);
     border-right: 1px solid var(--rule);
     border-bottom: 1px solid var(--rule);
@@ -442,11 +446,11 @@ const themes = { light: "github-light", dark: "github-dark" };
     font-size: var(--text-sm);
     color: var(--ink-3);
   }
-  .harnesses__note a {
+  .harnesses__link {
     display: inline-flex;
     align-items: center;
     min-height: var(--tap);
-    color: var(--ink);
+    color: var(--accent);
   }
 
   .langs__list {

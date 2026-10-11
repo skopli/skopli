@@ -32,13 +32,13 @@ Display names follow each project's own branding.
 ## Notes by harness
 
 - **Kiro CLI** stores no token counts, so its events carry estimated tokens.
-- **Reasonix** logs one event per session; **fx.sh** logs one event per model per session, so `turns` and per-message detail are not available for them.
-- **Codex CLI, Grok CLI and ZCode** report reasoning inside output; the reader subtracts it so the buckets stay disjoint.
-- **Copilot CLI** is read from its OTel export, which does not state whether output includes reasoning; the two are treated as disjoint and not subtracted.
+- **Reasonix** logs one event per session and **fx.sh** one event per model per session, so `turns` and per-message detail are not available for them.
+- **Codex CLI, Grok CLI and ZCode** report reasoning inside output. The reader subtracts it so the buckets stay disjoint.
+- **Copilot CLI** is read from its OTel export, which does not state whether output includes reasoning. The two are treated as disjoint and not subtracted.
 - **Claude Code** reports the 5m/1h cache-write split, which populates `tokens.cacheWrite1h`, and records `costUSD`, which populates `costUsd`.
 - **OpenCode** supplies `workspace`, `title` and, when non-zero, `costUsd`.
 - **Hermes** reports a per-row `message_count`, which populates `calls`.
-- **OpenCode, ZCode, Devin CLI and Cline** keep both a SQLite store and a legacy JSONL mirror; the SQLite store is authoritative and the mirror is not double-counted.
+- **OpenCode, ZCode, Devin CLI and Cline** keep both a SQLite store and a legacy JSONL mirror. The SQLite store is authoritative and the mirror is not double-counted.
 
 ## Subagent markers
 
@@ -51,5 +51,5 @@ Display names follow each project's own branding.
 
 ## Detected but unsupported
 
-Cursor, aider, Crush and GitLab Duo CLI are recognised by `detectHarnesses()` and returned in `unsupported`.
+Cursor, aider, Crush and GitLab Duo CLI are recognized by `detectHarnesses()` and returned in `unsupported`.
 They keep no reliable local token data, so Skopli reports their presence and nothing else.
