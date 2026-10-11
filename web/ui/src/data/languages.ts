@@ -62,7 +62,7 @@ for reader in registered_readers() {
 }
 let by_model = rollup(&events, &RollupOptions::new(RollupBy::Model));
 let catalogs = load_builtin_catalogs(
-    &BuiltinOptions { cache_dir: default_cache_dir(), offline: false, max_cache_age_ms: None },
+    &BuiltinOptions { cache_dir: default_cache_dir().into(), offline: false, max_cache_age_ms: None },
     false,
 );
 
