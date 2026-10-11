@@ -195,8 +195,9 @@ const t = useTranslations(locale);
       const { results } = await pf.search(q);
       const data = await Promise.all(results.slice(0, 10).map((r) => r.data()));
       const ds = dialog!.dataset;
+      const tpl = results.length === 1 ? ds.resultsOne! : ds.resultsOther!;
       status!.textContent = data.length
-        ? (results.length === 1 ? ds.resultsOne! : ds.resultsOther!).replace("{count}", String(results.length))
+        ? tpl.replace("{count}", String(results.length))
         : dialog!.dataset.empty!.replace("{query}", q);
       for (const d of data) {
         const li = document.createElement("li");
