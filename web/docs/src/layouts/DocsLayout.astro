@@ -26,13 +26,14 @@ const path = `${base}${slug ? `${slug}/` : ""}`;
 const mdPath = `${base}${slug || "index"}.md`;
 const canonical = `https://docs.skopli.com${path}`;
 const toc = headings.filter((h) => h.depth === 2 || h.depth === 3);
+const notFound = slug === "404";
 ---
 
 <!doctype html>
 <html lang={locale}>
   <head>
-    <Head title={`${title} | Skopli docs`} description={description} canonical={canonical} analytics>
-      <link rel="alternate" type="text/markdown" href={mdPath} />
+    <Head title={slug ? `${title} | Skopli docs` : "Skopli docs"} description={description} canonical={canonical} analytics>
+      {!notFound && <link rel="alternate" type="text/markdown" href={mdPath} />}
       <link rel="icon" href={`${base}favicon.svg`} type="image/svg+xml" />
     </Head>
   </head>
@@ -50,17 +51,18 @@ const toc = headings.filter((h) => h.depth === 2 || h.depth === 3);
       <Search slot="search" locale={locale} base={base} />
     </SiteHeader>
     <div class="wrap docs">
-      <details class="sidebar-mobile">
-        <summary class="btn">{t("sidebar.open")}</summary>
+      <aside class="sidebar">
+        <button class="btn sidebar-toggle" type="button" aria-expanded="false" aria-controls="sidebar-nav">
+          {t("sidebar.toggle")}
+        </button>
         <Sidebar current={slug} label={t("sidebar.label")} />
-      </details>
-      <aside class="sidebar"><Sidebar current={slug} label={t("sidebar.label")} /></aside>
-      <main id="content" class="content" data-pagefind-body={slug === "404" ? undefined : ""}>
+      </aside>
+      <main id="content" class="content" data-pagefind-body={notFound ? undefined : ""}>
         <article class="prose">
           <header class="page-head">
             <h1>{title}</h1>
             <p class="lede">{description}</p>
-            <PageActions locale={locale} mdPath={mdPath} />
+            {!notFound && <PageActions locale={locale} mdPath={mdPath} />}
           </header>
           <slot />
         </article>
@@ -87,9 +89,12 @@ const toc = headings.filter((h) => h.depth === 2 || h.depth === 3);
     align-items: start;
   }
 
-  .sidebar,
   .toc {
     display: none;
+  }
+
+  .sidebar,
+  .toc {
     position: sticky;
     top: var(--space-5);
     max-height: calc(100dvh - var(--space-6));
@@ -97,24 +102,30 @@ const toc = headings.filter((h) => h.depth === 2 || h.depth === 3);
     font-size: var(--text-sm);
   }
 
-  .sidebar-mobile summary {
-    list-style: none;
+  .sidebar-toggle {
     width: 100%;
     justify-content: space-between;
   }
 
-  .sidebar-mobile summary::after {
+  .sidebar-toggle::after {
     content: "+";
     color: var(--fg-muted);
   }
 
-  .sidebar-mobile[open] summary::after {
+  .sidebar-toggle[aria-expanded="true"]::after {
     content: "\2212";
   }
 
-  .sidebar-mobile > :global(nav) {
+  .sidebar > :global(nav) {
     padding: var(--space-4) 0;
     border-bottom: 1px solid var(--rule);
+  }
+
+  @media (max-width: 1023px) {
+    .sidebar {
+      position: static;
+      max-height: none;
+    }
   }
 
   .page-head {
@@ -131,12 +142,17 @@ const toc = headings.filter((h) => h.depth === 2 || h.depth === 3);
       padding-block: var(--space-7) var(--space-8);
     }
 
-    .sidebar-mobile {
+    .sidebar-toggle {
       display: none;
     }
 
-    .sidebar {
-      display: block;
+    .sidebar > :global(nav) {
+      padding: 0;
+      border: 0;
+    }
+
+    .sidebar :global(.sidebar-nav[hidden]) {
+      display: grid;
     }
   }
 
@@ -152,6 +168,14 @@ const toc = headings.filter((h) => h.depth === 2 || h.depth === 3);
 </style>
 
 <script>
+  const toggle = document.querySelector<HTMLButtonElement>(".sidebar-toggle");
+  const nav = document.getElementById("sidebar-nav");
+  toggle?.addEventListener("click", () => {
+    if (!nav) return;
+    nav.hidden = !nav.hidden;
+    toggle.setAttribute("aria-expanded", String(!nav.hidden));
+  });
+
   document.addEventListener("click", (e) => {
     const target = (e.target as HTMLElement).closest<HTMLElement>("[data-event]");
     if (target) window.posthog?.capture(target.dataset.event!);

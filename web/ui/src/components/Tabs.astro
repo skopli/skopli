@@ -83,6 +83,7 @@ const { syncKey, label } = Astro.props;
 <script>
   const slug = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, "-");
 
+  let seq = 0;
   for (const tabs of document.querySelectorAll<HTMLElement>("[data-tabs]")) {
     const panels = [...tabs.children].filter((el): el is HTMLElement => el.matches(".tab-panel"));
     if (!panels.length) continue;
@@ -93,7 +94,7 @@ const { syncKey, label } = Astro.props;
     if (tabs.dataset.label) list.setAttribute("aria-label", tabs.dataset.label);
     const buttons = panels.map((panel, i) => {
       const label = panel.dataset.label ?? "";
-      const id = `${sync ?? "tab"}-${slug(label)}-${Math.random().toString(36).slice(2, 7)}`;
+      const id = `${sync ?? "tab"}-${slug(label)}-${seq++}`;
       const button = document.createElement("button");
       button.type = "button";
       button.id = id;
@@ -104,10 +105,11 @@ const { syncKey, label } = Astro.props;
       button.setAttribute("aria-controls", panel.id);
       button.addEventListener("click", () => select(i, true));
       button.addEventListener("keydown", (e) => {
-        const delta = e.key === "ArrowRight" ? 1 : e.key === "ArrowLeft" ? -1 : 0;
-        if (!delta) return;
+        const n = panels.length;
+        const moves: Record<string, number> = { ArrowRight: (i + 1) % n, ArrowLeft: (i - 1 + n) % n, Home: 0, End: n - 1 };
+        const next = moves[e.key];
+        if (next === undefined) return;
         e.preventDefault();
-        const next = (i + delta + panels.length) % panels.length;
         select(next, true);
         buttons[next]?.focus();
       });

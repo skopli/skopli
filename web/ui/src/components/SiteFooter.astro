@@ -17,7 +17,7 @@ const year = new Date().getFullYear();
       <span>{t("footer.license")}</span>
       <span>{t("footer.copyright", { year })}</span>
     </p>
-    <nav class="foot-links" aria-label={t("footer.source")}>
+    <nav class="foot-links" aria-label={t("footer.label")}>
       {links.map((l) => <a href={l.href}>{l.text}</a>)}
     </nav>
     <p class="marks">{t("footer.marks")}</p>
@@ -39,14 +39,19 @@ const year = new Date().getFullYear();
     grid-template-columns: 1fr auto;
   }
 
-  .meta {
+  .meta,
+  .foot-links {
     display: flex;
+    align-items: center;
+    min-height: var(--hit);
+  }
+
+  .meta {
     flex-wrap: wrap;
     gap: var(--space-2) var(--space-4);
   }
 
   .foot-links {
-    display: flex;
     gap: var(--space-2);
   }
 

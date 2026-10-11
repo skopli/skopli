@@ -87,6 +87,8 @@ jobs:
           node-version: 24
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      - name: ui check
+        run: pnpm --dir web/ui run check
       - name: site check + build
         run: pnpm --dir web/site run check && pnpm --dir web/site run build
       - name: docs check + build

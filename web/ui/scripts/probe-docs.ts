@@ -31,9 +31,19 @@ check(
 );
 
 const theme = () => page.evaluate(() => document.documentElement.dataset.theme);
+const toggle = page.locator("[data-theme-toggle]");
 const before = await theme();
-await page.getByRole("button", { name: "Theme" }).click();
+check(
+  "theme label names the next theme",
+  (await toggle.getAttribute("aria-label")) ===
+    `Switch to ${before === "dark" ? "light" : "dark"} theme`,
+);
+await toggle.click();
 check("theme toggle flips", (await theme()) !== before, `${before} -> ${await theme()}`);
+check(
+  "theme label follows the flip",
+  (await toggle.getAttribute("aria-label")) === `Switch to ${before} theme`,
+);
 check(
   "theme persisted",
   (await page.evaluate(() => localStorage.getItem("theme"))) === (await theme()),
@@ -108,10 +118,38 @@ await tabs.nth(1).click();
 check("tab switch shows Python", (await shown()) === "Python");
 await page.reload();
 check("tab choice persists", (await shown()) === "Python");
+await tabs.nth(1).focus();
+await page.keyboard.press("End");
+check("End key selects last tab", (await shown()) === (await tabs.last().textContent())?.trim());
+await page.keyboard.press("Home");
+check("Home key selects first tab", (await shown()) === (await tabs.first().textContent())?.trim());
+check(
+  "tab ids are deterministic",
+  !/[a-z0-9]{5}$/.test((await tabs.first().getAttribute("id")) ?? "") &&
+    /-0$/.test((await tabs.first().getAttribute("id")) ?? ""),
+);
 await page.keyboard.press("Tab");
 check(
   "focus-visible outline on first tab stop",
   await page.evaluate(() => getComputedStyle(document.activeElement!).outlineStyle !== "none"),
+);
+
+await page.setViewportSize({ width: 390, height: 900 });
+const sidebarToggle = page.locator(".sidebar-toggle");
+const sidebarNav = page.locator("#sidebar-nav");
+check("sidebar nav hidden by default at 390", !(await sidebarNav.isVisible()));
+await sidebarToggle.click();
+check(
+  "sidebar toggle opens nav",
+  (await sidebarNav.isVisible()) && (await sidebarToggle.getAttribute("aria-expanded")) === "true",
+);
+check("one sidebar nav in the DOM", (await page.locator("nav.sidebar-nav").count()) === 1);
+
+const missing = await page.goto(`${base}no-such-page/`);
+check("404 status", missing?.status() === 404, String(missing?.status()));
+check(
+  "404 has no markdown twin or page actions",
+  (await page.locator('link[rel="alternate"], [data-copy-md], [data-event]').count()) === 0,
 );
 
 for (const w of [390, 768, 1440]) {

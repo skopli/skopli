@@ -9,8 +9,8 @@ interface Props {
 const { headings, label } = Astro.props;
 ---
 
-<nav class="toc-nav" aria-label={label}>
-  <h2>{label}</h2>
+<nav class="toc-nav" aria-labelledby="toc-label">
+  <p class="label" id="toc-label">{label}</p>
   <ul>
     {
       headings.map((h) => (
@@ -23,7 +23,7 @@ const { headings, label } = Astro.props;
 </nav>
 
 <style>
-  h2 {
+  .label {
     font: 600 var(--text-xs) / 1.4 var(--font-sans);
     letter-spacing: 0.04em;
     text-transform: uppercase;

@@ -115,16 +115,6 @@ table {
   font-variant-numeric: tabular-nums;
 }
 
-.num,
-.n {
-  font-variant-numeric: tabular-nums;
-}
-
-td.n,
-th.n {
-  text-align: right;
-}
-
 hr {
   border: 0;
   border-top: 1px solid var(--rule);
@@ -215,16 +205,6 @@ hr {
 }
 
 .btn:hover {
-  border-color: var(--fg);
-}
-
-.btn-primary {
-  background: var(--accent);
-  border-color: var(--accent);
-  color: var(--on-accent);
-}
-
-.btn-primary:hover {
   border-color: var(--fg);
 }
 

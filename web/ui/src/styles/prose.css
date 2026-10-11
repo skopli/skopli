@@ -71,6 +71,14 @@
   padding: 0;
 }
 
+.prose .astro-code span {
+  color: var(--shiki-light);
+}
+
+[data-theme="dark"] .prose .astro-code span {
+  color: var(--shiki-dark);
+}
+
 .prose .table-wrap {
   overflow-x: auto;
 }

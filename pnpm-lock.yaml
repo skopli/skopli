@@ -10,7 +10,7 @@ importers:
     devDependencies:
       '@napi-rs/cli':
         specifier: ^3.8.6
-        version: 3.8.6(@emnapi/core@1.11.2)(@emnapi/runtime@1.11.2)(@types/node@26.2.0)
+        version: 3.8.6(@emnapi/core@1.9.2)(@emnapi/runtime@1.9.2)(@types/node@26.2.0)
       '@types/node':
         specifier: ^26.1.2
         version: 26.2.0
@@ -29,19 +29,19 @@ importers:
 
   web/docs:
     dependencies:
-      '@astrojs/mdx':
-        specifier: 8.0.2
-        version: 8.0.2(@astrojs/markdown-satteri@0.4.2)(astro@7.3.5(@types/node@26.2.0)(yaml@2.9.0))
       '@skopli/ui':
         specifier: workspace:*
         version: link:../ui
-      astro:
-        specifier: 7.3.5
-        version: 7.3.5(@types/node@26.2.0)(yaml@2.9.0)
     devDependencies:
       '@astrojs/check':
         specifier: 0.9.10
         version: 0.9.10(prettier@3.9.6)(typescript@5.9.3)
+      '@astrojs/mdx':
+        specifier: 8.0.2
+        version: 8.0.2(@astrojs/markdown-satteri@0.4.2)(astro@7.3.5(@types/node@26.2.0)(yaml@2.9.0))
+      astro:
+        specifier: 7.3.5
+        version: 7.3.5(@types/node@26.2.0)(yaml@2.9.0)
       oxfmt:
         specifier: 0.71.0
         version: 0.71.0
@@ -4617,7 +4617,7 @@ snapshots:
       '@jridgewell/resolve-uri': 3.1.2
       '@jridgewell/sourcemap-codec': 1.5.5
 
-  '@napi-rs/cli@3.8.6(@emnapi/core@1.11.2)(@emnapi/runtime@1.11.2)(@types/node@26.2.0)':
+  '@napi-rs/cli@3.8.6(@emnapi/core@1.9.2)(@emnapi/runtime@1.9.2)(@types/node@26.2.0)':
     dependencies:
       '@inquirer/prompts': 8.5.2(@types/node@26.2.0)
       '@napi-rs/cross-toolchain': 1.0.3
@@ -4632,8 +4632,8 @@ snapshots:
       typanion: 3.14.0
       typescript: 6.0.3
     optionalDependencies:
-      '@emnapi/core': 1.11.2
-      '@emnapi/runtime': 1.11.2
+      '@emnapi/core': 1.9.2
+      '@emnapi/runtime': 1.9.2
     transitivePeerDependencies:
       - '@napi-rs/cross-toolchain-arm64-target-aarch64'
       - '@napi-rs/cross-toolchain-arm64-target-armv7'

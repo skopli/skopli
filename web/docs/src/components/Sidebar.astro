@@ -9,11 +9,11 @@ interface Props {
 const { current, label } = Astro.props;
 ---
 
-<nav class="sidebar-nav" aria-label={label}>
+<nav class="sidebar-nav" id="sidebar-nav" aria-label={label} hidden>
   {
     NAV.map((section) => (
       <section>
-        <h2>{section.title}</h2>
+        <p class="label">{section.title}</p>
         <ul>
           {section.pages.map((p) => (
             <li>
@@ -29,12 +29,16 @@ const { current, label } = Astro.props;
 </nav>
 
 <style>
+  .sidebar-nav[hidden] {
+    display: none;
+  }
+
   .sidebar-nav {
     display: grid;
     gap: var(--space-5);
   }
 
-  h2 {
+  .label {
     font: 600 var(--text-xs) / 1.4 var(--font-sans);
     letter-spacing: 0.04em;
     text-transform: uppercase;

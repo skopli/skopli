@@ -1,9 +1,11 @@
 import { mkdirSync } from "node:fs";
 import { chromium } from "playwright";
 
-const [base, outDir, ...routes] = process.argv.slice(2);
-if (!base || !outDir || !routes.length) {
-  console.error("usage: node screens.ts <baseUrl> <outDir> <route...>");
+const [base, outDir, ...given] = process.argv.slice(2);
+if (!base || !outDir) {
+  console.error(
+    "usage: node screens.ts <baseUrl> <outDir> [route...]  (no routes: crawl links from the base page)",
+  );
   process.exit(2);
 }
 mkdirSync(outDir, { recursive: true });
@@ -12,6 +14,18 @@ const widths = [1440, 768, 390];
 const themes = ["light", "dark"] as const;
 const browser = await chromium.launch();
 let failures = 0;
+
+const crawl = async () => {
+  const page = await browser.newPage();
+  await page.goto(base, { waitUntil: "load" });
+  const hrefs = await page.$$eval("a[href]", (as) => as.map((a) => (a as HTMLAnchorElement).href));
+  await page.close();
+  const inner = hrefs
+    .filter((h) => h.startsWith(base) && !h.includes("#") && h.endsWith("/"))
+    .map((h) => h.slice(base.length));
+  return ["", ...new Set(inner)];
+};
+const routes = given.length ? given : await crawl();
 
 for (const route of routes) {
   const slug = route.replace(/\/$/, "").replace(/^\//, "").replace(/\//g, "_") || "index";

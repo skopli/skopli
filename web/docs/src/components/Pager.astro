@@ -17,7 +17,7 @@ const next = i >= 0 ? PAGES[i + 1] : undefined;
 
 {
   (prev || next) && (
-    <nav class="pager" aria-label={`${t("pager.prev")} / ${t("pager.next")}`}>
+    <nav class="pager" aria-label={t("pager.label")}>
       {prev && (
         <a href={pageHref(prev.slug)} rel="prev">
           <span class="dir">

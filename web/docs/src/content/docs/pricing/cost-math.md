@@ -11,7 +11,7 @@ Reasoning tokens bill at the output rate. Cache rates fall back to the input rat
 
 Token buckets are disjoint. Readers whose sources report reasoning-inclusive output (Codex, Grok, ZCode) subtract reasoning from output before emitting events, so `output + reasoning` reconstructs the source's raw output count and nothing bills twice.
 
-> **One documented assumption.** The OTel GenAI semantic conventions do not state whether `gen_ai.usage.output_tokens` includes reasoning tokens, so the GitHub Copilot CLI (OTel) reader assumes the vendor reports them as disjoint and keeps `gen_ai.usage.reasoning*` in its own bucket without subtraction. If Copilot's telemetry turns out to be reasoning-inclusive, its reasoning tokens would be double-billed.
+> **One documented assumption.** The OTel GenAI semantic conventions do not state whether `gen_ai.usage.output_tokens` includes reasoning tokens, so the GitHub Copilot CLI reader assumes the vendor reports them as disjoint and keeps `gen_ai.usage.reasoning*` in its own bucket without subtraction. If GitHub Copilot CLI's telemetry turns out to be reasoning-inclusive, its reasoning tokens would be double-billed.
 
 Every rate below is USD per 1M tokens.
 

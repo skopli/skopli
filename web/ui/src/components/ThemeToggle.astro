@@ -9,7 +9,11 @@ interface Props {
 const t = useTranslations(Astro.props.locale);
 ---
 
-<button class="icon-btn theme-toggle" type="button" data-theme-toggle aria-label={t("theme.label")}>
+<button class="icon-btn theme-toggle" type="button" data-theme-toggle
+  aria-label={t("theme.label")}
+  data-to-light={t("theme.toLight")}
+  data-to-dark={t("theme.toDark")}
+>
   <Icon name="sun" class="when-dark" />
   <Icon name="moon" class="when-light" />
 </button>
@@ -27,10 +31,16 @@ const t = useTranslations(Astro.props.locale);
 
 <script>
   for (const button of document.querySelectorAll<HTMLButtonElement>("[data-theme-toggle]")) {
+    const label = () => {
+      const dark = document.documentElement.dataset.theme === "dark";
+      button.setAttribute("aria-label", dark ? button.dataset.toLight! : button.dataset.toDark!);
+    };
+    label();
     button.addEventListener("click", () => {
       const next = document.documentElement.dataset.theme === "dark" ? "light" : "dark";
       document.documentElement.dataset.theme = next;
       localStorage.setItem("theme", next);
+      label();
     });
   }
 </script>

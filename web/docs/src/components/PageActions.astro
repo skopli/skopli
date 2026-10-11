@@ -33,7 +33,7 @@ const targets = [
     data-failed={t("actions.failed")}
   >
     <Icon name="copy" size={16} />
-    <span>{t("actions.copy")}</span>
+    <span aria-live="polite">{t("actions.copy")}</span>
   </button>
   <a class="btn" href={mdPath}>{t("actions.view")}</a>
   <details class="open-in">
@@ -57,6 +57,12 @@ const targets = [
 </div>
 
 <style>
+  [data-copy-md] span {
+    display: inline-block;
+    min-width: 8.5em;
+    text-align: start;
+  }
+
   .actions {
     display: flex;
     flex-wrap: wrap;
