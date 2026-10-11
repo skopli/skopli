@@ -1,0 +1,92 @@
+---
+import "@skopli/ui/styles/base.css";
+import "@skopli/ui/styles/code-tabs.css";
+import { bootScript } from "@skopli/ui/head.ts";
+import { t, type Locale } from "@skopli/ui/i18n/index.ts";
+import Mark from "@skopli/ui/components/Mark.astro";
+import SiteFooter from "@skopli/ui/components/SiteFooter.astro";
+import ThemeToggle from "@skopli/ui/components/ThemeToggle.astro";
+interface Props {
+  title: string;
+  description: string;
+  locale?: Locale;
+}
+const { title, description, locale = "en" } = Astro.props;
+const canonical = new URL(Astro.url.pathname, Astro.site).href;
+---
+
+<!doctype html>
+<html lang={locale}>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <link rel="canonical" href={canonical} />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonical} />
+    <meta property="og:type" content="website" />
+    <script is:inline set:html={bootScript} />
+  </head>
+  <body>
+    <a class="skip-link" href="#content">{t(locale, "nav.skip")}</a>
+    <header class="masthead">
+      <a class="brand" href="/"><Mark size={22} /><span>{t(locale, "site.name")}</span></a>
+      <nav class="masthead-nav" aria-label="Site">
+        <a href="https://docs.skopli.com/skopli/">{t(locale, "nav.docs")}</a>
+        <a href="https://github.com/skopli/skopli" target="_blank" rel="noopener">{t(locale, "nav.github")}</a>
+        <ThemeToggle locale={locale} />
+      </nav>
+    </header>
+    <main id="content">
+      <slot />
+    </main>
+    <SiteFooter locale={locale} />
+  </body>
+</html>
+
+<style>
+  .masthead {
+    display: flex;
+    align-items: center;
+    gap: var(--space-4);
+    min-height: 64px;
+    padding: 0 var(--space-5);
+    border-bottom: var(--rule) solid var(--rule-color);
+  }
+  .brand {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    min-height: var(--target);
+    font-family: var(--font-display);
+    font-weight: 600;
+    text-decoration: none;
+    color: var(--fg);
+  }
+  .masthead-nav {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    margin-left: auto;
+  }
+  .masthead-nav a {
+    display: inline-flex;
+    align-items: center;
+    min-height: var(--target);
+    padding: 0 var(--space-3);
+    color: var(--fg-muted);
+    text-decoration: none;
+    border-radius: var(--radius);
+  }
+  .masthead-nav a:hover {
+    color: var(--fg);
+    background: var(--sunken);
+  }
+  main {
+    width: min(1120px, 100% - 2 * var(--space-5));
+    margin: 0 auto;
+  }
+</style>

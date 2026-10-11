@@ -1,0 +1,17 @@
+---
+import SiteLayout from "../layouts/SiteLayout.astro";
+---
+
+<SiteLayout title="Page not found" description="There is no page at this address.">
+  <section class="lost">
+    <h1>Page not found</h1>
+    <p>There is no page at this address. <a href="/">Back to the front page</a> or <a href="https://docs.skopli.com/skopli/">open the docs</a>.</p>
+  </section>
+</SiteLayout>
+
+<style>
+  .lost {
+    padding: var(--space-9) 0;
+    max-width: var(--measure);
+  }
+</style>
