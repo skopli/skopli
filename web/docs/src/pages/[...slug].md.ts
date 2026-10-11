@@ -1,5 +1,6 @@
 import type { APIRoute, GetStaticPaths } from "astro";
 import { getCollection } from "astro:content";
+import { pageMarkdown } from "../markdown";
 
 export const getStaticPaths: GetStaticPaths = async () => {
   const docs = await getCollection("docs");
@@ -8,6 +9,7 @@ export const getStaticPaths: GetStaticPaths = async () => {
 
 export const GET: APIRoute = ({ props }) => {
   const { entry } = props;
-  const body = `# ${entry.data.title}\n\n> ${entry.data.description}\n\n${entry.body ?? ""}`;
-  return new Response(body, { headers: { "content-type": "text/markdown; charset=utf-8" } });
+  return new Response(pageMarkdown(entry.data.title, entry.data.description, entry.body), {
+    headers: { "content-type": "text/markdown; charset=utf-8" },
+  });
 };

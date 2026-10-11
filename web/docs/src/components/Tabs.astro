@@ -1,4 +1,6 @@
 ---
+import { nextTabsId } from "../tabs-id";
+
 const langs: [string, string][] = [
   ["ts", "TypeScript"],
   ["python", "Python"],
@@ -11,7 +13,7 @@ const langs: [string, string][] = [
   ["c", "C"],
 ];
 const present = langs.filter(([id]) => Astro.slots.has(id));
-const uid = Math.random().toString(36).slice(2, 8);
+const uid = nextTabsId();
 ---
 
 <code-tabs class="tabs">

@@ -25,15 +25,16 @@ The Go, Java, C# and Swift facades load the native `skopli` library; their READM
 ## Read, roll up, price
 
 <Tabs>
-  <Fragment slot="ts">
+<Fragment slot="ts">
+
 ```ts
 import { detectHarnesses, readUsage, rollup, createPricing } from "skopli";
 
 const { supported, unsupported } = detectHarnesses();
 
 const { events, diagnostics } = await readUsage({
-harnesses: ["claude", "opencode", "codex"],
-since: "2026-08-01",
+  harnesses: ["claude", "opencode", "codex"],
+  since: "2026-08-01",
 });
 
 const byModel = rollup(events, { by: "model" });
@@ -42,13 +43,14 @@ const pricing = createPricing();
 const priced = await pricing.priceRollups(byModel);
 
 for (const row of priced) {
-if (row.pricing.priced) console.log(row.key, row.pricing.usd, row.pricing.source);
-else console.log(row.key, "unpriced, tried", row.pricing.attempted);
+  if (row.pricing.priced) console.log(row.key, row.pricing.usd, row.pricing.source);
+  else console.log(row.key, "unpriced, tried", row.pricing.attempted);
 }
+```
 
-````
-  </Fragment>
-  <Fragment slot="python">
+</Fragment>
+<Fragment slot="python">
+
 ```python
 import skopli
 
@@ -58,15 +60,15 @@ rollups = skopli.rollup(result.events, by="model")
 
 pricing = skopli.create_pricing()
 for row in pricing.price_rollups(rollups):
-    match row.pricing.priced:
-        case True:
-            print(row.rollup.key, row.usd, row.pricing.source)
-        case False:
-            print(row.rollup.key, "unpriced, tried", row.pricing.attempted)
-````
+    if row.pricing.priced:
+        print(row.rollup.key, row.usd, row.pricing.source)
+    else:
+        print(row.rollup.key, "unpriced, tried", row.pricing.attempted)
+```
 
-  </Fragment>
-  <Fragment slot="ruby">
+</Fragment>
+<Fragment slot="ruby">
+
 ```ruby
 require "skopli"
 
@@ -75,12 +77,13 @@ rollups = Skopli.rollup(result.events, :model)
 
 pricing = Skopli.create_pricing
 pricing.price_rollups(rollups).each do |row|
-puts "#{row.rollup.key}: #{row.usd.inspect}"
+  puts "#{row.rollup.key}: #{row.usd.inspect}"
 end
+```
 
-````
-  </Fragment>
-  <Fragment slot="csharp">
+</Fragment>
+<Fragment slot="csharp">
+
 ```csharp
 using Skopli;
 
@@ -89,10 +92,11 @@ IReadOnlyList<Rollup> byModel = SkopliClient.Rollup(usage.Events, new RollupOpti
 
 using Pricing pricing = SkopliClient.CreatePricing(new PricingOptions());
 IReadOnlyList<PricedRollup> priced = pricing.PriceRollups(byModel);
-````
+```
 
-  </Fragment>
-  <Fragment slot="swift">
+</Fragment>
+<Fragment slot="swift">
+
 ```swift
 import Skopli
 
@@ -101,9 +105,9 @@ let byModel = try Skopli.rollup(events: result.events, by: .model)
 
 let pricing = try Skopli.createPricing(options: PricingOptions())
 let priced = try pricing.priceRollups(byModel)
-
 ```
-  </Fragment>
+
+</Fragment>
 </Tabs>
 
 The first two steps never touch the network.
@@ -122,4 +126,3 @@ Skopli never substitutes a guessed price.
 - [Reading usage](/skopli/guide/reading/) for date bounds, timezones, subagents and diagnostics.
 - [Rollups](/skopli/guide/rollups/) for the six grouping keys.
 - [Rollups vs events](/skopli/pricing/rollups-vs-events/) before you price models with long-context tiers.
-```

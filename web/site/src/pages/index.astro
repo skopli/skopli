@@ -322,6 +322,12 @@ const themes = { light: "github-light", dark: "github-dark" };
       grid-template-columns: 1fr;
     }
   }
+  @media (max-width: 480px) {
+    .demo :global(pre) {
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+    }
+  }
 
   .layers__list {
     margin-top: var(--space-6);
