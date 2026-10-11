@@ -75,23 +75,27 @@ components:
 ## Overview
 
 Skopli presents usage and cost figures that have to be trusted, so both sites read like an audited statement: warm paper, dark ink, hairline rules, and numbers set in tabular figures with their source named next to them.
-Marketing persuades with a real input and its real output; docs read as a single calm column.
+Marketing persuades with a real input and its real output.
+Docs read as a single calm column.
 Tokens live in `web/ui/src/styles/tokens.css` and are consumed unchanged by `web/site` and `web/docs`.
 
 ## Colors
 
-Paper tones are warm off-whites, never pure white; ink is a warm near-black.
+Paper tones are warm off-whites, never pure white.
+Ink is a warm near-black.
 Three ink steps (`ink`, `ink-2`, `ink-3`) cover headings, body and muted text, all AA on paper.
 `accent` is used only for links inside prose and for focus rings.
 `rule` is a decorative hairline.
 `rule-strong` is the 3:1 boundary used on controls such as quiet buttons and inputs.
-`ok` and `miss` mark priced and unpriced states when a figure needs a status; they are never decorative.
-Dark mode swaps the paper and ink scales under `[data-theme="dark"]`; the same roles apply.
+`ok` and `miss` mark priced and unpriced states when a figure needs a status.
+They are never decorative.
+Dark mode swaps the paper and ink scales under `[data-theme="dark"]`.
+The same roles apply.
 
 ## Typography
 
 Inter Variable for all text, JetBrains Mono Variable for code, identifiers and figures.
-Headings are weight 500 with slight negative tracking; sentence case throughout.
+Headings are weight 500 with slight negative tracking, in sentence case throughout.
 Body measure is capped at 66ch.
 Numeric columns use `font-variant-numeric: tabular-nums` and align right.
 
@@ -100,7 +104,8 @@ Numeric columns use `font-variant-numeric: tabular-nums` and align right.
 Content is capped at 76rem on marketing and 96rem on docs (sidebar 16rem, article 44rem, table of contents 14rem).
 Sections are separated by 1px rules, not by background changes or cards.
 Lists of facts are definition rows: term in the left column, detail in the right, a hairline between rows.
-At 390px every grid collapses to one column and tables scroll inside their own box; nothing overflows the page.
+At 390px every grid collapses to one column and tables scroll inside their own box.
+Nothing overflows the page.
 
 ## Elevation & Depth
 
@@ -116,7 +121,8 @@ No pills.
 
 ## Components
 
-Buttons are 44px tall; the primary is ink on paper, the quiet variant is a 1px inset border.
+Buttons are 44px tall.
+The primary is paper text on an ink fill, the quiet variant a 1px border in `rule-strong`.
 Code panes share one background (`paper-2`), a 1px rule and a small uppercase caption row.
 Language tabs persist the choice in `localStorage` and switch every tab set on the page.
 Page actions (copy, view as Markdown, open in an assistant) are bordered 44px controls under the title.
@@ -124,7 +130,7 @@ Page actions (copy, view as Markdown, open in an assistant) are bordered 44px co
 ## Do's and Don'ts
 
 - Do show real output from the repository's fixtures and say where the numbers come from.
-- Do keep `priced: false` visible; a miss is a result.
+- Do keep `priced: false` visible. A miss is a result.
 - Don't invent testimonials, adoption figures or benchmarks.
 - Don't add eyebrows, numbered section labels or repeated subtitles.
 - Don't use the em dash in copy.

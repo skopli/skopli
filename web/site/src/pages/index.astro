@@ -4,20 +4,28 @@ import Base from "../layouts/Base.astro";
 
 const docs = "https://docs.skopli.com/skopli/";
 
-const input = `import { createPricing, readUsage, rollup } from "skopli";
+const input = `import {
+  createPricing,
+  readUsage,
+  rollup,
+} from "skopli";
 
 const { events } = await readUsage({
   since: "2026-08-01",
 });
-const byModel = rollup(events, { by: "model" });
+const byModel = rollup(events, {
+  by: "model",
+});
 
 const pricing = createPricing();
-const priced = await pricing.priceRollups(byModel);`;
+const priced =
+  await pricing.priceRollups(byModel);`;
 
 const output = `[
   { "key": "claude-sonnet-4-5",
     "tokens": { "input": 205000, "output": 11000, "cacheRead": 22000,
-                "cacheWrite": 34000, "cacheWrite1h": 11500, "reasoning": 2000 },
+                "cacheWrite": 34000, "cacheWrite1h": 11500,
+                "reasoning": 2000 },
     "pricing": { "priced": true, "usd": 1.84245, "source": "litellm",
                  "tieredAggregate": true } },
   { "key": "gpt-5",
@@ -135,7 +143,7 @@ const installs: [string, string][] = [
   ["C#", "dotnet add package Skopli"],
   ["Go", "go get github.com/skopli/skopli/sdks/go"],
   ["Swift", ".package(url: \"https://github.com/skopli/skopli\", branch: \"main\")"],
-  ["C", "libskopli + skopli.h from GitHub Releases"],
+  ["C", "Prebuilt libskopli and skopli.h from GitHub Releases"],
 ];
 
 const themes = { light: "github-light", dark: "github-dark" };
@@ -147,16 +155,16 @@ const themes = { light: "github-light", dark: "github-dark" };
 >
   <section class="hero">
     <div class="wrap">
-      <h1>Your coding agents already wrote the usage logs. Skopli reads them.</h1>
-      <p class="hero__text">
-        An MIT SDK that parses the local session state of 40 harnesses, rolls the tokens up and prices
-        them from market catalogs. Offline for reading and rollups. No accounts, no telemetry, no CLI
-        to install.
-      </p>
-      <div class="hero__actions">
-        <a class="button" href={`${docs}guide/getting-started/`}>Read the docs</a>
-        <code class="install num">pnpm add skopli</code>
-      </div>
+        <h1>Your coding agents already wrote the usage logs. Skopli reads them.</h1>
+        <p class="hero__text">
+          An MIT SDK that parses the local session state of 40 harnesses, rolls the tokens up and prices
+          them from market catalogs. Offline for reading and rollups. No accounts, no telemetry, no CLI
+          to install.
+        </p>
+        <div class="hero__actions">
+          <a class="button" href={`${docs}guide/getting-started/`}>Read the docs</a>
+          <code class="install num">pnpm add skopli</code>
+        </div>
     </div>
     <figure class="demo wrap">
       <div class="demo__pane">
@@ -178,28 +186,28 @@ const themes = { light: "github-light", dark: "github-dark" };
 
   <section class="layers" aria-labelledby="layers-h">
     <div class="wrap">
-    <h2 id="layers-h">Three layers, used separately or together</h2>
-    <dl class="layers__list">
-      {layers.map((layer) => (
-        <div class="layers__row">
-          <dt>{layer.name}</dt>
-          <dd set:html={layer.does} />
-          <dd class="layers__net"><span class="label">Network</span>{layer.network}</dd>
-        </div>
-      ))}
-    </dl>
+      <h2 id="layers-h">Three layers, used separately or together</h2>
+      <dl class="layers__list">
+        {layers.map((layer) => (
+          <div class="layers__row">
+            <dt>{layer.name}</dt>
+            <dd set:html={layer.does} />
+            <dd class="layers__net"><span class="label">Network</span>{layer.network}</dd>
+          </div>
+        ))}
+      </dl>
     </div>
   </section>
 
   <section class="rules" aria-labelledby="rules-h">
     <div class="wrap">
-    <div class="rules__lead">
-      <h2 id="rules-h">Cost math you can audit</h2>
-      <p>
-        Every priced result carries the catalog it came from and when that catalog was fetched. The
-        rules below are the same in all nine languages because one Rust core applies them.
-      </p>
-      <a href={`${docs}pricing/cost-math/`}>How the math works</a>
+      <div class="rules__lead">
+        <h2 id="rules-h">Cost math you can audit</h2>
+        <p>
+          Every priced result carries the catalog it came from and when that catalog was fetched. The
+          rules below are the same in all nine languages because one Rust core applies them.
+        </p>
+        <a href={`${docs}pricing/cost-math/`}>How the math works</a>
     </div>
     <dl class="rules__list">
       {rules.map(([term, rule]) => (
@@ -214,13 +222,13 @@ const themes = { light: "github-light", dark: "github-dark" };
 
   <section class="harnesses" id="harnesses" aria-labelledby="harnesses-h">
     <div class="wrap">
-    <div class="harnesses__head">
-      <h2 id="harnesses-h"><span class="num">40</span> harnesses, one event shape</h2>
-      <p>
-        Detection probes the directories each harness writes to. Cursor, aider, Crush and GitLab Duo CLI
-        are detected but keep no usable local usage data, so they are reported as unsupported rather
-        than silently skipped.
-      </p>
+      <div class="harnesses__head">
+        <h2 id="harnesses-h"><span class="num">40</span> harnesses, one event shape</h2>
+        <p>
+          Detection probes the directories each harness writes to. Cursor, aider, Crush and GitLab Duo CLI
+          are detected but keep no usable local usage data, so they are reported as unsupported rather
+          than silently skipped.
+        </p>
     </div>
     <ul class="harnesses__grid">
       {harnesses.map(([name, id]) => (
@@ -240,32 +248,43 @@ const themes = { light: "github-light", dark: "github-dark" };
 
   <section class="langs" aria-labelledby="langs-h">
     <div class="wrap">
-    <h2 id="langs-h">One core, nine languages</h2>
-    <p class="langs__text">
-      The parsers, rollup and pricing live in Rust. Each facade is a thin, idiomatic binding, so a day
-      rollup in Ruby and a day rollup in Go agree to the token.
-    </p>
-    <ul class="langs__list">
-      {installs.map(([lang, cmd]) => (
-        <li>
-          <span>{lang}</span>
-          <code>{cmd}</code>
-        </li>
-      ))}
-    </ul>
+      <h2 id="langs-h">One core, nine languages</h2>
+      <p class="langs__text">
+        The parsers, rollup and pricing live in Rust. Each facade is a thin, idiomatic binding, so a day
+        rollup in Ruby and a day rollup in Go agree to the token.
+      </p>
+      <ul class="langs__list">
+        {installs.map(([lang, cmd]) => (
+          <li>
+            <span>{lang}</span>
+            <code>{cmd}</code>
+          </li>
+        ))}
+      </ul>
     </div>
   </section>
 
   <section class="close">
     <div class="wrap">
-    <h2>Build the dashboard, the report or the billing check. The data is already on your disk.</h2>
-    <div class="hero__actions">
-      <a class="button" href={`${docs}guide/getting-started/`}>Getting started</a>
-      <a class="button button--quiet" href="https://github.com/skopli/skopli">Source on GitHub</a>
+      <h2>Build the dashboard, the report or the billing check. The data is already on your disk.</h2>
+      <div class="hero__actions">
+        <a class="button" href={`${docs}guide/getting-started/`}>Getting started</a>
+        <a class="button button--quiet" href="https://github.com/skopli/skopli">Source on GitHub</a>
     </div>
     </div>
   </section>
 </Base>
+
+<script>
+  for (const box of document.querySelectorAll<HTMLElement>(".demo pre")) {
+    const sync = () => {
+      box.toggleAttribute("data-scrollable", box.scrollWidth > box.clientWidth);
+      box.toggleAttribute("data-scrolled", box.scrollLeft + box.clientWidth >= box.scrollWidth - 1);
+    };
+    box.addEventListener("scroll", sync, { passive: true });
+    new ResizeObserver(sync).observe(box);
+  }
+</script>
 
 <style>
   .wrap {
@@ -375,7 +394,7 @@ const themes = { light: "github-light", dark: "github-dark" };
     margin: 0;
     padding: var(--space-4);
     overflow-x: auto;
-    font-size: 0.8125rem;
+    font-size: var(--text-sm);
     line-height: 1.55;
     background: transparent !important;
   }
@@ -400,11 +419,12 @@ const themes = { light: "github-light", dark: "github-dark" };
     .demo__narrow {
       display: block;
     }
-    .demo :global(pre) {
-      font-size: var(--text-xs);
-      white-space: pre-wrap;
-      overflow-wrap: anywhere;
-    }
+  }
+  .demo :global([data-scrollable]) {
+    mask-image: linear-gradient(to right, #000 calc(100% - 2.5rem), transparent);
+  }
+  .demo :global([data-scrollable][data-scrolled]) {
+    mask-image: none;
   }
 
   .layers__list {

@@ -79,6 +79,7 @@ samp {
   font-family: var(--font-mono);
   font-size: 0.9em;
   font-feature-settings: normal;
+  font-variant-ligatures: none;
 }
 
 :focus-visible {
