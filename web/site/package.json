@@ -1,26 +1,16 @@
 {
-  "name": "skopli-site",
+  "name": "@skopli/site",
   "version": "0.0.0",
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "astro dev",
+    "dev": "astro dev --port 4321",
     "build": "astro build",
-    "preview": "astro preview",
-    "lint": "oxlint",
-    "format": "oxfmt --check .",
-    "format:write": "oxfmt .",
-    "typecheck": "astro check",
-    "check": "pnpm run lint && pnpm run format && pnpm run typecheck"
+    "preview": "astro preview --port 4321"
   },
   "dependencies": {
-    "@astrojs/sitemap": "^3.7.3",
-    "astro": "^7.2.2"
-  },
-  "devDependencies": {
-    "@astrojs/check": "^0.9.10",
-    "oxfmt": "^0.63.0",
-    "oxlint": "^1.78.0",
-    "typescript": "^5.9.3"
+    "@astrojs/sitemap": "3.7.4",
+    "@skopli/ui": "workspace:*",
+    "astro": "7.3.5"
   }
 }

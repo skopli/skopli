@@ -1,0 +1,148 @@
+---
+import "@skopli/ui/styles/base.css";
+import "@skopli/ui/styles/shiki.css";
+import "@skopli/ui/styles/tabs.css";
+import "../styles/docs.css";
+import Footer from "@skopli/ui/components/Footer.astro";
+import Logo from "@skopli/ui/components/Logo.astro";
+import ThemeInit from "@skopli/ui/components/ThemeInit.astro";
+import ThemeToggle from "@skopli/ui/components/ThemeToggle.astro";
+import type { MarkdownHeading } from "astro";
+import PageActions from "../components/PageActions.astro";
+import Search from "../components/Search.astro";
+import Sidebar from "../components/Sidebar.astro";
+import { BASE, SITE, mdPath, ordered, pagePath } from "../nav";
+import { published } from "@skopli/ui/quickstart";
+
+interface Props {
+  slug: string;
+  title: string;
+  description: string;
+  headings: MarkdownHeading[];
+}
+
+const { slug, title, description, headings } = Astro.props;
+const index = ordered.findIndex((item) => item.slug === slug);
+const prev = index > 0 ? ordered[index - 1] : undefined;
+const next = index >= 0 && index < ordered.length - 1 ? ordered[index + 1] : undefined;
+const toc = headings.filter((h) => h.depth === 2 || h.depth === 3);
+const canonical = `${SITE}${pagePath(slug)}`;
+const github = "https://github.com/skopli/skopli";
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{slug === "index" ? "Skopli docs" : `${title} | Skopli docs`}</title>
+    <meta name="description" content={description} />
+    <link rel="icon" href={`${BASE}/favicon.svg`} type="image/svg+xml" />
+    <link rel="canonical" href={canonical} />
+    <link rel="alternate" type="text/markdown" href={`${SITE}${mdPath(slug)}`} />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:type" content="article" />
+    <meta property="og:site_name" content="Skopli docs" />
+    <meta property="og:url" content={canonical} />
+    <ThemeInit />
+  </head>
+  <body class="docs">
+    <a class="skip-link" href="#main">Skip to content</a>
+    <header class="docs__top">
+      <div class="docs__top-inner">
+        <div class="docs__brand">
+          <Logo href={`${BASE}/`} label="Skopli" />
+          <span class="docs__brand-sep" aria-hidden="true">/</span>
+          <a class="docs__brand-docs" href={`${BASE}/`}>Docs</a>
+        </div>
+        <Search />
+        <button class="docs__search-toggle" type="button" aria-expanded="false" aria-controls="search" aria-label="Search" data-search-toggle>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true">
+            <circle cx="11" cy="11" r="7" />
+            <path d="m20 20-3.5-3.5" />
+          </svg>
+        </button>
+        <nav class="docs__top-nav" aria-label="Site">
+          <a href="https://skopli.com">skopli.com</a>
+          <a href={github}>GitHub</a>
+          <ThemeToggle />
+        </nav>
+        <button class="docs__menu" type="button" aria-expanded="false" aria-controls="sidebar" data-menu>
+          Menu
+        </button>
+      </div>
+    </header>
+
+    <div class="docs__shell">
+      <Sidebar current={slug} />
+
+      <main id="main" class="docs__main">
+        <article class="docs__article" data-pagefind-body>
+          <header class="docs__head">
+            <h1>{title}</h1>
+            <p class="docs__desc">{description}</p>
+            <PageActions slug={slug} />
+          </header>
+          <div class="prose">
+            <slot />
+          </div>
+        </article>
+
+        <nav class="docs__pager" aria-label="Previous and next">
+          {prev ? (
+            <a class="docs__pager-link" rel="prev" href={pagePath(prev.slug)}>
+              <span>Previous</span>
+              {prev.label}
+            </a>
+          ) : <span />}
+          {next && (
+            <a class="docs__pager-link docs__pager-link--next" rel="next" href={pagePath(next.slug)}>
+              <span>Next</span>
+              {next.label}
+            </a>
+          )}
+        </nav>
+      </main>
+
+      {toc.length > 0 && (
+        <aside class="docs__toc" aria-labelledby="toc-h">
+          <p id="toc-h">On this page</p>
+          <ul>
+            {toc.map((h) => (
+              <li class={`depth-${h.depth}`}>
+                <a href={`#${h.slug}`}>{h.text}</a>
+              </li>
+            ))}
+          </ul>
+        </aside>
+      )}
+    </div>
+
+    <Footer
+      maxWidth="96rem"
+      links={[
+        { label: "skopli.com", href: "https://skopli.com" },
+        { label: "GitHub", href: github },
+        ...(published ? [{ label: "npm", href: "https://www.npmjs.com/package/skopli" }] : []),
+        { label: "View as Markdown", href: mdPath(slug) },
+        { label: "llms.txt", href: `${BASE}/llms.txt` },
+      ]}
+    />
+
+    <script>
+      import { syncScrollable } from "@skopli/ui/scrollable";
+      const toggle = (button: HTMLButtonElement | null, target: HTMLElement | null, focus?: string) =>
+        button?.addEventListener("click", () => {
+          const open = button.getAttribute("aria-expanded") === "true";
+          button.setAttribute("aria-expanded", String(!open));
+          target?.toggleAttribute("data-open", !open);
+          if (!open && focus) target?.querySelector<HTMLElement>(focus)?.focus();
+        });
+      toggle(document.querySelector("[data-menu]"), document.getElementById("sidebar"));
+      toggle(document.querySelector("[data-search-toggle]"), document.querySelector("[data-search]"), "input");
+
+      for (const box of document.querySelectorAll<HTMLElement>(".prose table, .prose pre:not(.tabs *)")) syncScrollable(box);
+    </script>
+  </body>
+</html>

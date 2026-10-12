@@ -1,12 +1,13 @@
 [package]
 name = "skopli-capi"
-version = "0.0.0"
+version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
 homepage.workspace = true
 documentation.workspace = true
 repository.workspace = true
-publish = false
+license.workspace = true
+description = "C ABI for skopli: read, roll up, and price AI coding-agent session logs"
 
 [lib]
 name = "skopli"
@@ -16,8 +17,8 @@ crate-type = ["cdylib", "staticlib", "rlib"]
 net = ["skopli-core/net"]
 
 [dependencies]
-skopli-core = { path = "../skopli-core" }
-skopli-wire = { path = "../skopli-wire" }
+skopli-core = { workspace = true }
+skopli-wire = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 

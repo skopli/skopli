@@ -1,0 +1,92 @@
+---
+import { langs, type Lang } from "../langs.ts";
+import { nextTabsId } from "../tabs-id.ts";
+
+const present = (Object.keys(langs) as Lang[]).filter((id) => Astro.slots.has(id));
+const uid = nextTabsId();
+---
+
+<code-tabs class="tabs">
+  <div class="tabs__list" role="tablist" aria-label="Language">
+    {present.map((id, i) => (
+      <button
+        class="tabs__tab"
+        type="button"
+        role="tab"
+        id={`tab-${uid}-${id}`}
+        data-lang={id}
+        aria-selected={i === 0 ? "true" : "false"}
+        aria-controls={`panel-${uid}-${id}`}
+        tabindex={i === 0 ? 0 : -1}
+      >
+        {langs[id]}
+      </button>
+    ))}
+  </div>
+  {present.map((id, i) => (
+    <div
+      class="tabs__panel"
+      role="tabpanel"
+      id={`panel-${uid}-${id}`}
+      data-lang={id}
+      aria-labelledby={`tab-${uid}-${id}`}
+      hidden={i !== 0}
+    >
+      <slot name={id} />
+    </div>
+  ))}
+</code-tabs>
+
+<script>
+  import { syncScrollable } from "../scrollable.ts";
+  import { storage } from "../storage.ts";
+
+  const KEY = "skopli-lang";
+
+  class CodeTabs extends HTMLElement {
+    tabs = [...this.querySelectorAll<HTMLButtonElement>("[role=tab]")];
+
+    connectedCallback() {
+      for (const el of this.querySelectorAll<HTMLElement>(".tabs__list, .tabs__panel pre")) syncScrollable(el);
+      this.select(storage.get(KEY) ?? "", false);
+      this.addEventListener("click", (e) => {
+        const tab = (e.target as HTMLElement).closest<HTMLButtonElement>("[role=tab]");
+        if (tab?.dataset.lang) this.select(tab.dataset.lang, true);
+      });
+      this.addEventListener("keydown", (e) => {
+        const i = this.tabs.findIndex((t) => t === document.activeElement);
+        if (i < 0) return;
+        const n = this.tabs.length;
+        const target = { ArrowRight: (i + 1) % n, ArrowLeft: (i + n - 1) % n, Home: 0, End: n - 1 }[e.key];
+        if (target === undefined) return;
+        e.preventDefault();
+        const next = this.tabs[target]!;
+        next.focus();
+        if (next.dataset.lang) this.select(next.dataset.lang, true);
+      });
+      window.addEventListener("storage", (e) => {
+        if (e.key === KEY && e.newValue) this.select(e.newValue, false);
+      });
+    }
+
+    select(lang: string, persist: boolean) {
+      if (!this.tabs.some((t) => t.dataset.lang === lang)) return;
+      for (const tab of this.tabs) {
+        const on = tab.dataset.lang === lang;
+        tab.setAttribute("aria-selected", String(on));
+        tab.tabIndex = on ? 0 : -1;
+      }
+      for (const panel of this.querySelectorAll<HTMLElement>("[role=tabpanel]")) {
+        panel.hidden = panel.dataset.lang !== lang;
+      }
+      if (persist) {
+        storage.set(KEY, lang);
+        for (const other of document.querySelectorAll<CodeTabs>("code-tabs")) {
+          if (other !== this) other.select(lang, false);
+        }
+      }
+    }
+  }
+
+  customElements.define("code-tabs", CodeTabs);
+</script>

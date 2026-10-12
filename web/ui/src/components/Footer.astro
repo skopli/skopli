@@ -1,0 +1,57 @@
+---
+interface Props {
+  links: { label: string; href: string }[];
+  maxWidth?: string;
+}
+const { links, maxWidth = "var(--content-max)" } = Astro.props;
+---
+
+<footer class="footer" style={`--footer-max:${maxWidth}`}>
+  <div class="footer__inner">
+    <nav class="footer__links" aria-label="Footer">
+      {links.map((link) => <a href={link.href}>{link.label}</a>)}
+    </nav>
+    <p class="footer__legal">
+      Released under the MIT License. Copyright &copy; Skopli.
+    </p>
+    <p class="footer__legal">
+      All product names, logos, and brands are property of their respective owners and are used for
+      identification only. Their use is nominative and does not imply endorsement of or affiliation
+      with Skopli.
+    </p>
+  </div>
+</footer>
+
+<style>
+  .footer {
+    border-top: 1px solid var(--rule);
+    color: var(--ink-3);
+    font-size: var(--text-sm);
+  }
+  .footer__inner {
+    max-width: var(--footer-max);
+    margin: 0 auto;
+    padding: var(--space-6) var(--space-5) var(--space-7);
+    display: grid;
+    gap: var(--space-4);
+  }
+  .footer__links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2) var(--space-5);
+  }
+  .footer__links a {
+    display: inline-flex;
+    align-items: center;
+    min-height: var(--tap);
+    color: var(--ink-2);
+    text-decoration: none;
+  }
+  .footer__links a:hover {
+    color: var(--ink);
+    text-decoration: underline;
+  }
+  .footer__legal {
+    max-width: var(--measure);
+  }
+</style>

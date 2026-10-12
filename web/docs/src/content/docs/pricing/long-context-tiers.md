@@ -1,52 +1,59 @@
 ---
 title: Long-context tiers
-description: Long-context tier rates let large-context requests bill at the vendor's above-threshold rates.
+description: How tiered catalog entries change the rate once a request's context crosses a threshold, and the two ways Skopli applies them.
 ---
 
-When a request's context crosses a vendor threshold, the tokens above it bill at the vendor's higher long-context rate. Skopli selects the tier per request and, for Anthropic, reprices the whole request.
+Some models charge more once a request's context exceeds a threshold.
+LiteLLM is the only shipped catalog that publishes these tiers.
+OpenRouter and models.dev entries are flat.
+Skopli reads thresholds at 128k, 200k, 256k, 272k and 512k tokens.
 
-## Where tier data comes from
+## Tier selection
 
-Only the LiteLLM catalog carries tier data (`*_cost_per_token_above_Nk_tokens` fields at the 128k, 200k, 256k, 272k, and 512k boundaries). OpenRouter and models.dev do not.
+The context used to pick a tier is `input + cacheRead + cacheWrite`.
+Output and reasoning tokens do not count toward it.
 
-The tier is selected by the request's total context (`input + cacheRead + cacheWrite`), matching vendor definitions.
+```ts
+type PriceTier = {
+  threshold: number; // context above which this tier applies
+  input: number;
+  output: number;
+  cacheRead?: number;
+  cacheWrite?: number;
+  cacheWrite1h?: number; // falls back to this tier's input x 2, never to a lower tier's value
+};
 
-## Tier inheritance and fallbacks
-
-Within a tier, missing input and output fields inherit the last explicit value from earlier tiers (then the base price). Missing cache fields inherit the last explicit cache rate, and if no catalog entry ever supplies one they fall back to that tier's own input rate, mirroring the base fallback.
-
-## Cache-write composition per tier
-
-The cacheWrite 5m/1h split composes with tiers: at each selected rate level the 1h portion bills at that level's 1h rate (the tier's above-1hr rate when present, else that level's input × 2.0) and the remaining 5m portion at that level's cacheWrite rate.
-
-See [Cost math & cache-write splits](/skopli/pricing/cost-math/#cache-write-5m1h-splits) for the base split.
+type ModelPrice = {
+  input: number;
+  output: number;
+  cacheRead?: number;
+  cacheWrite?: number;
+  cacheWrite1h?: number;
+  tiers?: PriceTier[];
+  tierMode?: "marginal" | "whole-request";
+};
+```
 
 ## Marginal vs whole-request
 
-By default tiers are **marginal**. Context tokens (input, cacheRead, cacheWrite pro-rata) below each threshold bill at the base rates and only the excess at the tier rates, while output always bills at the base output rate. Tier thresholds are context sizes, and output tokens never count toward them.
+**Marginal** billing is the default.
+Tokens up to the first threshold bill at the base rate, tokens between thresholds bill at that tier's rate, and so on, the way income tax brackets work.
 
-When both catalogs price a model, a flat match yields to any lower-priority match that carries tier data (in practice flat OpenRouter yielding to tiered LiteLLM). Explicit overrides always win.
+**Whole-request** billing applies to Claude models.
+Once context crosses a threshold, every token in the request bills at that tier's rates.
+This is how Anthropic prices long-context requests, and it is why the [cost math example](/skopli/pricing/cost-math/) multiplies all 205,000 input tokens by the tier rate rather than only the 61,000 above the line.
 
-Anthropic instead reprices the **entire request** at the long-context rates, so `claude` models with tier data use whole-request semantics. This is a heuristic on the model key, since the catalog carries no explicit repricing signal.
+The cache-write split composes per tier: the 1h portion bills at the selected tier's `cacheWrite1h`, the 5m remainder at its `cacheWrite`.
 
-## Error bounds if the heuristic is wrong
+## Tiered entries win
 
-If the marginal-vs-whole-request heuristic is wrong for a model, the difference per crossed boundary is bounded:
+After overrides, a match that carries tiers outranks a flat match from a higher-priority source.
+In practice LiteLLM's tiered Claude entries beat OpenRouter's flat ones, so you get the tiers even though OpenRouter is consulted first.
 
-- Each context stream (input, cacheRead, cacheWrite) differs by at most `threshold × |tier rate − previous effective rate|`.
-- Output differs by `output tokens × |tier output rate − base output rate|`.
+## Tiers need per-event pricing
 
-For `claude-sonnet-4-5` at the 200k boundary that upper bound is:
-
-| Stream      | Per-request bound | Unit                 |
-| ----------- | ----------------: | -------------------- |
-| Input       |             $0.60 | per request          |
-| Cache read  |             $0.06 | per request          |
-| Cache write |             $0.75 | per request          |
-| Output      |             $7.50 | per 1M output tokens |
-
-Models with several tiers accumulate one context term per crossed boundary.
-
-When tier rates increase (the usual case), whole-request applied to a truly-marginal model overbills by up to that amount, and marginal applied to a truly-whole-request model underbills by it; the directions flip for any stream whose tier rate decreases.
-
-Requests at or below every threshold price identically in both modes, as do models without tier data.
+A rollup sums tokens across many events.
+Pricing that sum can cross a tier none of the individual requests reached and overbill.
+`priceRollups` flags such rows with `tieredAggregate: true`.
+`priceEvents` avoids the problem by pricing each event at its own context.
+See [Rollups vs events](/skopli/pricing/rollups-vs-events/).

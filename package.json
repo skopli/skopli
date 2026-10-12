@@ -1,6 +1,6 @@
 {
   "name": "skopli",
-  "version": "1.0.0",
+  "version": "0.1.0",
   "description": "Read real AI coding-agent usage (tokens, sessions, calls) from local harness state, aggregate it, and price it against market catalogs like OpenRouter and LiteLLM.",
   "keywords": [
     "agent",
@@ -53,7 +53,8 @@
     "format:write": "oxfmt .",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "check": "pnpm run lint && pnpm run format && pnpm run typecheck && pnpm run test"
+    "sync": "node scripts/sync-generated.mjs",
+    "check": "pnpm run lint && pnpm run format && pnpm run typecheck && pnpm run test && pnpm run sync --check"
   },
   "devDependencies": {
     "@napi-rs/cli": "^3.8.6",

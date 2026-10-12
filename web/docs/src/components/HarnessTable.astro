@@ -1,0 +1,37 @@
+---
+import Icon from "@skopli/ui/components/Icon.astro";
+import { harnesses } from "@skopli/ui/harnesses";
+---
+
+<table class="harness-table">
+  <thead>
+    <tr>
+      <th>Harness</th>
+      <th>id</th>
+    </tr>
+  </thead>
+  <tbody>
+    {harnesses.map((h) => (
+      <tr>
+        <td>
+          <span class="harness-table__name">
+            <Icon name={h.icon} />
+            {h.name}
+          </span>
+        </td>
+        <td><code>{h.id}</code></td>
+      </tr>
+    ))}
+  </tbody>
+</table>
+
+<style>
+  .harness-table th:first-child {
+    width: 70%;
+  }
+  .harness-table__name {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-3);
+  }
+</style>

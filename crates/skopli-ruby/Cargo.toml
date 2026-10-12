@@ -1,6 +1,6 @@
 [package]
 name = "skopli"
-version = "0.0.0"
+version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
 homepage.workspace = true
@@ -14,8 +14,8 @@ name = "skopli"
 crate-type = ["cdylib"]
 
 [dependencies]
-skopli-core = { path = "../skopli-core" }
-skopli-wire = { path = "../skopli-wire" }
+skopli-core = { workspace = true }
+skopli-wire = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 # magnus 0.8 (modern API, Ruby 3.0+); rb-sys for the raw

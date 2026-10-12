@@ -1,12 +1,13 @@
 [package]
 name = "skopli-core"
-version = "0.0.0"
+version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
 homepage.workspace = true
 documentation.workspace = true
 repository.workspace = true
-publish = false
+license.workspace = true
+description = "Read, roll up, and price AI coding-agent session logs stored on the local machine"
 
 [dependencies]
 serde = { workspace = true }

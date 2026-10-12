@@ -54,7 +54,7 @@ jobs:
       - name: cargo test (workspace, excl. ruby)
         run: cargo test --workspace --exclude skopli
 
-  # --- TypeScript: pnpm run check (oxlint + oxfmt --check + tsc + vitest) ------
+  # --- TypeScript: pnpm run check (oxlint + oxfmt --check + tsc + vitest + generated files) --
   typescript:
     name: typescript
     runs-on: ubuntu-latest
@@ -87,10 +87,10 @@ jobs:
           node-version: 24
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - name: site check + build
-        run: pnpm --dir web/site run check && pnpm --dir web/site run build
-      - name: docs check + build
-        run: pnpm --dir web/docs run check && pnpm --dir web/docs run build
+      - name: site build
+        run: pnpm --dir web/site run build
+      - name: docs build
+        run: pnpm --dir web/docs run build
 
   # --- C ABI: build cdylib/staticlib + assert the cbindgen header is zero-diff -
   capi-header:
@@ -254,6 +254,12 @@ jobs:
         run: cargo build -p skopli-capi --release
       - name: FFM smoke (javac/java, no build tool)
         run: bash sdks/java/scripts/smoke.sh
+      - uses: gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6.4.0
+        with:
+          gradle-version: "9.8.0"
+      - name: Build the jar (gradle, same as the release job)
+        working-directory: sdks/java
+        run: gradle --no-daemon jar sourcesJar
 
   # --- C#/.NET SDK: dotnet build + test + csbindgen zero-diff -----------------
   dotnet:

@@ -90,6 +90,20 @@ The equivalent build-tool entry point is Gradle (`gradle test`, see
 `build.gradle.kts`) on a host that has Gradle installed; the test task is
 pre-wired with `--enable-native-access` and `-Dskopli.library.path`.
 
+## Use the jar
+
+`gradle jar` (run from `sdks/java`) writes `build/libs/skopli-0.1.0.jar` and a
+`-sources.jar` beside it. Depend on the file from a Gradle project:
+
+```kotlin
+dependencies {
+    implementation(files("/path/to/skopli/sdks/java/build/libs/skopli-0.1.0.jar"))
+}
+```
+
+Run with `--enable-native-access=ALL-UNNAMED` and `-Dskopli.library.path`
+pointing at the cdylib (see "Load mechanics" above).
+
 ## Pricing surface
 
 The facade exposes the full pricing surface, at parity with every other Skopli

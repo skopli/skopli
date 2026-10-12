@@ -1,51 +1,69 @@
 ---
-title: Cost math & cache-write splits
-description: Base cost math, disjoint token buckets, and Claude's 5m/1h cache-write split.
+title: Cost math
+description: How Skopli turns token buckets and catalog rates into dollars, including reasoning, cache reads, and the 5m/1h cache-write split.
 ---
 
-Prices are USD per million tokens. Each catalog is cached on disk (default ~1 hour TTL) with atomic writes. When a fetch fails, the cache is used at any age, so pricing keeps working offline. Every result says which source priced it and when that data was fetched. Default fetches time out after 10 seconds, so a stalled endpoint never hangs a run. `pricing.catalogs()` reports the loaded catalogs (source, `fetchedAt`, model count), so you can tell when every market source failed and lookups can only miss.
+All rates are USD per million tokens.
+For a flat-rate model the cost of a token bundle is the sum over buckets of `tokens x rate / 1,000,000`.
 
-## Base cost math
+## Bucket rates
 
-Reasoning tokens bill at the output rate. Cache rates fall back to the input rate when a catalog omits them.
+| Bucket         | Rate used                                                                  |
+| -------------- | -------------------------------------------------------------------------- |
+| `input`        | `price.input`                                                              |
+| `output`       | `price.output`                                                             |
+| `reasoning`    | `price.output`                                                             |
+| `cacheRead`    | `price.cacheRead`, falling back to `price.input` when the catalog omits it |
+| `cacheWrite`   | `price.cacheWrite`, falling back to `price.input` when omitted             |
+| `cacheWrite1h` | `price.cacheWrite1h`, falling back to `price.input x 2` when omitted       |
 
-Token buckets are disjoint. Readers whose sources report reasoning-inclusive output (Codex, Grok, ZCode) subtract reasoning from output before emitting events, so `output + reasoning` reconstructs the source's raw output count and nothing bills twice.
+Buckets are disjoint, so nothing is billed twice.
+`cacheWrite` is the total across cache TTLs.
+`cacheWrite1h` is the part of it written with a one-hour TTL.
+Only the remainder (`cacheWrite - cacheWrite1h`) bills at the 5-minute `cacheWrite` rate.
+Source priority is per model, not per field: once a catalog wins the match, all of its rates are used, including its omissions.
 
-:::caution[One documented assumption]
-The OTel GenAI semantic conventions do not state whether `gen_ai.usage.output_tokens` includes reasoning tokens, so the Copilot CLI (OTel) reader assumes the vendor reports them as disjoint and keeps `gen_ai.usage.reasoning*` in its own bucket without subtraction. If Copilot's telemetry turns out to be reasoning-inclusive, its reasoning tokens would be double-billed.
-:::
+## A flat example
 
-Every rate below is USD per 1M tokens.
+From the repository's golden fixture, `gpt-5` with 1,000 input and 500 output tokens at LiteLLM's rates of 1.25 and 10.00:
 
-| Token bucket | Rate / 1M tokens                     |
-| ------------ | ------------------------------------ |
-| Input        | catalog input rate                   |
-| Output       | catalog output rate                  |
-| Reasoning    | catalog output rate                  |
-| Cache read   | catalog cache-read rate, else input  |
-| Cache write  | catalog cache-write rate, else input |
+```text
+1,000 x 1.25 / 1e6 = 0.00125
+  500 x 10.00 / 1e6 = 0.00500
+                       0.00625
+```
 
-Reasoning bills at the output rate; cache rates fall back to the input rate when the catalog omits them. Cost for a bucket is `tokens ÷ 1,000,000 × rate`, summed across buckets.
+## A Claude example with the 1h split and a tier
 
-## Cache-write 5m/1h splits
+The same fixture prices `claude-sonnet-4-5` with these tokens:
 
-Claude reports a 5m/1h split for ephemeral cache writes (`tokens.cacheWrite1h`, a portion of the `cacheWrite` total):
+| Bucket         |  Tokens |
+| -------------- | ------: |
+| `input`        | 205,000 |
+| `output`       |  11,000 |
+| `cacheRead`    |  22,000 |
+| `cacheWrite`   |  34,000 |
+| `cacheWrite1h` |  11,500 |
+| `reasoning`    |   2,000 |
 
-- **1h writes** bill at the catalog's above-1hr rate when present (LiteLLM's `cache_creation_input_token_cost_above_1hr`), else at input × 2.0 (Anthropic's 1h multiplier).
-- The remaining **5m writes** bill at the base `cacheWrite` rate.
+Context for tier selection is `input + cacheRead + cacheWrite` = 261,000, which crosses the 200k tier.
+Claude models reprice the whole request at the tier's rates (input 6.00, output 22.50, cacheRead 0.60, cacheWrite 7.50, cacheWrite1h 12.00):
 
-### Worked example
+```text
+205,000 x  6.00 = 1,230,000
+ 11,000 x 22.50 =   247,500
+  2,000 x 22.50 =    45,000   reasoning at the output rate
+ 22,000 x  0.60 =    13,200
+ 22,500 x  7.50 =   168,750   cacheWrite minus the 1h portion
+ 11,500 x 12.00 =   138,000   the 1h portion
+                  1,842,450 / 1e6 = 1.84245
+```
 
-The 1h fallback is the only rate this page derives, so the example uses it. Assume a catalog with **input = $3.00 / 1M tokens** and **cache write = $3.75 / 1M tokens**, and a request writing 40,000 cache tokens of which 10,000 are the 1h portion. With no above-1hr rate in the catalog, the 1h rate is `input × 2.0`:
+Those are synthetic token counts against a catalog snapshot dated 2026-08-01.
+The arithmetic is what matters.
+[Long-context tiers](/skopli/pricing/long-context-tiers/) covers how the tier was chosen.
 
-| Cache-write portion | Tokens | Rate / 1M tokens | Formula                |   Cost |
-| ------------------- | -----: | ---------------: | ---------------------- | -----: |
-| 1h (fallback)       | 10,000 |            $6.00 | 0.010M × ($3.00 × 2.0) |  $0.06 |
-| 5m (base)           | 30,000 |            $3.75 | 0.030M × $3.75         | $0.113 |
-| **Total**           | 40,000 |                — | —                      | $0.173 |
+## costUsd
 
-The $3.00 and $3.75 figures are illustrative catalog values, not a quoted rate for any model; only the `× 2.0` multiplier is Skopli's own documented rule.
-
-Only LiteLLM carries the above-1hr rate. Source priority is per-model, not per-field, so when a higher-priority source such as OpenRouter wins the match, its catalog lacks that field and the input × 2.0 fallback applies. For Anthropic models that fallback equals the published 1h rate, so no accuracy is lost.
-
-The 5m/1h split also composes with long-context tiers. See [Long-context tiers](/skopli/pricing/long-context-tiers/#cache-write-composition-per-tier).
+`costUsd` on events and rollups is the amount the harness itself recorded, where it recorded one.
+It is kept separate from the computed price so you can compare the two, and `mode: "display"` or `"auto"` lets you prefer it.

@@ -1,27 +1,40 @@
 ---
 title: Coverage
-description: What Skopli reads today, and the tools it cannot read locally yet with the reason for each.
+description: Which event fields each layer can promise, which depend on the harness, and the known limits of the data.
 ---
 
-Skopli reads local session state from 40 coding agents. See [Supported harnesses](/skopli/reference/harnesses/) for the full list and their ids.
+## Always present
 
-Some agents keep their token data cloud-side, store it without token counts, or have no stable local file to read. Skopli cannot read those locally today. The reason differs per tool, so each is listed below.
+Every `UsageEvent` has `harness`, `timestamp`, `sessionId`, `messageId`, `turn`, `subagent`, `model` and the six token buckets.
+Buckets a harness does not report are `0`, never `undefined`.
+Every `Rollup` has `key`, `tokens`, `events`, `turns` and `calls`.
 
-## Tools not readable locally yet
+## Present when the harness provides it
 
-| Tool            | Why it is not readable locally                                                                                                        |
-| --------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
-| Cursor          | Token usage is only available in the vendor dashboard, not on disk.                                                                   |
-| Warp            | The local database stores conversations but no token counts.                                                                          |
-| MiniMax Code    | The desktop app has no documented local file or schema for token counts. Diagnostics are uploaded to the vendor.                      |
-| Synthetic       | The local database stores session history but no provider token counts.                                                               |
-| Freebuff        | Local files store messages only. Token usage is credit-based and fetched from the vendor.                                             |
-| Antigravity     | Token usage is quota-based and shown in a dashboard. No documented local usage-log path or token schema is available.                 |
-| Antigravity CLI | No documented local file records provider token counts.                                                                               |
-| Sakana Fugu     | A hosted model API rather than a local agent, so no session or token data is stored on disk.                                          |
-| Senpi           | No local file that records provider token counts could be identified.                                                                 |
-| WorkBuddy       | No local file that records provider token counts could be identified.                                                                 |
-| Trae IDE        | The IDE keeps token usage quota-based in a dashboard, with no documented local token file or schema. The trae-agent CLI is supported. |
-| Crush           | Usage files are project-local with no stable discovery location.                                                                      |
+| Field                 | Populated from                                                         |
+| --------------------- | ---------------------------------------------------------------------- |
+| `tokens.cacheWrite1h` | Claude Code's cache-write TTL split                                    |
+| `calls`               | Hermes Agent `message_count`; absent means one call                    |
+| `costUsd`             | Claude Code `costUSD`; OpenCode non-zero `cost`                        |
+| `workspace`           | OpenCode session directory; Claude Code `cwd`                          |
+| `title`               | OpenCode session title                                                 |
+| `subagent: true`      | OpenCode `parent_id`; Claude Code `isSidechain`; Pi and omp `rlmDepth` |
 
-This list changes as tools ship durable local token logs. When a tool starts recording provider token counts in a stable local file, it moves to the supported list.
+## Guarantees
+
+- Reading and rollups never open a network connection.
+- Nothing is written to stdout or stderr. Problems arrive as `diagnostics` and `skipped`.
+- Zero-token rows are dropped regardless of recorded cost.
+- Unusable timestamps are skipped with a warning rather than defaulting to epoch zero.
+- Token buckets are disjoint after normalization, so summing them gives total tokens.
+- Day bucketing and date-only bounds use the same IANA timezone logic in every facade.
+- Pricing never guesses: unmatched models return `priced: false` with the attempted keys.
+
+## Known limits
+
+- Kiro CLI token counts are estimates.
+- Reasonix and fx expose session-level rows only, so per-message `turn` and `calls` detail is unavailable.
+- GitHub Copilot CLI reasoning is assumed disjoint from output. If the OTel export turns out to include it, reasoning would be counted twice for that harness.
+- `priceRollups` on a tiered model can overbill when a rollup sums several events. The row is flagged `tieredAggregate` and `priceEvents` is the exact path.
+- Long-context tiers come from LiteLLM only.
+- A `costUsd` is whatever the harness recorded. Skopli does not audit it.

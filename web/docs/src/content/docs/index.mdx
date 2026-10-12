@@ -1,28 +1,35 @@
 ---
-title: Skopli
-description: An SDK that reads AI coding-agent usage from 40 harnesses offline and prices it against market catalogs.
+title: Skopli docs
+description: Read AI coding-agent usage from 40 harnesses' local logs, roll it up, and price it against market catalogs.
 ---
 
-Skopli is an open-source SDK that reads the session state your AI coding agents store on local disk, aggregates it, and prices it against market catalogs. It is an SDK, not a CLI. You build the dashboards, reports, and billing checks on top. No accounts, no telemetry.
+Skopli is an MIT-licensed SDK.
+It reads the session state that coding agents such as Claude Code, Codex CLI, OpenCode and Gemini CLI already keep on disk, turns it into one event shape, aggregates it, and prices the tokens.
+There is no CLI, no account and no telemetry.
+You build the dashboard, report or billing check. Skopli supplies the numbers.
 
-## What Skopli is
+## Three layers
 
-Skopli reads the session state your harnesses keep on disk (tokens, sessions, turns, calls), normalizes it, aggregates it, and prices it. The readers never touch the network. Only pricing fetches, and it is opt-in, cached, and reads from cache when offline. The same API ships in TypeScript, Python, Rust, Ruby, Java, C#, Go, Swift, and C, all calling one Rust core.
+| Layer  | What it does                                                                             | Network                    |
+| ------ | ---------------------------------------------------------------------------------------- | -------------------------- |
+| Read   | Detects harnesses and parses their local logs into `UsageEvent` records with diagnostics | Never                      |
+| Rollup | Sums events by model, day, session, harness, workspace or billing block                  | Never                      |
+| Price  | Matches models against OpenRouter, LiteLLM and models.dev and computes USD               | Cached, off with `offline` |
 
-## The three layers
+Each layer stands alone.
+You can read without pricing, price token counts you obtained elsewhere, or roll up events that came from your own parser.
 
-Read, rollup, and price are independent. Use any subset.
+## One core, nine languages
 
-- **Read** parses local session state from 40 harnesses into normalized usage events, with structured diagnostics. See [Reading usage](/skopli/guide/reading/).
-- **Rollup** groups events by model, day, session, harness, or workspace. See [Rollups](/skopli/guide/rollups/).
-- **Price** matches models against market catalogs and computes USD costs, and reports an unmatched model as a miss rather than a guess. See [Pricing basics](/skopli/guide/pricing-basics/).
-
-## Pricing that admits what it does not know
-
-Per-event tiered pricing, cache-write splits, and long-context tier rates. An unmatched model returns `priced: false` with the sources it tried, never an invented rate. A miss is a result, not a hidden gap.
+The parsers, rollup and pricing logic live in a single Rust crate.
+TypeScript, Python, Rust, Ruby, Java, C#, Go and Swift each get a thin idiomatic facade, and a C ABI covers everything else.
+A day rollup in one language matches a day rollup in another to the token because the same code produces both.
 
 ## Where to start
 
-- [Getting started](/skopli/guide/getting-started/): install and a four-call quickstart in every language.
-- [Supported harnesses](/skopli/reference/harnesses/): the full table of harness ids.
-- [API reference](/skopli/reference/api/): the functions and types across the facades.
+- [Getting started](/skopli/guide/getting-started/) installs the SDK and prices your first rollup.
+- [Reading usage](/skopli/guide/reading/) explains the event shape, date bounds and subagent handling.
+- [Pricing basics](/skopli/guide/pricing-basics/) covers catalogs, caching, overrides and why some rows stay unpriced.
+- [Supported harnesses](/skopli/reference/harnesses/) lists the 40 harnesses and the ones that are detected but unsupported.
+
+Every page is also available as Markdown: swap the trailing `/` of its URL for `.md` (`/skopli/guide/reading.md`), or fetch [llms.txt](/skopli/llms.txt) for an index.

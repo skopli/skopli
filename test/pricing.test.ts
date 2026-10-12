@@ -384,6 +384,7 @@ describe("costUsd", () => {
       tiers: [sonnetTier],
       tierMode: "whole-request",
     });
+    expect(usd).toBeCloseTo(1.6125, 10);
   });
 
   describe("probe conformance (shared fixtures)", () => {

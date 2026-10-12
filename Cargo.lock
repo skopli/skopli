@@ -1316,7 +1316,7 @@ checksum = "f8fadd59c855ef2080decdef8ff161eb6661b86933c9d82e5ba29dc602a55aba"
 
 [[package]]
 name = "skopli"
-version = "0.0.0"
+version = "0.1.0"
 dependencies = [
  "magnus",
  "rb-sys",
@@ -1328,7 +1328,7 @@ dependencies = [
 
 [[package]]
 name = "skopli-capi"
-version = "0.0.0"
+version = "0.1.0"
 dependencies = [
  "cbindgen",
  "csbindgen",
@@ -1341,7 +1341,7 @@ dependencies = [
 
 [[package]]
 name = "skopli-core"
-version = "0.0.0"
+version = "0.1.0"
 dependencies = [
  "jiff",
  "rusqlite",
@@ -1354,7 +1354,7 @@ dependencies = [
 
 [[package]]
 name = "skopli-node"
-version = "0.0.0"
+version = "0.1.0"
 dependencies = [
  "napi",
  "napi-build",
@@ -1367,7 +1367,7 @@ dependencies = [
 
 [[package]]
 name = "skopli-py"
-version = "0.0.0"
+version = "0.1.0"
 dependencies = [
  "pyo3",
  "serde",
@@ -1378,7 +1378,7 @@ dependencies = [
 
 [[package]]
 name = "skopli-wire"
-version = "0.0.0"
+version = "0.1.0"
 dependencies = [
  "jiff",
  "serde_json",

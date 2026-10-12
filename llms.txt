@@ -14,7 +14,7 @@ Tiered: exact -> provider-prefix strip (openai/gpt-5 -> gpt-5) -> family aliases
 
 ## Supported harnesses
 
-claude, opencode, codex, gemini, copilot, amp, droid, qwen, pi, omp, kilo, goose, hermes, kimi, openclaw, junie, grok, augment, codebuff, codebuddy, jcode, mux, zed, zcode, devin, roo, cline, kilocode, prime, gajae, kimchi, mimocode, commandcode, cherrystudio, opencodereview, trae, deepseek, reasonix. Detected but unsupported (no reliable local token data): Cursor, aider, Kiro, Crush, GitLab Duo CLI.
+claude, codex, gemini, opencode, mimocode, commandcode, copilot, amp, droid, qwen, pi, omp, prime, gajae, kimchi, grok, augment, codebuff, codebuddy, jcode, mux, zcode, roo, cline, kilo, kilocode, openclaw, kimi, junie, devin, hermes, goose, zed, cherrystudio, opencodereview, trae, deepseek, reasonix, kiro, fx. Detected but unsupported (no reliable local token data): Cursor, aider, Crush, GitLab Duo CLI.
 
 ## Semantics worth knowing
 

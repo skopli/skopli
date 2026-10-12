@@ -1,14 +1,13 @@
 # Skopli
 
-> An open-source SDK that reads AI coding-agent usage from 40 harnesses locally, rolls it up, and prices it against live market catalogs. 9 languages, one Rust core. MIT.
+> Open-source SDK that reads AI coding-agent usage from the session logs each harness keeps on disk, rolls it up, and prices it against model catalogs. 40 harnesses, 9 languages, one Rust core. MIT.
 
-Skopli reads real usage (tokens, sessions, turns, calls) from the local state
-each coding agent already keeps on disk. No accounts, no telemetry, no sockets:
-detection and reading are fully offline, and pricing against market catalogs is
-a separate, opt-in step.
+Reading and rollups run offline against local files. Pricing is a separate step that matches model names to a catalog and leaves unknown models as `priced: false` instead of guessing.
 
 ## Links
 
-- [Documentation](https://docs.skopli.com/skopli/): guides and reference, with per-page Markdown variants (append .md), /llms.txt, and /llms-full.txt
-- [GitHub](https://github.com/skopli/skopli): source, issues, releases
-- Install: npm (skopli), PyPI (skopli), crates.io (skopli-core), RubyGems (skopli), NuGet (Skopli), Maven Central (com.skopli), Go modules (github.com/skopli/skopli/sdks/go), Swift Package Manager (repo URL)
+- [Documentation](https://docs.skopli.com/skopli/): guides and reference. Every page has a Markdown twin (swap the trailing `/` for `.md`).
+- [llms.txt](https://docs.skopli.com/skopli/llms.txt): index of the documentation pages.
+- [llms-full.txt](https://docs.skopli.com/skopli/llms-full.txt): the whole documentation in one file.
+- [Getting started](https://docs.skopli.com/skopli/guide/getting-started/): install for each language and the first priced rollup.
+- [GitHub](https://github.com/skopli/skopli): source, issues, releases.

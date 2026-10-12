@@ -30,7 +30,7 @@ the Maven namespace as `com.skopli`.
 | RubyGems                | Trusted publishing (OIDC), no stored secret     | Nothing published; `skopli` free at check. Complete [RubyGems](#rubygems).                                                                                                 |
 | NuGet                   | Trusted publishing (OIDC), no stored secret     | Nothing published; `Skopli` free at check. Complete [NuGet](#nuget).                                                                                                       |
 | Maven Central           | Portal token + GPG signing key (no OIDC exists) | No `com.skopli` namespace claimed; no publish job exists yet. Complete [Maven Central](#maven-central).                                                                    |
-| C ABI (GitHub Releases) | `GITHUB_TOKEN`                                  | Per-target cdylib/staticlib + `skopli.h` already attach to the draft release. See [C ABI](#c-abi).                                                                         |
+| C ABI (GitHub Releases) | `GITHUB_TOKEN`                                  | One `skopli-capi-<version>-<target>` archive per target (header, shared and static library) attaches to the draft release. See [C ABI](#c-abi).                            |
 | Go modules              | None (the tag is the release)                   | Module path `github.com/skopli/skopli` becomes permanent at first `go get`. See [Go](#go-modules).                                                                         |
 | Swift Package Manager   | None (consumers pin the repo tag)               | No registry interaction. See [Swift](#swift-package-manager).                                                                                                              |
 
@@ -59,7 +59,7 @@ npm trusted publishing requires the package to already exist, so bootstrap each
 package **locally, before the first release**, using the central bootstrap
 script. It publishes a `0.0.0` placeholder under the `bootstrap` dist-tag from
 your own logged-in npm session, configures the trusted publisher, locks
-publishing to 2FA, and verifies the result — no `NPM_TOKEN` is ever stored in
+publishing to 2FA, and verifies the result - no `NPM_TOKEN` is ever stored in
 the repository:
 
 ```sh
@@ -123,12 +123,21 @@ upload):
 
 ### crates.io
 
-Publish order is dependency order with index-propagation waits:
-`skopli-core` → `skopli-wire` → `skopli-capi` (the `skopli-node`, `skopli-py`,
-`skopli-ruby` binding crates are not published to crates.io). Trusted
-publishing is configured per crate on crates.io; use
-`rust-lang/crates-io-auth-action` + `id-token: write` to mint a temporary
-token, then `cargo publish` each crate.
+The `publish-crates` job publishes `skopli-core`, then `skopli-wire`, then
+`skopli-capi`, in dependency order. The three manifests allow publishing and
+share the workspace version; the `skopli-node`, `skopli-py`, `skopli-ruby`
+binding crates stay `publish = false`. The job checks that the tag matches the
+crate version, skips any crate already on crates.io, and runs
+`cargo publish -p <crate>`; cargo waits for each crate to reach the index
+before verifying the next.
+
+crates.io only lets a crate that already exists get a trusted publisher, so
+the first version of each crate is published by hand with the interim token
+below: `cargo publish -p skopli-core`, then `-p skopli-wire`, then
+`-p skopli-capi`. Then add the trusted publisher (owner `skopli`, repository
+`skopli`, workflow `release.yml`) on each of the three crates, revoke the
+token, and let the job mint its own with `rust-lang/crates-io-auth-action` +
+`id-token: write` from the next release on.
 
 Interim token path: a crates.io token created at
 <https://crates.io/settings/tokens/new> with:
@@ -147,7 +156,7 @@ Do not grant `change-owners`, `yank`, or `trusted-publishing`.
 The gem is `skopli` (built from `crates/skopli-ruby`, rb-sys/magnus). Replace
 `gem push` + `RUBYGEMS_API_KEY` with `rubygems/release-gem@v1` +
 `id-token: write`. RubyGems trusted publishing supports a "pending" publisher
-for a gem name that has never been pushed — configure it before the first
+for a gem name that has never been pushed - configure it before the first
 release with owner `skopli`, repository `skopli`, workflow `release.yml`.
 
 Decide before v1: source gem (compiles on `gem install`, current setup) vs
@@ -190,11 +199,13 @@ Isolate all four secrets in a protected `release` GitHub Actions environment.
 
 The C/C++ surface (`skopli-capi`: cdylib + staticlib + cbindgen `skopli.h`) has
 no package registry. It is distributed as GitHub release assets: the
-`capi-artifacts` matrix already builds six targets and attaches
-`capi-<target>` archives to the draft release, and `cargo publish` of
-`skopli-capi` gives source-level consumers `cargo`/build-from-source access.
-Optional later channels if demand appears — vcpkg or Conan submissions, and
-Homebrew/system packages — each a separate manifest repo and credential; do not
+`capi-artifacts` matrix builds six targets and `scripts/stage-capi.sh` packs
+each into `skopli-capi-<version>-<target>.tar.gz` (`.zip` for Windows) with
+`skopli.h`, the shared library and the static library inside, so the assets
+keep distinct names on the release. `cargo publish` of `skopli-capi` gives
+source-level consumers `cargo`/build-from-source access.
+Optional later channels if demand appears - vcpkg or Conan submissions, and
+Homebrew/system packages - each a separate manifest repo and credential; do not
 set these up before a user asks.
 
 ### Go modules

@@ -1,14 +1,15 @@
 [package]
 name = "skopli-wire"
-version = "0.0.0"
+version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
 homepage.workspace = true
 documentation.workspace = true
 repository.workspace = true
-publish = false
+license.workspace = true
+description = "JSON wire types shared by the skopli language bindings"
 
 [dependencies]
-skopli-core = { path = "../skopli-core" }
+skopli-core = { workspace = true }
 serde_json = { workspace = true }
 jiff = { workspace = true }
