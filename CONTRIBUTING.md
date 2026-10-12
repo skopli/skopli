@@ -8,7 +8,7 @@ The facades only change when the wire format or the public API does.
 
 | Path                                                           | What it is                                                                                                        |
 | -------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
-| `crates/skopli-core`                                           | Readers for every harness (`src/readers/`), the rollup engine, and the pricing layer (`src/pricing/`)             |
+| `crates/skopli-core`                                           | Readers for every harness (`crates/skopli-core/src/readers/`), the rollup engine, and the pricing layer (`crates/skopli-core/src/pricing/`)             |
 | `crates/skopli-wire`                                           | The JSON wire format shared by every facade                                                                       |
 | `crates/skopli-capi`                                           | The C ABI (`libskopli`) with its committed, zero-diff-checked header `include/skopli.h`                           |
 | `crates/skopli-node`, `crates/skopli-py`, `crates/skopli-ruby` | Native extensions for TypeScript (napi-rs), Python (PyO3), and Ruby (Magnus)                                      |

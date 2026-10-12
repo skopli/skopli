@@ -80,7 +80,7 @@ use skopli_core::pricing::{Pricing, PricingMode};
 use skopli_core::rollup::{rollup, RollupBy, RollupOptions};
 
 // \`events\` is a Vec<UsageEvent> you already hold. \`litellm_json\` is a
-// serde_json::Value you fetched yourself. The core crate has no network layer.
+// serde_json::Value you fetched yourself. Without the `net` feature the core crate fetches nothing.
 let by_model = rollup(&events, &RollupOptions::new(RollupBy::Model));
 
 let catalog = PricingCatalog {
@@ -113,7 +113,7 @@ end`,
   {
     id: "java",
     registry: "GitHub Releases",
-    install: 'gh release download --repo skopli/skopli --pattern "skopli-[0-9]*.jar"',
+    install: 'gh release download --repo skopli/skopli --pattern "skopli-[0-9]*[0-9].jar"',
     source:
       "git clone https://github.com/skopli/skopli && cargo build --manifest-path skopli/Cargo.toml -p skopli-capi --release && gradle -p skopli/sdks/java jar",
     note: "JDK 22+. sdks/java/README.md covers the jar and the run-time flags.",
@@ -176,7 +176,7 @@ func priceByModel() ([]skopli.PricedRollup, error) {
     id: "swift",
     source:
       "git clone https://github.com/skopli/skopli && cargo build --manifest-path skopli/Cargo.toml -p skopli-capi --release",
-    note: "macOS 13+ or Linux. sdks/swift/README.md covers the path dependency and the link flags.",
+    note: "macOS 13+, Linux, or Windows. sdks/swift/README.md covers the path dependency and the link flags.",
     code: `import Skopli
 
 let result = try Skopli.readUsage(options: ReadUsageOptions(since: "2026-08-01"))
