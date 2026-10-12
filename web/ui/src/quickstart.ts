@@ -17,8 +17,6 @@ export const releaseNote = published
 
 export const command = (q: Quickstart) => (published ? (q.install ?? q.source) : q.source);
 
-export const installMd = (q: Quickstart) => `\`${command(q)}\`${q.note ? ` (${q.note})` : ""}`;
-
 export const quickstarts: Quickstart[] = [
   {
     id: "ts",
@@ -114,10 +112,10 @@ end`,
   {
     id: "java",
     registry: "GitHub Releases",
-    install: 'gh release download --repo skopli/skopli --pattern "*.jar"',
+    install: 'gh release download --repo skopli/skopli --pattern "skopli-[0-9]*.jar"',
     source:
       "git clone https://github.com/skopli/skopli && cargo build --manifest-path skopli/Cargo.toml -p skopli-capi --release && gradle -p skopli/sdks/java jar",
-    note: "JDK 22+. sdks/java/README.md covers the run-time flags and the jar.",
+    note: "JDK 22+. sdks/java/README.md covers the jar and the run-time flags.",
     code: `import com.skopli.*;
 
 ReadUsageOptions opts = ReadUsageOptions.builder().since("2026-08-01").build();
@@ -152,7 +150,7 @@ IReadOnlyList<PricedRollup> priced = pricing.PriceRollups(byModel);`,
     install: "go get github.com/skopli/skopli/sdks/go",
     source:
       "git clone https://github.com/skopli/skopli && cargo build --manifest-path skopli/Cargo.toml -p skopli-capi --release && go mod edit -replace github.com/skopli/skopli/sdks/go=./skopli/sdks/go && go get github.com/skopli/skopli/sdks/go",
-    note: "cgo. sdks/go/README.md covers out-of-tree and Windows builds.",
+    note: "Needs cgo and a C compiler. sdks/go/README.md covers out-of-tree and Windows builds.",
     code: `import "github.com/skopli/skopli/sdks/go/skopli"
 
 func priceByModel() ([]skopli.PricedRollup, error) {
@@ -177,7 +175,7 @@ func priceByModel() ([]skopli.PricedRollup, error) {
     id: "swift",
     source:
       "git clone https://github.com/skopli/skopli && cargo build --manifest-path skopli/Cargo.toml -p skopli-capi --release",
-    note: 'Package.swift: .package(path: "skopli/sdks/swift"). sdks/swift/README.md covers the link flags.',
+    note: "sdks/swift/README.md covers the path dependency and the link flags.",
     code: `import Skopli
 
 let result = try Skopli.readUsage(options: ReadUsageOptions(since: "2026-08-01"))

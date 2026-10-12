@@ -30,6 +30,7 @@ Use pnpm for every Node command.
 The repository does not use npm or yarn.
 
 `pnpm run build:native` builds the Node addon, and `cargo build -p skopli-capi --release` builds `libskopli` for the Go, Java, C# and Swift facades.
+On Windows the Go facade links the GNU target instead, as `sdks/go/README.md` describes.
 
 ```sh
 pnpm install
@@ -42,7 +43,10 @@ The `net` cargo feature adds built-in catalog fetching for bare-C consumers.
 
 ## Test
 
-The local gate is the Rust format, lint and test commands, `pnpm run check` (oxlint, oxfmt, tsc, vitest and the generated-file check), and the two zero-diff scripts: `skopli.h` against cbindgen and the C# P/Invoke layer against csbindgen.
+The local gate has three parts.
+The Rust format, lint and test commands come first.
+`pnpm run check` runs oxlint, oxfmt, tsc, vitest and the generated-file check.
+The two zero-diff scripts compare `skopli.h` against cbindgen and the C# P/Invoke layer against csbindgen.
 
 ```sh
 cargo fmt --all -- --check
@@ -53,14 +57,14 @@ bash scripts/check-capi-header.sh
 bash scripts/check-csharp-bindings.sh
 ```
 
-CI runs the same commands plus `pnpm run build:native`, both site builds and one job per facade (Python, Ruby, Go, Java, .NET, Swift).
+CI runs the same commands across a Rust matrix (1.88, 1.89, stable) and a Node addon matrix, plus both site builds and one job per other facade (Python, Ruby, Go, Java, .NET, Swift).
 
 `cargo test` replays every case under `golden/` through the core.
 A change to an `expected-*.json` file is a documented behaviour change.
 Say why in the commit message.
 `golden/README.md` describes the corpus layout and how to add a case.
 
-Three files are generated from a single source, and `pnpm run sync --check` (part of `pnpm run check`) fails when a copy drifts:
+Three files are generated, each from a source elsewhere in the repository, and `pnpm run sync --check` (part of `pnpm run check`) fails when a copy drifts:
 
 - the install table in `README.md`, from `web/ui/src/quickstart.ts`
 - the supported-harness list in `llms.txt`, from `golden/registry/ids.json`
@@ -87,10 +91,15 @@ A reader estimates tokens only when the harness stores none, and the harness tab
 
 Built-in catalogs live in `crates/skopli-core/src/pricing/sources.rs`, one `SourceSpec` per catalog with its URL and cache name.
 `pricing/parse.rs` parses each format into a `PriceMap`, which `sources.rs` wraps as a `PricingCatalog`.
-Every facade fetches in its own language, so each carries a copy of the source table (`rg models.dev/api.json` lists them), and `test/pricing.test.ts` pins the TypeScript copy to `golden/pricing/lifecycle/constants.json`.
-A new built-in source needs a `SourceUrls` field and a slot in `builtin_specs` in `sources.rs`, a parser, the facade tables, a fixture under `golden/pricing/`, and coverage in `crates/skopli-core/tests/pricing_conformance.rs`.
-Unknown models must keep returning `priced: false` with the attempted keys.
-A source never invents a price.
+
+1. Add a `SourceUrls` field and a `builtin_specs` slot in `sources.rs`.
+2. Write the parser in `parse.rs`.
+3. Add the source to every facade's table.
+   Each facade fetches in its own language, so each carries a copy (`rg models.dev/api.json` lists them), and `test/pricing.test.ts` pins the TypeScript copy to `golden/pricing/lifecycle/constants.json`.
+4. Add a fixture under `golden/pricing/`.
+5. Cover it in `crates/skopli-core/tests/pricing_conformance.rs`.
+   Unknown models must keep returning `priced: false` with the attempted keys.
+   A source never invents a price.
 
 ## Pull requests
 

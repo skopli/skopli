@@ -102,6 +102,22 @@ assert against), plus the flat gpt-5 cost (0.00625), a thrown `.invalidArgument`
 (bad `since`), a thrown `.catalog` (unknown catalog format), and the `Pricing`
 `deinit`/`close()` free path.
 
+## Use from your package
+
+Add the package by path from a clone of this repository, then link the cdylib
+built in that clone:
+
+```swift
+.package(path: "../skopli/sdks/swift")
+```
+
+```sh
+swift build -Xlinker -L../skopli/target/release -Xlinker -lskopli
+```
+
+At run time the cdylib directory must be on the loader path
+(`DYLD_LIBRARY_PATH` on macOS, `LD_LIBRARY_PATH` on Linux).
+
 ## Usage
 
 ```swift

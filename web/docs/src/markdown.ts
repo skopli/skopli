@@ -1,11 +1,12 @@
 import { harnesses } from "@skopli/ui/harnesses";
 import { langs } from "@skopli/ui/langs";
-import { installMd, quickstarts, releaseNote } from "@skopli/ui/quickstart";
+import { command, quickstarts, releaseNote } from "@skopli/ui/quickstart";
 
 const quickstartMd = [
   ...(releaseNote ? [releaseNote] : []),
   ...quickstarts.map(
-    (q) => `### ${langs[q.id]}\n\nInstall: ${installMd(q)}\n\n\`\`\`${q.id}\n${q.code}\n\`\`\``,
+    (q) =>
+      `### ${langs[q.id]}\n\nInstall: \`${command(q)}\`${q.note ? ` (${q.note})` : ""}\n\n\`\`\`${q.id}\n${q.code}\n\`\`\``,
   ),
 ].join("\n\n");
 

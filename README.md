@@ -4,7 +4,7 @@
 
 # Skopli
 
-**Read AI coding-agent usage from 40 harnesses — offline — and price it against live market catalogs.**
+**Read AI coding-agent usage from 40 harnesses - offline - and price it against live market catalogs.**
 
 [Website](https://skopli.com) · [Docs](https://docs.skopli.com/skopli/) · [Quickstart](#quickstart) · [Supported harnesses](#supported-harnesses) · [Why Skopli](#why-skopli)
 
@@ -35,7 +35,7 @@
 
 > No accounts, no telemetry. The readers never touch the network; only the pricing layer fetches (opt-in, cached, works offline from cache).
 
-Skopli is an SDK, not a CLI. It reads the session state your agent harnesses already store on disk — tokens, sessions, turns, calls — normalizes it, aggregates it, and prices it. Build your own dashboards, reports, or billing checks on top.
+Skopli is an SDK, not a CLI. It reads the session state your agent harnesses already store on disk - tokens, sessions, turns, calls - normalizes it, aggregates it, and prices it. Build your own dashboards, reports, or billing checks on top.
 
 ## Why Skopli
 
@@ -45,7 +45,7 @@ Three independent layers; use any subset:
 | ---------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------- |
 | **Read**   | Parse local session state from 40 harnesses into normalized usage events, with structured diagnostics                                                                | Never          |
 | **Rollup** | Group events by model, day (timezone-aware in every SDK), session, harness, workspace, or billing block                                                              | Never          |
-| **Price**  | Match models against OpenRouter, LiteLLM, and models.dev catalogs (or your own) and compute USD costs — honest misses, tiered long-context rates, cache-write splits | Opt-in, cached |
+| **Price**  | Match models against OpenRouter, LiteLLM, and models.dev catalogs (or your own) and compute USD costs - honest misses, tiered long-context rates, cache-write splits | Opt-in, cached |
 
 Skopli is a library with an offline-first stance, per-event tiered pricing, and a stable API surface across TypeScript, Python, Rust, Ruby, Java, C#, Go, Swift, and C.
 
@@ -57,17 +57,17 @@ Skopli is a library with an offline-first stance, per-event tiered pricing, and 
 
 No release has shipped yet, and no registry has a usable package. Each line below installs from the repository.
 
-| Language   | Install now (from the repository)                                                                                                                                                                                                           | Notes                                                                                           | After the first release                                                       |
-| ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
-| TypeScript | `git clone https://github.com/skopli/skopli && pnpm --dir skopli install && pnpm --dir skopli run build && pnpm add ./skopli`                                                                                                               | Node 24+, ESM only. Building from source needs a Rust toolchain.                                | npm: `pnpm add skopli`                                                        |
-| Python     | `pip install "git+https://github.com/skopli/skopli#subdirectory=crates/skopli-py"`                                                                                                                                                          | Building from source needs a Rust toolchain.                                                    | PyPI: `pip install skopli`                                                    |
-| Rust       | `cargo add skopli-core --git https://github.com/skopli/skopli`                                                                                                                                                                              |                                                                                                 | same command, no registry                                                     |
-| Ruby       | `gem "skopli", git: "https://github.com/skopli/skopli", glob: "crates/skopli-ruby/*.gemspec"`                                                                                                                                               | Ruby 3.2+. Building from source needs a Rust toolchain.                                         | RubyGems: `gem install skopli`                                                |
-| Java       | `git clone https://github.com/skopli/skopli && cargo build --manifest-path skopli/Cargo.toml -p skopli-capi --release && gradle -p skopli/sdks/java jar`                                                                                    | JDK 22+. sdks/java/README.md covers the run-time flags and the jar.                             | GitHub Releases: `gh release download --repo skopli/skopli --pattern "*.jar"` |
-| C#         | `git clone https://github.com/skopli/skopli && cargo build --manifest-path skopli/Cargo.toml -p skopli-capi --release && dotnet add reference skopli/sdks/csharp/Skopli/Skopli.csproj`                                                      | .NET 9. sdks/csharp/README.md covers how libskopli is found.                                    | NuGet: `dotnet add package Skopli`                                            |
-| Go         | `git clone https://github.com/skopli/skopli && cargo build --manifest-path skopli/Cargo.toml -p skopli-capi --release && go mod edit -replace github.com/skopli/skopli/sdks/go=./skopli/sdks/go && go get github.com/skopli/skopli/sdks/go` | cgo. sdks/go/README.md covers out-of-tree and Windows builds.                                   | Go modules: `go get github.com/skopli/skopli/sdks/go`                         |
-| Swift      | `git clone https://github.com/skopli/skopli && cargo build --manifest-path skopli/Cargo.toml -p skopli-capi --release`                                                                                                                      | Package.swift: .package(path: "skopli/sdks/swift"). sdks/swift/README.md covers the link flags. | same command, no registry                                                     |
-| C          | `git clone https://github.com/skopli/skopli && cargo build --manifest-path skopli/Cargo.toml -p skopli-capi --release`                                                                                                                      |                                                                                                 | same command, no registry                                                     |
+| Language   | Install now (from the repository)                                                                                                                                                                                                           | Notes                                                                                | After the first release                                                                   |
+| ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------- |
+| TypeScript | `git clone https://github.com/skopli/skopli && pnpm --dir skopli install && pnpm --dir skopli run build && pnpm add ./skopli`                                                                                                               | Node 24+, ESM only. Building from source needs a Rust toolchain.                     | npm: `pnpm add skopli`                                                                    |
+| Python     | `pip install "git+https://github.com/skopli/skopli#subdirectory=crates/skopli-py"`                                                                                                                                                          | Building from source needs a Rust toolchain.                                         | PyPI: `pip install skopli`                                                                |
+| Rust       | `cargo add skopli-core --git https://github.com/skopli/skopli`                                                                                                                                                                              |                                                                                      | same command, no registry                                                                 |
+| Ruby       | `gem "skopli", git: "https://github.com/skopli/skopli", glob: "crates/skopli-ruby/*.gemspec"`                                                                                                                                               | Ruby 3.2+. Building from source needs a Rust toolchain.                              | RubyGems: `gem install skopli`                                                            |
+| Java       | `git clone https://github.com/skopli/skopli && cargo build --manifest-path skopli/Cargo.toml -p skopli-capi --release && gradle -p skopli/sdks/java jar`                                                                                    | JDK 22+. sdks/java/README.md covers the jar and the run-time flags.                  | GitHub Releases: `gh release download --repo skopli/skopli --pattern "skopli-[0-9]*.jar"` |
+| C#         | `git clone https://github.com/skopli/skopli && cargo build --manifest-path skopli/Cargo.toml -p skopli-capi --release && dotnet add reference skopli/sdks/csharp/Skopli/Skopli.csproj`                                                      | .NET 9. sdks/csharp/README.md covers how libskopli is found.                         | NuGet: `dotnet add package Skopli`                                                        |
+| Go         | `git clone https://github.com/skopli/skopli && cargo build --manifest-path skopli/Cargo.toml -p skopli-capi --release && go mod edit -replace github.com/skopli/skopli/sdks/go=./skopli/sdks/go && go get github.com/skopli/skopli/sdks/go` | Needs cgo and a C compiler. sdks/go/README.md covers out-of-tree and Windows builds. | Go modules: `go get github.com/skopli/skopli/sdks/go`                                     |
+| Swift      | `git clone https://github.com/skopli/skopli && cargo build --manifest-path skopli/Cargo.toml -p skopli-capi --release`                                                                                                                      | sdks/swift/README.md covers the path dependency and the link flags.                  | same command, no registry                                                                 |
+| C          | `git clone https://github.com/skopli/skopli && cargo build --manifest-path skopli/Cargo.toml -p skopli-capi --release`                                                                                                                      |                                                                                      | same command, no registry                                                                 |
 
 <!-- /generated -->
 
@@ -240,7 +240,7 @@ Prices are USD per million tokens. The highlights:
 const priced = await pricing.priceEvents(events, { by: "model" });
 ```
 
-The full pricing semantics — tier inheritance and fallbacks, the whole-request heuristic and its error bounds, mixed-provenance aggregation, cache-write composition per tier — are documented at [docs.skopli.com](https://docs.skopli.com/skopli/).
+The full pricing semantics - tier inheritance and fallbacks, the whole-request heuristic and its error bounds, mixed-provenance aggregation, cache-write composition per tier - are documented at [docs.skopli.com](https://docs.skopli.com/skopli/).
 
 ## Contributing
 

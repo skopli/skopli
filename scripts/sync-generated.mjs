@@ -20,13 +20,13 @@ const installTable = () => {
     ? ["Language", "Registry", "Install", "Notes"]
     : ["Language", "Install now (from the repository)", "Notes", "After the first release"];
   const rows = quickstarts.map((q) => {
-    const now = `\`${command(q)}\``;
+    const cmd = `\`${command(q)}\``;
     const note = q.note ?? "";
     return published
-      ? [langs[q.id], q.registry ?? "none", now, note]
+      ? [langs[q.id], q.registry ?? "none", cmd, note]
       : [
           langs[q.id],
-          now,
+          cmd,
           note,
           q.registry ? `${q.registry}: \`${q.install}\`` : "same command, no registry",
         ];
@@ -63,22 +63,17 @@ const contributingPage = () =>
 const targets = [
   [
     "README.md",
-    (f) =>
-      replaceBetween(
-        read(f),
-        "<!-- generated: install-table -->",
-        "<!-- /generated -->",
-        installTable(),
-      ),
+    (t) =>
+      replaceBetween(t, "<!-- generated: install-table -->", "<!-- /generated -->", installTable()),
   ],
-  ["llms.txt", (f) => harnessLine(read(f))],
+  ["llms.txt", harnessLine],
   ["web/docs/src/content/docs/contributing.md", contributingPage],
 ];
 
 const stale = [];
 for (const [file, render] of targets) {
   const current = existsSync(file) ? read(file) : "";
-  const next = render(file);
+  const next = render(current);
   if (next === current) continue;
   if (check) stale.push(file);
   else writeFileSync(file, next);

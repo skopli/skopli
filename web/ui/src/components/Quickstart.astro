@@ -5,13 +5,13 @@ import { command, quickstarts, releaseNote } from "../quickstart.ts";
 import Tabs from "./Tabs.astro";
 
 interface Props {
-  note?: boolean;
+  status?: boolean;
 }
 
-const { note = true } = Astro.props;
+const { status = true } = Astro.props;
 ---
 
-{note && releaseNote && <p class="tabs__status">{releaseNote}</p>}
+{status && releaseNote && <p class="tabs__status">{releaseNote}</p>}
 <Tabs>
   {quickstarts.map((q) => (
     <Fragment slot={q.id}>
