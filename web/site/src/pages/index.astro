@@ -241,7 +241,7 @@ const rules = [
         {quickstarts.map((q) => (
           <li>
             <span>{langs[q.id]}</span>
-            <span><code>{q.install}</code>{q.note && <span class="langs__note">{q.note}</span>}</span>
+            <span class="langs__install"><code>{q.install}</code>{q.note && <span class="langs__note">{q.note}</span>}</span>
           </li>
         ))}
       </ul>
@@ -534,9 +534,12 @@ const rules = [
     margin-top: var(--space-6);
     border-top: 1px solid var(--rule);
   }
+  .langs__install {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0 var(--space-3);
+  }
   .langs__note {
-    display: inline-block;
-    margin-left: var(--space-3);
     font-size: var(--text-sm);
     color: var(--ink-3);
   }

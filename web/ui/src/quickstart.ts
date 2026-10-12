@@ -158,10 +158,12 @@ AgBuf usage = {0};
 if (ag_read_usage(read_opts, strlen(read_opts), &usage) != AG_STATUS_OK)
   return 1;
 
+// ag_rollup takes the "events" array from the usage JSON above; pull it out
+// with your JSON library into events_json / events_len.
 const char *rollup_opts = "{\\"by\\":\\"model\\"}";
 AgBuf by_model = {0};
-if (ag_rollup((const char *)usage.ptr, usage.len, rollup_opts,
-              strlen(rollup_opts), &by_model) != AG_STATUS_OK)
+if (ag_rollup(events_json, events_len, rollup_opts, strlen(rollup_opts),
+              &by_model) != AG_STATUS_OK)
   return 1;
 
 const char *pricing_opts =
