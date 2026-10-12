@@ -20,7 +20,7 @@ This produces `target/x86_64-pc-windows-gnu/release/skopli.dll` and the GNU
 import lib `libskopli.dll.a`. On non-Windows, build the default target
 (`cargo build -p skopli-capi --release`) to get `target/release/`.
 
-Each GitHub release also carries `skopli-capi-<version>-<target>.tar.gz`
+Each GitHub release also includes `skopli-capi-<version>-<target>.tar.gz`
 (`.zip` on Windows) with `skopli.h`, the shared library and the static library;
 unpack one and point `CGO_CFLAGS`/`CGO_LDFLAGS` at it (below) instead of
 building. The Windows archives are MSVC builds, so cgo on Windows still needs

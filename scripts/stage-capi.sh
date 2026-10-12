@@ -14,7 +14,7 @@ cd "$repo_root"
 version="$(cargo metadata --no-deps --format-version 1 | jq -r '.packages[] | select(.name == "skopli-capi") | .version')"
 stem="skopli-capi-$version-$target"
 stage="dist-capi/$stem"
-rm -rf "$stage"
+rm -rf "$stage" "$stage".tar.gz "$stage".zip
 mkdir -p "$stage"
 
 cp crates/skopli-capi/include/skopli.h "$stage/"

@@ -60,10 +60,8 @@ jobs:
           - { runner: macos-latest, target: x86_64-apple-darwin }
           - { runner: macos-latest, target: aarch64-apple-darwin }
           - { runner: ubuntu-latest, target: x86_64-unknown-linux-gnu }
-          - { runner: ubuntu-latest, target: aarch64-unknown-linux-gnu }
+          - { runner: ubuntu-24.04-arm, target: aarch64-unknown-linux-gnu }
           - { runner: ubuntu-latest, target: x86_64-unknown-linux-musl }
-          - { runner: ubuntu-latest, target: aarch64-unknown-linux-musl }
-          - { runner: ubuntu-latest, target: armv7-unknown-linux-gnueabihf }
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - uses: pnpm/action-setup@f40ffcd9367d9f12939873eb1018b921a783ffaa # v4
@@ -77,6 +75,8 @@ jobs:
           targets: ${{ matrix.target }}
       - uses: Swatinem/rust-cache@49a0bdc70d2e1b713ca9e2869b211fcce03d3c1c # v2
       - run: pnpm install --frozen-lockfile
+      - if: matrix.target == 'x86_64-unknown-linux-musl'
+        run: sudo apt-get install -y musl-tools
       - name: napi build (release, per target)
         run: pnpm run build:native -- --target ${{ matrix.target }}
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
@@ -164,7 +164,7 @@ jobs:
       matrix:
         include:
           - { runner: ubuntu-latest, target: x86_64-unknown-linux-gnu }
-          - { runner: ubuntu-latest, target: aarch64-unknown-linux-gnu }
+          - { runner: ubuntu-24.04-arm, target: aarch64-unknown-linux-gnu }
           - { runner: macos-latest, target: x86_64-apple-darwin }
           - { runner: macos-latest, target: aarch64-apple-darwin }
           - { runner: windows-latest, target: x86_64-pc-windows-msvc }
@@ -243,12 +243,12 @@ jobs:
         with:
           distribution: temurin
           java-version: "25"
-      - uses: gradle/actions/setup-gradle@b9bee63ef481cc545e4517ec730544a4d8b1dfa0 # v6.4.0
+      - uses: gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6.4.0
         with:
           gradle-version: "9.8.0"
       - name: Build the jar (gradle)
         working-directory: sdks/java
-        run: gradle --no-daemon build -x test
+        run: gradle --no-daemon jar sourcesJar
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: java-jar
@@ -375,20 +375,19 @@ jobs:
       - name: mint crates.io token (GATED, OIDC)
         id: cratesio
         uses: rust-lang/crates-io-auth-action@c6f97d42243bad5fab37ca0427f495c86d5b1a18 # v1.0.5
-      # Dependency order (core <- wire <- capi); cargo waits for each crate to
-      # reach the index. Crates already on crates.io are skipped so a re-run
-      # after a partial publish finishes the rest.
+      # Crates already on crates.io are skipped so a re-run after a partial
+      # publish finishes the rest.
       - name: cargo publish core, wire, capi (GATED)
         env:
           CARGO_REGISTRY_TOKEN: ${{ steps.cratesio.outputs.token }}
         run: |
           version="$(cargo metadata --no-deps --format-version 1 | jq -r '.packages[] | select(.name == "skopli-core") | .version')"
-          if [ "${{ github.ref_type }}" = tag ] && [ "${{ github.ref_name }}" != "v$version" ]; then
-            echo "tag ${{ github.ref_name }} does not match crate version $version" >&2
+          if [ "$GITHUB_REF_TYPE" = tag ] && [ "$GITHUB_REF_NAME" != "v$version" ]; then
+            echo "tag $GITHUB_REF_NAME does not match crate version $version" >&2
             exit 1
           fi
           for crate in skopli-core skopli-wire skopli-capi; do
-            if curl -fsS -o /dev/null -A skopli-release "https://crates.io/api/v1/crates/$crate/$version"; then
+            if curl -fsS --retry 3 -o /dev/null -A skopli-release "https://crates.io/api/v1/crates/$crate/$version"; then
               echo "$crate $version is already on crates.io"
             else
               cargo publish -p "$crate"

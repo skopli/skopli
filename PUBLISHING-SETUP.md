@@ -59,7 +59,7 @@ npm trusted publishing requires the package to already exist, so bootstrap each
 package **locally, before the first release**, using the central bootstrap
 script. It publishes a `0.0.0` placeholder under the `bootstrap` dist-tag from
 your own logged-in npm session, configures the trusted publisher, locks
-publishing to 2FA, and verifies the result — no `NPM_TOKEN` is ever stored in
+publishing to 2FA, and verifies the result - no `NPM_TOKEN` is ever stored in
 the repository:
 
 ```sh
@@ -123,15 +123,21 @@ upload):
 
 ### crates.io
 
-Three crates are published: `skopli-core`, then `skopli-wire` (depends on
-core), then `skopli-capi` (depends on both). Their manifests allow publishing
-and their path dependencies carry a `version`; the `skopli-node`, `skopli-py`,
-`skopli-ruby` binding crates stay `publish = false`. The `publish-crates` job
-checks that the tag matches the crate version, skips any crate already on
-crates.io, and runs `cargo publish -p <crate>` in that order; cargo waits for
-each crate to reach the index before verifying the next. Trusted publishing is
-configured per crate on crates.io; the job mints a temporary token with
-`rust-lang/crates-io-auth-action` + `id-token: write`.
+The `publish-crates` job publishes `skopli-core`, then `skopli-wire`, then
+`skopli-capi`, in dependency order. The three manifests allow publishing and
+share the workspace version; the `skopli-node`, `skopli-py`, `skopli-ruby`
+binding crates stay `publish = false`. The job checks that the tag matches the
+crate version, skips any crate already on crates.io, and runs
+`cargo publish -p <crate>`; cargo waits for each crate to reach the index
+before verifying the next.
+
+crates.io only lets a crate that already exists get a trusted publisher, so
+the first version of each crate is published by hand with the interim token
+below: `cargo publish -p skopli-core`, then `-p skopli-wire`, then
+`-p skopli-capi`. Then add the trusted publisher (owner `skopli`, repository
+`skopli`, workflow `release.yml`) on each of the three crates, revoke the
+token, and let the job mint its own with `rust-lang/crates-io-auth-action` +
+`id-token: write` from the next release on.
 
 Interim token path: a crates.io token created at
 <https://crates.io/settings/tokens/new> with:
@@ -150,7 +156,7 @@ Do not grant `change-owners`, `yank`, or `trusted-publishing`.
 The gem is `skopli` (built from `crates/skopli-ruby`, rb-sys/magnus). Replace
 `gem push` + `RUBYGEMS_API_KEY` with `rubygems/release-gem@v1` +
 `id-token: write`. RubyGems trusted publishing supports a "pending" publisher
-for a gem name that has never been pushed — configure it before the first
+for a gem name that has never been pushed - configure it before the first
 release with owner `skopli`, repository `skopli`, workflow `release.yml`.
 
 Decide before v1: source gem (compiles on `gem install`, current setup) vs
@@ -198,8 +204,8 @@ each into `skopli-capi-<version>-<target>.tar.gz` (`.zip` for Windows) with
 `skopli.h`, the shared library and the static library inside, so the assets
 keep distinct names on the release. `cargo publish` of `skopli-capi` gives
 source-level consumers `cargo`/build-from-source access.
-Optional later channels if demand appears — vcpkg or Conan submissions, and
-Homebrew/system packages — each a separate manifest repo and credential; do not
+Optional later channels if demand appears - vcpkg or Conan submissions, and
+Homebrew/system packages - each a separate manifest repo and credential; do not
 set these up before a user asks.
 
 ### Go modules

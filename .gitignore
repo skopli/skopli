@@ -1,6 +1,7 @@
 # Node
 node_modules/
 dist/
+dist-capi/
 coverage/
 
 # Rust
@@ -40,7 +41,6 @@ sdks/java/.gradle/
 
 # Swift build artifacts
 sdks/swift/.build/
-dist-capi/
 
 # Astro
 .astro/
