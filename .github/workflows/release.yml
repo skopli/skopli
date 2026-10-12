@@ -248,7 +248,7 @@ jobs:
       - name: Install Gradle 9.8.0
         run: |
           curl -fsSL -o gradle.zip https://services.gradle.org/distributions/gradle-9.8.0-bin.zip
-          echo "bafd5ce9cfaea0fbccfdc8439a1ac42fbd4cd9c89dc9a988228d8a2639a58e6c  gradle.zip" | sha256sum -c -
+          echo "bafd5ce9cfaea0fbccfdc8439a1ac42fbd4cd9c89dc9a988228d8a2639a58e6c  gradle.zip" | shasum -a 256 -c -
           unzip -q gradle.zip -d "$RUNNER_TEMP"
           echo "$RUNNER_TEMP/gradle-9.8.0/bin" >> "$GITHUB_PATH"
       - name: Build the jar (gradle)
