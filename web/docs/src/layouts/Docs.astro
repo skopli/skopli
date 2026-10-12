@@ -141,7 +141,7 @@ const github = "https://github.com/skopli/skopli";
       toggle(document.querySelector("[data-menu]"), document.getElementById("sidebar"));
       toggle(document.querySelector("[data-search-toggle]"), document.querySelector("[data-search]"), "input");
 
-      for (const box of document.querySelectorAll<HTMLElement>(".prose table, .prose :not(.tabs__panel) > pre")) syncScrollable(box);
+      for (const box of document.querySelectorAll<HTMLElement>(".prose table, .prose pre:not(.tabs *)")) syncScrollable(box);
     </script>
   </body>
 </html>

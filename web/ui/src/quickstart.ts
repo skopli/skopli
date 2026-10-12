@@ -147,8 +147,8 @@ let priced = try pricing.priceRollups(rollups: byModel)`,
   },
   {
     id: "c",
-    install: '#include "skopli.h"',
-    note: "prebuilt libskopli and skopli.h from GitHub Releases",
+    install: "cargo build -p skopli-capi --release",
+    note: "or prebuilt libskopli and skopli.h from GitHub Releases",
     code: `#include "skopli.h"
 
 // Every call takes and returns JSON. Free each AgBuf with ag_buf_free.

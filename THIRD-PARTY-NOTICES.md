@@ -43,7 +43,7 @@ At render time the `<title>` element is dropped so a pack's internal name does n
 | `cursor.svg`       | Cursor                | LobeHub Icons | `cursor`        |
 
 Harnesses with no entry above (Droid CLI, Pi, omp, Prime Agent, Gajae-Code, Kimchi Coding, Auggie CLI, Codebuff, jcode, Xum, OpenCodeReview, Reasonix, fx) are rendered as text.
-No reputable icon pack carries an official mark for them.
+Neither pack carries a mark for them.
 
 ### LobeHub Icons
 

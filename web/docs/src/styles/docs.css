@@ -233,7 +233,7 @@
   margin-top: var(--space-6);
   font-size: var(--text-md);
 }
-.prose p,
+.prose p:not(.tabs *),
 .prose li {
   max-width: var(--measure);
 }
@@ -251,12 +251,12 @@
 .prose a:hover {
   text-decoration-color: var(--accent);
 }
-.prose code:not(pre code) {
+.prose code:not(pre code, .tabs *) {
   padding: 0.1em 0.35em;
   border-radius: var(--radius);
   background: var(--paper-3);
 }
-.prose pre {
+.prose pre:not(.tabs *) {
   padding: var(--space-4);
   border: 1px solid var(--rule);
   border-radius: var(--radius);
