@@ -33,6 +33,11 @@
   padding: var(--space-4);
   overflow-x: auto;
 }
+.tabs__status {
+  max-width: var(--measure);
+  color: var(--ink-2);
+}
+
 .tabs__install {
   display: flex;
   gap: var(--space-3);

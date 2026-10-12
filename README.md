@@ -53,27 +53,23 @@ Skopli is a library with an offline-first stance, per-event tiered pricing, and 
 
 ## Install
 
-```
-npm install skopli
-```
+<!-- generated: install-table -->
 
-`pnpm add skopli` and `bun add skopli` work too. Requires Node >= 24. ESM only.
+No release has shipped yet, so there is nothing on npm, PyPI, RubyGems, Maven Central, NuGet or GitHub Releases. Each line below installs from the repository; the registry forms arrive with the first release.
 
-<details>
-<summary>Other languages (published with the first release)</summary>
+| Language   | Install now (from the repository)                                                                                                                                                                                                                                               | After the first release                                                    |
+| ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------- |
+| TypeScript | `git clone https://github.com/skopli/skopli && pnpm --dir skopli install && pnpm --dir skopli run build && pnpm add ./skopli` (Node 24+, ESM only; Rust toolchain to build)                                                                                                     | npm: `pnpm add skopli`                                                     |
+| Python     | `pip install "git+https://github.com/skopli/skopli#subdirectory=crates/skopli-py"` (Rust toolchain to build)                                                                                                                                                                    | PyPI: `pip install skopli`                                                 |
+| Rust       | `cargo add skopli-core --git https://github.com/skopli/skopli`                                                                                                                                                                                                                  | same (git dependency)                                                      |
+| Ruby       | `gem "skopli", git: "https://github.com/skopli/skopli", glob: "crates/skopli-ruby/*.gemspec"` (Gemfile; Ruby 3.2+ and a Rust toolchain)                                                                                                                                         | RubyGems: `gem install skopli`                                             |
+| Java       | `git clone https://github.com/skopli/skopli && cargo build --manifest-path skopli/Cargo.toml -p skopli-capi --release && gradle -p skopli/sdks/java jar` (JDK 22+)                                                                                                              | Maven Central: `com.skopli:skopli`                                         |
+| C#         | `git clone https://github.com/skopli/skopli && cargo build --manifest-path skopli/Cargo.toml -p skopli-capi --release && dotnet add reference skopli/sdks/csharp/Skopli/Skopli.csproj` (.NET 9)                                                                                 | NuGet: `dotnet add package Skopli`                                         |
+| Go         | `git clone https://github.com/skopli/skopli && cargo build --manifest-path skopli/Cargo.toml -p skopli-capi --release && go mod edit -replace github.com/skopli/skopli/sdks/go=./skopli/sdks/go && go get github.com/skopli/skopli/sdks/go` (cgo; libskopli on the linker path) | Go modules: `go get github.com/skopli/skopli/sdks/go`                      |
+| Swift      | `.package(url: "https://github.com/skopli/skopli", branch: "main")` (Package.swift; build libskopli with cargo build -p skopli-capi --release)                                                                                                                                  | same (git dependency)                                                      |
+| C          | `git clone https://github.com/skopli/skopli && cargo build --manifest-path skopli/Cargo.toml -p skopli-capi --release`                                                                                                                                                          | GitHub Releases: `prebuilt libskopli and skopli.h from the release assets` |
 
-| Language | Registry        | Install                                                          |
-| -------- | --------------- | ---------------------------------------------------------------- |
-| Python   | PyPI            | `pip install skopli`                                             |
-| Rust     | crates.io       | `cargo add skopli-core`                                          |
-| Ruby     | RubyGems        | `gem install skopli`                                             |
-| Java     | Maven Central   | `com.skopli:skopli`                                              |
-| C#       | NuGet           | `dotnet add package Skopli`                                      |
-| Go       | Go modules      | `go get github.com/skopli/skopli/sdks/go`                        |
-| Swift    | SPM             | `.package(url: "https://github.com/skopli/skopli", from: "...")` |
-| C/C++    | GitHub Releases | prebuilt cdylib/staticlib + `skopli.h`                           |
-
-</details>
+<!-- /generated -->
 
 ### Building the C library
 
@@ -248,7 +244,7 @@ The full pricing semantics — tier inheritance and fallbacks, the whole-request
 
 ## Contributing
 
-See the [development docs](https://docs.skopli.com/skopli/contributing) for the workspace layout (Rust core + 8 SDK facades), the golden-file test suite, and the local gate.
+[CONTRIBUTING.md](CONTRIBUTING.md) (also at [docs.skopli.com/skopli/contributing](https://docs.skopli.com/skopli/contributing)) covers the workspace layout, building and testing, adding a harness or a pricing source, and what a pull request needs.
 
 ## License
 

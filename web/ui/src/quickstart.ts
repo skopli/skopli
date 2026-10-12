@@ -1,11 +1,32 @@
 import type { Lang } from "./langs.ts";
 
-export type Quickstart = { id: Lang; install: string; note?: string; code: string };
+export type Quickstart = {
+  id: Lang;
+  registry: string;
+  install: string;
+  source: string;
+  note?: string;
+  code: string;
+};
+
+// Flip with the first release; until then every facade installs from the repository.
+export const published = false;
+
+export const releaseNote = published
+  ? ""
+  : "No release has shipped yet, so there is nothing on npm, PyPI, RubyGems, Maven Central, NuGet or GitHub Releases. Each line below installs from the repository; the registry forms arrive with the first release.";
+
+export const installLine = (q: Quickstart) =>
+  published ? { command: q.install, note: q.registry } : { command: q.source, note: q.note };
 
 export const quickstarts: Quickstart[] = [
   {
     id: "ts",
+    registry: "npm",
     install: "pnpm add skopli",
+    source:
+      "git clone https://github.com/skopli/skopli && pnpm --dir skopli install && pnpm --dir skopli run build && pnpm add ./skopli",
+    note: "Node 24+, ESM only; Rust toolchain to build",
     code: `import { detectHarnesses, readUsage, rollup, createPricing } from "skopli";
 
 const { supported, unsupported } = detectHarnesses();
@@ -31,7 +52,10 @@ for (const row of priced) {
   },
   {
     id: "python",
+    registry: "PyPI",
     install: "pip install skopli",
+    source: 'pip install "git+https://github.com/skopli/skopli#subdirectory=crates/skopli-py"',
+    note: "Rust toolchain to build",
     code: `import skopli
 
 detection = skopli.detect_harnesses()
@@ -50,7 +74,9 @@ for row in pricing.price_rollups(rollups):
   },
   {
     id: "rust",
+    registry: "git dependency",
     install: "cargo add skopli-core --git https://github.com/skopli/skopli",
+    source: "cargo add skopli-core --git https://github.com/skopli/skopli",
     code: `use skopli_core::pricing::parse::parse_litellm;
 use skopli_core::pricing::types::PricingCatalog;
 use skopli_core::pricing::{Pricing, PricingMode};
@@ -70,7 +96,11 @@ let priced = pricing.price_rollups(&by_model);`,
   },
   {
     id: "ruby",
+    registry: "RubyGems",
     install: "gem install skopli",
+    source:
+      'gem "skopli", git: "https://github.com/skopli/skopli", glob: "crates/skopli-ruby/*.gemspec"',
+    note: "Gemfile; Ruby 3.2+ and a Rust toolchain",
     code: `require "skopli"
 
 result = Skopli.read_usage(
@@ -85,8 +115,11 @@ end`,
   },
   {
     id: "java",
+    registry: "Maven Central",
     install: "com.skopli:skopli",
-    note: "Maven Central",
+    source:
+      "git clone https://github.com/skopli/skopli && cargo build --manifest-path skopli/Cargo.toml -p skopli-capi --release && gradle -p skopli/sdks/java jar",
+    note: "JDK 22+",
     code: `import com.skopli.*;
 
 ReadUsageOptions opts = ReadUsageOptions.builder().since("2026-08-01").build();
@@ -100,7 +133,11 @@ try (Pricing pricing = Skopli.createPricing(PricingOptions.builder().build())) {
   },
   {
     id: "csharp",
+    registry: "NuGet",
     install: "dotnet add package Skopli",
+    source:
+      "git clone https://github.com/skopli/skopli && cargo build --manifest-path skopli/Cargo.toml -p skopli-capi --release && dotnet add reference skopli/sdks/csharp/Skopli/Skopli.csproj",
+    note: ".NET 9",
     code: `using Skopli;
 
 var readOpts = new ReadUsageOptions { Since = "2026-08-01" };
@@ -113,7 +150,11 @@ IReadOnlyList<PricedRollup> priced = pricing.PriceRollups(byModel);`,
   },
   {
     id: "go",
+    registry: "Go modules",
     install: "go get github.com/skopli/skopli/sdks/go",
+    source:
+      "git clone https://github.com/skopli/skopli && cargo build --manifest-path skopli/Cargo.toml -p skopli-capi --release && go mod edit -replace github.com/skopli/skopli/sdks/go=./skopli/sdks/go && go get github.com/skopli/skopli/sdks/go",
+    note: "cgo; libskopli on the linker path",
     code: `import "github.com/skopli/skopli/sdks/go/skopli"
 
 func priceByModel() ([]skopli.PricedRollup, error) {
@@ -136,7 +177,10 @@ func priceByModel() ([]skopli.PricedRollup, error) {
   },
   {
     id: "swift",
+    registry: "git dependency",
     install: '.package(url: "https://github.com/skopli/skopli", branch: "main")',
+    source: '.package(url: "https://github.com/skopli/skopli", branch: "main")',
+    note: "Package.swift; build libskopli with cargo build -p skopli-capi --release",
     code: `import Skopli
 
 let result = try Skopli.readUsage(options: ReadUsageOptions(since: "2026-08-01"))
@@ -147,8 +191,10 @@ let priced = try pricing.priceRollups(rollups: byModel)`,
   },
   {
     id: "c",
-    install: "cargo build -p skopli-capi --release",
-    note: "or prebuilt libskopli and skopli.h from GitHub Releases",
+    registry: "GitHub Releases",
+    install: "prebuilt libskopli and skopli.h from the release assets",
+    source:
+      "git clone https://github.com/skopli/skopli && cargo build --manifest-path skopli/Cargo.toml -p skopli-capi --release",
     code: `#include "skopli.h"
 
 // Every call takes and returns JSON. Free each AgBuf with ag_buf_free.

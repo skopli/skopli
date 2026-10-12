@@ -1,0 +1,88 @@
+---
+title: Contributing
+description: How to build and test Skopli, add a harness or a pricing source, and what a pull request needs.
+---
+
+<!-- generated from CONTRIBUTING.md by scripts/sync-generated.mjs; edit the source -->
+
+Skopli is one Rust core with nine language facades.
+Most changes land in the core and show up in every language at once; the facades only change when the wire format or the public API does.
+
+## Where things live
+
+| Path                                                           | What it is                                                                                                       |
+| -------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| `crates/skopli-core`                                           | Readers for every harness (`src/readers/`), the rollup engine, and the pricing layer (`src/pricing/`)            |
+| `crates/skopli-wire`                                           | The JSON wire format shared by every facade                                                                      |
+| `crates/skopli-capi`                                           | The C ABI (`libskopli`) with its committed, zero-diff-checked header `include/skopli.h`                          |
+| `crates/skopli-node`, `crates/skopli-py`, `crates/skopli-ruby` | Native extensions for TypeScript (napi-rs), Python (PyO3) and Ruby (Magnus)                                      |
+| `src/`, `test/`                                                | The TypeScript facade and its tests                                                                              |
+| `sdks/go`, `sdks/java`, `sdks/csharp`, `sdks/swift`            | Facades that load `libskopli` through cgo, FFM, P/Invoke and SwiftPM                                             |
+| `golden/`                                                      | The conformance corpus: real-shaped inputs and exact expected outputs for every harness, rollup and pricing case |
+| `web/`                                                         | The marketing site (`site`), the docs site (`docs`) and the design system they share (`ui`)                      |
+
+Each facade directory has a README with its own build and test steps.
+
+## Build
+
+You need Rust (`rust-toolchain.toml` pins the toolchain; the workspace `rust-version` is the 1.88 floor), Node 24 and pnpm.
+Use pnpm for every Node command; the repository does not use npm or yarn.
+
+```sh
+pnpm install
+pnpm run build:native                      # the Node addon
+cargo build -p skopli-capi --release       # libskopli for the Go, Java, C# and Swift facades
+```
+
+The default `libskopli` opens no socket; the `net` cargo feature adds built-in catalog fetching for bare-C consumers.
+
+## Test
+
+The local gate is the same set of commands CI runs:
+
+```sh
+cargo fmt --all -- --check
+cargo clippy --workspace --exclude skopli --all-targets -- -D warnings
+cargo test --workspace --exclude skopli
+pnpm run check                             # oxlint, oxfmt, tsc, vitest, generated-file check
+bash scripts/check-capi-header.sh          # skopli.h is zero-diff against cbindgen
+bash scripts/check-csharp-bindings.sh      # the C# P/Invoke layer is zero-diff against csbindgen
+```
+
+`cargo test` replays every case under `golden/` through the core.
+A change to an `expected-*.json` file is a documented behaviour change; say why in the commit message.
+`golden/README.md` describes the corpus layout and how to add a case.
+
+Three files are generated from a single source and checked in CI by `node scripts/sync-generated.mjs --check`: the install table in `README.md` (from `web/ui/src/quickstart.ts`), the supported-harness list in `llms.txt` (from `golden/registry/ids.json`), and the docs copy of this page.
+Edit the source and run `pnpm run sync`.
+
+## Add a harness
+
+1. Write the reader in `crates/skopli-core/src/readers/<id>.rs`, declare it in `readers/mod.rs`, and append it to `registered_readers()` in `readers/registry.rs`.
+2. Append the id to `golden/registry/ids.json`; the conformance test asserts the file matches `registered_readers()` in order.
+3. Add at least one case under `golden/<id>/` with `input/` files captured from the real application (sanitised), an `input-manifest.json`, and the expected outputs.
+   Spot-check a headline figure against the application's own UI before committing.
+4. Add the id to the harness enums in the facades: `src/types.ts` and `src/detect.ts`, `crates/skopli-py/python/skopli/_enums.py`, `sdks/go/skopli/types.go`, `sdks/java/src/main/java/com/skopli/Harness.java`, `sdks/csharp/Skopli/Models.cs`, `sdks/swift/Sources/Skopli/Models.swift`.
+5. Add the display name (and an icon, if an official mark exists under a permissive licence) to `web/ui/src/harnesses.ts`, and a row to the harness table in `README.md`.
+   New icons need an entry in `THIRD-PARTY-NOTICES.md`.
+
+Readers never touch the network and never guess: a field the harness does not record is `0`, and a timestamp that cannot be parsed is a diagnostic, not an epoch-0 event.
+
+## Add a pricing source
+
+Built-in catalogs live in `crates/skopli-core/src/pricing/sources.rs` (one `SourceSpec` per catalog, with its URL and cache name) and are parsed into the common `PricingCatalog` shape in `pricing/parse.rs`.
+A new source needs a parser, a fixture under `golden/pricing/`, and coverage in `crates/skopli-core/tests/pricing_conformance.rs`.
+Unknown models must keep returning `priced: false` with the attempted keys; a source never invents a price.
+
+## Pull requests
+
+- Branch from `main`; every change lands through a pull request.
+- The PR title is a Conventional Commit (`feat(web): ...`, `fix(core): ...`) and the PR carries one independently releasable change.
+- CI must be green, including the zero-diff and generated-file checks above.
+- Docs and marketing copy state only what the code does: no benchmarks, adoption numbers or testimonials.
+
+## Releases
+
+`.github/workflows/release.yml` builds every facade on a tag and attaches the artifacts to a draft GitHub release.
+The registry publish jobs are gated behind the `PUBLISH_ENABLED` repository variable; `PUBLISHING-SETUP.md` lists the trusted-publisher setup each registry needs.
+When the first release ships, set `published = true` in `web/ui/src/quickstart.ts` and run `pnpm run sync` so the README, the sites and the generated Markdown switch from repository installs to registry installs.
