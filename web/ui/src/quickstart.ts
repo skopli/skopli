@@ -80,7 +80,7 @@ use skopli_core::pricing::{Pricing, PricingMode};
 use skopli_core::rollup::{rollup, RollupBy, RollupOptions};
 
 // \`events\` is a Vec<UsageEvent> you already hold. \`litellm_json\` is a
-// serde_json::Value you fetched yourself. Without the `net` feature the core crate fetches nothing.
+// serde_json::Value you fetched yourself. Without the \`net\` feature the core crate fetches nothing.
 let by_model = rollup(&events, &RollupOptions::new(RollupBy::Model));
 
 let catalog = PricingCatalog {

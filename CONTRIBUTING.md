@@ -6,16 +6,16 @@ The facades only change when the wire format or the public API does.
 
 ## Where things live
 
-| Path                                                           | What it is                                                                                                        |
-| -------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
-| `crates/skopli-core`                                           | Readers for every harness (`crates/skopli-core/src/readers/`), the rollup engine, and the pricing layer (`crates/skopli-core/src/pricing/`)             |
-| `crates/skopli-wire`                                           | The JSON wire format shared by every facade                                                                       |
-| `crates/skopli-capi`                                           | The C ABI (`libskopli`) with its committed, zero-diff-checked header `include/skopli.h`                           |
-| `crates/skopli-node`, `crates/skopli-py`, `crates/skopli-ruby` | Native extensions for TypeScript (napi-rs), Python (PyO3), and Ruby (Magnus)                                      |
-| `src/`, `test/`                                                | The TypeScript facade and its tests                                                                               |
-| `sdks/go`, `sdks/java`, `sdks/csharp`, `sdks/swift`            | Facades that load `libskopli` through cgo, FFM, P/Invoke, and a SwiftPM system-library target                     |
-| `golden/`                                                      | The conformance corpus: real-shaped inputs and exact expected outputs for every harness, rollup, and pricing case |
-| `web/`                                                         | The marketing site (`site`), the docs site (`docs`), and the design system they share (`ui`)                      |
+| Path                                                           | What it is                                                                                                                                  |
+| -------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| `crates/skopli-core`                                           | Readers for every harness (`crates/skopli-core/src/readers/`), the rollup engine, and the pricing layer (`crates/skopli-core/src/pricing/`) |
+| `crates/skopli-wire`                                           | The JSON wire format shared by every facade                                                                                                 |
+| `crates/skopli-capi`                                           | The C ABI (`libskopli`) with its committed, zero-diff-checked header `include/skopli.h`                                                     |
+| `crates/skopli-node`, `crates/skopli-py`, `crates/skopli-ruby` | Native extensions for TypeScript (napi-rs), Python (PyO3), and Ruby (Magnus)                                                                |
+| `src/`, `test/`                                                | The TypeScript facade and its tests                                                                                                         |
+| `sdks/go`, `sdks/java`, `sdks/csharp`, `sdks/swift`            | Facades that load `libskopli` through cgo, FFM, P/Invoke, and a SwiftPM system-library target                                               |
+| `golden/`                                                      | The conformance corpus: real-shaped inputs and exact expected outputs for every harness, rollup, and pricing case                           |
+| `web/`                                                         | The marketing site (`site`), the docs site (`docs`), and the design system they share (`ui`)                                                |
 
 `sdks/*`, `crates/skopli-py`, and `crates/skopli-ruby` each have a README with their own build and test steps.
 
