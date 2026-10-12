@@ -6,28 +6,28 @@ The facades only change when the wire format or the public API does.
 
 ## Where things live
 
-| Path                                                           | What it is                                                                                                       |
-| -------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
-| `crates/skopli-core`                                           | Readers for every harness (`src/readers/`), the rollup engine, and the pricing layer (`src/pricing/`)            |
-| `crates/skopli-wire`                                           | The JSON wire format shared by every facade                                                                      |
-| `crates/skopli-capi`                                           | The C ABI (`libskopli`) with its committed, zero-diff-checked header `include/skopli.h`                          |
-| `crates/skopli-node`, `crates/skopli-py`, `crates/skopli-ruby` | Native extensions for TypeScript (napi-rs), Python (PyO3), and Ruby (Magnus)                                     |
-| `src/`, `test/`                                                | The TypeScript facade and its tests                                                                              |
-| `sdks/go`, `sdks/java`, `sdks/csharp`, `sdks/swift`            | Facades that load `libskopli` through cgo, FFM, P/Invoke, and a SwiftPM system-library target                    |
-| `golden/`                                                      | The conformance corpus: real-shaped inputs and exact expected outputs for every harness, rollup and pricing case |
-| `web/`                                                         | The marketing site (`site`), the docs site (`docs`), and the design system they share (`ui`)                     |
+| Path                                                           | What it is                                                                                                        |
+| -------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| `crates/skopli-core`                                           | Readers for every harness (`src/readers/`), the rollup engine, and the pricing layer (`src/pricing/`)             |
+| `crates/skopli-wire`                                           | The JSON wire format shared by every facade                                                                       |
+| `crates/skopli-capi`                                           | The C ABI (`libskopli`) with its committed, zero-diff-checked header `include/skopli.h`                           |
+| `crates/skopli-node`, `crates/skopli-py`, `crates/skopli-ruby` | Native extensions for TypeScript (napi-rs), Python (PyO3), and Ruby (Magnus)                                      |
+| `src/`, `test/`                                                | The TypeScript facade and its tests                                                                               |
+| `sdks/go`, `sdks/java`, `sdks/csharp`, `sdks/swift`            | Facades that load `libskopli` through cgo, FFM, P/Invoke, and a SwiftPM system-library target                     |
+| `golden/`                                                      | The conformance corpus: real-shaped inputs and exact expected outputs for every harness, rollup, and pricing case |
+| `web/`                                                         | The marketing site (`site`), the docs site (`docs`), and the design system they share (`ui`)                      |
 
-`sdks/*`, `crates/skopli-py` and `crates/skopli-ruby` each have a README with their own build and test steps.
+`sdks/*`, `crates/skopli-py`, and `crates/skopli-ruby` each have a README with their own build and test steps.
 
 ## Build
 
-You need Rust, Node 24 and pnpm.
+You need Rust, Node 24, and pnpm.
 `rust-toolchain.toml` pins the Rust toolchain, and the workspace `rust-version` is the 1.88 floor.
 Use pnpm for every Node command.
 The repository does not use npm or yarn.
 
 `pnpm run build:native` builds the Node addon, and `cargo build -p skopli-capi --release` builds `libskopli` for the Go, Java, C#, and Swift facades.
-On Windows the Go facade links the GNU target instead, as [`sdks/go/README.md`](sdks/go/README.md) describes.
+On Windows the Go facade links the GNU target instead, as `sdks/go/README.md` describes.
 
 ```sh
 pnpm install
@@ -41,7 +41,7 @@ The `net` cargo feature adds built-in catalog fetching for bare-C consumers.
 ## Test
 
 The local gate has three parts.
-The Rust format, lint and test commands come first.
+The Rust format, lint, and test commands come first.
 `pnpm run check` runs oxlint, oxfmt, tsc, vitest, and the generated-file check.
 The two zero-diff scripts compare `skopli.h` against cbindgen and the C# P/Invoke layer against csbindgen.
 
@@ -59,15 +59,17 @@ CI runs the same commands across a Rust matrix (1.88, 1.89, stable) and a Node a
 `cargo test` replays every case under `golden/` through the core.
 A change to an `expected-*.json` file is a documented behavior change.
 Say why in the commit message.
-[`golden/README.md`](golden/README.md) describes the corpus layout and how to add a case.
+`golden/README.md` describes the corpus layout and how to add a case.
 
 Three files are generated, each from a source elsewhere in the repository, and `pnpm run sync --check` (part of `pnpm run check`) fails when a copy drifts:
 
 - the install table in `README.md`, from `web/ui/src/quickstart.ts`
-- the supported-harness list in `llms.txt`, from [`golden/registry/ids.json`](golden/registry/ids.json)
+- the supported-harness list in `llms.txt`, from `golden/registry/ids.json`
 - the docs copy of this page, from `CONTRIBUTING.md`
 
 Edit the source and run `pnpm run sync`.
+On the docs copy, every backticked path that exists in the repository becomes a link to the file on GitHub.
+The links change the table widths, so that copy is excluded from oxfmt.
 
 ## Add a harness
 
@@ -77,9 +79,9 @@ Edit the source and run `pnpm run sync`.
    The conformance test asserts the file matches `registered_readers()` in order.
 3. Add at least one case under `golden/<id>/` with `input/` files captured from the real application and sanitized, an `input-manifest.json`, and the expected outputs.
    Spot-check a headline figure against the application's own UI before committing.
-4. Add the id to the harness enums in the facades: [`src/types.ts`](src/types.ts) and [`src/detect.ts`](src/detect.ts), [`crates/skopli-py/python/skopli/_enums.py`](crates/skopli-py/python/skopli/_enums.py), [`sdks/go/skopli/types.go`](sdks/go/skopli/types.go), [`sdks/java/src/main/java/com/skopli/Harness.java`](sdks/java/src/main/java/com/skopli/Harness.java), [`sdks/csharp/Skopli/Models.cs`](sdks/csharp/Skopli/Models.cs), [`sdks/swift/Sources/Skopli/Models.swift`](sdks/swift/Sources/Skopli/Models.swift).
+4. Add the id to the harness enums in the facades: `src/types.ts` and `src/detect.ts`, `crates/skopli-py/python/skopli/_enums.py`, `sdks/go/skopli/types.go`, `sdks/java/src/main/java/com/skopli/Harness.java`, `sdks/csharp/Skopli/Models.cs`, `sdks/swift/Sources/Skopli/Models.swift`.
 5. Add the display name (and an icon, if an official mark exists under a permissive license) to `web/ui/src/harnesses.ts`, and a row to the harness table in `README.md`.
-   New icons need an entry in [`THIRD-PARTY-NOTICES.md`](THIRD-PARTY-NOTICES.md).
+   New icons need an entry in `THIRD-PARTY-NOTICES.md`.
 
 Readers never touch the network.
 A field the harness does not record is `0`, and a timestamp that cannot be parsed is a diagnostic, not an epoch-0 event.
@@ -93,7 +95,7 @@ Built-in catalogs live in `crates/skopli-core/src/pricing/sources.rs`, one `Sour
 1. Add a `SourceUrls` field and a `builtin_specs` slot in `sources.rs`.
 2. Write the parser in `parse.rs`.
 3. Add the source to every facade's table.
-   Each facade fetches in its own language, so each carries a copy (`rg models.dev/api.json` lists them), and [`test/pricing.test.ts`](test/pricing.test.ts) pins the TypeScript copy to `golden/pricing/lifecycle/constants.json`.
+   Each facade fetches in its own language, so each carries a copy (`rg models.dev/api.json` lists them), and `test/pricing.test.ts` pins the TypeScript copy to `golden/pricing/lifecycle/constants.json`.
 4. Add a fixture under `golden/pricing/`.
 5. Cover it in `crates/skopli-core/tests/pricing_conformance.rs`.
    Unknown models must keep returning `priced: false` with the attempted keys.
@@ -104,12 +106,12 @@ Built-in catalogs live in `crates/skopli-core/src/pricing/sources.rs`, one `Sour
 - Branch from `main`. Every change lands through a pull request.
 - The PR title is a Conventional Commit (`feat(web): ...`, `fix(core): ...`) and the PR carries one independently releasable change.
 - CI must be green, including the zero-diff and generated-file checks above.
-- Docs and marketing copy state only what the code does: no benchmarks, adoption numbers or testimonials.
+- Docs and marketing copy state only what the code does: no benchmarks, adoption numbers, or testimonials.
 
 ## Releases
 
-[`.github/workflows/release.yml`](.github/workflows/release.yml) builds every facade on a tag and attaches the artifacts to a draft GitHub release.
+`.github/workflows/release.yml` builds every facade on a tag and attaches the artifacts to a draft GitHub release.
 The registry publish jobs are gated behind the `PUBLISH_ENABLED` repository variable.
-[`PUBLISHING-SETUP.md`](PUBLISHING-SETUP.md) lists the trusted-publisher setup each registry needs.
+`PUBLISHING-SETUP.md` lists the trusted-publisher setup each registry needs.
 When the first release ships, set `published = true` in `web/ui/src/quickstart.ts` and run `pnpm run sync`.
 The README switches from repository installs to registry installs, and the sites and their generated Markdown follow on their next build.

@@ -1,4 +1,4 @@
-import { readFileSync, writeFileSync } from "node:fs";
+import { existsSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { harnesses } from "../web/ui/src/harnesses.ts";
 import { langs } from "../web/ui/src/langs.ts";
@@ -60,12 +60,16 @@ const harnessLine = (text) => {
   return text.replace(re, `$1${ids.join(", ")}.$3`);
 };
 
-const contributingPage = () =>
-  `---\ntitle: Contributing\ndescription: How to build and test Skopli, add a harness or a pricing source, and what a pull request needs.\n---\n\n${read(
-    "CONTRIBUTING.md",
-  )
+const contributingPage = () => {
+  const body = read("CONTRIBUTING.md")
     .replace(/^# .*\n\n/, "")
-    .replace(/\]\((?!https?:|#)([^)]+)\)/g, `](${repo}/blob/main/$1)`)}`;
+    .replace(/`([^`\s<>*]+)`/g, (m, path) =>
+      existsSync(path)
+        ? `[${m}](${repo}/${statSync(path).isDirectory() ? "tree" : "blob"}/main/${path})`
+        : m,
+    );
+  return `---\ntitle: Contributing\ndescription: How to build and test Skopli, add a harness or a pricing source, and what a pull request needs.\n---\n\n${body}`;
+};
 
 const targets = [
   [

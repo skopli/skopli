@@ -5,6 +5,7 @@
     "native/**",
     "**/bin/**",
     "**/obj/**",
-    "**/.venv/**"
+    "**/.venv/**",
+    "web/docs/src/content/docs/contributing.md"
   ]
 }

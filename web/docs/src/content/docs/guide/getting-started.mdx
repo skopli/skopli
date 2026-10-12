@@ -9,24 +9,24 @@ import Quickstart from "@skopli/ui/components/Quickstart.astro";
 
 <Quickstart />
 
-The Go, Java, C# and Swift facades load the native `skopli` library.
-Their READMEs in the repository describe where each runtime looks for it.
+The Go, Java, C#, and Swift facades load the native `skopli` library.
+The [Go](https://github.com/skopli/skopli/blob/main/sdks/go/README.md), [Java](https://github.com/skopli/skopli/blob/main/sdks/java/README.md), [C#](https://github.com/skopli/skopli/blob/main/sdks/csharp/README.md), and [Swift](https://github.com/skopli/skopli/blob/main/sdks/swift/README.md) READMEs describe where each runtime looks for it.
 
 Reading and rolling up never touch the network.
-`createPricing()` fetches the OpenRouter, LiteLLM and models.dev catalogs the first time it needs them, caches them on disk for about an hour, and keeps using the cache when a fetch fails.
+`createPricing()` fetches the OpenRouter, LiteLLM, and models.dev catalogs the first time it needs them, caches them on disk for about an hour, and keeps using the cache when a fetch fails.
 Pass `offline: true` or `sources: []` to price without any network access.
-The Rust core crate and the bare C library have no fetch layer at all, so they take catalogs you supply.
+The Rust core crate and the bare C library fetch nothing unless built with the `net` feature, so by default they take catalogs you supply.
 [Pricing basics](/skopli/guide/pricing-basics/) has the details.
 
 ## What comes back
 
-A priced rollup carries the summed tokens, the number of events, turns and model calls, and a `pricing` object.
+A priced rollup carries the summed tokens, the number of events, turns, and model calls, and a `pricing` object.
 When a model matched a catalog, `pricing.priced` is `true` and you get `usd`, the catalog `key` that matched, the `source` and its `fetchedAt` timestamp.
 When no catalog knows the model, `pricing.priced` is `false` and `attempted` lists every key that was tried.
 Skopli never substitutes a guessed price.
 
 ## Next
 
-- [Reading usage](/skopli/guide/reading/) for date bounds, timezones, subagents and diagnostics.
+- [Reading usage](/skopli/guide/reading/) for date bounds, timezones, subagents, and diagnostics.
 - [Rollups](/skopli/guide/rollups/) for the six grouping keys.
 - [Rollups vs events](/skopli/pricing/rollups-vs-events/) before you price models with long-context tiers.

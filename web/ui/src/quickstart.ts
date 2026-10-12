@@ -73,6 +73,7 @@ for row in pricing.price_rollups(rollups):
   {
     id: "rust",
     source: "cargo add skopli-core --git https://github.com/skopli/skopli",
+    note: "Rust 1.88+.",
     code: `use skopli_core::pricing::parse::parse_litellm;
 use skopli_core::pricing::types::PricingCatalog;
 use skopli_core::pricing::{Pricing, PricingMode};
@@ -150,7 +151,7 @@ IReadOnlyList<PricedRollup> priced = pricing.PriceRollups(byModel);`,
     install: "go get github.com/skopli/skopli/sdks/go",
     source:
       "git clone https://github.com/skopli/skopli && cargo build --manifest-path skopli/Cargo.toml -p skopli-capi --release && go mod edit -replace github.com/skopli/skopli/sdks/go=./skopli/sdks/go && go get github.com/skopli/skopli/sdks/go",
-    note: "Needs cgo and a C compiler. sdks/go/README.md covers out-of-tree and Windows builds.",
+    note: "Go 1.26+. Needs cgo and a C compiler. sdks/go/README.md covers out-of-tree and Windows builds.",
     code: `import "github.com/skopli/skopli/sdks/go/skopli"
 
 func priceByModel() ([]skopli.PricedRollup, error) {
@@ -175,7 +176,7 @@ func priceByModel() ([]skopli.PricedRollup, error) {
     id: "swift",
     source:
       "git clone https://github.com/skopli/skopli && cargo build --manifest-path skopli/Cargo.toml -p skopli-capi --release",
-    note: "macOS 13+. sdks/swift/README.md covers the path dependency and the link flags.",
+    note: "macOS 13+ or Linux. sdks/swift/README.md covers the path dependency and the link flags.",
     code: `import Skopli
 
 let result = try Skopli.readUsage(options: ReadUsageOptions(since: "2026-08-01"))
