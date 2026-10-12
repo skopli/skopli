@@ -69,7 +69,7 @@ const targets = [
   ],
 ];
 
-let stale = [];
+const stale = [];
 for (const [file, render] of targets) {
   const current = (() => {
     try {
