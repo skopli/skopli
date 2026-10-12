@@ -1,4 +1,5 @@
 import mdx from "@astrojs/mdx";
+import { codeThemes } from "@skopli/ui/langs";
 import sitemap from "@astrojs/sitemap";
 import { defineConfig } from "astro/config";
 import { writeFile } from "node:fs/promises";
@@ -23,7 +24,7 @@ export default defineConfig({
   integrations: [mdx(), sitemap(), rootRedirect()],
   markdown: {
     shikiConfig: {
-      themes: { light: "github-light", dark: "github-dark" },
+      themes: codeThemes,
       defaultColor: false,
     },
   },

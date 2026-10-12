@@ -37,9 +37,16 @@
   overflow-x: auto;
 }
 .tabs__install {
+  display: flex;
+  gap: var(--space-3);
   margin: 0;
   padding: var(--space-3) var(--space-4);
   border-bottom: 1px solid var(--rule);
   font-size: var(--text-sm);
-  color: var(--ink-2);
+  color: var(--ink-3);
+}
+.tabs__install code {
+  padding: 0;
+  background: none;
+  color: var(--ink);
 }

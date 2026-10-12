@@ -1,16 +1,18 @@
 ---
 import { Code } from "astro:components";
+import { codeThemes } from "../langs.ts";
 import { quickstarts } from "../quickstart.ts";
 import Tabs from "./Tabs.astro";
-
-const themes = { light: "github-light", dark: "github-dark" };
 ---
 
 <Tabs>
   {quickstarts.map((q) => (
     <Fragment slot={q.id}>
-      <p class="tabs__install"><code>{q.install}</code></p>
-      <Code code={q.code} lang={q.id} themes={themes} defaultColor={false} />
+      <p class="tabs__install">
+        <code>{q.install}</code>
+        {q.note && <span>{q.note}</span>}
+      </p>
+      <Code code={q.code} lang={q.id} themes={codeThemes} defaultColor={false} />
     </Fragment>
   ))}
 </Tabs>

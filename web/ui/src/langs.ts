@@ -11,3 +11,5 @@ export const langs = {
 } as const;
 
 export type Lang = keyof typeof langs;
+
+export const codeThemes = { light: "github-light", dark: "github-dark" };

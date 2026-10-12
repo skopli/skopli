@@ -38,6 +38,10 @@ let by_model = rollup(&events, &RollupOptions::new(RollupBy::Model));
 let mut day_opts = RollupOptions::new(RollupBy::Day);
 day_opts.tz = Some("Asia/Tokyo".into());
 let by_day = rollup(&events, &day_opts);
+
+let mut block_opts = RollupOptions::new(RollupBy::Block);
+block_opts.block_ms = Some(5 * 60 * 60 * 1000);
+let by_block = rollup(&events, &block_opts);
 ```
 
 </Fragment>

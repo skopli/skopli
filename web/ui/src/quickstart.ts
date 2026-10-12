@@ -1,6 +1,6 @@
 import type { Lang } from "./langs.ts";
 
-export type Quickstart = { id: Lang; install: string; code: string };
+export type Quickstart = { id: Lang; install: string; note?: string; code: string };
 
 export const quickstarts: Quickstart[] = [
   {
@@ -50,7 +50,7 @@ for row in pricing.price_rollups(rollups):
   },
   {
     id: "rust",
-    install: 'skopli-core = { git = "https://github.com/skopli/skopli" } in Cargo.toml',
+    install: "cargo add skopli-core --git https://github.com/skopli/skopli",
     code: `use skopli_core::pricing::parse::parse_litellm;
 use skopli_core::pricing::types::PricingCatalog;
 use skopli_core::pricing::{Pricing, PricingMode};
@@ -85,7 +85,8 @@ end`,
   },
   {
     id: "java",
-    install: "com.skopli:skopli on Maven Central",
+    install: "com.skopli:skopli",
+    note: "Maven Central",
     code: `import com.skopli.*;
 
 ReadUsageOptions opts = ReadUsageOptions.builder().since("2026-08-01").build();
@@ -146,7 +147,8 @@ let priced = try pricing.priceRollups(rollups: byModel)`,
   },
   {
     id: "c",
-    install: "Prebuilt libskopli and skopli.h from GitHub Releases",
+    install: '#include "skopli.h"',
+    note: "prebuilt libskopli and skopli.h from GitHub Releases",
     code: `#include "skopli.h"
 
 // Every call takes and returns JSON. Free each AgBuf with ag_buf_free.

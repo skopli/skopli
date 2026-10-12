@@ -76,14 +76,14 @@ components:
 
 ## Overview
 
-Skopli presents usage and cost figures that have to be trusted, so both sites read like an audited statement: warm paper, dark ink, hairline rules, and numbers set in tabular figures with their source named next to them.
+Skopli presents usage and cost figures that have to be trusted, so both sites read like an audited statement: near-black paper, off-white ink, hairline rules, and numbers set in tabular figures with their source named next to them.
 Marketing persuades with a real input and its real output.
 Docs read as a single calm column.
 Tokens live in `web/ui/src/styles/tokens.css` and are consumed unchanged by `web/site` and `web/docs`.
 
 ## Colors
 
-Dark is the default theme: warm near-black paper with warm off-white ink.
+Dark is the default theme, warm near-black paper with warm off-white ink.
 The light theme uses neutral white and light greys for paper and a neutral near-black ink.
 Three ink steps (`ink`, `ink-2`, `ink-3`) cover headings, body and muted text, all AA on paper.
 `accent` is used only for links inside prose and for focus rings.
@@ -91,7 +91,8 @@ Three ink steps (`ink`, `ink-2`, `ink-3`) cover headings, body and muted text, a
 `rule-strong` is the 3:1 boundary used on controls such as quiet buttons and inputs.
 `ok` and `miss` mark priced and unpriced states when a figure needs a status.
 They are never decorative.
-The light theme swaps the paper and ink scales under `[data-theme="light"]`. The dark values live on `:root`.
+The light theme swaps the paper and ink scales under `[data-theme="light"]`.
+The dark values live on `:root`.
 The same roles apply.
 
 ## Typography
@@ -128,6 +129,7 @@ The primary is paper text on an ink fill, the quiet variant a 1px border in `rul
 Code panes share one background (`paper-2`), a 1px rule and a small uppercase caption row.
 Language tabs persist the choice in `localStorage` and switch every tab set on the page.
 Page actions (copy, view as Markdown, open in an assistant) are bordered 44px controls under the title.
+Brand marks are 16px `currentColor` SVGs in `ink-2`, vendored unmodified; a harness without a mark gets a blank 16px spacer so names stay aligned.
 
 ## Do's and Don'ts
 

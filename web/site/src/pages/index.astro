@@ -3,7 +3,7 @@ import { Code } from "astro:components";
 import Icon from "@skopli/ui/components/Icon.astro";
 import Quickstart from "@skopli/ui/components/Quickstart.astro";
 import { harnesses } from "@skopli/ui/harnesses";
-import { langs } from "@skopli/ui/langs";
+import { codeThemes, langs } from "@skopli/ui/langs";
 import { quickstarts } from "@skopli/ui/quickstart";
 import Base from "../layouts/Base.astro";
 
@@ -128,7 +128,6 @@ const rules = [
 
 
 
-const themes = { light: "github-light", dark: "github-dark" };
 ---
 
 <Base
@@ -151,12 +150,12 @@ const themes = { light: "github-light", dark: "github-dark" };
     <figure class="demo wrap">
       <div class="demo__pane">
         <figcaption>Input</figcaption>
-        <Code code={input} lang="ts" themes={themes} defaultColor={false} />
+        <Code code={input} lang="ts" themes={codeThemes} defaultColor={false} />
       </div>
       <div class="demo__pane">
         <figcaption>Output, abridged</figcaption>
-        <div class="demo__wide"><Code code={output} lang="json" themes={themes} defaultColor={false} /></div>
-        <div class="demo__narrow"><Code code={outputNarrow} lang="json" themes={themes} defaultColor={false} /></div>
+        <div class="demo__wide"><Code code={output} lang="json" themes={codeThemes} defaultColor={false} /></div>
+        <div class="demo__narrow"><Code code={outputNarrow} lang="json" themes={codeThemes} defaultColor={false} /></div>
       </div>
       <p class="demo__note">
         Figures are from the repository's golden pricing fixture: synthetic token counts priced against a
@@ -242,7 +241,7 @@ const themes = { light: "github-light", dark: "github-dark" };
         {quickstarts.map((q) => (
           <li>
             <span>{langs[q.id]}</span>
-            <code>{q.install}</code>
+            <span><code>{q.install}</code>{q.note && <span class="langs__note">{q.note}</span>}</span>
           </li>
         ))}
       </ul>
@@ -257,7 +256,7 @@ const themes = { light: "github-light", dark: "github-dark" };
       <div class="hero__actions">
         <a class="button" href={`${docs}guide/getting-started/`}>Getting started</a>
         <a class="button button--quiet" href="https://github.com/skopli/skopli">Source on GitHub</a>
-    </div>
+      </div>
     </div>
   </section>
 </Base>
@@ -419,6 +418,10 @@ const themes = { light: "github-light", dark: "github-dark" };
   .langs__list li:last-child {
     border-bottom: 0;
   }
+  .langs__note {
+    margin-left: var(--space-3);
+    color: var(--ink-3);
+  }
   .layers__row dt {
     font-size: var(--text-lg);
     font-weight: 500;
@@ -500,10 +503,8 @@ const themes = { light: "github-light", dark: "github-dark" };
     border-left: 1px solid var(--rule);
   }
   .harnesses__grid li {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: space-between;
-    gap: var(--space-1) var(--space-3);
+    display: grid;
+    gap: var(--space-1);
     padding: var(--space-3) var(--space-4);
     border-right: 1px solid var(--rule);
     border-bottom: 1px solid var(--rule);
@@ -513,6 +514,7 @@ const themes = { light: "github-light", dark: "github-dark" };
     display: inline-flex;
     align-items: center;
     gap: var(--space-2);
+    white-space: nowrap;
   }
   .harnesses__grid code {
     color: var(--ink-3);

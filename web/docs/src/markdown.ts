@@ -3,7 +3,10 @@ import { langs } from "@skopli/ui/langs";
 import { quickstarts } from "@skopli/ui/quickstart";
 
 const quickstartMd = quickstarts
-  .map((q) => `### ${langs[q.id]}\n\nInstall: \`${q.install}\`\n\n\`\`\`${q.id}\n${q.code}\n\`\`\``)
+  .map(
+    (q) =>
+      `### ${langs[q.id]}\n\nInstall: \`${q.install}\`${q.note ? ` (${q.note})` : ""}\n\n\`\`\`${q.id}\n${q.code}\n\`\`\``,
+  )
   .join("\n\n");
 
 const harnessMd = [
