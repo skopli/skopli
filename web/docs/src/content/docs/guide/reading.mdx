@@ -47,8 +47,7 @@ events, diagnostics, skipped = result.events, result.diagnostics, result.skipped
 ```rust
 use skopli_wire::read::{parse_read_options, read_usage};
 
-// The Rust crates speak JSON at this boundary; every facade above them
-// builds this same options object.
+// The Rust crates take the options as JSON.
 let opts = serde_json::json!({
     "harnesses": ["claude", "codex"],
     "since": "2026-08-01",

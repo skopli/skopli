@@ -3,6 +3,7 @@ import { Code } from "astro:components";
 import Icon from "@skopli/ui/components/Icon.astro";
 import Quickstart from "@skopli/ui/components/Quickstart.astro";
 import { harnesses } from "@skopli/ui/harnesses";
+import { langs } from "@skopli/ui/langs";
 import { quickstarts } from "@skopli/ui/quickstart";
 import Base from "../layouts/Base.astro";
 
@@ -215,7 +216,7 @@ const themes = { light: "github-light", dark: "github-dark" };
       {harnesses.map((h) => (
         <li>
           <span class="harnesses__name">
-            {h.icon && <Icon name={h.id} />}
+            <Icon name={h.icon} />
             {h.name}
           </span>
           <code>{h.id}</code>
@@ -240,7 +241,7 @@ const themes = { light: "github-light", dark: "github-dark" };
       <ul class="langs__list">
         {quickstarts.map((q) => (
           <li>
-            <span>{q.label}</span>
+            <span>{langs[q.id]}</span>
             <code>{q.install}</code>
           </li>
         ))}
@@ -262,14 +263,9 @@ const themes = { light: "github-light", dark: "github-dark" };
 </Base>
 
 <script>
-  for (const box of document.querySelectorAll<HTMLElement>(".demo pre")) {
-    const sync = () => {
-      box.toggleAttribute("data-scrollable", box.scrollWidth > box.clientWidth);
-      box.toggleAttribute("data-scrolled", box.scrollLeft + box.clientWidth >= box.scrollWidth - 1);
-    };
-    box.addEventListener("scroll", sync, { passive: true });
-    new ResizeObserver(sync).observe(box);
-  }
+  import { syncScrollable } from "@skopli/ui/scrollable";
+
+  for (const box of document.querySelectorAll<HTMLElement>(".demo pre")) syncScrollable(box);
 </script>
 
 <style>
@@ -405,12 +401,6 @@ const themes = { light: "github-light", dark: "github-dark" };
     .demo__narrow {
       display: block;
     }
-  }
-  .demo :global([data-scrollable]) {
-    mask-image: linear-gradient(to right, #000 calc(100% - 2.5rem), transparent);
-  }
-  .demo :global([data-scrollable][data-scrolled]) {
-    mask-image: none;
   }
 
   .layers__list {

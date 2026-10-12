@@ -10,12 +10,12 @@ const md = mdPath(slug);
 const absolute = `${SITE}${md}`;
 const prompt = encodeURIComponent(`Read ${absolute} so I can ask questions about it.`);
 const targets = [
-  ["ChatGPT", "chatgpt", `https://chatgpt.com/?q=${prompt}`],
-  ["Claude", "claude", `https://claude.ai/new?q=${prompt}`],
-  ["Grok", "grok", `https://grok.com/?q=${prompt}`],
-  ["Perplexity", "perplexity", `https://www.perplexity.ai/search?q=${prompt}`],
-  ["Google AI Mode", "google", `https://www.google.com/search?udm=50&q=${prompt}`],
-  ["Cursor", "cursor", `cursor://anysphere.cursor-deeplink/prompt?text=${prompt}`],
+  { name: "ChatGPT", icon: "chatgpt", href: `https://chatgpt.com/?q=${prompt}` },
+  { name: "Claude", icon: "claude", href: `https://claude.ai/new?q=${prompt}` },
+  { name: "Grok", icon: "grok", href: `https://grok.com/?q=${prompt}` },
+  { name: "Perplexity", icon: "perplexity", href: `https://www.perplexity.ai/search?q=${prompt}` },
+  { name: "Google AI Mode", icon: "google", href: `https://www.google.com/search?udm=50&q=${prompt}` },
+  { name: "Cursor", icon: "cursor", href: `cursor://anysphere.cursor-deeplink/prompt?text=${prompt}` },
 ];
 ---
 
@@ -37,7 +37,7 @@ const targets = [
   <details class="actions__menu">
     <summary class="actions__btn">Open in</summary>
     <ul>
-      {targets.map(([name, icon, href]) => (
+      {targets.map(({ name, icon, href }) => (
         <li>
           <a href={href} rel="noopener"><Icon name={icon} />{name}</a>
         </li>

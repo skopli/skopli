@@ -1,10 +1,10 @@
-export type Quickstart = { id: string; label: string; lang: string; install: string; code: string };
+import type { Lang } from "./langs.ts";
+
+export type Quickstart = { id: Lang; install: string; code: string };
 
 export const quickstarts: Quickstart[] = [
   {
     id: "ts",
-    label: "TypeScript",
-    lang: "ts",
     install: "pnpm add skopli",
     code: `import { detectHarnesses, readUsage, rollup, createPricing } from "skopli";
 
@@ -31,8 +31,6 @@ for (const row of priced) {
   },
   {
     id: "python",
-    label: "Python",
-    lang: "python",
     install: "pip install skopli",
     code: `import skopli
 
@@ -52,8 +50,6 @@ for row in pricing.price_rollups(rollups):
   },
   {
     id: "rust",
-    label: "Rust",
-    lang: "rust",
     install: 'skopli-core = { git = "https://github.com/skopli/skopli" } in Cargo.toml',
     code: `use skopli_core::pricing::parse::parse_litellm;
 use skopli_core::pricing::types::PricingCatalog;
@@ -74,8 +70,6 @@ let priced = pricing.price_rollups(&by_model);`,
   },
   {
     id: "ruby",
-    label: "Ruby",
-    lang: "ruby",
     install: "gem install skopli",
     code: `require "skopli"
 
@@ -91,8 +85,6 @@ end`,
   },
   {
     id: "java",
-    label: "Java",
-    lang: "java",
     install: "com.skopli:skopli on Maven Central",
     code: `import com.skopli.*;
 
@@ -107,8 +99,6 @@ try (Pricing pricing = Skopli.createPricing(PricingOptions.builder().build())) {
   },
   {
     id: "csharp",
-    label: "C#",
-    lang: "csharp",
     install: "dotnet add package Skopli",
     code: `using Skopli;
 
@@ -122,8 +112,6 @@ IReadOnlyList<PricedRollup> priced = pricing.PriceRollups(byModel);`,
   },
   {
     id: "go",
-    label: "Go",
-    lang: "go",
     install: "go get github.com/skopli/skopli/sdks/go",
     code: `import "github.com/skopli/skopli/sdks/go/skopli"
 
@@ -147,8 +135,6 @@ func priceByModel() ([]skopli.PricedRollup, error) {
   },
   {
     id: "swift",
-    label: "Swift",
-    lang: "swift",
     install: '.package(url: "https://github.com/skopli/skopli", branch: "main")',
     code: `import Skopli
 
@@ -156,12 +142,10 @@ let result = try Skopli.readUsage(options: ReadUsageOptions(since: "2026-08-01")
 let byModel = try Skopli.rollup(events: result.events, by: .model)
 
 let pricing = try Skopli.createPricing(options: PricingOptions())
-let priced = try pricing.priceRollups(byModel)`,
+let priced = try pricing.priceRollups(rollups: byModel)`,
   },
   {
     id: "c",
-    label: "C",
-    lang: "c",
     install: "Prebuilt libskopli and skopli.h from GitHub Releases",
     code: `#include "skopli.h"
 

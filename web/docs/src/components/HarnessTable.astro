@@ -15,7 +15,7 @@ import { harnesses } from "@skopli/ui/harnesses";
       <tr>
         <td>
           <span class="harness-table__name">
-            {h.icon ? <Icon name={h.id} /> : <span class="harness-table__blank" aria-hidden="true" />}
+            <Icon name={h.icon} />
             {h.name}
           </span>
         </td>
@@ -33,10 +33,5 @@ import { harnesses } from "@skopli/ui/harnesses";
     display: inline-flex;
     align-items: center;
     gap: var(--space-3);
-  }
-  .harness-table__blank {
-    display: inline-block;
-    width: 16px;
-    height: 16px;
   }
 </style>

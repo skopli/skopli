@@ -130,6 +130,7 @@ const github = "https://github.com/skopli/skopli";
     />
 
     <script>
+      import { syncScrollable } from "@skopli/ui/scrollable";
       const toggle = (button: HTMLButtonElement | null, target: HTMLElement | null, focus?: string) =>
         button?.addEventListener("click", () => {
           const open = button.getAttribute("aria-expanded") === "true";
@@ -140,14 +141,7 @@ const github = "https://github.com/skopli/skopli";
       toggle(document.querySelector("[data-menu]"), document.getElementById("sidebar"));
       toggle(document.querySelector("[data-search-toggle]"), document.querySelector("[data-search]"), "input");
 
-      for (const box of document.querySelectorAll<HTMLElement>(".prose table, .prose pre, .tabs__list")) {
-        const sync = () => {
-          box.toggleAttribute("data-scrollable", box.scrollWidth > box.clientWidth);
-          box.toggleAttribute("data-scrolled", box.scrollLeft + box.clientWidth >= box.scrollWidth - 1);
-        };
-        box.addEventListener("scroll", sync, { passive: true });
-        new ResizeObserver(sync).observe(box);
-      }
+      for (const box of document.querySelectorAll<HTMLElement>(".prose table, .prose pre")) syncScrollable(box);
     </script>
   </body>
 </html>

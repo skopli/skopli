@@ -9,7 +9,8 @@ const themes = { light: "github-light", dark: "github-dark" };
 <Tabs>
   {quickstarts.map((q) => (
     <Fragment slot={q.id}>
-      <Code code={q.code} lang={q.lang as never} themes={themes} defaultColor={false} />
+      <p class="tabs__install"><code>{q.install}</code></p>
+      <Code code={q.code} lang={q.id} themes={themes} defaultColor={false} />
     </Fragment>
   ))}
 </Tabs>

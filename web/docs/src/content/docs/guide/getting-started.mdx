@@ -5,27 +5,15 @@ description: Install Skopli, read the usage your agents already logged, and pric
 
 import Quickstart from "@skopli/ui/components/Quickstart.astro";
 
-## Install
+## Install, read, roll up, price
 
-| Language   | Install                                                             |
-| ---------- | ------------------------------------------------------------------- |
-| TypeScript | `pnpm add skopli` (also `npm install skopli`, `bun add skopli`)     |
-| Python     | `pip install skopli`                                                |
-| Rust       | `cargo add skopli-core`                                             |
-| Ruby       | `gem install skopli`                                                |
-| Java       | `com.skopli:skopli` on Maven Central                                |
-| C#         | `dotnet add package Skopli`                                         |
-| Go         | `go get github.com/skopli/skopli/sdks/go`                           |
-| Swift      | `.package(url: "https://github.com/skopli/skopli", branch: "main")` |
-| C          | Prebuilt `libskopli` and `skopli.h` from GitHub Releases            |
+Each tab opens with the install line for that language.
+
+<Quickstart />
 
 The TypeScript package is ESM only and needs Node 24 or later.
 The Go, Java, C# and Swift facades load the native `skopli` library.
 Their READMEs in the repository describe where each runtime looks for it.
-
-## Read, roll up, price
-
-<Quickstart />
 
 Reading and rolling up never touch the network.
 `createPricing()` fetches the OpenRouter, LiteLLM and models.dev catalogs the first time it needs them, caches them on disk for about an hour, and keeps using the cache when a fetch fails.

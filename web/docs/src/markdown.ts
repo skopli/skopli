@@ -1,20 +1,27 @@
-const LANGS: Record<string, string> = {
-  ts: "TypeScript",
-  python: "Python",
-  rust: "Rust",
-  ruby: "Ruby",
-  java: "Java",
-  csharp: "C#",
-  go: "Go",
-  swift: "Swift",
-  c: "C",
-};
+import { harnesses } from "@skopli/ui/harnesses";
+import { langs } from "@skopli/ui/langs";
+import { quickstarts } from "@skopli/ui/quickstart";
+
+const quickstartMd = quickstarts
+  .map((q) => `### ${langs[q.id]}\n\nInstall: \`${q.install}\`\n\n\`\`\`${q.id}\n${q.code}\n\`\`\``)
+  .join("\n\n");
+
+const harnessMd = [
+  "| Harness | id |",
+  "| --- | --- |",
+  ...harnesses.map((h) => `| ${h.name} | \`${h.id}\` |`),
+].join("\n");
 
 export const toMarkdown = (body: string): string =>
   body
     .replace(/^import \w+ from "[^"]*\.astro";\n/gm, "")
+    .replace(/^<Quickstart \/>$/m, quickstartMd)
+    .replace(/^<HarnessTable \/>$/m, harnessMd)
     .replace(/^<\/?Tabs>\n?/gm, "")
-    .replace(/^<Fragment slot="(\w+)">\n/gm, (_, lang: string) => `### ${LANGS[lang] ?? lang}\n\n`)
+    .replace(
+      /^<Fragment slot="(\w+)">\n/gm,
+      (_, lang: keyof typeof langs) => `### ${langs[lang]}\n\n`,
+    )
     .replace(/^<\/Fragment>\n?/gm, "")
     .replace(/\n{3,}/g, "\n\n")
     .trim();

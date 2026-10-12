@@ -5,6 +5,7 @@
 The brand marks in `assets/logos/` and `web/ui/src/icons/` are third-party assets.
 They are not covered by this repository's MIT license.
 The files under `web/ui/src/icons/` are copied unmodified from the packages named below and are used for identification only.
+At render time the `<title>` element is dropped so a pack's internal name does not appear as a tooltip; the files themselves are untouched.
 
 ### Icon provenance
 
@@ -23,7 +24,6 @@ The files under `web/ui/src/icons/` are copied unmodified from the packages name
 | `zcode.svg`        | Z.ai                  | LobeHub Icons | `zai`           |
 | `roo.svg`          | Roo Code              | LobeHub Icons | `roocode`       |
 | `cline.svg`        | Cline                 | LobeHub Icons | `cline`         |
-| `kilo.svg`         | Kilo Code             | LobeHub Icons | `kilocode`      |
 | `kilocode.svg`     | Kilo Code             | LobeHub Icons | `kilocode`      |
 | `openclaw.svg`     | OpenClaw              | LobeHub Icons | `openclaw`      |
 | `kimi.svg`         | Moonshot Kimi         | LobeHub Icons | `kimi`          |
@@ -41,7 +41,6 @@ The files under `web/ui/src/icons/` are copied unmodified from the packages name
 | `perplexity.svg`   | Perplexity            | LobeHub Icons | `perplexity`    |
 | `google.svg`       | Google                | LobeHub Icons | `google`        |
 | `cursor.svg`       | Cursor                | LobeHub Icons | `cursor`        |
-| `github.svg`       | GitHub                | Simple Icons  | `github`        |
 
 Harnesses with no entry above (Droid CLI, Pi, omp, Prime Agent, Gajae-Code, Kimchi Coding, Auggie CLI, Codebuff, jcode, Xum, OpenCodeReview, Reasonix, fx) are rendered as text.
 No reputable icon pack carries an official mark for them.

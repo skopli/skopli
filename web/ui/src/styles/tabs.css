@@ -10,12 +10,6 @@
   scroll-snap-type: x proximity;
   border-bottom: 1px solid var(--rule);
 }
-[data-scrollable] {
-  mask-image: linear-gradient(to right, #000 calc(100% - 2.5rem), transparent);
-}
-[data-scrollable][data-scrolled] {
-  mask-image: none;
-}
 .tabs__tab {
   scroll-snap-align: start;
   flex: none;
@@ -39,4 +33,11 @@
   margin: 0;
   border: 0;
   border-radius: 0;
+}
+.tabs__install {
+  margin: 0;
+  padding: var(--space-3) var(--space-4);
+  border-bottom: 1px solid var(--rule);
+  font-size: var(--text-sm);
+  color: var(--ink-2);
 }

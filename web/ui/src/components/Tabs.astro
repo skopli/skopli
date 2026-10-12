@@ -1,24 +1,14 @@
 ---
+import { langs, type Lang } from "../langs.ts";
 import { nextTabsId } from "../tabs-id.ts";
 
-const langs: [string, string][] = [
-  ["ts", "TypeScript"],
-  ["python", "Python"],
-  ["rust", "Rust"],
-  ["ruby", "Ruby"],
-  ["java", "Java"],
-  ["csharp", "C#"],
-  ["go", "Go"],
-  ["swift", "Swift"],
-  ["c", "C"],
-];
-const present = langs.filter(([id]) => Astro.slots.has(id));
+const present = (Object.keys(langs) as Lang[]).filter((id) => Astro.slots.has(id));
 const uid = nextTabsId();
 ---
 
 <code-tabs class="tabs">
   <div class="tabs__list" role="tablist" aria-label="Language">
-    {present.map(([id, label], i) => (
+    {present.map((id, i) => (
       <button
         class="tabs__tab"
         type="button"
@@ -29,11 +19,11 @@ const uid = nextTabsId();
         aria-controls={`panel-${uid}-${id}`}
         tabindex={i === 0 ? 0 : -1}
       >
-        {label}
+        {langs[id]}
       </button>
     ))}
   </div>
-  {present.map(([id], i) => (
+  {present.map((id, i) => (
     <div
       class="tabs__panel"
       role="tabpanel"
@@ -48,12 +38,15 @@ const uid = nextTabsId();
 </code-tabs>
 
 <script>
+  import { syncScrollable } from "../scrollable.ts";
+
   const KEY = "skopli-lang";
 
   class CodeTabs extends HTMLElement {
     tabs = [...this.querySelectorAll<HTMLButtonElement>("[role=tab]")];
 
     connectedCallback() {
+      syncScrollable(this.querySelector(".tabs__list")!);
       this.select(localStorage.getItem(KEY) ?? "", false);
       this.addEventListener("click", (e) => {
         const tab = (e.target as HTMLElement).closest<HTMLButtonElement>("[role=tab]");

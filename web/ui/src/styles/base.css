@@ -133,3 +133,10 @@ samp {
     scroll-behavior: auto !important;
   }
 }
+
+[data-scrollable] {
+  mask-image: linear-gradient(to right, #000 calc(100% - 2.5rem), transparent);
+}
+[data-scrollable][data-scrolled] {
+  mask-image: none;
+}
