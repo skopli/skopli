@@ -72,6 +72,8 @@ for row in pricing.price_rollups(rollups):
   },
   {
     id: "rust",
+    registry: "crates.io",
+    install: "cargo add skopli-core",
     source: "cargo add skopli-core --git https://github.com/skopli/skopli",
     note: "Rust 1.88+.",
     code: `use skopli_core::pricing::parse::parse_litellm;
@@ -187,8 +189,12 @@ let priced = try pricing.priceRollups(rollups: byModel)`,
   },
   {
     id: "c",
+    registry: "GitHub Releases",
+    install:
+      'gh release download --repo skopli/skopli --pattern "skopli-capi-*-x86_64-unknown-linux-gnu.tar.gz"',
     source:
       "git clone https://github.com/skopli/skopli && cargo build --manifest-path skopli/Cargo.toml -p skopli-capi --release",
+    note: "One archive per target (skopli.h, shared and static library): x86_64 and aarch64 Linux, macOS, and Windows. Swap the target triple.",
     code: `#include "skopli.h"
 
 // Every call takes and returns JSON. Free each AgBuf with ag_buf_free.

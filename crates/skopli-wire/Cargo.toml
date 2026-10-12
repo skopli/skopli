@@ -6,9 +6,10 @@ rust-version.workspace = true
 homepage.workspace = true
 documentation.workspace = true
 repository.workspace = true
-publish = false
+license.workspace = true
+description = "JSON wire types shared by the skopli language bindings"
 
 [dependencies]
-skopli-core = { path = "../skopli-core" }
+skopli-core = { path = "../skopli-core", version = "0.0.0" }
 serde_json = { workspace = true }
 jiff = { workspace = true }

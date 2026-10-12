@@ -30,7 +30,7 @@ the Maven namespace as `com.skopli`.
 | RubyGems                | Trusted publishing (OIDC), no stored secret     | Nothing published; `skopli` free at check. Complete [RubyGems](#rubygems).                                                                                                 |
 | NuGet                   | Trusted publishing (OIDC), no stored secret     | Nothing published; `Skopli` free at check. Complete [NuGet](#nuget).                                                                                                       |
 | Maven Central           | Portal token + GPG signing key (no OIDC exists) | No `com.skopli` namespace claimed; no publish job exists yet. Complete [Maven Central](#maven-central).                                                                    |
-| C ABI (GitHub Releases) | `GITHUB_TOKEN`                                  | Per-target cdylib/staticlib + `skopli.h` already attach to the draft release. See [C ABI](#c-abi).                                                                         |
+| C ABI (GitHub Releases) | `GITHUB_TOKEN`                                  | One `skopli-capi-<version>-<target>` archive per target (header, shared and static library) attaches to the draft release. See [C ABI](#c-abi).                            |
 | Go modules              | None (the tag is the release)                   | Module path `github.com/skopli/skopli` becomes permanent at first `go get`. See [Go](#go-modules).                                                                         |
 | Swift Package Manager   | None (consumers pin the repo tag)               | No registry interaction. See [Swift](#swift-package-manager).                                                                                                              |
 
@@ -123,12 +123,15 @@ upload):
 
 ### crates.io
 
-Publish order is dependency order with index-propagation waits:
-`skopli-core` → `skopli-wire` → `skopli-capi` (the `skopli-node`, `skopli-py`,
-`skopli-ruby` binding crates are not published to crates.io). Trusted
-publishing is configured per crate on crates.io; use
-`rust-lang/crates-io-auth-action` + `id-token: write` to mint a temporary
-token, then `cargo publish` each crate.
+Three crates are published: `skopli-core`, then `skopli-wire` (depends on
+core), then `skopli-capi` (depends on both). Their manifests allow publishing
+and their path dependencies carry a `version`; the `skopli-node`, `skopli-py`,
+`skopli-ruby` binding crates stay `publish = false`. The `publish-crates` job
+checks that the tag matches the crate version, skips any crate already on
+crates.io, and runs `cargo publish -p <crate>` in that order; cargo waits for
+each crate to reach the index before verifying the next. Trusted publishing is
+configured per crate on crates.io; the job mints a temporary token with
+`rust-lang/crates-io-auth-action` + `id-token: write`.
 
 Interim token path: a crates.io token created at
 <https://crates.io/settings/tokens/new> with:
@@ -190,9 +193,11 @@ Isolate all four secrets in a protected `release` GitHub Actions environment.
 
 The C/C++ surface (`skopli-capi`: cdylib + staticlib + cbindgen `skopli.h`) has
 no package registry. It is distributed as GitHub release assets: the
-`capi-artifacts` matrix already builds six targets and attaches
-`capi-<target>` archives to the draft release, and `cargo publish` of
-`skopli-capi` gives source-level consumers `cargo`/build-from-source access.
+`capi-artifacts` matrix builds six targets and `scripts/stage-capi.sh` packs
+each into `skopli-capi-<version>-<target>.tar.gz` (`.zip` for Windows) with
+`skopli.h`, the shared library and the static library inside, so the assets
+keep distinct names on the release. `cargo publish` of `skopli-capi` gives
+source-level consumers `cargo`/build-from-source access.
 Optional later channels if demand appears — vcpkg or Conan submissions, and
 Homebrew/system packages — each a separate manifest repo and credential; do not
 set these up before a user asks.

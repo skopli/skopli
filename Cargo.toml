@@ -15,6 +15,7 @@ rust-version = "1.88"
 homepage = "https://docs.skopli.com/skopli/"
 documentation = "https://docs.skopli.com/skopli/"
 repository = "https://github.com/skopli/skopli"
+license = "MIT"
 
 [workspace.dependencies]
 serde = { version = "1", features = ["derive"] }

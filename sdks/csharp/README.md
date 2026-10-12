@@ -50,6 +50,10 @@ cargo build -p skopli-capi --release
 # -> target/release/skopli.dll (+ .lib import lib, unused by .NET)
 ```
 
+Each GitHub release also carries `skopli-capi-<version>-<target>.zip`
+(`.tar.gz` on Linux and macOS) with the platform library inside; unpack one and
+point `SKOPLI_LIBRARY_PATH` at the library instead of building.
+
 .NET P/Invoke loads the MSVC DLL directly at runtime - no import lib and no
 GNU-target rebuild are needed (unlike Go/cgo).
 

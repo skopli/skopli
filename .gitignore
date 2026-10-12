@@ -40,6 +40,7 @@ sdks/java/.gradle/
 
 # Swift build artifacts
 sdks/swift/.build/
+dist-capi/
 
 # Astro
 .astro/

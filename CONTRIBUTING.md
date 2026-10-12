@@ -111,6 +111,8 @@ Built-in catalogs live in `crates/skopli-core/src/pricing/sources.rs`, one `Sour
 ## Releases
 
 `.github/workflows/release.yml` builds every facade on a tag and attaches the artifacts to a draft GitHub release.
+Bump the crate versions to the tag before tagging; the crates.io publish job refuses a tag that does not match them.
+`scripts/stage-capi.sh <target>` packs the C ABI archive the workflow attaches, and runs locally after a release build of `skopli-capi` for that target.
 The registry publish jobs are gated behind the `PUBLISH_ENABLED` repository variable.
 `PUBLISHING-SETUP.md` lists the trusted-publisher setup each registry needs.
 When the first release ships, set `published = true` in `web/ui/src/quickstart.ts` and run `pnpm run sync`.

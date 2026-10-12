@@ -1,4 +1,6 @@
-// Gradle build for the skopli Java SDK (FFM + jextract, JDK 22+).
+// Gradle build for the skopli Java SDK (FFM + jextract). Compiles with
+// --release 22 (the FFM baseline) on whatever JDK 22+ runs Gradle; no toolchain
+// download is involved.
 //
 // NOTE: when the build host has no Gradle/Maven installed, the smoke test is
 // built and run with plain javac/java (see scripts/smoke.sh and the README).
@@ -17,10 +19,6 @@ group = "com.skopli"
 version = "0.1.0"
 
 java {
-    // FFM is stable since JDK 22 (the baseline); JDK 25 is the dev toolchain.
-    toolchain {
-        languageVersion = JavaLanguageVersion.of(22)
-    }
     withSourcesJar()
 }
 
@@ -48,6 +46,7 @@ val nativeLibraryPath: String = (project.findProperty("skopli.library.path") as 
         ).asFile.absolutePath
 
 tasks.withType<JavaCompile>().configureEach {
+    options.release = 22
     // FFM downcalls compile fine; silence the generated-binding restricted warnings.
     options.compilerArgs.addAll(listOf("-Xlint:all,-restricted"))
 }
