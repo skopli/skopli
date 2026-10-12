@@ -54,7 +54,7 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "sync": "node scripts/sync-generated.mjs",
-    "check": "pnpm run lint && pnpm run format && pnpm run typecheck && pnpm run test && node scripts/sync-generated.mjs --check"
+    "check": "pnpm run lint && pnpm run format && pnpm run typecheck && pnpm run test && pnpm run sync --check"
   },
   "devDependencies": {
     "@napi-rs/cli": "^3.8.6",

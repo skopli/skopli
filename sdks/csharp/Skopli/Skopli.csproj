@@ -11,6 +11,7 @@
     <!-- The managed assembly is Skopli.Sdk to avoid a filename collision
          with the native cdylib (skopli.dll) on case-insensitive Windows. -->
     <AssemblyName>Skopli.Sdk</AssemblyName>
+    <PackageId>Skopli</PackageId>
     <GenerateDocumentationFile>false</GenerateDocumentationFile>
     <Description>Idiomatic C# facade over the skopli C ABI (csbindgen P/Invoke).</Description>
     <PackageProjectUrl>https://docs.skopli.com/skopli/</PackageProjectUrl>

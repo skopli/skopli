@@ -8,6 +8,7 @@ import { command, published, quickstarts, releaseNote } from "@skopli/ui/quickst
 import Base from "../layouts/Base.astro";
 
 const docs = "https://docs.skopli.com/skopli/";
+const github = "https://github.com/skopli/skopli";
 
 const input = `import {
   createPricing,
@@ -147,7 +148,7 @@ const rules = [
           {published ? (
             <code class="install num">{quickstarts.find((q) => q.id === "ts")?.install}</code>
           ) : (
-            <a class="button button--quiet" href="https://github.com/skopli/skopli">Source on GitHub</a>
+            <a class="button button--quiet" href={github}>Source on GitHub</a>
           )}
         </div>
     </div>
@@ -260,7 +261,7 @@ const rules = [
       <h2>Build the dashboard, the report or the billing check. The data is already on your disk.</h2>
       <div class="hero__actions">
         <a class="button" href={`${docs}guide/getting-started/`}>Getting started</a>
-        <a class="button button--quiet" href="https://github.com/skopli/skopli">Source on GitHub</a>
+        <a class="button button--quiet" href={github}>Source on GitHub</a>
       </div>
     </div>
   </section>
@@ -540,9 +541,8 @@ const rules = [
     border-top: 1px solid var(--rule);
   }
   .langs__install {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0 var(--space-3);
+    display: grid;
+    gap: var(--space-1);
   }
   .langs__note {
     font-size: var(--text-sm);

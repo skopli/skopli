@@ -1,8 +1,8 @@
-import { readFileSync, writeFileSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { harnesses } from "../web/ui/src/harnesses.ts";
 import { langs } from "../web/ui/src/langs.ts";
-import { installMd, published, quickstarts, releaseNote } from "../web/ui/src/quickstart.ts";
+import { command, published, quickstarts, releaseNote } from "../web/ui/src/quickstart.ts";
 
 process.chdir(join(import.meta.dirname, ".."));
 const check = process.argv.includes("--check");
@@ -17,13 +17,19 @@ const replaceBetween = (text, start, end, body) => {
 
 const installTable = () => {
   const header = published
-    ? ["Language", "Registry", "Install"]
-    : ["Language", "Install now (from the repository)", "After the first release"];
+    ? ["Language", "Registry", "Install", "Notes"]
+    : ["Language", "Install now (from the repository)", "Notes", "After the first release"];
   const rows = quickstarts.map((q) => {
-    const later = q.registry ? `${q.registry}: \`${q.install}\`` : "same";
+    const now = `\`${command(q)}\``;
+    const note = q.note ?? "";
     return published
-      ? [langs[q.id], q.registry ?? "none", installMd(q)]
-      : [langs[q.id], installMd(q), later];
+      ? [langs[q.id], q.registry ?? "none", now, note]
+      : [
+          langs[q.id],
+          now,
+          note,
+          q.registry ? `${q.registry}: \`${q.install}\`` : "same command, no registry",
+        ];
   });
   const widths = header.map((_, i) => Math.max(...[header, ...rows].map((r) => r[i].length)));
   const line = (cells) => `| ${cells.map((c, i) => c.padEnd(widths[i])).join(" | ")} |`;
@@ -49,26 +55,30 @@ const harnessLine = (text) => {
   return text.replace(re, `$1${ids.join(", ")}.$3`);
 };
 
+const read = (file) => readFileSync(file, "utf8");
+
 const contributingPage = () =>
-  `---\ntitle: Contributing\ndescription: How to build and test Skopli, add a harness or a pricing source, and what a pull request needs.\n---\n\n${readFileSync("CONTRIBUTING.md", "utf8").replace(/^# .*\n\n/, "")}`;
+  `---\ntitle: Contributing\ndescription: How to build and test Skopli, add a harness or a pricing source, and what a pull request needs.\n---\n\n${read("CONTRIBUTING.md").replace(/^# .*\n\n/, "")}`;
 
 const targets = [
   [
     "README.md",
-    (t) =>
-      replaceBetween(t, "<!-- generated: install-table -->", "<!-- /generated -->", installTable()),
+    (f) =>
+      replaceBetween(
+        read(f),
+        "<!-- generated: install-table -->",
+        "<!-- /generated -->",
+        installTable(),
+      ),
   ],
-  ["llms.txt", harnessLine],
+  ["llms.txt", (f) => harnessLine(read(f))],
   ["web/docs/src/content/docs/contributing.md", contributingPage],
 ];
 
 const stale = [];
 for (const [file, render] of targets) {
-  let current = "";
-  try {
-    current = readFileSync(file, "utf8");
-  } catch {}
-  const next = render(current);
+  const current = existsSync(file) ? read(file) : "";
+  const next = render(file);
   if (next === current) continue;
   if (check) stale.push(file);
   else writeFileSync(file, next);

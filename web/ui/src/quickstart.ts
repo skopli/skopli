@@ -13,7 +13,7 @@ export const published = false;
 
 export const releaseNote = published
   ? ""
-  : "No release has shipped yet, so there is nothing on npm, PyPI, RubyGems, NuGet or GitHub Releases. Each line below installs from the repository.";
+  : "No release has shipped yet, and no registry has a usable package. Each line below installs from the repository.";
 
 export const command = (q: Quickstart) => (published ? (q.install ?? q.source) : q.source);
 
@@ -117,7 +117,7 @@ end`,
     install: 'gh release download --repo skopli/skopli --pattern "*.jar"',
     source:
       "git clone https://github.com/skopli/skopli && cargo build --manifest-path skopli/Cargo.toml -p skopli-capi --release && gradle -p skopli/sdks/java jar",
-    note: "JDK 22+. Run with --enable-native-access=ALL-UNNAMED and -Dskopli.library.path pointing at libskopli.",
+    note: "JDK 22+. sdks/java/README.md covers the run-time flags and the jar.",
     code: `import com.skopli.*;
 
 ReadUsageOptions opts = ReadUsageOptions.builder().since("2026-08-01").build();
@@ -135,7 +135,7 @@ try (Pricing pricing = Skopli.createPricing(PricingOptions.builder().build())) {
     install: "dotnet add package Skopli",
     source:
       "git clone https://github.com/skopli/skopli && cargo build --manifest-path skopli/Cargo.toml -p skopli-capi --release && dotnet add reference skopli/sdks/csharp/Skopli/Skopli.csproj",
-    note: ".NET 9. SKOPLI_LIBRARY_PATH points at libskopli.",
+    note: ".NET 9. sdks/csharp/README.md covers how libskopli is found.",
     code: `using Skopli;
 
 var readOpts = new ReadUsageOptions { Since = "2026-08-01" };
@@ -152,7 +152,7 @@ IReadOnlyList<PricedRollup> priced = pricing.PriceRollups(byModel);`,
     install: "go get github.com/skopli/skopli/sdks/go",
     source:
       "git clone https://github.com/skopli/skopli && cargo build --manifest-path skopli/Cargo.toml -p skopli-capi --release && go mod edit -replace github.com/skopli/skopli/sdks/go=./skopli/sdks/go && go get github.com/skopli/skopli/sdks/go",
-    note: "cgo. Out of tree, set CGO_CFLAGS and CGO_LDFLAGS to the include and target/release directories. Windows links the x86_64-pc-windows-gnu target.",
+    note: "cgo. sdks/go/README.md covers out-of-tree and Windows builds.",
     code: `import "github.com/skopli/skopli/sdks/go/skopli"
 
 func priceByModel() ([]skopli.PricedRollup, error) {
@@ -177,7 +177,7 @@ func priceByModel() ([]skopli.PricedRollup, error) {
     id: "swift",
     source:
       "git clone https://github.com/skopli/skopli && cargo build --manifest-path skopli/Cargo.toml -p skopli-capi --release",
-    note: 'Package.swift: .package(path: "skopli/sdks/swift"). libskopli on the loader path.',
+    note: 'Package.swift: .package(path: "skopli/sdks/swift"). sdks/swift/README.md covers the link flags.',
     code: `import Skopli
 
 let result = try Skopli.readUsage(options: ReadUsageOptions(since: "2026-08-01"))
@@ -188,8 +188,6 @@ let priced = try pricing.priceRollups(rollups: byModel)`,
   },
   {
     id: "c",
-    registry: "GitHub Releases",
-    install: 'gh release download --repo skopli/skopli --pattern "skopli.h" --pattern "libskopli*"',
     source:
       "git clone https://github.com/skopli/skopli && cargo build --manifest-path skopli/Cargo.toml -p skopli-capi --release",
     code: `#include "skopli.h"

@@ -54,7 +54,7 @@ jobs:
       - name: cargo test (workspace, excl. ruby)
         run: cargo test --workspace --exclude skopli
 
-  # --- TypeScript: pnpm run check (oxlint + oxfmt --check + tsc + vitest) ------
+  # --- TypeScript: pnpm run check (oxlint + oxfmt --check + tsc + vitest + generated files) --
   typescript:
     name: typescript
     runs-on: ubuntu-latest
