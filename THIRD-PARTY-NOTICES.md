@@ -2,40 +2,49 @@
 
 ## Brand icons
 
-The brand marks in `assets/logos/`, `web/site/src/components/harness-icons.ts`,
-`web/docs/src/components/harness-icons.ts`,
-`web/docs/src/components/PageActions.astro`, and the GitHub mark in
-`web/site/src/pages/index.astro` are third-party assets.
+The brand marks in `assets/logos/` and `web/ui/src/icons/` are third-party assets.
 They are not covered by this repository's MIT license.
+The files under `web/ui/src/icons/` are copied unmodified from the packages named below and are used for identification only.
 
 ### Icon provenance
 
-| Icon (slug)   | Brand                          | Source        | Source id       |
-| ------------- | ------------------------------ | ------------- | --------------- |
-| `claude`      | Anthropic Claude / Claude Code | LobeHub Icons | `claude`        |
-| `opencode`    | OpenCode                       | LobeHub Icons | `opencode`      |
-| `codex`       | OpenAI Codex                   | LobeHub Icons | `codex`         |
-| `gemini`      | Google Gemini                  | LobeHub Icons | `gemini`        |
-| `copilot`     | GitHub Copilot                 | LobeHub Icons | `githubcopilot` |
-| `amp`         | Amp (Sourcegraph)              | LobeHub Icons | `amp`           |
-| `qwen`        | Alibaba Qwen                   | LobeHub Icons | `qwen`          |
-| `kilocode`    | Kilo Code                      | LobeHub Icons | `kilocode`      |
-| `goose`       | Block Goose                    | LobeHub Icons | `goose`         |
-| `kimi`        | Moonshot Kimi                  | LobeHub Icons | `kimi`          |
-| `openclaw`    | OpenClaw                       | LobeHub Icons | `openclaw`      |
-| `junie`       | JetBrains Junie                | LobeHub Icons | `junie`         |
-| `grok`        | xAI Grok                       | LobeHub Icons | `grok`          |
-| `devin`       | Cognition Devin                | LobeHub Icons | `devin`         |
-| `roocode`     | Roo Code                       | LobeHub Icons | `roocode`       |
-| `cline`       | Cline                          | LobeHub Icons | `cline`         |
-| `zcode`       | Z.ai ZCode                     | LobeHub Icons | `zai`           |
-| `zed`         | Zed                            | Simple Icons  | `zedindustries` |
-| (PageActions) | OpenAI ChatGPT                 | LobeHub Icons | `openai`        |
-| (PageActions) | Anthropic Claude               | LobeHub Icons | `claude`        |
-| (topnav)      | GitHub                         | Simple Icons  | `github`        |
+| File               | Brand                 | Source        | Source id       |
+| ------------------ | --------------------- | ------------- | --------------- |
+| `claude.svg`       | Anthropic Claude Code | LobeHub Icons | `claude`        |
+| `codex.svg`        | OpenAI Codex          | LobeHub Icons | `codex`         |
+| `gemini.svg`       | Google Gemini         | LobeHub Icons | `gemini`        |
+| `opencode.svg`     | OpenCode              | LobeHub Icons | `opencode`      |
+| `mimocode.svg`     | Xiaomi MiMo           | LobeHub Icons | `xiaomimimo`    |
+| `copilot.svg`      | GitHub Copilot        | LobeHub Icons | `githubcopilot` |
+| `amp.svg`          | Amp (Sourcegraph)     | LobeHub Icons | `amp`           |
+| `qwen.svg`         | Alibaba Qwen          | LobeHub Icons | `qwen`          |
+| `grok.svg`         | xAI Grok              | LobeHub Icons | `grok`          |
+| `codebuddy.svg`    | Tencent CodeBuddy     | LobeHub Icons | `codebuddy`     |
+| `zcode.svg`        | Z.ai                  | LobeHub Icons | `zai`           |
+| `roo.svg`          | Roo Code              | LobeHub Icons | `roocode`       |
+| `cline.svg`        | Cline                 | LobeHub Icons | `cline`         |
+| `kilo.svg`         | Kilo Code             | LobeHub Icons | `kilocode`      |
+| `kilocode.svg`     | Kilo Code             | LobeHub Icons | `kilocode`      |
+| `openclaw.svg`     | OpenClaw              | LobeHub Icons | `openclaw`      |
+| `kimi.svg`         | Moonshot Kimi         | LobeHub Icons | `kimi`          |
+| `junie.svg`        | JetBrains Junie       | LobeHub Icons | `junie`         |
+| `devin.svg`        | Cognition Devin       | LobeHub Icons | `devin`         |
+| `hermes.svg`       | Nous Hermes Agent     | LobeHub Icons | `hermesagent`   |
+| `goose.svg`        | Block goose           | LobeHub Icons | `goose`         |
+| `zed.svg`          | Zed Industries        | Simple Icons  | `zedindustries` |
+| `cherrystudio.svg` | Cherry Studio         | LobeHub Icons | `cherrystudio`  |
+| `trae.svg`         | ByteDance Trae        | LobeHub Icons | `trae`          |
+| `deepseek.svg`     | DeepSeek              | LobeHub Icons | `deepseek`      |
+| `kiro.svg`         | AWS Kiro              | LobeHub Icons | `kiro`          |
+| `commandcode.svg`  | Command Code          | LobeHub Icons | `commandcode`   |
+| `chatgpt.svg`      | OpenAI ChatGPT        | LobeHub Icons | `openai`        |
+| `perplexity.svg`   | Perplexity            | LobeHub Icons | `perplexity`    |
+| `google.svg`       | Google                | LobeHub Icons | `google`        |
+| `cursor.svg`       | Cursor                | LobeHub Icons | `cursor`        |
+| `github.svg`       | GitHub                | Simple Icons  | `github`        |
 
-Harnesses with no icon (Droid, Pi, OMP, Hermes, Augment, Codebuff, Mux) are
-rendered as plain text; no reputable icon pack carries their marks.
+Harnesses with no entry above (Droid CLI, Pi, omp, Prime Agent, Gajae-Code, Kimchi Coding, Auggie CLI, Codebuff, jcode, Xum, OpenCodeReview, Reasonix, fx) are rendered as text.
+No reputable icon pack carries an official mark for them.
 
 ### LobeHub Icons
 

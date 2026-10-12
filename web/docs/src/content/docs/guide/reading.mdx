@@ -3,6 +3,8 @@ title: Reading usage
 description: How detectHarnesses and readUsage find local session logs and turn them into normalized events with diagnostics.
 ---
 
+import Tabs from "@skopli/ui/components/Tabs.astro";
+
 ## Detection
 
 `detectHarnesses()` probes the directories each harness writes to and returns two lists.
@@ -11,6 +13,9 @@ description: How detectHarnesses and readUsage find local session logs and turn 
 Detection runs no commands and writes nothing. It is a set of filesystem checks.
 
 ## readUsage
+
+<Tabs>
+<Fragment slot="ts">
 
 ```ts
 const { events, diagnostics, skipped } = await readUsage({
@@ -21,6 +26,134 @@ const { events, diagnostics, skipped } = await readUsage({
   subagents: "include", // or "exclude"
 });
 ```
+
+</Fragment>
+<Fragment slot="python">
+
+```python
+result = skopli.read_usage(
+    harnesses=["claude", "codex"],
+    since="2026-08-01",
+    until="2026-08-31",
+    tz="Europe/London",
+    subagents="include",
+)
+events, diagnostics, skipped = result.events, result.diagnostics, result.skipped
+```
+
+</Fragment>
+<Fragment slot="rust">
+
+```rust
+use skopli_wire::read::{parse_read_options, read_usage};
+
+// The Rust crates speak JSON at this boundary; every facade above them
+// builds this same options object.
+let opts = serde_json::json!({
+    "harnesses": ["claude", "codex"],
+    "since": "2026-08-01",
+    "until": "2026-08-31",
+    "tz": "Europe/London",
+    "subagents": "include",
+});
+let result = read_usage(&parse_read_options(&opts)?);
+let events = &result["events"];
+```
+
+</Fragment>
+<Fragment slot="ruby">
+
+```ruby
+result = Skopli.read_usage(
+  harnesses: [:claude, :codex],
+  since: "2026-08-01",
+  until_: "2026-08-31",
+  tz: "Europe/London",
+  subagents: "include"
+)
+events = result.events
+diagnostics = result.diagnostics
+```
+
+</Fragment>
+<Fragment slot="java">
+
+```java
+ReadUsageOptions opts = ReadUsageOptions.builder()
+    .harnesses(List.of(Harness.CLAUDE, Harness.CODEX))
+    .since("2026-08-01")
+    .until("2026-08-31")
+    .tz("Europe/London")
+    .excludeSubagents(false)
+    .build();
+ReadUsageResult result = Skopli.readUsage(opts);
+List<UsageEvent> events = result.events();
+```
+
+</Fragment>
+<Fragment slot="csharp">
+
+```csharp
+var opts = new ReadUsageOptions
+{
+    Harnesses = ["claude", "codex"],
+    Since = "2026-08-01",
+    Until = "2026-08-31",
+    Tz = "Europe/London",
+    Subagents = SubagentMode.Include,
+};
+ReadUsageResult result = SkopliClient.ReadUsage(opts);
+IReadOnlyList<UsageEvent> events = result.Events;
+```
+
+</Fragment>
+<Fragment slot="go">
+
+```go
+result, err := skopli.ReadUsage(skopli.ReadUsageOptions{
+	Harnesses: []skopli.Harness{skopli.HarnessClaude, skopli.HarnessCodex},
+	Since:     "2026-08-01",
+	Until:     "2026-08-31",
+	TZ:        "Europe/London",
+	Subagents: "include",
+})
+if err != nil {
+	return err
+}
+events := result.Events
+```
+
+</Fragment>
+<Fragment slot="swift">
+
+```swift
+let result = try Skopli.readUsage(options: ReadUsageOptions(
+    harnesses: [.claude, .codex],
+    since: "2026-08-01",
+    until: "2026-08-31",
+    tz: "Europe/London",
+    subagents: "include"
+))
+let events = result.events
+```
+
+</Fragment>
+<Fragment slot="c">
+
+```c
+const char *opts =
+    "{\"harnesses\":[\"claude\",\"codex\"],"
+    "\"since\":\"2026-08-01\",\"until\":\"2026-08-31\","
+    "\"tz\":\"Europe/London\",\"subagents\":\"include\"}";
+AgBuf out = {0};
+if (ag_read_usage(opts, strlen(opts), &out) != AG_STATUS_OK)
+  return 1;
+// out.ptr holds {"events":[...],"diagnostics":[...],"skipped":[...]} as JSON
+ag_buf_free(out);
+```
+
+</Fragment>
+</Tabs>
 
 `home` and `env` override where the resolver looks, which matters for tests and for reading another user's exported state.
 
@@ -35,7 +168,7 @@ The same zone drives day rollups, so a day rollup never shows a row for a day th
 
 Child sessions and sidechains are included by default and tagged `subagent: true`.
 `subagents: "exclude"` drops them uniformly across harnesses.
-The flag comes from each harness's own marker: a non-null `parent_id` in OpenCode, `isSidechain === true` in Claude Code, `rlmDepth > 0` in Pi and OMP.
+The flag comes from each harness's own marker: a non-null `parent_id` in OpenCode, `isSidechain === true` in Claude Code, `rlmDepth > 0` in Pi and omp.
 Codex and every other harness report `false`.
 
 ## The event

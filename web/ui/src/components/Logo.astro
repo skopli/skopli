@@ -36,13 +36,13 @@ const { href, label = "Skopli", size = 24 } = Astro.props;
     width: 100%;
     height: 100%;
   }
-  .logo__mark--dark {
+  .logo__mark--light {
     display: none;
   }
-  :global([data-theme="dark"]) .logo__mark--light {
-    display: none;
-  }
-  :global([data-theme="dark"]) .logo__mark--dark {
+  :global([data-theme="light"]) .logo__mark--light {
     display: inline-flex;
+  }
+  :global([data-theme="light"]) .logo__mark--dark {
+    display: none;
   }
 </style>

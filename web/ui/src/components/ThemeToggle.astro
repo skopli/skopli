@@ -41,13 +41,13 @@
     color: var(--ink);
     background: var(--paper-2);
   }
-  .theme-toggle__moon {
+  .theme-toggle__sun {
     display: none;
   }
-  :global([data-theme="dark"]) .theme-toggle__sun {
-    display: none;
-  }
-  :global([data-theme="dark"]) .theme-toggle__moon {
+  :global([data-theme="light"]) .theme-toggle__sun {
     display: block;
+  }
+  :global([data-theme="light"]) .theme-toggle__moon {
+    display: none;
   }
 </style>

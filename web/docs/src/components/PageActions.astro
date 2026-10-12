@@ -1,4 +1,5 @@
 ---
+import Icon from "@skopli/ui/components/Icon.astro";
 import { SITE, mdPath } from "../nav";
 
 interface Props {
@@ -9,24 +10,36 @@ const md = mdPath(slug);
 const absolute = `${SITE}${md}`;
 const prompt = encodeURIComponent(`Read ${absolute} so I can ask questions about it.`);
 const targets = [
-  ["ChatGPT", `https://chatgpt.com/?q=${prompt}`],
-  ["Claude", `https://claude.ai/new?q=${prompt}`],
-  ["Grok", `https://grok.com/?q=${prompt}`],
-  ["Perplexity", `https://www.perplexity.ai/search?q=${prompt}`],
-  ["Google AI Mode", `https://www.google.com/search?udm=50&q=${prompt}`],
-  ["Cursor", `cursor://anysphere.cursor-deeplink/prompt?text=${prompt}`],
+  ["ChatGPT", "chatgpt", `https://chatgpt.com/?q=${prompt}`],
+  ["Claude", "claude", `https://claude.ai/new?q=${prompt}`],
+  ["Grok", "grok", `https://grok.com/?q=${prompt}`],
+  ["Perplexity", "perplexity", `https://www.perplexity.ai/search?q=${prompt}`],
+  ["Google AI Mode", "google", `https://www.google.com/search?udm=50&q=${prompt}`],
+  ["Cursor", "cursor", `cursor://anysphere.cursor-deeplink/prompt?text=${prompt}`],
 ];
 ---
 
 <div class="actions" data-actions data-md={md}>
-  <button class="actions__btn" type="button" data-copy aria-live="polite">Copy page</button>
-  <a class="actions__btn actions__btn--md" href={md}>View as Markdown</a>
+  <button class="actions__btn" type="button" data-copy aria-live="polite">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true">
+      <rect x="9" y="9" width="11" height="11" rx="1.5" />
+      <path d="M5 15V5.5A1.5 1.5 0 0 1 6.5 4H15" />
+    </svg>
+    <span data-copy-label>Copy page</span>
+  </button>
+  <a class="actions__btn actions__btn--md" href={md}>
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true">
+      <rect x="3" y="5" width="18" height="14" rx="1.5" />
+      <path d="M7 15V9l2.5 3L12 9v6M16 9v6M14 13l2 2 2-2" />
+    </svg>
+    View as Markdown
+  </a>
   <details class="actions__menu">
     <summary class="actions__btn">Open in</summary>
     <ul>
-      {targets.map(([name, href]) => (
+      {targets.map(([name, icon, href]) => (
         <li>
-          <a href={href} rel="noopener">{name}</a>
+          <a href={href} rel="noopener"><Icon name={icon} />{name}</a>
         </li>
       ))}
     </ul>
@@ -41,8 +54,9 @@ const targets = [
     copy.addEventListener("click", async () => {
       const text = await (await fetch(md)).text();
       await navigator.clipboard.writeText(text);
-      copy.textContent = "Copied";
-      setTimeout(() => (copy.textContent = "Copy page"), 1500);
+      const label = copy.querySelector("[data-copy-label]")!;
+      label.textContent = "Copied";
+      setTimeout(() => (label.textContent = "Copy page"), 1500);
     });
     document.addEventListener("click", (event) => {
       const menu = root.querySelector<HTMLDetailsElement>("details[open]");

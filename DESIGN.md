@@ -1,15 +1,15 @@
 ---
 name: Skopli
-description: Paper-and-ink statement aesthetic shared by skopli.com and docs.skopli.com
+description: Dark-first paper-and-ink statement aesthetic shared by skopli.com and docs.skopli.com
 colors:
-  paper: "#fbfaf7"
-  paper-2: "#f3f1ec"
-  paper-3: "#e9e6df"
-  ink: "#16150f"
-  ink-2: "#44423a"
-  ink-3: "#66635a"
-  rule: "#d6d2c8"
-  rule-strong: "#8f8a7d"
+  paper: "#ffffff"
+  paper-2: "#f5f5f4"
+  paper-3: "#ebebea"
+  ink: "#141414"
+  ink-2: "#3f3f3f"
+  ink-3: "#5f5f5f"
+  rule: "#e2e2e0"
+  rule-strong: "#8a8a86"
   accent: "#b43c12"
   ok: "#176b43"
   miss: "#8a5a00"
@@ -81,15 +81,15 @@ Tokens live in `web/ui/src/styles/tokens.css` and are consumed unchanged by `web
 
 ## Colors
 
-Paper tones are warm off-whites, never pure white.
-Ink is a warm near-black.
+Dark is the default theme: warm near-black paper with warm off-white ink.
+The light theme uses neutral white and light greys for paper and a neutral near-black ink.
 Three ink steps (`ink`, `ink-2`, `ink-3`) cover headings, body and muted text, all AA on paper.
 `accent` is used only for links inside prose and for focus rings.
 `rule` is a decorative hairline.
 `rule-strong` is the 3:1 boundary used on controls such as quiet buttons and inputs.
 `ok` and `miss` mark priced and unpriced states when a figure needs a status.
 They are never decorative.
-Dark mode swaps the paper and ink scales under `[data-theme="dark"]`.
+The light theme swaps the paper and ink scales under `[data-theme="light"]`. The dark values live on `:root`.
 The same roles apply.
 
 ## Typography

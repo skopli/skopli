@@ -3,65 +3,22 @@ title: Supported harnesses
 description: The 40 harnesses Skopli reads, their stable ids, and the tools that are detected but unsupported.
 ---
 
+import HarnessTable from "../../../components/HarnessTable.astro";
+
 Each harness has a stable id used in `readUsage({ harnesses })`, in `UsageEvent.harness` and as the key of a `by: "harness"` rollup.
 Display names follow each project's own branding.
 
-<div class="table--ids">
-
-| Harness             | id               |
-| ------------------- | ---------------- |
-| Claude Code         | `claude`         |
-| OpenCode            | `opencode`       |
-| Codex CLI           | `codex`          |
-| Gemini CLI          | `gemini`         |
-| Copilot CLI (OTel)  | `copilot`        |
-| Amp                 | `amp`            |
-| Droid               | `droid`          |
-| Qwen Code           | `qwen`           |
-| Pi                  | `pi`             |
-| OMP                 | `omp`            |
-| Kilo Code CLI       | `kilo`           |
-| Goose               | `goose`          |
-| Hermes              | `hermes`         |
-| Prime Agent         | `prime`          |
-| Kimchi Coding       | `kimchi`         |
-| Command Code        | `commandcode`    |
-| jcode               | `jcode`          |
-| OpenCodeReview      | `opencodereview` |
-| DeepSeek Harness    | `deepseek`       |
-| Kiro CLI            | `kiro`           |
-| Grok CLI            | `grok`           |
-| Augment             | `augment`        |
-| Codebuff            | `codebuff`       |
-| Mux                 | `mux`            |
-| Zed Agent           | `zed`            |
-| ZCode               | `zcode`          |
-| Devin CLI           | `devin`          |
-| Roo Code            | `roo`            |
-| Cline               | `cline`          |
-| Kilo Code (VS Code) | `kilocode`       |
-| Junie               | `junie`          |
-| OpenClaw            | `openclaw`       |
-| Kimi CLI            | `kimi`           |
-| gajae-code          | `gajae`          |
-| MiMo Code           | `mimocode`       |
-| CodeBuddy Code      | `codebuddy`      |
-| Cherry Studio       | `cherrystudio`   |
-| Trae Agent          | `trae`           |
-| Reasonix            | `reasonix`       |
-| fx.sh               | `fx`             |
-
-</div>
+<HarnessTable />
 
 ## Notes by harness
 
 - **Kiro CLI** stores no token counts, so its events carry estimated tokens.
-- **Reasonix** logs one event per session and **fx.sh** one event per model per session, so `turns` and per-message detail are not available for them.
-- **Codex CLI, Grok CLI and ZCode** report reasoning inside output. The reader subtracts it so the buckets stay disjoint.
+- **Reasonix** logs one event per session and **fx** one event per model per session, so `turns` and per-message detail are not available for them.
+- **Codex CLI, Grok Build and ZCode** report reasoning inside output. The reader subtracts it so the buckets stay disjoint.
 - **Copilot CLI** is read from its OTel export, which does not state whether output includes reasoning. The two are treated as disjoint and not subtracted.
 - **Claude Code** reports the 5m/1h cache-write split, which populates `tokens.cacheWrite1h`, and records `costUSD`, which populates `costUsd`.
 - **OpenCode** supplies `workspace`, `title` and, when non-zero, `costUsd`.
-- **Hermes** reports a per-row `message_count`, which populates `calls`.
+- **Hermes Agent** reports a per-row `message_count`, which populates `calls`.
 - **OpenCode, ZCode, Devin CLI and Cline** keep both a SQLite store and a legacy JSONL mirror. The SQLite store is authoritative and the mirror is not double-counted.
 
 ## Subagent markers
@@ -70,7 +27,7 @@ Display names follow each project's own branding.
 | ------------------------ | ---------------------- |
 | OpenCode                 | non-null `parent_id`   |
 | Claude Code              | `isSidechain === true` |
-| Pi, OMP                  | `rlmDepth > 0`         |
+| Pi, omp                  | `rlmDepth > 0`         |
 | Codex CLI and all others | always `false`         |
 
 ## Detected but unsupported

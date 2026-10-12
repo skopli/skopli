@@ -1,5 +1,9 @@
 ---
 import { Code } from "astro:components";
+import Icon from "@skopli/ui/components/Icon.astro";
+import Quickstart from "@skopli/ui/components/Quickstart.astro";
+import { harnesses } from "@skopli/ui/harnesses";
+import { quickstarts } from "@skopli/ui/quickstart";
 import Base from "../layouts/Base.astro";
 
 const docs = "https://docs.skopli.com/skopli/";
@@ -121,30 +125,7 @@ const rules = [
   ["Unmatched models", "<code>priced: false</code> with the keys that were tried, never a guess"],
 ];
 
-const harnesses: [string, string][] = [
-  ["Claude Code", "claude"], ["OpenCode", "opencode"], ["Codex CLI", "codex"], ["Gemini CLI", "gemini"],
-  ["Copilot CLI (OTel)", "copilot"], ["Amp", "amp"], ["Droid", "droid"], ["Qwen Code", "qwen"],
-  ["Pi", "pi"], ["OMP", "omp"], ["Kilo Code CLI", "kilo"], ["Goose", "goose"],
-  ["Hermes", "hermes"], ["Prime Agent", "prime"], ["Kimchi Coding", "kimchi"], ["Command Code", "commandcode"],
-  ["jcode", "jcode"], ["OpenCodeReview", "opencodereview"], ["DeepSeek Harness", "deepseek"], ["Kiro CLI", "kiro"],
-  ["Grok CLI", "grok"], ["Augment", "augment"], ["Codebuff", "codebuff"], ["Mux", "mux"],
-  ["Zed Agent", "zed"], ["ZCode", "zcode"], ["Devin CLI", "devin"], ["Roo Code", "roo"],
-  ["Cline", "cline"], ["Kilo Code (VS Code)", "kilocode"], ["Junie", "junie"], ["OpenClaw", "openclaw"],
-  ["Kimi CLI", "kimi"], ["gajae-code", "gajae"], ["MiMo Code", "mimocode"], ["CodeBuddy Code", "codebuddy"],
-  ["Cherry Studio", "cherrystudio"], ["Trae Agent", "trae"], ["Reasonix", "reasonix"], ["fx.sh", "fx"],
-];
 
-const installs: [string, string][] = [
-  ["TypeScript", "pnpm add skopli"],
-  ["Python", "pip install skopli"],
-  ["Rust", "cargo add skopli-core"],
-  ["Ruby", "gem install skopli"],
-  ["Java", "com.skopli:skopli"],
-  ["C#", "dotnet add package Skopli"],
-  ["Go", "go get github.com/skopli/skopli/sdks/go"],
-  ["Swift", ".package(url: \"https://github.com/skopli/skopli\", branch: \"main\")"],
-  ["C", "Prebuilt libskopli and skopli.h from GitHub Releases"],
-];
 
 const themes = { light: "github-light", dark: "github-dark" };
 ---
@@ -231,16 +212,19 @@ const themes = { light: "github-light", dark: "github-dark" };
         </p>
     </div>
     <ul class="harnesses__grid">
-      {harnesses.map(([name, id]) => (
+      {harnesses.map((h) => (
         <li>
-          <span>{name}</span>
-          <code>{id}</code>
+          <span class="harnesses__name">
+            {h.icon && <Icon name={h.id} />}
+            {h.name}
+          </span>
+          <code>{h.id}</code>
         </li>
       ))}
     </ul>
     <p class="harnesses__note">
       Kiro CLI stores no token counts, so its events carry estimated tokens. Reasonix emits one event
-      per session, fx.sh one per model per session.
+      per session, fx one per model per session.
     </p>
     <a class="harnesses__link" href={`${docs}reference/harnesses/`}>Per-harness details</a>
     </div>
@@ -254,13 +238,15 @@ const themes = { light: "github-light", dark: "github-dark" };
         rollup in Ruby and a day rollup in Go agree to the token.
       </p>
       <ul class="langs__list">
-        {installs.map(([lang, cmd]) => (
+        {quickstarts.map((q) => (
           <li>
-            <span>{lang}</span>
-            <code>{cmd}</code>
+            <span>{q.label}</span>
+            <code>{q.install}</code>
           </li>
         ))}
       </ul>
+      <h3 class="langs__sub">The same quickstart in each language</h3>
+      <Quickstart />
     </div>
   </section>
 
@@ -533,6 +519,11 @@ const themes = { light: "github-light", dark: "github-dark" };
     border-bottom: 1px solid var(--rule);
     font-size: var(--text-sm);
   }
+  .harnesses__name {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+  }
   .harnesses__grid code {
     color: var(--ink-3);
   }
@@ -565,6 +556,10 @@ const themes = { light: "github-light", dark: "github-dark" };
   .langs__list code {
     font-size: var(--text-sm);
     overflow-wrap: anywhere;
+  }
+  .langs__sub {
+    margin: var(--space-7) 0 var(--space-4);
+    font-size: var(--text-md);
   }
   @media (max-width: 480px) {
     .langs__list li {

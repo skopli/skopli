@@ -3,7 +3,12 @@ title: Rollups
 description: Group usage events by model, day, session, harness, workspace or billing block, with timezone-aware day bucketing.
 ---
 
+import Tabs from "@skopli/ui/components/Tabs.astro";
+
 ## rollup
+
+<Tabs>
+<Fragment slot="ts">
 
 ```ts
 import { rollup } from "skopli";
@@ -12,6 +17,88 @@ const byModel = rollup(events, { by: "model" });
 const byDay = rollup(events, { by: "day", tz: "Asia/Tokyo" });
 const byBlock = rollup(events, { by: "block", blockMs: 5 * 60 * 60 * 1000 });
 ```
+
+</Fragment>
+<Fragment slot="python">
+
+```python
+by_model = skopli.rollup(events, by="model")
+by_day = skopli.rollup(events, by="day", tz="Asia/Tokyo")
+by_block = skopli.rollup(events, by="block", block_ms=5 * 60 * 60 * 1000)
+```
+
+</Fragment>
+<Fragment slot="rust">
+
+```rust
+use skopli_core::rollup::{rollup, RollupBy, RollupOptions};
+
+let by_model = rollup(&events, &RollupOptions::new(RollupBy::Model));
+
+let mut day_opts = RollupOptions::new(RollupBy::Day);
+day_opts.tz = Some("Asia/Tokyo".into());
+let by_day = rollup(&events, &day_opts);
+```
+
+</Fragment>
+<Fragment slot="ruby">
+
+```ruby
+by_model = Skopli.rollup(events, :model)
+by_day = Skopli.rollup(events, :day, tz: "Asia/Tokyo")
+by_block = Skopli.rollup(events, :block, block_ms: 5 * 60 * 60 * 1000)
+```
+
+</Fragment>
+<Fragment slot="java">
+
+```java
+List<Rollup> byModel = Skopli.rollup(events, RollupOptions.by(RollupBy.MODEL));
+List<Rollup> byDay = Skopli.rollup(events, RollupOptions.by(RollupBy.DAY, "Asia/Tokyo"));
+List<Rollup> byBlock = Skopli.rollup(events, RollupOptions.block(5L * 60 * 60 * 1000));
+```
+
+</Fragment>
+<Fragment slot="csharp">
+
+```csharp
+IReadOnlyList<Rollup> byModel = SkopliClient.Rollup(events, new RollupOptions { By = RollupBy.Model });
+IReadOnlyList<Rollup> byDay = SkopliClient.Rollup(events, new RollupOptions { By = RollupBy.Day, Tz = "Asia/Tokyo" });
+IReadOnlyList<Rollup> byBlock = SkopliClient.Rollup(events, new RollupOptions { By = RollupBy.Block, BlockMs = 5 * 60 * 60 * 1000 });
+```
+
+</Fragment>
+<Fragment slot="go">
+
+```go
+byModel, err := skopli.Rollup(events, skopli.RollupOptions{By: skopli.ByModel})
+byDay, err := skopli.Rollup(events, skopli.RollupOptions{By: skopli.ByDay, TZ: "Asia/Tokyo"})
+byBlock, err := skopli.Rollup(events, skopli.RollupOptions{By: skopli.ByBlock, BlockMs: 5 * 60 * 60 * 1000})
+```
+
+</Fragment>
+<Fragment slot="swift">
+
+```swift
+let byModel = try Skopli.rollup(events: events, by: .model)
+let byDay = try Skopli.rollup(events: events, by: .day, tz: "Asia/Tokyo")
+let byBlock = try Skopli.rollup(events: events, by: .block, blockMs: 5 * 60 * 60 * 1000)
+```
+
+</Fragment>
+<Fragment slot="c">
+
+```c
+const char *by_day = "{\"by\":\"day\",\"tz\":\"Asia/Tokyo\"}";
+AgBuf rollups = {0};
+if (ag_rollup((const char *)events.ptr, events.len, by_day, strlen(by_day),
+              &rollups) != AG_STATUS_OK)
+  return 1;
+ag_buf_free(rollups);
+```
+
+</Fragment>
+</Tabs>
 
 `by` accepts `model`, `day`, `session`, `harness`, `workspace` or `block`.
 The result is a sorted array of `Rollup` records.
@@ -50,7 +137,7 @@ Block starts are floored to the hour in `tz`.
 
 `events` counts rows.
 `turns` counts rows where `turn` is true.
-`calls` sums each event's reported `calls` when that value is finite, else counts 1, so a Hermes row that aggregates eight calls adds eight.
+`calls` sums each event's reported `calls` when that value is finite, else counts 1, so a Hermes Agent row that aggregates eight calls adds eight.
 `costUsd` is only the recorded cost, present only when at least one event in the group recorded one.
 It is not a price.
 For prices, hand the rollups to [`priceRollups`](/skopli/guide/pricing-basics/), or use [`priceEvents`](/skopli/pricing/rollups-vs-events/) when any model has long-context tiers.

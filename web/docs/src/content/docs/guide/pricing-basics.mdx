@@ -3,6 +3,8 @@ title: Pricing basics
 description: Create a pricing instance, understand where catalogs come from and how they are cached, and read hits and misses.
 ---
 
+import Tabs from "@skopli/ui/components/Tabs.astro";
+
 ## createPricing
 
 ```ts
@@ -52,6 +54,9 @@ Either way nothing leaves the machine.
 
 ## Hits and misses
 
+<Tabs>
+<Fragment slot="ts">
+
 ```ts
 const lookup = await pricing.lookupModel("openai/gpt-5");
 
@@ -65,6 +70,112 @@ if (lookup.priced) {
   lookup.reason; // "zeroCost" when only placeholder entries matched
 }
 ```
+
+</Fragment>
+<Fragment slot="python">
+
+```python
+lookup = pricing.lookup_model("openai/gpt-5")
+
+if lookup.priced:
+    print(lookup.key, lookup.price.input, lookup.price.output, lookup.source)
+else:
+    print("tried", lookup.attempted, lookup.reason)
+```
+
+</Fragment>
+<Fragment slot="rust">
+
+```rust
+use skopli_core::pricing::types::PriceLookup;
+
+match pricing.lookup_model("openai/gpt-5") {
+    PriceLookup::Hit(hit) => println!("{} {:?} {}", hit.key, hit.price, hit.source),
+    PriceLookup::Miss(miss) => println!("tried {:?} {:?}", miss.attempted, miss.reason),
+}
+```
+
+</Fragment>
+<Fragment slot="ruby">
+
+```ruby
+lookup = pricing.lookup_model("openai/gpt-5")
+
+if lookup.priced
+  puts [lookup.key, lookup.price.input, lookup.price.output, lookup.source].inspect
+else
+  puts "tried #{lookup.attempted.inspect} #{lookup.reason.inspect}"
+end
+```
+
+</Fragment>
+<Fragment slot="java">
+
+```java
+PriceLookup lookup = pricing.lookupModel("openai/gpt-5");
+
+if (lookup instanceof PriceLookup.PriceHit hit) {
+    System.out.println(hit.key() + " " + hit.price() + " " + hit.source());
+} else if (lookup instanceof PriceLookup.PriceMiss miss) {
+    System.out.println("tried " + miss.attempted() + " " + miss.reason());
+}
+```
+
+</Fragment>
+<Fragment slot="csharp">
+
+```csharp
+PriceLookup lookup = pricing.LookupModel("openai/gpt-5");
+
+if (lookup is PriceHit hit)
+    Console.WriteLine($"{hit.Key} {hit.Price} {hit.Source}");
+else if (lookup is PriceMiss miss)
+    Console.WriteLine($"tried {string.Join(", ", miss.Attempted)} {miss.Reason}");
+```
+
+</Fragment>
+<Fragment slot="go">
+
+```go
+lookup, err := pricing.LookupModel("openai/gpt-5")
+if err != nil {
+	return err
+}
+if lookup.Priced {
+	fmt.Println(lookup.Key, lookup.Price, lookup.Source)
+} else {
+	fmt.Println("tried", lookup.Attempted, lookup.Reason)
+}
+```
+
+</Fragment>
+<Fragment slot="swift">
+
+```swift
+let lookup = try pricing.lookupModel("openai/gpt-5")
+
+if lookup.priced {
+    print(lookup.key ?? "", lookup.price as Any, lookup.source ?? "")
+} else {
+    print("tried", lookup.attempted ?? [], lookup.reason ?? "")
+}
+```
+
+</Fragment>
+<Fragment slot="c">
+
+```c
+const char *model = "openai/gpt-5";
+AgBuf lookup = {0};
+if (ag_pricing_lookup_model(pricing, model, strlen(model), &lookup)
+    != AG_STATUS_OK)
+  return 1;
+// lookup.ptr is {"priced":true,"key":"gpt-5",...} or {"priced":false,"attempted":[...]}
+ag_buf_free(lookup);
+```
+
+</Fragment>
+</Tabs>
 
 Skopli refuses to guess.
 A model no catalog knows comes back as `{ priced: false, attempted }`.

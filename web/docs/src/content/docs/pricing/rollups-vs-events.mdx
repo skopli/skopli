@@ -3,6 +3,8 @@ title: Rollups vs events
 description: When to price summed rollups and when to price events one by one, and what the tieredAggregate flag and AggregatePriceHit mean.
 ---
 
+import Tabs from "@skopli/ui/components/Tabs.astro";
+
 ## priceRollups
 
 ```ts
@@ -25,9 +27,76 @@ It is never silent: a dashboard can show the figure as an upper bound or switch 
 
 ## priceEvents
 
+<Tabs>
+<Fragment slot="ts">
+
 ```ts
 const groups = await pricing.priceEvents(events, { by: "day", tz: "UTC" });
 ```
+
+</Fragment>
+<Fragment slot="python">
+
+```python
+groups = pricing.price_events(events, by="day", tz="UTC")
+```
+
+</Fragment>
+<Fragment slot="rust">
+
+```rust
+let mut opts = RollupOptions::new(RollupBy::Day);
+opts.tz = Some("UTC".into());
+let groups = pricing.price_events(&events, &opts);
+```
+
+</Fragment>
+<Fragment slot="ruby">
+
+```ruby
+groups = pricing.price_events(events, :day, tz: "UTC")
+```
+
+</Fragment>
+<Fragment slot="java">
+
+```java
+List<PricedRollup> groups = pricing.priceEvents(events, RollupOptions.by(RollupBy.DAY, "UTC"));
+```
+
+</Fragment>
+<Fragment slot="csharp">
+
+```csharp
+IReadOnlyList<PricedRollup> groups = pricing.PriceEvents(events, new RollupOptions { By = RollupBy.Day, Tz = "UTC" });
+```
+
+</Fragment>
+<Fragment slot="go">
+
+```go
+groups, err := pricing.PriceEvents(events, skopli.RollupOptions{By: skopli.ByDay, TZ: "UTC"})
+```
+
+</Fragment>
+<Fragment slot="swift">
+
+```swift
+let groups = try pricing.priceEvents(events: events, by: .day, tz: "UTC")
+```
+
+</Fragment>
+<Fragment slot="c">
+
+```c
+const char *opts = "{\"by\":\"day\",\"tz\":\"UTC\"}";
+AgBuf groups = {0};
+ag_pricing_price_events(pricing, (const char *)events.ptr, events.len, opts,
+                        strlen(opts), &groups);
+```
+
+</Fragment>
+</Tabs>
 
 `priceEvents` prices every event at its own context with the full tier and 1h-split logic, applies `mode` per event, then aggregates with the same keys `rollup` would produce.
 Each `PricedEventGroup` carries the same token sums and counts as a `Rollup` plus a `pricing` object that is one of three shapes.
