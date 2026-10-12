@@ -52,10 +52,15 @@ const targets = [
   const md = root?.dataset.md;
   if (root && copy && md) {
     copy.addEventListener("click", async () => {
-      const text = await (await fetch(md)).text();
-      await navigator.clipboard.writeText(text);
       const label = copy.querySelector("[data-copy-label]")!;
-      label.textContent = "Copied";
+      try {
+        const response = await fetch(md);
+        if (!response.ok) throw new Error(String(response.status));
+        await navigator.clipboard.writeText(await response.text());
+        label.textContent = "Copied";
+      } catch {
+        label.textContent = "Copy failed";
+      }
       setTimeout(() => (label.textContent = "Copy page"), 1500);
     });
     document.addEventListener("click", (event) => {
