@@ -243,9 +243,14 @@ jobs:
         with:
           distribution: temurin
           java-version: "25"
-      - uses: gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6.4.0
-        with:
-          gradle-version: "9.8.0"
+      # Gradle 9.8.0 from the official distribution, checksum pinned. No wrapper
+      # jar in the repo and no third-party action (the repo's Actions allow-list).
+      - name: Install Gradle 9.8.0
+        run: |
+          curl -fsSL -o gradle.zip https://services.gradle.org/distributions/gradle-9.8.0-bin.zip
+          echo "bafd5ce9cfaea0fbccfdc8439a1ac42fbd4cd9c89dc9a988228d8a2639a58e6c  gradle.zip" | sha256sum -c -
+          unzip -q gradle.zip -d "$RUNNER_TEMP"
+          echo "$RUNNER_TEMP/gradle-9.8.0/bin" >> "$GITHUB_PATH"
       - name: Build the jar (gradle)
         working-directory: sdks/java
         run: gradle --no-daemon jar sourcesJar
