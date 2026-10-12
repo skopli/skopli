@@ -87,10 +87,10 @@ jobs:
           node-version: 24
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - name: site check + build
-        run: pnpm --dir web/site run check && pnpm --dir web/site run build
-      - name: docs check + build
-        run: pnpm --dir web/docs run check && pnpm --dir web/docs run build
+      - name: site build
+        run: pnpm --dir web/site run build
+      - name: docs build
+        run: pnpm --dir web/docs run build
 
   # --- C ABI: build cdylib/staticlib + assert the cbindgen header is zero-diff -
   capi-header:

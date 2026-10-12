@@ -1,6 +1,9 @@
 <script is:inline>
   (() => {
-    const stored = localStorage.getItem("skopli-theme");
-    document.documentElement.dataset.theme = stored === "light" || stored === "dark" ? stored : "dark";
+    let stored;
+    try {
+      stored = localStorage.getItem("skopli-theme");
+    } catch {}
+    document.documentElement.dataset.theme = stored === "light" ? "light" : "dark";
   })();
 </script>

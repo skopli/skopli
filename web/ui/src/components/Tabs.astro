@@ -39,6 +39,7 @@ const uid = nextTabsId();
 
 <script>
   import { syncScrollable } from "../scrollable.ts";
+  import { storage } from "../storage.ts";
 
   const KEY = "skopli-lang";
 
@@ -47,7 +48,7 @@ const uid = nextTabsId();
 
     connectedCallback() {
       for (const el of this.querySelectorAll<HTMLElement>(".tabs__list, .tabs__panel pre")) syncScrollable(el);
-      this.select(localStorage.getItem(KEY) ?? "", false);
+      this.select(storage.get(KEY) ?? "", false);
       this.addEventListener("click", (e) => {
         const tab = (e.target as HTMLElement).closest<HTMLButtonElement>("[role=tab]");
         if (tab?.dataset.lang) this.select(tab.dataset.lang, true);
@@ -79,7 +80,7 @@ const uid = nextTabsId();
         panel.hidden = panel.dataset.lang !== lang;
       }
       if (persist) {
-        localStorage.setItem(KEY, lang);
+        storage.set(KEY, lang);
         for (const other of document.querySelectorAll<CodeTabs>("code-tabs")) {
           if (other !== this) other.select(lang, false);
         }
