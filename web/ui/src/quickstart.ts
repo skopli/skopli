@@ -194,7 +194,7 @@ let priced = try pricing.priceRollups(rollups: byModel)`,
       'gh release download --repo skopli/skopli --pattern "skopli-capi-*-x86_64-unknown-linux-gnu.tar.gz"',
     source:
       "git clone https://github.com/skopli/skopli && cargo build --manifest-path skopli/Cargo.toml -p skopli-capi --release",
-    note: "One archive per target (skopli.h, shared and static library): x86_64 and aarch64 Linux, macOS, and Windows. Swap the target triple.",
+    note: "Release archives: one per target (skopli.h, shared and static library) for x86_64 and aarch64 Linux, macOS, and Windows.",
     code: `#include "skopli.h"
 
 // Every call takes and returns JSON. Free each AgBuf with ag_buf_free.
