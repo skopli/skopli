@@ -12,6 +12,7 @@
          with the native cdylib (skopli.dll) on case-insensitive Windows. -->
     <AssemblyName>Skopli.Sdk</AssemblyName>
     <PackageId>Skopli</PackageId>
+    <Version>0.1.0</Version>
     <GenerateDocumentationFile>false</GenerateDocumentationFile>
     <Description>Idiomatic C# facade over the skopli C ABI (csbindgen P/Invoke).</Description>
     <PackageProjectUrl>https://docs.skopli.com/skopli/</PackageProjectUrl>

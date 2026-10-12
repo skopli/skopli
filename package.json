@@ -1,6 +1,6 @@
 {
   "name": "skopli",
-  "version": "1.0.0",
+  "version": "0.1.0",
   "description": "Read real AI coding-agent usage (tokens, sessions, calls) from local harness state, aggregate it, and price it against market catalogs like OpenRouter and LiteLLM.",
   "keywords": [
     "agent",
