@@ -1,20 +1,18 @@
-// Regenerates files derived from a single source; `--check` fails when a committed copy differs.
-//   README.md install table                     <- web/ui/src/quickstart.ts
-//   llms.txt supported-harness list             <- golden/registry/ids.json
-//   web/docs/src/content/docs/contributing.md   <- CONTRIBUTING.md
 import { readFileSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
 import { harnesses } from "../web/ui/src/harnesses.ts";
 import { langs } from "../web/ui/src/langs.ts";
-import { installLine, published, quickstarts, releaseNote } from "../web/ui/src/quickstart.ts";
+import { installMd, published, quickstarts, releaseNote } from "../web/ui/src/quickstart.ts";
 
+process.chdir(join(import.meta.dirname, ".."));
 const check = process.argv.includes("--check");
-const repo = "https://github.com/skopli/skopli";
 const ids = JSON.parse(readFileSync("golden/registry/ids.json", "utf8")).ids;
 
 const replaceBetween = (text, start, end, body) => {
-  const re = new RegExp(`(${start})\\n[\\s\\S]*?(${end})`);
-  if (!re.test(text)) throw new Error(`markers ${start} / ${end} not found`);
-  return text.replace(re, `$1\n\n${body}\n\n$2`);
+  const from = text.indexOf(start);
+  const to = text.indexOf(end, from);
+  if (from < 0 || to < 0) throw new Error(`markers ${start} / ${end} not found`);
+  return `${text.slice(0, from + start.length)}\n\n${body}\n\n${text.slice(to)}`;
 };
 
 const installTable = () => {
@@ -22,17 +20,15 @@ const installTable = () => {
     ? ["Language", "Registry", "Install"]
     : ["Language", "Install now (from the repository)", "After the first release"];
   const rows = quickstarts.map((q) => {
-    const { command, note } = installLine(q);
-    const now = `\`${command}\`${note ? ` (${note})` : ""}`;
-    const later =
-      q.install === q.source ? "same (git dependency)" : `${q.registry}: \`${q.install}\``;
-    return published ? [langs[q.id], q.registry, now] : [langs[q.id], now, later];
+    const later = q.registry ? `${q.registry}: \`${q.install}\`` : "same";
+    return published
+      ? [langs[q.id], q.registry ?? "none", installMd(q)]
+      : [langs[q.id], installMd(q), later];
   });
   const widths = header.map((_, i) => Math.max(...[header, ...rows].map((r) => r[i].length)));
   const line = (cells) => `| ${cells.map((c, i) => c.padEnd(widths[i])).join(" | ")} |`;
   return [
-    releaseNote,
-    "",
+    ...(releaseNote ? [releaseNote, ""] : []),
     line(header),
     line(widths.map((w) => "-".repeat(w))),
     ...rows.map(line),
@@ -43,18 +39,18 @@ const harnessLine = (text) => {
   const re = /(## Supported harnesses\n\n)([^.\n]+)\.([^\n]*)/;
   const m = text.match(re);
   if (!m) throw new Error("llms.txt: supported-harness paragraph not found");
-  const named = harnesses.filter((h) => m[3].includes(h.name)).map((h) => h.name);
-  if (named.length)
+  const words = new Set(m[3].split(/[,.:;()]/).map((w) => w.trim().toLowerCase()));
+  const named = harnesses
+    .filter((h) => [h.id, h.name, h.name.split(" ")[0]].some((n) => words.has(n.toLowerCase())))
+    .map((h) => h.name);
+  if (named.length) {
     throw new Error(`llms.txt lists supported harnesses as unsupported: ${named.join(", ")}`);
+  }
   return text.replace(re, `$1${ids.join(", ")}.$3`);
 };
 
-const contributingPage = (md) => {
-  const body = md
-    .replace(/^# .*\n\n/, "")
-    .replace(/\]\((?!https?:|#)([^)]+)\)/g, `](${repo}/blob/main/$1)`);
-  return `---\ntitle: Contributing\ndescription: How to build and test Skopli, add a harness or a pricing source, and what a pull request needs.\n---\n\n<!-- generated from CONTRIBUTING.md by scripts/sync-generated.mjs; edit the source -->\n\n${body}`;
-};
+const contributingPage = () =>
+  `---\ntitle: Contributing\ndescription: How to build and test Skopli, add a harness or a pricing source, and what a pull request needs.\n---\n\n${readFileSync("CONTRIBUTING.md", "utf8").replace(/^# .*\n\n/, "")}`;
 
 const targets = [
   [
@@ -63,21 +59,15 @@ const targets = [
       replaceBetween(t, "<!-- generated: install-table -->", "<!-- /generated -->", installTable()),
   ],
   ["llms.txt", harnessLine],
-  [
-    "web/docs/src/content/docs/contributing.md",
-    () => contributingPage(readFileSync("CONTRIBUTING.md", "utf8")),
-  ],
+  ["web/docs/src/content/docs/contributing.md", contributingPage],
 ];
 
 const stale = [];
 for (const [file, render] of targets) {
-  const current = (() => {
-    try {
-      return readFileSync(file, "utf8");
-    } catch {
-      return "";
-    }
-  })();
+  let current = "";
+  try {
+    current = readFileSync(file, "utf8");
+  } catch {}
   const next = render(current);
   if (next === current) continue;
   if (check) stale.push(file);

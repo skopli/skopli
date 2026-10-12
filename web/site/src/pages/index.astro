@@ -4,7 +4,7 @@ import Icon from "@skopli/ui/components/Icon.astro";
 import Quickstart from "@skopli/ui/components/Quickstart.astro";
 import { harnesses } from "@skopli/ui/harnesses";
 import { codeThemes, langs } from "@skopli/ui/langs";
-import { installLine, published, quickstarts, releaseNote } from "@skopli/ui/quickstart";
+import { command, published, quickstarts, releaseNote } from "@skopli/ui/quickstart";
 import Base from "../layouts/Base.astro";
 
 const docs = "https://docs.skopli.com/skopli/";
@@ -145,7 +145,7 @@ const rules = [
         <div class="hero__actions">
           <a class="button" href={`${docs}guide/getting-started/`}>Read the docs</a>
           {published ? (
-            <code class="install num">{quickstarts[0].install}</code>
+            <code class="install num">{quickstarts.find((q) => q.id === "ts")?.install}</code>
           ) : (
             <a class="button button--quiet" href="https://github.com/skopli/skopli">Source on GitHub</a>
           )}
@@ -243,18 +243,15 @@ const rules = [
       </p>
       {releaseNote && <p class="langs__text">{releaseNote}</p>}
       <ul class="langs__list">
-        {quickstarts.map((q) => {
-          const { command, note } = installLine(q);
-          return (
-            <li>
-              <span>{langs[q.id]}</span>
-              <span class="langs__install"><code>{command}</code>{note && <span class="langs__note">{note}</span>}</span>
-            </li>
-          );
-        })}
+        {quickstarts.map((q) => (
+          <li>
+            <span>{langs[q.id]}</span>
+            <span class="langs__install"><code>{command(q)}</code>{q.note && <span class="langs__note">{q.note}</span>}</span>
+          </li>
+        ))}
       </ul>
       <h3 class="langs__sub">The same quickstart in each language</h3>
-      <Quickstart status={false} />
+      <Quickstart note={false} />
     </div>
   </section>
 

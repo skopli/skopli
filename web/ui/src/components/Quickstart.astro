@@ -1,24 +1,25 @@
 ---
 import { Code } from "astro:components";
 import { codeThemes } from "../langs.ts";
-import { installLine, quickstarts, releaseNote } from "../quickstart.ts";
+import { command, quickstarts, releaseNote } from "../quickstart.ts";
 import Tabs from "./Tabs.astro";
 
-const { status = true } = Astro.props;
+interface Props {
+  note?: boolean;
+}
+
+const { note = true } = Astro.props;
 ---
 
-{status && releaseNote && <p class="tabs__status">{releaseNote}</p>}
+{note && releaseNote && <p class="tabs__status">{releaseNote}</p>}
 <Tabs>
-  {quickstarts.map((q) => {
-    const { command, note } = installLine(q);
-    return (
+  {quickstarts.map((q) => (
     <Fragment slot={q.id}>
       <p class="tabs__install">
-        <code>{command}</code>
-        {note && <span>{note}</span>}
+        <code>{command(q)}</code>
+        {q.note && <span>{q.note}</span>}
       </p>
       <Code code={q.code} lang={q.id} themes={codeThemes} defaultColor={false} />
     </Fragment>
-    );
-  })}
+  ))}
 </Tabs>

@@ -6,3 +6,6 @@ golden/**/*.db binary
 # csbindgen writes LF; pin it so the zero-diff regeneration check is stable
 # regardless of the platform's checkout EOL setting.
 sdks/csharp/Skopli/Native/NativeMethods.g.cs text eol=lf
+# scripts/sync-generated.mjs regenerates these and compares bytes; keep them LF everywhere.
+*.md text eol=lf
+llms.txt text eol=lf
