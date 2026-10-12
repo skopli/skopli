@@ -53,7 +53,7 @@ for (const row of priced) {
     registry: "PyPI",
     install: "pip install skopli",
     source: 'pip install "git+https://github.com/skopli/skopli#subdirectory=crates/skopli-py"',
-    note: "Building from source needs a Rust toolchain.",
+    note: "Python 3.10+. Building from source needs a Rust toolchain.",
     code: `import skopli
 
 detection = skopli.detect_harnesses()
@@ -175,7 +175,7 @@ func priceByModel() ([]skopli.PricedRollup, error) {
     id: "swift",
     source:
       "git clone https://github.com/skopli/skopli && cargo build --manifest-path skopli/Cargo.toml -p skopli-capi --release",
-    note: "sdks/swift/README.md covers the path dependency and the link flags.",
+    note: "macOS 13+. sdks/swift/README.md covers the path dependency and the link flags.",
     code: `import Skopli
 
 let result = try Skopli.readUsage(options: ReadUsageOptions(since: "2026-08-01"))

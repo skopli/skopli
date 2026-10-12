@@ -1,4 +1,4 @@
-import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { harnesses } from "../web/ui/src/harnesses.ts";
 import { langs } from "../web/ui/src/langs.ts";
@@ -6,7 +6,12 @@ import { command, published, quickstarts, releaseNote } from "../web/ui/src/quic
 
 process.chdir(join(import.meta.dirname, ".."));
 const check = process.argv.includes("--check");
-const ids = JSON.parse(readFileSync("golden/registry/ids.json", "utf8")).ids;
+const repo = "https://github.com/skopli/skopli";
+const read = (file) => readFileSync(file, "utf8");
+const ids = JSON.parse(read("golden/registry/ids.json")).ids;
+if (harnesses.map((h) => h.id).join() !== ids.join()) {
+  throw new Error("web/ui/src/harnesses.ts does not match golden/registry/ids.json");
+}
 
 const replaceBetween = (text, start, end, body) => {
   const from = text.indexOf(start);
@@ -55,10 +60,12 @@ const harnessLine = (text) => {
   return text.replace(re, `$1${ids.join(", ")}.$3`);
 };
 
-const read = (file) => readFileSync(file, "utf8");
-
 const contributingPage = () =>
-  `---\ntitle: Contributing\ndescription: How to build and test Skopli, add a harness or a pricing source, and what a pull request needs.\n---\n\n${read("CONTRIBUTING.md").replace(/^# .*\n\n/, "")}`;
+  `---\ntitle: Contributing\ndescription: How to build and test Skopli, add a harness or a pricing source, and what a pull request needs.\n---\n\n${read(
+    "CONTRIBUTING.md",
+  )
+    .replace(/^# .*\n\n/, "")
+    .replace(/\]\((?!https?:|#)([^)]+)\)/g, `](${repo}/blob/main/$1)`)}`;
 
 const targets = [
   [
@@ -72,7 +79,7 @@ const targets = [
 
 const stale = [];
 for (const [file, render] of targets) {
-  const current = existsSync(file) ? read(file) : "";
+  const current = read(file);
   const next = render(current);
   if (next === current) continue;
   if (check) stale.push(file);

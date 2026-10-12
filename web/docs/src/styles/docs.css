@@ -252,7 +252,7 @@
   text-decoration-color: var(--accent);
 }
 .prose code:not(pre code, .tabs *) {
-  padding: 0.1em 0.35em;
+  padding: 0.1em 0.3em;
   border-radius: var(--radius);
   background: var(--paper-3);
 }

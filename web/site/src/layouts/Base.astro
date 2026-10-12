@@ -1,5 +1,6 @@
 ---
 import "@skopli/ui/styles/base.css";
+import { published } from "@skopli/ui/quickstart";
 import "@skopli/ui/styles/shiki.css";
 import "@skopli/ui/styles/tabs.css";
 import Footer from "@skopli/ui/components/Footer.astro";
@@ -53,7 +54,7 @@ const github = "https://github.com/skopli/skopli";
       links={[
         { label: "Docs", href: docs },
         { label: "GitHub", href: github },
-        { label: "npm", href: "https://www.npmjs.com/package/skopli" },
+        ...(published ? [{ label: "npm", href: "https://www.npmjs.com/package/skopli" }] : []),
         { label: "llms.txt", href: `${docs}llms.txt` },
       ]}
     />

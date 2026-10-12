@@ -9,3 +9,4 @@ sdks/csharp/Skopli/Native/NativeMethods.g.cs text eol=lf
 # scripts/sync-generated.mjs regenerates these and compares bytes; keep them LF everywhere.
 *.md text eol=lf
 llms.txt text eol=lf
+web/docs/src/content/docs/contributing.md linguist-generated=true

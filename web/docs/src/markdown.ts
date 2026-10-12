@@ -6,7 +6,7 @@ const quickstartMd = [
   ...(releaseNote ? [releaseNote] : []),
   ...quickstarts.map(
     (q) =>
-      `### ${langs[q.id]}\n\nInstall: \`${command(q)}\`${q.note ? ` (${q.note})` : ""}\n\n\`\`\`${q.id}\n${q.code}\n\`\`\``,
+      `### ${langs[q.id]}\n\nInstall: \`${command(q)}\`${q.note ? `\n\n${q.note}` : ""}\n\n\`\`\`${q.id}\n${q.code}\n\`\`\``,
   ),
 ].join("\n\n");
 
