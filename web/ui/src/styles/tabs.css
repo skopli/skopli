@@ -31,8 +31,10 @@
 }
 .tabs__panel pre {
   margin: 0;
+  padding: var(--space-4);
   border: 0;
   border-radius: 0;
+  overflow-x: auto;
 }
 .tabs__install {
   margin: 0;

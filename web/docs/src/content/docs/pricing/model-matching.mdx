@@ -31,6 +31,9 @@ Overrides are never treated as placeholders.
 
 ## Inspecting candidates
 
+`candidateKeys` is exposed by the TypeScript package and the Rust core.
+The other facades return the tried keys in the miss result as `attempted`.
+
 ```ts
 import { candidateKeys } from "skopli";
 

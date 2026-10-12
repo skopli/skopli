@@ -46,7 +46,7 @@ const uid = nextTabsId();
     tabs = [...this.querySelectorAll<HTMLButtonElement>("[role=tab]")];
 
     connectedCallback() {
-      syncScrollable(this.querySelector(".tabs__list")!);
+      for (const el of this.querySelectorAll<HTMLElement>(".tabs__list, .tabs__panel pre")) syncScrollable(el);
       this.select(localStorage.getItem(KEY) ?? "", false);
       this.addEventListener("click", (e) => {
         const tab = (e.target as HTMLElement).closest<HTMLButtonElement>("[role=tab]");
