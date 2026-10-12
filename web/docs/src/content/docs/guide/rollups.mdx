@@ -93,14 +93,16 @@ let byBlock = try Skopli.rollup(events: events, by: .block, blockMs: 5 * 60 * 60
 <Fragment slot="c">
 
 ```c
-const char *by_model = "{\"by\":\"model\"}";
-const char *by_day = "{\"by\":\"day\",\"tz\":\"Asia/Tokyo\"}";
-const char *by_block = "{\"by\":\"block\",\"block_ms\":18000000}";
-AgBuf rollups = {0};
-if (ag_rollup((const char *)events.ptr, events.len, by_day, strlen(by_day),
-              &rollups) != AG_STATUS_OK)
-  return 1;
-ag_buf_free(rollups);
+const char *opts[] = {"{\"by\":\"model\"}",
+                      "{\"by\":\"day\",\"tz\":\"Asia/Tokyo\"}",
+                      "{\"by\":\"block\",\"blockMs\":18000000}"};
+for (int i = 0; i < 3; i++) {
+  AgBuf rollups = {0};
+  if (ag_rollup((const char *)events.ptr, events.len, opts[i], strlen(opts[i]),
+                &rollups) != AG_STATUS_OK)
+    return 1;
+  ag_buf_free(rollups);
+}
 ```
 
 </Fragment>

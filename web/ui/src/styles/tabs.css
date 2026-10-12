@@ -30,10 +30,7 @@
   border-bottom-color: var(--ink);
 }
 .tabs__panel pre {
-  margin: 0;
   padding: var(--space-4);
-  border: 0;
-  border-radius: 0;
   overflow-x: auto;
 }
 .tabs__install {
@@ -46,7 +43,5 @@
   color: var(--ink-3);
 }
 .tabs__install code {
-  padding: 0;
-  background: none;
   color: var(--ink);
 }
