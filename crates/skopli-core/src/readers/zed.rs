@@ -7,6 +7,7 @@ use serde_json::Value;
 use super::reader::{Reader, ReaderContext};
 use super::shared::{
     ReaderResult, ReaderWarning, as_string, finite_number, is_record, parse_timestamp_to_iso,
+    scalar_text,
 };
 use super::sqlite_store::{blob_column, open_readonly, table_columns};
 use crate::types::{TokenCounts, UsageEvent};
@@ -138,8 +139,7 @@ fn tokens_are_zero(tokens: &TokenCounts) -> bool {
 }
 
 /// Decode a thread blob. Only `json`/`zstd` (or NULL data_type) are accepted;
-/// anything else yields `None`. A decode / JSON-parse failure surfaces as
-/// `Err(())` (the TS `try/catch` skip path).
+/// anything else yields `None`. A decode or JSON-parse failure is `Err(())`.
 fn decode_blob(data_type: Option<&str>, data: Option<Vec<u8>>) -> Result<Option<Value>, ()> {
     if let Some(dt) = data_type
         && dt != "json"
@@ -162,16 +162,6 @@ fn decode_blob(data_type: Option<&str>, data: Option<Vec<u8>>) -> Result<Option<
     };
     let value: Value = serde_json::from_str(&text).map_err(|_| ())?;
     Ok(Some(value))
-}
-
-/// The `String(row["id"] ?? "")` fallback for a non-string thread id.
-fn id_string(value: Option<&Value>) -> String {
-    match value {
-        Some(Value::String(s)) => s.clone(),
-        Some(Value::Number(n)) => n.to_string(),
-        Some(Value::Bool(b)) => b.to_string(),
-        _ => String::new(),
-    }
 }
 
 /// Read all zed usage events.
@@ -247,10 +237,7 @@ pub fn read_zed(db_paths: &[PathBuf]) -> ReaderResult {
             }
             let row_val = Value::Object(obj);
 
-            let thread_id = row_val
-                .get("id")
-                .and_then(as_string)
-                .unwrap_or_else(|| id_string(row_val.get("id")));
+            let thread_id = scalar_text(row_val.get("id"));
             if thread_id.is_empty() || seen.contains(&thread_id) {
                 continue;
             }
@@ -304,9 +291,13 @@ pub fn read_zed(db_paths: &[PathBuf]) -> ReaderResult {
                 continue;
             }
             let count = request_count;
-            let timestamp = parse_ts(row_val.get("updated_at"))
-                .or_else(|| parse_ts(blob.get("updated_at")))
-                .or_else(|| parse_ts(row_val.get("created_at")));
+            let timestamp = [
+                row_val.get("updated_at"),
+                blob.get("updated_at"),
+                row_val.get("created_at"),
+            ]
+            .into_iter()
+            .find_map(|v| v.and_then(parse_timestamp_to_iso));
             let timestamp = match timestamp {
                 Some(t) => t,
                 None => {
@@ -339,9 +330,4 @@ pub fn read_zed(db_paths: &[PathBuf]) -> ReaderResult {
         skipped,
         warnings,
     }
-}
-
-/// `parseTimestampToIso` for an optional value (None -> None).
-fn parse_ts(value: Option<&Value>) -> Option<String> {
-    value.and_then(parse_timestamp_to_iso)
 }

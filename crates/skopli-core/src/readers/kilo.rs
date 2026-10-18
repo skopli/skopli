@@ -43,7 +43,7 @@ pub fn kilo_db_path(override_val: Option<&str>, home: &Path) -> PathBuf {
         .join("kilo.db")
 }
 
-/// One decoded kilo message, mirroring the TS `KiloMessage`.
+/// One decoded kilo message.
 struct KiloMessage {
     id: String,
     session_id: String,
@@ -133,7 +133,6 @@ fn parse_kilo_message(
     let timestamp = if created == 0.0 {
         file_mtime_iso(db_path)
     } else {
-        // `new Date(created).toISOString()`; created is finite and > 0 here.
         to_iso_string(created.trunc() as i64).unwrap_or_else(|| file_mtime_iso(db_path))
     };
     let event = UsageEvent {

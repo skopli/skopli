@@ -5,7 +5,7 @@ use serde_json::Value;
 use super::reader::{Reader, ReaderContext};
 use super::shared::{
     ReaderResult, ReaderWarning, as_string, file_mtime_iso, finite_number, is_record, list_files,
-    read_json,
+    number_text, read_json,
 };
 use crate::time::to_iso_string;
 use crate::types::{TokenCounts, UsageEvent};
@@ -119,15 +119,6 @@ fn amp_record(
     })
 }
 
-/// finiteNumber(x)?.toString() — JS number-to-string for an integer.
-fn num_to_string(n: f64) -> String {
-    if n.fract() == 0.0 && n.is_finite() {
-        format!("{}", n as i64)
-    } else {
-        format!("{n}")
-    }
-}
-
 /// Read all amp usage events from the given root.
 pub fn read_amp(root: &Path) -> ReaderResult {
     let mut events: Vec<UsageEvent> = Vec::new();
@@ -186,7 +177,7 @@ pub fn read_amp(root: &Path) -> ReaderResult {
             let ledger_msg_id = entry
                 .get("toMessageId")
                 .and_then(finite_number)
-                .map(num_to_string)
+                .map(number_text)
                 .or_else(|| entry.get("id").and_then(as_string))
                 .or(Some(format!("{file}:ledger:{index}")));
             let record = amp_record(
@@ -230,7 +221,7 @@ pub fn read_amp(root: &Path) -> ReaderResult {
                 message
                     .get("messageId")
                     .and_then(finite_number)
-                    .map(num_to_string)
+                    .map(number_text)
             });
             let numeric_message_id = message.get("messageId").and_then(finite_number);
             let message_record = amp_record(

@@ -4,7 +4,9 @@ use std::path::{Path, PathBuf};
 use serde_json::Value;
 
 use super::reader::{Reader, ReaderContext};
-use super::shared::{EpochUnit, ReaderResult, ReaderWarning, as_string, epoch_to_iso_unit};
+use super::shared::{
+    EpochUnit, ReaderResult, ReaderWarning, as_string, epoch_to_iso_unit, scalar_text,
+};
 use super::sqlite_store::{open_readonly, query_rows, table_exists};
 use crate::types::{TokenCounts, UsageEvent};
 
@@ -19,8 +21,8 @@ use crate::types::{TokenCounts, UsageEvent};
 // requestId; requestId is unique and inserts are onConflictDoNothing, so the two
 // namespaces cannot collide and never describe the same usage. Aggregates carry
 // pre-v2 message timestamps and invocations carry post-v2 completion times.
-// (Upstream: AiUsageRecordMigrator, the aiUsageRecord schema, and
-// AiUsageRecordService in CherryHQ/cherry-studio.) The rule shipped here therefore
+// (Cherry Studio's AiUsageRecordMigrator, aiUsageRecord schema, and
+// AiUsageRecordService.) The rule shipped here therefore
 // emits one event per row for BOTH kinds; each row is deduped by its own `id`,
 // so no double counting occurs. Rows with any other record_kind (or a NULL kind)
 // are treated as invocations.
@@ -88,16 +90,6 @@ fn numeric_field(value: Option<&Value>) -> Option<u64> {
         Some(Value::String(s)) if s.trim().is_empty() => Some(0),
         Some(Value::String(s)) => s.trim().parse::<u64>().ok(),
         _ => None,
-    }
-}
-
-/// The `String(row["id"] ?? "")` fallback for a non-string id.
-fn id_string(value: Option<&Value>) -> String {
-    match value {
-        Some(Value::String(s)) => s.clone(),
-        Some(Value::Number(n)) => n.to_string(),
-        Some(Value::Bool(b)) => b.to_string(),
-        _ => String::new(),
     }
 }
 
@@ -169,10 +161,7 @@ pub fn read_cherrystudio(db_paths: &[PathBuf]) -> ReaderResult {
             if !row.is_object() {
                 continue;
             }
-            let record_id = row
-                .get("id")
-                .and_then(as_string)
-                .unwrap_or_else(|| id_string(row.get("id")));
+            let record_id = scalar_text(row.get("id"));
             if record_id.is_empty() {
                 continue;
             }

@@ -14,7 +14,7 @@ pub struct GeminiTokenFields {
     pub optional: bool,
 }
 
-/// Default gemini field mapping (`geminiTokenFields`).
+/// Default gemini field mapping.
 pub const GEMINI_TOKEN_FIELDS: GeminiTokenFields = GeminiTokenFields {
     input: "input",
     output: "output",
@@ -25,7 +25,7 @@ pub const GEMINI_TOKEN_FIELDS: GeminiTokenFields = GeminiTokenFields {
     optional: false,
 };
 
-/// Qwen field mapping (`qwenTokenFields`): optional-mode with the Gemini API's
+/// Qwen field mapping: optional-mode with the Gemini API's
 /// `*TokenCount` field names and no tool/total inclusivity split.
 pub const QWEN_TOKEN_FIELDS: GeminiTokenFields = GeminiTokenFields {
     input: "promptTokenCount",

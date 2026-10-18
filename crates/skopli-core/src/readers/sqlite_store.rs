@@ -22,11 +22,10 @@ pub fn open_readonly(path: &str) -> rusqlite::Result<Connection> {
     )
 }
 
-/// Convert a single SQLite column value to a `serde_json::Value`, matching how
-/// `node:sqlite` surfaces cells to JS: NULL -> null, INTEGER/REAL -> number,
-/// TEXT -> string, BLOB -> an array of byte numbers is NOT produced (readers
-/// that need raw bytes use [`blob_column`]); here a BLOB maps to null so the
-/// `as_string`/`finite_number` helpers treat it as absent.
+/// Convert a single SQLite column value to a `serde_json::Value`: NULL -> null,
+/// INTEGER/REAL -> number, TEXT -> string. A BLOB maps to null so the
+/// `as_string`/`finite_number` helpers treat it as absent; readers that need
+/// raw bytes use [`blob_column`].
 pub fn cell_to_value(cell: ValueRef<'_>) -> Value {
     match cell {
         ValueRef::Null => Value::Null,
@@ -67,15 +66,14 @@ pub fn query_rows(conn: &Connection, query: &str) -> rusqlite::Result<Vec<Value>
 /// A row from a message-store query: the JSON object of selected columns.
 pub type SqliteMessageRow = Value;
 
-/// The parse outcome for a single message-store row (analogue of the TS
-/// `{ value, malformed }`): `value == None && !malformed` means "skip quietly".
+/// The parse outcome for a single message-store row: `value == None &&
+/// !malformed` means "skip quietly".
 pub struct ParsedValue<T> {
     pub value: Option<T>,
     pub malformed: bool,
 }
 
-/// Options for [`read_sqlite_message_store`], mirroring
-/// `SqliteMessageStoreOptions<T>`.
+/// Options for [`read_sqlite_message_store`].
 pub struct SqliteMessageStoreOptions<'a, T> {
     pub db_path: &'a str,
     pub query: &'a str,
@@ -90,8 +88,8 @@ pub struct SqliteMessageStoreOptions<'a, T> {
 /// `<dbPath>:<id>` in `skipped`. Returns the collected values plus the result
 /// (events stay empty here; the caller assembles events).
 ///
-/// The `Err` case corresponds to the TS `readSqliteMessageStore` throwing (an
-/// unopenable/failed query): the caller decides how to surface it.
+/// `Err` is an unopenable database or a failed query; the caller decides how
+/// to surface it.
 pub fn read_sqlite_message_store<T>(
     opts: SqliteMessageStoreOptions<'_, T>,
 ) -> rusqlite::Result<(Vec<T>, ReaderResult)> {
@@ -139,8 +137,7 @@ pub fn read_sqlite_message_store<T>(
 }
 
 /// Read an integer `PRAGMA` (for example `application_id` or `user_version`).
-/// Returns `None` when the pragma cannot be read. Mirrors the TS readers'
-/// `db.prepare("PRAGMA ...").get()` integer probes.
+/// Returns `None` when the pragma cannot be read.
 pub fn pragma_int(conn: &Connection, pragma: &str) -> Option<i64> {
     let sql = format!("PRAGMA {pragma}");
     conn.query_row(&sql, [], |row| row.get::<_, i64>(0)).ok()
@@ -158,7 +155,6 @@ pub fn table_exists(conn: &Connection, table: &str) -> bool {
 }
 
 /// The set of column names for `table` via `PRAGMA table_info`. Empty on error.
-/// Mirrors the TS `PRAGMA table_info(...)` column scans.
 pub fn table_columns(conn: &Connection, table: &str) -> std::collections::HashSet<String> {
     let mut cols = std::collections::HashSet::new();
     let sql = format!("PRAGMA table_info({table})");

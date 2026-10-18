@@ -194,12 +194,13 @@ fn parse_message(
 
 #[cfg(test)]
 mod tests {
+    use super::super::shared::scratch_dir;
     use super::*;
     use std::fs;
 
     #[test]
     fn assistant_record_without_usage_is_skipped_silently() {
-        let root = super::super::shared::scratch_dir("qwen-no-usage");
+        let root = scratch_dir("qwen-no-usage");
         let chats = root.join("proj").join("chats");
         fs::create_dir_all(&chats).unwrap();
         fs::write(
@@ -215,6 +216,7 @@ mod tests {
         )
         .unwrap();
         let result = read_qwen(&root);
+        fs::remove_dir_all(&root).ok();
         assert!(result.events.is_empty());
         assert_eq!(result.skipped.len(), 1);
         assert!(

@@ -146,7 +146,7 @@ fn should_replace(existing: &StatusSlot, candidate: &StatusSlot) -> bool {
     let exist_ms = date_parse_ms(&existing.event.timestamp);
     match (cand_ms, exist_ms) {
         (Some(c), Some(e)) => c >= e,
-        // Date.parse -> NaN comparisons are always false in JS.
+        // An unparseable timestamp on either side never replaces.
         _ => false,
     }
 }
@@ -301,7 +301,7 @@ pub fn read_kimi(roots: &[PathBuf]) -> ReaderResult {
     let mut skipped: Vec<String> = Vec::new();
     let mut warnings: Vec<ReaderWarning> = Vec::new();
     let mut seen: HashSet<String> = HashSet::new();
-    // insertion-ordered map so the final emission order matches JS Map iteration
+    // insertion order is the emission order, so keep it beside the map
     let mut keyed_order: Vec<String> = Vec::new();
     let mut keyed: HashMap<String, StatusSlot> = HashMap::new();
 

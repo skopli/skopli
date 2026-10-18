@@ -44,13 +44,12 @@ pub fn zcode_root(override_dir: Option<&str>, home: &Path) -> PathBuf {
     home.join(".zcode")
 }
 
-/// The JSONL projects root under a resolved zcode root. Port of
-/// `zcodeProjectsRoot`.
+/// The JSONL projects root under a resolved zcode root.
 pub fn zcode_projects_root(root: &Path) -> PathBuf {
     root.join("projects")
 }
 
-/// The SQLite store path under a resolved zcode root. Port of `zcodeDbPath`.
+/// The SQLite store path under a resolved zcode root.
 pub fn zcode_db_path(root: &Path) -> PathBuf {
     root.join("cli").join("db").join("db.sqlite")
 }

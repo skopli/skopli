@@ -67,7 +67,7 @@ pub fn hermes_db_paths(homes: &[PathBuf]) -> Vec<PathBuf> {
             paths.extend(children);
         }
     }
-    // dedup preserving first-occurrence order (mirrors `[...new Set(paths)]`).
+    // dedup preserving first-occurrence order
     let mut seen: HashSet<PathBuf> = HashSet::new();
     paths
         .into_iter()
@@ -328,7 +328,6 @@ pub fn read_hermes(db_paths: &[PathBuf]) -> ReaderResult {
 }
 
 /// Open a hermes database read-only, warning + recording a skip on failure.
-/// Mirrors the TS `withDatabase` open-failure path.
 fn open_db(
     db_path: &str,
     skipped: &mut Vec<String>,

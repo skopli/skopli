@@ -749,7 +749,7 @@ mod tests {
                 ]
             }),
         );
-        assert_only_diagnostic(&sessions, "sidecar");
+        assert_only_diagnostic(&sessions, "duplicate_model_names");
         fs::remove_dir_all(&dir).ok();
     }
 
@@ -843,7 +843,7 @@ mod tests {
             r#"{{"schema_version":1,"session_id":"{session_id}","snapshot":{{"schema_version":1,"billing":"complete","total_cost":0.02,"models":[{{"model":"openai/gpt-5.4","total_cost":0.02,"input_tokens":18446744073709551616,"output_tokens":4,"cache_read_tokens":0,"cache_write_tokens":0,"reasoning_tokens":0,"request_count":1}}]}}}}"#
         );
         fs::write(session_dir.join(SIDECAR_FILE), raw).unwrap();
-        assert_only_diagnostic(&sessions, "sidecar");
+        assert_only_diagnostic(&sessions, "overflowing_token_field");
         fs::remove_dir_all(&dir).ok();
     }
 
@@ -861,7 +861,7 @@ mod tests {
             "extra": true,
         });
         fs::write(session_dir.join(SIDECAR_FILE), envelope.to_string()).unwrap();
-        assert_only_diagnostic(&sessions, "sidecar");
+        assert_only_diagnostic(&sessions, "extra_top_level_key");
         fs::remove_dir_all(&dir).ok();
     }
 
@@ -878,7 +878,7 @@ mod tests {
             "snapshot": { "schema_version": 1, "billing": "complete", "models": [] },
         });
         fs::write(session_dir.join(SIDECAR_FILE), envelope.to_string()).unwrap();
-        assert_only_diagnostic(&sessions, "sidecar");
+        assert_only_diagnostic(&sessions, "session_id_directory_mismatch");
         fs::remove_dir_all(&dir).ok();
     }
 
@@ -932,7 +932,7 @@ mod tests {
             "snapshot": { "schema_version": 1, "billing": "complete", "models": [] },
         });
         fs::write(session_dir.join(SIDECAR_FILE), envelope.to_string()).unwrap();
-        assert_only_diagnostic(&sessions, "sidecar");
+        assert_only_diagnostic(&sessions, "invalid_session_dir_name");
         fs::remove_dir_all(&dir).ok();
     }
 

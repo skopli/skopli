@@ -56,7 +56,7 @@ pub fn codebuff_roots(config_dir: Option<&str>, home: &Path) -> Vec<PathBuf> {
 
 const DEFAULT_MODEL: &str = "codebuff-unknown";
 
-/// A partially-resolved usage accumulator. Mirrors the TS `Usage` type.
+/// A partially-resolved usage accumulator.
 #[derive(Clone)]
 struct Usage {
     model: Option<String>,

@@ -29,8 +29,7 @@ impl Reader for ClaudeReader {
 /// Resolve claude data roots. `CLAUDE_CONFIG_DIR` (comma-split, trimmed,
 /// non-empty parts) wins; otherwise the two default `~/.claude` locations.
 ///
-/// `env` returns the value of an environment variable (empty string treated as
-/// unset by the caller, matching the TS PathResolver), `home` is the home dir.
+/// `config_dir` is the `CLAUDE_CONFIG_DIR` override, `home` is the home dir.
 pub fn claude_roots(config_dir: Option<&str>, home: &Path) -> Vec<PathBuf> {
     if let Some(override_val) = config_dir
         && !override_val.is_empty()

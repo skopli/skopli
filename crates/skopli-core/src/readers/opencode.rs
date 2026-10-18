@@ -14,9 +14,9 @@ use super::sqlite_store::{
 use crate::time::to_iso_string;
 use crate::types::{TokenCounts, UsageEvent};
 
-/// The opencode reader wired into the harness registry. It reads both lanes the
-/// TS `readOpencode` does: every `opencode*.db` SQLite store (authoritative)
-/// first, then the legacy JSON store, with a per-harness message-id dedup so a
+/// The opencode reader wired into the harness registry. It reads both lanes:
+/// every `opencode*.db` SQLite store (authoritative) first, then the legacy
+/// JSON store, with a per-harness message-id dedup so a
 /// mid-migration mirror is not counted twice.
 pub struct OpencodeReader;
 
@@ -229,8 +229,7 @@ struct ParsedMessage {
     malformed: bool,
 }
 
-/// `authoritative_created` mirrors the TS optional param: when `Some`, it
-/// overrides the `time.created` lookup (the SQLite lane passes the
+/// `authoritative_created`, when `Some`, overrides the `time.created` lookup (the SQLite lane passes the
 /// `time_created` column through here).
 fn parse_message(
     raw: &Value,
@@ -487,7 +486,7 @@ fn read_db_session_meta(db_path: &str) -> HashMap<String, SessionMeta> {
 }
 
 /// Enrich a v2 (`session_message`) row's data object with the row's role +
-/// model split, mirroring the TS `enriched` construction.
+/// model split.
 fn enrich_v2(raw: &Value, message_id: &str, row_role: Option<&str>) -> Value {
     let mut obj = match raw {
         Value::Object(map) => map.clone(),
@@ -527,7 +526,7 @@ fn enrich_v2(raw: &Value, message_id: &str, row_role: Option<&str>) -> Value {
 
 /// Read one opencode `.db`, running both the v1 (`message`) and v2
 /// (`session_message`) queries and merging their sessions. Returns `Err` only
-/// when BOTH queries fail to open/run (the TS `stores.length === 0` throw).
+/// when BOTH queries fail to open/run.
 fn read_db_rows(db_path: &str, harness: &str) -> Result<ReaderResult, ()> {
     let session_meta = read_db_session_meta(db_path);
     let malformed_label = format!("{harness} message");

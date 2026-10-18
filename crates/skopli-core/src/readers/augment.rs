@@ -93,8 +93,8 @@ fn turn_key(session_id: &str, turn: &Value, index: usize) -> String {
     {
         return format!("augment:{session_id}:req:{}", req.trim());
     }
-    // sequenceId may be any JSON scalar; TS stringifies non-strings via
-    // JSON.stringify and rejects "" and "null".
+    // sequenceId may be any JSON scalar; a non-string is used in its JSON text
+    // form, and "" is rejected.
     if let Some(sequence) = turn.get("sequenceId")
         && !sequence.is_null()
     {

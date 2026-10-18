@@ -5,7 +5,7 @@ use serde_json::Value;
 use super::reader::{Reader, ReaderContext};
 use super::shared::{
     ReaderResult, ReaderWarning, as_number, as_string, basename, dir_exists, file_mtime_iso,
-    is_record, list_files, read_jsonl_lines,
+    is_record, list_files, number_text, read_jsonl_lines,
 };
 use crate::types::{TokenCounts, UsageEvent};
 
@@ -144,29 +144,19 @@ struct Pending {
     model: String,
 }
 
-/// Snapshot of usage json for replay-key hashing (mirrors JSON.stringify of the
-/// preferred snapshot).
+/// Snapshot of usage json for replay-key hashing.
 fn snapshot_json(t: &RawCounts) -> String {
     // Message ids hash the JSON of the raw {input,output,cacheRead,cacheWrite,
     // reasoning} object; key order and integer formatting must stay fixed so
     // ids stay stable across releases.
     format!(
         "{{\"input\":{},\"output\":{},\"cacheRead\":{},\"cacheWrite\":{},\"reasoning\":{}}}",
-        fmt_num(t.input),
-        fmt_num(t.output),
-        fmt_num(t.cache_read),
-        fmt_num(t.cache_write),
-        fmt_num(t.reasoning),
+        number_text(t.input),
+        number_text(t.output),
+        number_text(t.cache_read),
+        number_text(t.cache_write),
+        number_text(t.reasoning),
     )
-}
-
-/// Format a number the way `JSON.stringify` would for these integer counters.
-fn fmt_num(n: f64) -> String {
-    if n.fract() == 0.0 && n.is_finite() {
-        format!("{}", n as i64)
-    } else {
-        format!("{n}")
-    }
 }
 
 fn read_session_file(
