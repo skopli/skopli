@@ -147,6 +147,7 @@ fn usage_record_event(
             reasoning: 0,
         },
         calls: None,
+        // `usage.cost` is the premium-request multiplier, not a dollar amount.
         cost_usd: None,
         workspace,
         title: None,
