@@ -66,11 +66,11 @@ const log = (line) => {
   console.log(line);
 };
 
+const local = (url) => ["127.0.0.1", "localhost"].includes(new URL(url).hostname);
 const browser = await chromium.launch();
 const context = await browser.newContext({ viewport });
 await context.route("**/*", (route) => {
-  const { hostname } = new URL(route.request().url());
-  if (hostname === "127.0.0.1" || hostname === "localhost") return route.continue();
+  if (local(route.request().url())) return route.continue();
   log(`blocked: ${route.request().url()}`);
   return route.abort();
 });
@@ -96,12 +96,13 @@ const run = {
   press: async (sel, key) => page.locator(sel).first().press(key),
   wait: async (sel) => page.locator(sel).first().waitFor({ state: "visible" }),
   text: async (sel) => (await page.locator(sel).first().innerText()).trim(),
-  eval: async (js) => JSON.stringify(await page.evaluate(js)),
+  eval: async (js) => JSON.stringify(await page.evaluate(js)) ?? "undefined",
   assert: async (js) => {
     if (!(await page.evaluate(js))) throw new Error(`assertion failed: ${js}`);
     return "true";
   },
   fetch: async (url) => {
+    if (!local(url)) throw new Error(`blocked: ${url}`);
     const response = await page.request.get(url);
     const file = new URL(url).pathname.replace(/^\/|\/$/g, "").replaceAll("/", "_") || "index";
     writeFileSync(join(out, file), await response.body());

@@ -22,7 +22,7 @@ bash .agents/skills/verify-skopli/scripts/launch.sh
 The script runs `pnpm install --frozen-lockfile`, `pnpm run build:native`, `pnpm --filter @skopli/docs build` and `pnpm --filter @skopli/site build`, then serves each `dist` with that package's own `astro preview` bound to `127.0.0.1`.
 Serving the built output matters: search only exists after `pagefind` indexes `dist`, and the `.md` twins and `llms*.txt` feeds are build outputs too.
 It refuses to start when `.verify/run/state.sh` exists or when a target port is already bound, so it never drives an instance another run owns.
-Ready means the marketing root, the docs root and `/skopli/pagefind/pagefind-ui.js` all answer `200`; the script polls for 60 seconds and fails loudly after that.
+Ready means the marketing root, the docs root and `/skopli/pagefind/pagefind-ui.js` all answer `200`; the script polls for 60 seconds, and after that prints both server logs, stops the servers through `cleanup.sh` and exits `1`.
 It prints both URLs and PIDs and writes them to `.verify/run/state.sh`.
 
 Defaults are the repository ports, `4321` for the site and `4322` for the docs.
@@ -43,14 +43,14 @@ bash .agents/skills/verify-skopli/scripts/doctor.sh
 ```
 
 Read-only.
-It checks that both PIDs from `state.sh` are alive and own their ports, that the docs root serves the `Skopli docs` title and the inline theme script, that the search bundle and `llms.txt` answer, that the served `dist` is newer than every file under `web/*/src`, and that `native/` and `dist/` hold the built library.
+It checks that both PIDs from `state.sh` are alive and own their ports, that the docs root serves the `Skopli docs` title and the inline theme script, that the search bundle and `llms.txt` answer, that both served `dist` roots exist and are newer than every file under `web/*/src`, and that `native/` and `dist/` hold the built library.
 It prints `doctor: ok` and exits `0` only when every line passes.
 Run it before the first drive and whenever a drive behaves unexpectedly; a stale `dist` is the usual cause of a false failure.
 
 ## Drive
 
 Browser steps run through `scripts/browser.mjs`: one headless Chromium session per invocation, a step list on the command line, every result appended to `<out>/transcript.txt`.
-Requests to hosts other than `127.0.0.1` and `localhost` are blocked and logged, so a drive proves the sites need no external network.
+Page requests to hosts other than `127.0.0.1` and `localhost` are blocked and logged, and a `fetch` step to such a host fails, so a drive proves the sites need no external network.
 Clipboard permissions are granted to the local origins so the copy action can be read back.
 
 ```sh
@@ -134,4 +134,4 @@ Build outputs (`web/*/dist`, `native/`, `dist/`) stay in place; they are ordinar
 | `scripts/golden.mjs`  | `node .agents/skills/verify-skopli/scripts/golden.mjs <harness>/<case> --out <dir>` | replay a golden case through the facade and compare                   |
 | `scripts/cleanup.sh`  | `bash .agents/skills/verify-skopli/scripts/cleanup.sh`                              | stop the servers by PID, keep evidence                                |
 
-The scripts are executable and depend only on `bash`, `curl`, `ss`, `git`, Node 24 and the repository's dev dependencies.
+The scripts are executable and run on Linux only: they depend on `bash`, `curl`, `ss`, `/proc`, `git`, Node 24 and the repository's dev dependencies.

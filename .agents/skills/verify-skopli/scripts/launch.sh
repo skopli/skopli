@@ -2,6 +2,7 @@
 set -euo pipefail
 
 root=$(git rev-parse --show-toplevel)
+here=$(cd "$(dirname "$0")" && pwd)
 run="$root/.verify/run"
 site_port=${SKOPLI_SITE_PORT:-4321}
 docs_port=${SKOPLI_DOCS_PORT:-4322}
@@ -24,6 +25,7 @@ pnpm --filter @skopli/docs build
 pnpm --filter @skopli/site build
 
 mkdir -p "$run"
+trap 'status=$?; if [ $status -ne 0 ]; then bash "$here/cleanup.sh"; fi; exit $status' EXIT
 (cd web/site && exec node_modules/.bin/astro preview --host 127.0.0.1 --port "$site_port") >"$run/site.log" 2>&1 &
 site_pid=$!
 (cd web/docs && exec node_modules/.bin/astro preview --host 127.0.0.1 --port "$docs_port") >"$run/docs.log" 2>&1 &
@@ -42,7 +44,8 @@ until ready "http://127.0.0.1:$site_port/" &&
   ready "http://127.0.0.1:$docs_port/skopli/" &&
   ready "http://127.0.0.1:$docs_port/skopli/pagefind/pagefind-ui.js"; do
   if [ $SECONDS -ge $deadline ]; then
-    echo "launch: servers not ready after 60s; see $run/site.log and $run/docs.log" >&2
+    echo "launch: servers not ready after 60s; stopping them" >&2
+    cat "$run/site.log" "$run/docs.log" >&2
     exit 1
   fi
   sleep 1

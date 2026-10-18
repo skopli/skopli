@@ -34,8 +34,15 @@ check "docs theme script" "http://127.0.0.1:$DOCS_PORT/skopli/" 'localStorage.ge
 check "docs search bundle" "http://127.0.0.1:$DOCS_PORT/skopli/pagefind/pagefind-ui.js" 'PagefindUI'
 check "docs llms.txt" "http://127.0.0.1:$DOCS_PORT/skopli/llms.txt" '^# Skopli'
 
-stale=$(find "$root/web/docs/src" "$root/web/ui/src" "$root/web/site/src" -type f -newer "$root/web/docs/dist/skopli/index.html" 2>/dev/null | head -1)
-if [ -n "$stale" ]; then fail "served docs output is older than $stale; rebuild via launch"; else pass "served output newer than site sources"; fi
+for built in "$root/web/docs/dist/skopli/index.html" "$root/web/site/dist/index.html"; do
+  name=${built#"$root"/}
+  if [ ! -f "$built" ]; then
+    fail "$name missing; rebuild via launch"
+    continue
+  fi
+  stale=$(find "$root/web/docs/src" "$root/web/ui/src" "$root/web/site/src" -type f -newer "$built" | head -1)
+  if [ -n "$stale" ]; then fail "$name is older than ${stale#"$root"/}; rebuild via launch"; else pass "$name newer than site sources"; fi
+done
 
 if [ -f "$root/native/index.cjs" ] && ls "$root/native/"*.node >/dev/null 2>&1; then
   pass "native addon present in native/"

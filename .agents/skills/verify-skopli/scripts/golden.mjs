@@ -30,7 +30,11 @@ const relativize = (s) => s.replaceAll(input, "").replace(/(^|\s)\/+/g, "$1");
 const key = (e) => [e.timestamp, e.sessionId, e.messageId, e.model].join("\0");
 const result = await readUsage(options);
 const events = result.events
-  .map((e) => ({ ...e, sessionId: relativize(e.sessionId), messageId: relativize(e.messageId) }))
+  .map((e) => ({
+    ...e,
+    sessionId: e.sessionId.startsWith(input) ? relativize(e.sessionId) : e.sessionId,
+    messageId: relativize(e.messageId),
+  }))
   .sort((a, b) => (key(a) < key(b) ? -1 : key(a) > key(b) ? 1 : 0));
 const dims = manifest.rollups ?? ["model", "day", "harness"];
 const by = Object.fromEntries(
