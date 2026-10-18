@@ -488,6 +488,36 @@ describe("detectHarnesses copilot roots", () => {
   });
 });
 
+describe("detectHarnesses kimchi roots", () => {
+  it("does not claim pi's session root", () => {
+    const home = makeHome();
+    try {
+      const piSessions = join(home, ".pi", "agent", "sessions", "--proj--");
+      mkdirSync(piSessions, { recursive: true });
+      writeFileSync(join(piSessions, "s.jsonl"), "");
+      const resolver = createPathResolver({ home, env: {} });
+      const supported = detectHarnesses(resolver).supported;
+      expect(supported).toContain("pi");
+      expect(supported).not.toContain("kimchi");
+    } finally {
+      rmSync(home, { recursive: true, force: true });
+    }
+  });
+
+  it("detects the harness session root under the kimchi config dir", () => {
+    const home = makeHome();
+    try {
+      const sessions = join(home, ".config", "kimchi", "harness", "sessions", "--proj--");
+      mkdirSync(sessions, { recursive: true });
+      writeFileSync(join(sessions, "s.jsonl"), "");
+      const resolver = createPathResolver({ home, env: {} });
+      expect(detectHarnesses(resolver).supported).toContain("kimchi");
+    } finally {
+      rmSync(home, { recursive: true, force: true });
+    }
+  });
+});
+
 describe("detectHarnesses kiro roots", () => {
   it("is absent when no store exists", () => {
     const home = makeHome();

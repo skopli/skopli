@@ -409,10 +409,7 @@ function kimchiSessionsRoots(resolver: PathResolver): string[] {
   if (configPath !== undefined && configPath !== "") {
     return [join(configPath, "agent", "sessions")];
   }
-  return [
-    join(resolver.home(), ".config", "kimchi", "agent", "sessions"),
-    join(resolver.home(), ".pi", "agent", "sessions"),
-  ];
+  return [join(resolver.home(), ".config", "kimchi", "harness", "sessions")];
 }
 
 function qwenProjectsRoot(resolver: PathResolver): string {

@@ -161,21 +161,15 @@ pub fn gajae_sessions_roots(
 
 /// Resolve the Kimchi Coding sessions roots. A config-dir override
 /// (`KIMCHI_CONFIG_PATH`) yields `<config>/agent/sessions`; otherwise the
-/// documented config-dir default (`~/.config/kimchi/agent/sessions`) and the pi
-/// agent default (`~/.pi/agent/sessions`).
+/// harness pins its agent dir to `~/.config/kimchi/harness`, so sessions live
+/// under it. `~/.pi/agent/sessions` belongs to pi and is never read here.
 pub fn kimchi_sessions_roots(config_path: Option<&str>, home: &Path) -> Vec<PathBuf> {
     if let Some(v) = config_path
         && !v.is_empty()
     {
         return vec![PathBuf::from(v).join("agent").join("sessions")];
     }
-    vec![
-        home.join(".config")
-            .join("kimchi")
-            .join("agent")
-            .join("sessions"),
-        home.join(".pi").join("agent").join("sessions"),
-    ]
+    vec![home.join(".config/kimchi/harness/sessions")]
 }
 
 /// Read pi-family usage events from several sessions roots into one result,
@@ -345,6 +339,13 @@ mod tests {
 
     fn home() -> PathBuf {
         PathBuf::from("/home/u")
+    }
+
+    #[test]
+    fn kimchi_default_root_is_its_own_harness_dir_not_pi() {
+        let roots = kimchi_sessions_roots(None, &home());
+        assert_eq!(roots, vec![home().join(".config/kimchi/harness/sessions")]);
+        assert!(!roots.contains(&pi_sessions_root(None, &home())));
     }
 
     #[test]
