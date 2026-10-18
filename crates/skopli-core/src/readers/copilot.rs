@@ -239,13 +239,24 @@ fn epoch_ms(value: &Value) -> Option<i64> {
     }
 }
 
-/// A parsed OTel usage candidate before source-priority selection.
+/// A parsed OTel usage candidate before source-priority selection. `model` is
+/// `None` for aggregate spans (`invoke_agent`) that carry usage but no model;
+/// they are only reported when no chat span claims their trace.
 struct Candidate {
     event: UsageEvent,
+    model: Option<String>,
+    location: String,
     source: i32,
     trace_id: String,
     response_id: Option<String>,
     inclusive_input: f64,
+}
+
+fn malformed(location: &str, skipped: &mut Vec<String>, warnings: &mut Vec<ReaderWarning>) {
+    skipped.push(location.to_owned());
+    warnings.push(ReaderWarning {
+        message: format!("skipping malformed copilot OTel usage record {location}\n"),
+    });
 }
 
 /// Read all copilot usage events from the given root.
@@ -283,16 +294,21 @@ pub fn read_copilot_otel(root: &Path) -> ReaderResult {
     warnings.extend(inner_warnings);
 
     // Source-priority selection + same-source max merge.
+    let suppressed: Vec<bool> = values
+        .iter()
+        .map(|candidate| {
+            values.iter().any(|other| {
+                other.source < candidate.source
+                    && (other.trace_id == candidate.trace_id
+                        || (candidate.response_id.is_some()
+                            && other.response_id == candidate.response_id))
+            })
+        })
+        .collect();
     let mut selected: Vec<Candidate> = Vec::new();
     let mut index_by_id: std::collections::HashMap<String, usize> =
         std::collections::HashMap::new();
-    for candidate in values.iter() {
-        let suppressed = values.iter().any(|other| {
-            other.source < candidate.source
-                && (other.trace_id == candidate.trace_id
-                    || (candidate.response_id.is_some()
-                        && other.response_id == candidate.response_id))
-        });
+    for (candidate, suppressed) in values.into_iter().zip(suppressed) {
         if suppressed {
             continue;
         }
@@ -300,11 +316,11 @@ pub fn read_copilot_otel(root: &Path) -> ReaderResult {
         match index_by_id.get(&msg_id).copied() {
             None => {
                 index_by_id.insert(msg_id, selected.len());
-                selected.push(clone_candidate(candidate));
+                selected.push(candidate);
             }
             Some(idx) => {
                 if candidate.source < selected[idx].source {
-                    selected[idx] = clone_candidate(candidate);
+                    selected[idx] = candidate;
                 } else if candidate.source == selected[idx].source {
                     let prior = &mut selected[idx];
                     prior.inclusive_input = prior.inclusive_input.max(candidate.inclusive_input);
@@ -333,21 +349,20 @@ pub fn read_copilot_otel(root: &Path) -> ReaderResult {
         }
     }
 
-    let events: Vec<UsageEvent> = selected.into_iter().map(|c| c.event).collect();
+    let mut events: Vec<UsageEvent> = Vec::new();
+    for candidate in selected {
+        match candidate.model {
+            Some(model) => events.push(UsageEvent {
+                model,
+                ..candidate.event
+            }),
+            None => malformed(&candidate.location, &mut skipped, &mut warnings),
+        }
+    }
     ReaderResult {
         events,
         skipped,
         warnings,
-    }
-}
-
-fn clone_candidate(c: &Candidate) -> Candidate {
-    Candidate {
-        event: c.event.clone(),
-        source: c.source,
-        trace_id: c.trace_id.clone(),
-        response_id: c.response_id.clone(),
-        inclusive_input: c.inclusive_input,
     }
 }
 
@@ -359,7 +374,7 @@ fn parse_candidate(
     warnings: &mut Vec<ReaderWarning>,
 ) -> Option<Candidate> {
     let value = &line.value;
-    let index = line.index;
+    let location = format!("{file}:{}", line.index + 1);
     if !is_record(value) {
         return None;
     }
@@ -377,34 +392,19 @@ fn parse_candidate(
     }
     let input = attribute_number(attributes, &["gen_ai.usage.input_tokens"]);
     let output = attribute_number(attributes, &["gen_ai.usage.output_tokens"]);
-    let (input, output) = match (input, output) {
-        (Some(i), Some(o)) => (i, o),
+    let trace_id = identity(value, "traceId");
+    let span_id = identity(value, "spanId");
+    let (input, output, trace_id, span_id) = match (input, output, trace_id, span_id) {
+        (Some(i), Some(o), Some(t), Some(s)) => (i, o, t, s),
         _ => {
-            let location = format!("{file}:{}", index + 1);
-            skipped.push(location.clone());
-            warnings.push(ReaderWarning {
-                message: format!("skipping malformed copilot OTel usage record {location}\n"),
-            });
+            malformed(&location, skipped, warnings);
             return None;
         }
     };
-    let trace_id = identity(value, "traceId");
-    let span_id = identity(value, "spanId");
     let model = attribute_string(
         attributes,
         &["gen_ai.response.model", "gen_ai.request.model"],
     );
-    let (trace_id, span_id, model) = match (trace_id, span_id, model) {
-        (Some(t), Some(s), Some(m)) => (t, s, m),
-        _ => {
-            let location = format!("{file}:{}", index + 1);
-            skipped.push(location.clone());
-            warnings.push(ReaderWarning {
-                message: format!("skipping malformed copilot OTel usage record {location}\n"),
-            });
-            return None;
-        }
-    };
     let name = value.get("name").and_then(as_string).unwrap_or_default();
     let event_name = attribute_string(attributes, &["event.name"]);
     let body = value.get("body").and_then(as_string).unwrap_or_default();
@@ -478,7 +478,7 @@ fn parse_candidate(
         message_id: format!("{trace_id}:{span_id}"),
         turn: false,
         subagent: false,
-        model,
+        model: String::new(),
         tokens: TokenCounts {
             input: (input - cache_read).max(0.0) as u64,
             output: output.max(0.0) as u64,
@@ -493,11 +493,13 @@ fn parse_candidate(
         title: None,
     };
     Some(Candidate {
+        event,
+        model,
+        location,
         source,
         trace_id,
         response_id: attribute_string(attributes, &["gen_ai.response.id"]),
         inclusive_input: input.max(0.0),
-        event,
     })
 }
 
@@ -583,6 +585,38 @@ mod tests {
         assert!(result.warnings.is_empty(), "{:?}", result.warnings);
         assert_eq!(result.events.len(), 1);
         assert_eq!(result.events[0].timestamp, "2026-10-18T19:00:01.747Z");
+    }
+
+    const INVOKE_AGENT_SPAN: &str = r#"{"type":"span","name":"invoke_agent","traceId":"t1","spanId":"s2","startTime":[1792350001,702000000],"attributes":{"gen_ai.operation.name":"invoke_agent","gen_ai.conversation.id":"sess-1","gen_ai.usage.input_tokens":11465,"gen_ai.usage.output_tokens":10}}"#;
+
+    #[test]
+    fn invoke_agent_span_defers_to_its_chat_span_without_a_diagnostic() {
+        let home = scratch_dir("copilot-otel-invoke-agent");
+        write(
+            &home,
+            ".copilot/otel",
+            &format!("{OTEL_SPAN}\n{INVOKE_AGENT_SPAN}\n"),
+        );
+        let result = read(&home);
+        assert!(result.warnings.is_empty(), "{:?}", result.warnings);
+        assert!(result.skipped.is_empty(), "{:?}", result.skipped);
+        assert_eq!(result.events.len(), 1);
+        assert_eq!(result.events[0].message_id, "t1:s1");
+        assert_eq!(result.events[0].model, "qwen");
+    }
+
+    #[test]
+    fn usage_span_without_a_model_or_chat_span_is_a_diagnostic() {
+        let home = scratch_dir("copilot-otel-lone-invoke-agent");
+        write(&home, ".copilot/otel", &format!("{INVOKE_AGENT_SPAN}\n"));
+        let result = read(&home);
+        assert!(result.events.is_empty());
+        assert_eq!(result.skipped.len(), 1);
+        assert!(
+            result.skipped[0].ends_with("otel:1"),
+            "{:?}",
+            result.skipped
+        );
     }
 
     #[test]
