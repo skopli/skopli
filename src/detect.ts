@@ -405,10 +405,8 @@ function gajaeSessionsRoots(resolver: PathResolver): string[] {
 }
 
 function kimchiSessionsRoots(resolver: PathResolver): string[] {
-  const configPath = resolver.env("KIMCHI_CONFIG_PATH");
-  if (configPath !== undefined && configPath !== "") {
-    return [join(configPath, "agent", "sessions")];
-  }
+  const agentDir = resolver.env("KIMCHI_CODING_AGENT_DIR");
+  if (agentDir !== undefined && agentDir !== "") return [join(agentDir, "sessions")];
   return [join(resolver.home(), ".config", "kimchi", "harness", "sessions")];
 }
 

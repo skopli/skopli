@@ -82,9 +82,7 @@ impl Reader for GajaeReader {
 }
 
 /// The Kimchi Coding reader wired into the harness registry. Kimchi is built on
-/// `pi-coding-agent`, so it shares the pi JSONL logic; roots are the config-dir
-/// candidates (`~/.config/kimchi/agent/sessions`, env `KIMCHI_CONFIG_PATH`) and
-/// the pi agent default (`~/.pi/agent/sessions`).
+/// `pi-coding-agent`, so it shares the pi JSONL logic under its own agent dir.
 pub struct KimchiReader;
 
 impl Reader for KimchiReader {
@@ -93,7 +91,7 @@ impl Reader for KimchiReader {
     }
 
     fn read(&self, ctx: &ReaderContext) -> ReaderResult {
-        let roots = kimchi_sessions_roots(ctx.env("KIMCHI_CONFIG_PATH"), ctx.home());
+        let roots = kimchi_sessions_roots(ctx.env("KIMCHI_CODING_AGENT_DIR"), ctx.home());
         read_pi_roots(&roots, "kimchi")
     }
 }
@@ -159,17 +157,15 @@ pub fn gajae_sessions_roots(
     roots
 }
 
-/// Resolve the Kimchi Coding sessions roots. A config-dir override
-/// (`KIMCHI_CONFIG_PATH`) yields `<config>/agent/sessions`; otherwise the
-/// harness pins its agent dir to `~/.config/kimchi/harness`, so sessions live
-/// under it. `~/.pi/agent/sessions` belongs to pi and is never read here.
-pub fn kimchi_sessions_roots(config_path: Option<&str>, home: &Path) -> Vec<PathBuf> {
-    if let Some(v) = config_path
-        && !v.is_empty()
-    {
-        return vec![PathBuf::from(v).join("agent").join("sessions")];
-    }
-    vec![home.join(".config/kimchi/harness/sessions")]
+/// Resolve the Kimchi Coding sessions roots: `<agent dir>/sessions`, where the
+/// agent dir is `KIMCHI_CODING_AGENT_DIR` or `~/.config/kimchi/harness`.
+/// `~/.pi/agent/sessions` belongs to pi and is never read here.
+pub fn kimchi_sessions_roots(agent_dir: Option<&str>, home: &Path) -> Vec<PathBuf> {
+    let agent_dir = match agent_dir.filter(|v| !v.is_empty()) {
+        Some(v) => PathBuf::from(v),
+        None => home.join(".config/kimchi/harness"),
+    };
+    vec![agent_dir.join("sessions")]
 }
 
 /// Read pi-family usage events from several sessions roots into one result,
@@ -346,6 +342,10 @@ mod tests {
             vec![test_home().join(".config/kimchi/harness/sessions")]
         );
         assert!(!roots.contains(&pi_sessions_root(None, &test_home())));
+        assert_eq!(
+            kimchi_sessions_roots(Some("/custom/agent"), &test_home()),
+            vec![PathBuf::from("/custom/agent/sessions")]
+        );
     }
 
     #[test]
