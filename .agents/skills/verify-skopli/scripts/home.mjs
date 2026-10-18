@@ -19,7 +19,7 @@ const { detectHarnesses, readUsage } = await import(join(root, "dist/index.js"))
 const options = { home: dir, env: {}, cwd: dir };
 const detected = detectHarnesses(options);
 const result = await readUsage({ ...options, tz: "UTC" });
-const sessions = (events) => new Set(events.map((e) => e.sessionId)).size;
+const sessions = (events) => new Set(events.map((e) => `${e.harness}\0${e.sessionId}`)).size;
 const summary = {
   home: dir,
   detected: detected.supported,
