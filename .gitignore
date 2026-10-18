@@ -57,3 +57,6 @@ sdks/swift/.build/
 # OS noise
 .DS_Store
 Thumbs.db
+
+# Verification runs (see .agents/skills/verify-skopli)
+.verify/
