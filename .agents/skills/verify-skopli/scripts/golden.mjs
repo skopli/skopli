@@ -17,14 +17,15 @@ const read = (name) => JSON.parse(readFileSync(join(dir, name), "utf8"));
 const manifest = read("input-manifest.json");
 
 const place = (v) => (isAbsolute(v) ? v : join(input, v));
+const at = (v) => (v === "." ? input : v);
 const env = Object.fromEntries(Object.entries(manifest.env ?? {}).map(([k, v]) => [k, place(v)]));
 const options = {
-  home: manifest.home ? place(manifest.home) : "/nonexistent",
+  home: manifest.home ? at(manifest.home) : "/nonexistent",
   env,
   harnesses: [manifest.harness],
   tz: manifest.options?.tz ?? "UTC",
 };
-if (manifest.cwd) options.cwd = place(manifest.cwd);
+if (manifest.cwd) options.cwd = at(manifest.cwd);
 
 const relativize = (s) => s.replaceAll(input, "").replace(/(^|\s)\/+/g, "$1");
 const key = (e) => [e.timestamp, e.sessionId, e.messageId, e.model].join("\0");

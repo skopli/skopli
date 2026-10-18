@@ -1,6 +1,6 @@
 ---
 name: verify-skopli
-description: Drive Skopli the way a user does and capture proof. Covers the docs site (theme, search, nine-language code tabs, page actions, Markdown twins and llms feeds), the marketing site, and the library surface replayed against the golden corpus. Use before calling a web or facade change done, when a reviewer asks for runtime evidence, or when a claim about the sites needs a screenshot or response body.
+description: Drive Skopli the way a user does and capture proof. Covers the docs site (theme, search, nine-language code tabs, page actions, Markdown twins and llms feeds), the marketing site, and the library surface replayed against the golden corpus or a real home directory. Use before calling a web or facade change done, when a reviewer asks for runtime evidence, or when a claim about the sites needs a screenshot or response body.
 ---
 
 # Verify Skopli
@@ -103,7 +103,7 @@ To read a real or copied harness home instead of a golden case, use `scripts/hom
 node .agents/skills/verify-skopli/scripts/home.mjs <home-dir> --out .verify/evidence/<run>/library-home
 ```
 
-It calls `detectHarnesses` and `readUsage` with that directory as `home` and `cwd` and an empty `env`, so nothing from the current machine's environment leaks in, and writes `home-result.json` (detected harnesses, event and session counts, first diagnostic) next to the full `home-events.json`.
+It calls `detectHarnesses` and `readUsage` with that directory as `home` and `cwd` and an empty `env`, so nothing from the current machine's environment leaks in, and writes `home-result.json` (detected harnesses, event and session counts overall and per harness under `byHarness`, first diagnostic) next to `home-read.json`, the full `readUsage` result with its events, diagnostics and skipped files.
 There is no expected output to compare against; the proof is the recorded counts and the absence of diagnostics.
 
 ## Evidence
