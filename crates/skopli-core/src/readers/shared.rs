@@ -69,7 +69,8 @@ pub fn scalar_text(value: Option<&Value>) -> String {
 }
 
 /// A number as JSON text: integers without a fractional part, anything else in
-/// Rust's shortest round-trip form.
+/// Rust's shortest round-trip form. Integral values at or beyond 2^63 saturate
+/// to `i64::MAX`; token counts and ledger ids stay far below that.
 pub fn number_text(n: f64) -> String {
     if n.fract() == 0.0 && n.is_finite() {
         format!("{}", n as i64)
