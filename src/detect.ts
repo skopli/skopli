@@ -431,6 +431,11 @@ function traeTrajectoriesRoot(resolver: PathResolver): string | undefined {
   return join(cwd, "trajectories");
 }
 
+// `session.jsonl`, `session.v4.jsonl`, and their `.zstd` forms.
+function isDeepseekSessionLog(name: string): boolean {
+  return /^session(\.v\d+)?\.jsonl(\.zstd)?$/.test(name);
+}
+
 function deepseekRoot(resolver: PathResolver): string {
   const override = resolver.env("DSH_HOME");
   if (override !== undefined && override !== "") return override;
@@ -649,8 +654,7 @@ export function detectHarnesses(resolver: PathResolver = defaultPathResolver): D
       listFiles(
         root,
         (name) =>
-          name === "session.jsonl" ||
-          name === "session.jsonl.zstd" ||
+          isDeepseekSessionLog(name) ||
           name.endsWith(".db") ||
           name.endsWith(".sqlite") ||
           name.endsWith(".sqlite3"),

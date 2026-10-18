@@ -434,6 +434,21 @@ describe("detectHarnesses deepseek roots", () => {
     }
   });
 
+  it("detects a versioned compressed event log", () => {
+    const home = makeHome();
+    const dsh = mkdtempSync(join(tmpdir(), "skopli-dsh-v4-"));
+    try {
+      const sessionDir = join(dsh, "sessions", "--proj--", "session-1");
+      mkdirSync(sessionDir, { recursive: true });
+      writeFileSync(join(sessionDir, "session.v4.jsonl.zstd"), "");
+      const resolver = createPathResolver({ home, env: { DSH_HOME: dsh } });
+      expect(detectHarnesses(resolver).supported).toContain("deepseek");
+    } finally {
+      rmSync(home, { recursive: true, force: true });
+      rmSync(dsh, { recursive: true, force: true });
+    }
+  });
+
   it("still detects the JSONL event-log backend", () => {
     const home = makeHome();
     const dsh = mkdtempSync(join(tmpdir(), "skopli-dsh-jsonl-"));

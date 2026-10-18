@@ -187,6 +187,21 @@ fn dedup_key(session_id: &str, seq: Option<&Value>) -> Option<String> {
 /// (Zstandard) file to a UTF-8 string. A missing/unreadable file or a
 /// malformed/truncated zstd stream yields `None`, which the caller turns into
 /// the standard file-level malformed diagnostic.
+/// `session.jsonl`, `session.v4.jsonl`, and their `.zstd` forms.
+fn is_session_log(name: &str) -> bool {
+    let name = name.strip_suffix(".zstd").unwrap_or(name);
+    let Some(stem) = name.strip_suffix(".jsonl") else {
+        return false;
+    };
+    match stem.strip_prefix("session") {
+        Some("") => true,
+        Some(version) => version
+            .strip_prefix(".v")
+            .is_some_and(|v| !v.is_empty() && v.bytes().all(|b| b.is_ascii_digit())),
+        None => false,
+    }
+}
+
 fn read_log_text(file: &str) -> Option<String> {
     let bytes = std::fs::read(file).ok()?;
     if file.ends_with(".zstd") {
@@ -571,9 +586,7 @@ pub fn read_deepseek(home: &Path) -> ReaderResult {
         };
     }
 
-    let files = list_files(home, |name| {
-        name == "session.jsonl" || name == "session.jsonl.zstd"
-    });
+    let files = list_files(home, is_session_log);
     for file in &files {
         events.extend(read_session(file, &mut skipped, &mut warnings, &mut seen));
     }
@@ -788,6 +801,34 @@ mod tests {
         assert_eq!(events.len(), 1);
         assert_eq!(events[0].session_id, "z");
         assert_eq!(events[0].tokens.input, 4);
+        fs::remove_dir_all(&dir).ok();
+    }
+
+    #[test]
+    fn versioned_session_log_names_are_read() {
+        let dir = tmp_dir("v4");
+        let session_dir = dir.join("--proj--").join("session-1");
+        fs::create_dir_all(&session_dir).unwrap();
+        fs::write(
+            session_dir.join("session.v4.jsonl"),
+            concat!(
+                r#"{"type":"session","version":4,"id":"session-1","createdAt":1792348454740,"cwd":"/work/proj"}"#,
+                "\n",
+                r#"{"type":"assistant/message","seq":14,"time":1792348551216,"data":{"turn":1,"step":1,"message":{"role":"assistant","content":[],"source":{"kind":"model","provider":"llama","model":"qwen"}},"usage":{"inputTokens":5407,"outputTokens":68,"totalTokens":5478,"cacheReadTokens":3}}}"#,
+                "\n",
+            ),
+        )
+        .unwrap();
+        let result = read_deepseek(&dir);
+        assert!(result.warnings.is_empty(), "{:?}", result.warnings);
+        assert_eq!(result.events.len(), 1);
+        assert_eq!(result.events[0].session_id, "session-1");
+        assert_eq!(result.events[0].model, "qwen");
+        assert_eq!(result.events[0].tokens.input, 5407);
+        assert_eq!(result.events[0].tokens.cache_read, 3);
+        assert_eq!(result.events[0].workspace.as_deref(), Some("/work/proj"));
+        assert!(is_session_log("session.v4.jsonl.zstd"));
+        assert!(!is_session_log("session.v4.jsonl.bak"));
         fs::remove_dir_all(&dir).ok();
     }
 
