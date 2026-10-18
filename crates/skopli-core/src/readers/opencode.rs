@@ -741,20 +741,17 @@ pub fn read_opencode(roots: &[PathBuf], harness: &str) -> ReaderResult {
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    fn home() -> PathBuf {
-        PathBuf::from("/home/u")
-    }
+    use crate::readers::shared::test_home;
 
     #[test]
     fn mimocode_home_appends_data() {
-        let roots = mimocode_roots(Some("/custom/mimo"), None, None, &home());
+        let roots = mimocode_roots(Some("/custom/mimo"), None, None, &test_home());
         assert_eq!(roots, vec![PathBuf::from("/custom/mimo").join("data")]);
     }
 
     #[test]
     fn mimocode_xdg_data_home_appends_app_dir() {
-        let roots = mimocode_roots(None, Some("/xdg/data"), None, &home());
+        let roots = mimocode_roots(None, Some("/xdg/data"), None, &test_home());
         assert_eq!(roots, vec![PathBuf::from("/xdg/data").join("mimocode")]);
     }
 
@@ -764,61 +761,61 @@ mod tests {
             Some("/custom/mimo"),
             Some("/xdg/data"),
             Some("/local"),
-            &home(),
+            &test_home(),
         );
         assert_eq!(roots, vec![PathBuf::from("/custom/mimo").join("data")]);
     }
 
     #[test]
     fn mimocode_xdg_wins_over_local_app_data() {
-        let roots = mimocode_roots(None, Some("/xdg/data"), Some("/local"), &home());
+        let roots = mimocode_roots(None, Some("/xdg/data"), Some("/local"), &test_home());
         assert_eq!(roots, vec![PathBuf::from("/xdg/data").join("mimocode")]);
     }
 
     #[test]
     fn mimocode_local_app_data_windows_fallback() {
-        let roots = mimocode_roots(None, None, Some("/local"), &home());
+        let roots = mimocode_roots(None, None, Some("/local"), &test_home());
         assert_eq!(roots, vec![PathBuf::from("/local").join("mimocode")]);
     }
 
     #[test]
     fn mimocode_default_home_without_overrides() {
-        let roots = mimocode_roots(None, None, None, &home());
+        let roots = mimocode_roots(None, None, None, &test_home());
         assert_eq!(
             roots,
-            vec![home().join(".local").join("share").join("mimocode")]
+            vec![test_home().join(".local").join("share").join("mimocode")]
         );
     }
 
     #[test]
     fn mimocode_empty_overrides_fall_through_to_default() {
-        let roots = mimocode_roots(Some(""), Some(""), Some(""), &home());
+        let roots = mimocode_roots(Some(""), Some(""), Some(""), &test_home());
         assert_eq!(
             roots,
-            vec![home().join(".local").join("share").join("mimocode")]
+            vec![test_home().join(".local").join("share").join("mimocode")]
         );
     }
 
     #[test]
     fn commandcode_xdg_data_home_appends_app_dir() {
-        let roots = commandcode_roots(Some("/xdg/data"), None, &home());
+        let roots = commandcode_roots(Some("/xdg/data"), None, &test_home());
         assert_eq!(roots, vec![PathBuf::from("/xdg/data").join("commandcode")]);
     }
 
     #[test]
     fn commandcode_xdg_wins_over_local_app_data() {
-        let roots = commandcode_roots(Some("/xdg/data"), Some("/local"), &home());
+        let roots = commandcode_roots(Some("/xdg/data"), Some("/local"), &test_home());
         assert_eq!(roots, vec![PathBuf::from("/xdg/data").join("commandcode")]);
     }
 
     #[test]
     fn commandcode_default_candidates_include_all_os_dirs() {
-        let roots = commandcode_roots(None, Some("/local"), &home());
+        let roots = commandcode_roots(None, Some("/local"), &test_home());
         assert_eq!(
             roots,
             vec![
-                home().join(".local").join("share").join("commandcode"),
-                home()
+                test_home().join(".local").join("share").join("commandcode"),
+                test_home()
                     .join("Library")
                     .join("Application Support")
                     .join("CommandCode"),
@@ -829,12 +826,12 @@ mod tests {
 
     #[test]
     fn commandcode_default_without_local_app_data() {
-        let roots = commandcode_roots(None, None, &home());
+        let roots = commandcode_roots(None, None, &test_home());
         assert_eq!(
             roots,
             vec![
-                home().join(".local").join("share").join("commandcode"),
-                home()
+                test_home().join(".local").join("share").join("commandcode"),
+                test_home()
                     .join("Library")
                     .join("Application Support")
                     .join("CommandCode"),
@@ -844,12 +841,12 @@ mod tests {
 
     #[test]
     fn commandcode_empty_xdg_falls_through_to_default() {
-        let roots = commandcode_roots(Some(""), None, &home());
+        let roots = commandcode_roots(Some(""), None, &test_home());
         assert_eq!(
             roots,
             vec![
-                home().join(".local").join("share").join("commandcode"),
-                home()
+                test_home().join(".local").join("share").join("commandcode"),
+                test_home()
                     .join("Library")
                     .join("Application Support")
                     .join("CommandCode"),

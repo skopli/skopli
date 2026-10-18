@@ -5,8 +5,8 @@ use serde_json::Value;
 
 use super::reader::{Reader, ReaderContext};
 use super::shared::{
-    ReaderResult, ReaderWarning, as_string, basename, dir_exists, file_mtime_iso, is_record,
-    list_files, parse_timestamp_to_iso, read_json,
+    ReaderResult, ReaderWarning, as_string, basename, dir_exists, dirname, file_mtime_iso,
+    is_record, list_files, parse_timestamp_to_iso, read_json,
 };
 use super::vscode_ext::{numeric, read_vscode_ext, vscode_task_roots};
 use crate::types::{TokenCounts, UsageEvent};
@@ -248,15 +248,6 @@ fn read_cline_cli(
         events,
         skipped,
         warnings,
-    }
-}
-
-/// The parent directory path (node `dirname`), `/`-normalized.
-fn dirname(path: &str) -> String {
-    let normalized = path.replace('\\', "/");
-    match normalized.rfind('/') {
-        Some(i) => normalized[..i].to_owned(),
-        None => String::new(),
     }
 }
 

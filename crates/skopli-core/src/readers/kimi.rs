@@ -5,8 +5,9 @@ use serde_json::Value;
 
 use super::reader::{Reader, ReaderContext};
 use super::shared::{
-    EpochUnit, ReaderResult, ReaderWarning, as_string, basename, date_parse_ms, epoch_to_iso_unit,
-    file_mtime_iso, finite_number, is_record, list_files, read_json, read_jsonl_lines,
+    EpochUnit, ReaderResult, ReaderWarning, as_string, basename, date_parse_ms, dirname,
+    epoch_to_iso_unit, file_mtime_iso, finite_number, is_record, list_files, read_json,
+    read_jsonl_lines,
 };
 use crate::types::{TokenCounts, UsageEvent};
 
@@ -358,14 +359,5 @@ pub fn read_kimi(roots: &[PathBuf]) -> ReaderResult {
         events,
         skipped,
         warnings,
-    }
-}
-
-/// The parent directory path (node `dirname`), `/`-normalized.
-fn dirname(path: &str) -> String {
-    let normalized = path.replace('\\', "/");
-    match normalized.rfind('/') {
-        Some(i) => normalized[..i].to_owned(),
-        None => String::new(),
     }
 }

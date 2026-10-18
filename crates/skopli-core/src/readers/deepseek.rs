@@ -7,7 +7,7 @@ use serde_json::Value;
 use super::reader::{Reader, ReaderContext};
 use super::shared::{
     EpochUnit, ReaderResult, ReaderWarning, as_string, dir_exists, epoch_to_iso_unit,
-    finite_number, is_record, list_files,
+    finite_number, is_record, list_files, optional_cell, required_cell,
 };
 use super::sqlite_store::{blob_column, open_readonly, pragma_int, table_exists};
 use crate::types::{TokenCounts, UsageEvent};
@@ -59,27 +59,6 @@ pub fn deepseek_home(override_dir: Option<&str>, home: &Path) -> PathBuf {
         return PathBuf::from(v);
     }
     home.join(".dsh")
-}
-
-/// A required token cell (`inputTokens`/`outputTokens` are non-optional in the
-/// upstream `TokenUsage`). The cell must be a non-negative finite number; an
-/// absent, `null`, or invalid cell marks the usage malformed.
-fn required_cell(value: Option<&Value>) -> Option<u64> {
-    match value {
-        None | Some(Value::Null) => None,
-        Some(v) => finite_number(v).filter(|n| *n >= 0.0).map(|n| n as u64),
-    }
-}
-
-/// An optional token cell (`cacheReadTokens`/`cacheWriteTokens`/`reasoningTokens`
-/// are `?` in the upstream `TokenUsage`). An absent or `null` cell is `0`; a
-/// populated cell that is not a non-negative finite number marks the usage
-/// malformed.
-fn optional_cell(value: Option<&Value>) -> Option<u64> {
-    match value {
-        None | Some(Value::Null) => Some(0),
-        Some(v) => finite_number(v).filter(|n| *n >= 0.0).map(|n| n as u64),
-    }
 }
 
 /// The outcome of parsing one `assistant/message` `data.usage` map.
@@ -608,41 +587,28 @@ pub fn read_deepseek(home: &Path) -> ReaderResult {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::readers::shared::{scratch_dir, test_home};
     use std::fs;
-
-    fn home() -> PathBuf {
-        PathBuf::from("/home/u")
-    }
 
     #[test]
     fn default_home_resolves_dot_dsh() {
-        assert_eq!(deepseek_home(None, &home()), home().join(".dsh"));
+        assert_eq!(deepseek_home(None, &test_home()), test_home().join(".dsh"));
     }
 
     #[test]
     fn dsh_home_override_wins() {
         assert_eq!(
-            deepseek_home(Some("/custom/dsh"), &home()),
+            deepseek_home(Some("/custom/dsh"), &test_home()),
             PathBuf::from("/custom/dsh")
         );
     }
 
     #[test]
     fn empty_override_falls_through_to_default() {
-        assert_eq!(deepseek_home(Some(""), &home()), home().join(".dsh"));
-    }
-
-    fn tmp_dir(tag: &str) -> PathBuf {
-        let base = std::env::temp_dir().join(format!(
-            "skopli-deepseek-test-{tag}-{}-{}",
-            std::process::id(),
-            std::time::SystemTime::now()
-                .duration_since(std::time::UNIX_EPOCH)
-                .unwrap()
-                .as_nanos()
-        ));
-        fs::create_dir_all(&base).unwrap();
-        base
+        assert_eq!(
+            deepseek_home(Some(""), &test_home()),
+            test_home().join(".dsh")
+        );
     }
 
     fn write_session(dir: &Path, project: &str, session: &str, body: &str) -> PathBuf {
@@ -655,7 +621,7 @@ mod tests {
 
     #[test]
     fn empty_home_yields_no_events_then_reads_after_sessions_appear() {
-        let dir = tmp_dir("presence");
+        let dir = scratch_dir("presence");
         assert!(read_deepseek(&dir).events.is_empty());
         write_session(
             &dir,
@@ -677,7 +643,7 @@ mod tests {
 
     #[test]
     fn cache_and_reasoning_cells_map_through() {
-        let dir = tmp_dir("cache");
+        let dir = scratch_dir("cache");
         write_session(
             &dir,
             "--proj--",
@@ -695,7 +661,7 @@ mod tests {
 
     #[test]
     fn subagent_flag_from_parent_session() {
-        let dir = tmp_dir("subagent");
+        let dir = scratch_dir("subagent");
         write_session(
             &dir,
             "--proj--",
@@ -711,7 +677,7 @@ mod tests {
 
     #[test]
     fn usage_chunks_are_ignored_only_messages_emit() {
-        let dir = tmp_dir("chunks");
+        let dir = scratch_dir("chunks");
         write_session(
             &dir,
             "--proj--",
@@ -728,7 +694,7 @@ mod tests {
 
     #[test]
     fn zero_usage_messages_are_dropped() {
-        let dir = tmp_dir("zero");
+        let dir = scratch_dir("zero");
         write_session(
             &dir,
             "--proj--",
@@ -742,7 +708,7 @@ mod tests {
 
     #[test]
     fn missing_required_cell_skips_the_record() {
-        let dir = tmp_dir("required");
+        let dir = scratch_dir("required");
         let file = write_session(
             &dir,
             "--proj--",
@@ -763,7 +729,7 @@ mod tests {
 
     #[test]
     fn malformed_zstd_produces_file_level_diagnostic() {
-        let dir = tmp_dir("zstd-bad");
+        let dir = scratch_dir("zstd-bad");
         let session_dir = dir.join("--proj--").join("s1");
         fs::create_dir_all(&session_dir).unwrap();
         let path = session_dir.join("session.jsonl.zstd");
@@ -793,7 +759,7 @@ mod tests {
             147, 58, 158, 53, 197, 188, 252, 252, 38, 136, 254, 18, 5, 0, 105, 90, 160, 243, 108,
             75, 139, 41, 213, 219, 106, 154, 210, 3, 176, 9, 36, 2,
         ];
-        let dir = tmp_dir("zstd-good");
+        let dir = scratch_dir("zstd-good");
         let session_dir = dir.join("--proj--").join("s1");
         fs::create_dir_all(&session_dir).unwrap();
         fs::write(session_dir.join("session.jsonl.zstd"), FRAME).unwrap();
@@ -806,7 +772,7 @@ mod tests {
 
     #[test]
     fn versioned_session_log_names_are_read() {
-        let dir = tmp_dir("v4");
+        let dir = scratch_dir("v4");
         let session_dir = dir.join("--proj--").join("session-1");
         fs::create_dir_all(&session_dir).unwrap();
         fs::write(
@@ -902,7 +868,7 @@ mod tests {
 
     #[test]
     fn sqlite_only_root_reads_events() {
-        let dir = tmp_dir("sqlite-only");
+        let dir = scratch_dir("sqlite-only");
         let db = dir.join("sessions.db");
         build_sqlite_db(
             &db,
@@ -948,7 +914,7 @@ mod tests {
 
     #[test]
     fn both_backends_dedupe_by_session_and_seq() {
-        let dir = tmp_dir("both-backends");
+        let dir = scratch_dir("both-backends");
         write_session(
             &dir,
             "--proj--",
@@ -990,7 +956,7 @@ mod tests {
 
     #[test]
     fn malformed_db_yields_structured_diagnostic() {
-        let dir = tmp_dir("sqlite-bad");
+        let dir = scratch_dir("sqlite-bad");
         let db = dir.join("sessions.db");
         fs::write(&db, b"this is not a valid sqlite file at all").unwrap();
         let result = read_deepseek(&dir);
@@ -1011,7 +977,7 @@ mod tests {
 
     #[test]
     fn malformed_event_row_uses_one_based_row_ordinal_label() {
-        let dir = tmp_dir("sqlite-bad-row");
+        let dir = scratch_dir("sqlite-bad-row");
         let db = dir.join("sessions.db");
         build_sqlite_db(
             &db,
@@ -1043,7 +1009,7 @@ mod tests {
 
     #[test]
     fn non_deepseek_sqlite_is_ignored() {
-        let dir = tmp_dir("sqlite-foreign");
+        let dir = scratch_dir("sqlite-foreign");
         let db = dir.join("other.db");
         let conn = rusqlite::Connection::open(&db).unwrap();
         conn.execute_batch("CREATE TABLE things (id TEXT); INSERT INTO things VALUES ('x');")
@@ -1061,7 +1027,7 @@ mod tests {
 
     #[test]
     fn zstd_blob_event_data_decompresses_and_emits() {
-        let dir = tmp_dir("sqlite-zstd-good");
+        let dir = scratch_dir("sqlite-zstd-good");
         let db = dir.join("sessions.db");
         build_sqlite_db(
             &db,
@@ -1091,7 +1057,7 @@ mod tests {
 
     #[test]
     fn malformed_zstd_blob_event_data_yields_row_diagnostic() {
-        let dir = tmp_dir("sqlite-zstd-bad");
+        let dir = scratch_dir("sqlite-zstd-bad");
         let db = dir.join("sessions.db");
         build_sqlite_db(
             &db,
@@ -1117,7 +1083,7 @@ mod tests {
 
     #[test]
     fn matching_application_id_with_wrong_schema_version_is_silently_ignored() {
-        let dir = tmp_dir("sqlite-wrong-version");
+        let dir = scratch_dir("sqlite-wrong-version");
         let db = dir.join("sessions.db");
         build_sqlite_db(
             &db,

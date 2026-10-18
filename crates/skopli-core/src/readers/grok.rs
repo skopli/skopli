@@ -5,8 +5,9 @@ use serde_json::Value;
 
 use super::reader::{Reader, ReaderContext};
 use super::shared::{
-    JsonlLine, ReaderResult, ReaderWarning, as_string, epoch_to_iso, file_mtime_iso, finite_number,
-    is_record, list_files, parent_dir_name, read_json, read_jsonl_lines, reparse_iso,
+    JsonlLine, ReaderResult, ReaderWarning, as_string, dirname, epoch_to_iso, file_mtime_iso,
+    finite_number, is_record, list_files, parent_dir_name, read_json, read_jsonl_lines,
+    reparse_iso,
 };
 use crate::types::{TokenCounts, UsageEvent};
 
@@ -476,14 +477,6 @@ fn append_signals_reconciliation(
         workspace: None,
         title: None,
     });
-}
-
-fn dirname(path: &str) -> String {
-    let normalized = path.replace('\\', "/");
-    match normalized.rfind('/') {
-        Some(i) => normalized[..i].to_owned(),
-        None => String::new(),
-    }
 }
 
 struct UnifiedEntry {

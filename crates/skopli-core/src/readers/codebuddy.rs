@@ -37,23 +37,20 @@ pub fn codebuddy_roots(config_dir: Option<&str>, home: &Path) -> Vec<PathBuf> {
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    fn home() -> PathBuf {
-        PathBuf::from("/home/u")
-    }
+    use crate::readers::shared::test_home;
 
     #[test]
     fn default_home_resolves_dot_codebuddy() {
         assert_eq!(
-            codebuddy_roots(None, &home()),
-            vec![home().join(".codebuddy")]
+            codebuddy_roots(None, &test_home()),
+            vec![test_home().join(".codebuddy")]
         );
     }
 
     #[test]
     fn config_dir_override_wins() {
         assert_eq!(
-            codebuddy_roots(Some("/custom/cb"), &home()),
+            codebuddy_roots(Some("/custom/cb"), &test_home()),
             vec![PathBuf::from("/custom/cb")]
         );
     }
@@ -61,7 +58,7 @@ mod tests {
     #[test]
     fn config_dir_with_comma_stays_one_path() {
         assert_eq!(
-            codebuddy_roots(Some("/a, b"), &home()),
+            codebuddy_roots(Some("/a, b"), &test_home()),
             vec![PathBuf::from("/a, b")]
         );
     }
@@ -69,8 +66,8 @@ mod tests {
     #[test]
     fn empty_override_falls_through_to_default() {
         assert_eq!(
-            codebuddy_roots(Some(""), &home()),
-            vec![home().join(".codebuddy")]
+            codebuddy_roots(Some(""), &test_home()),
+            vec![test_home().join(".codebuddy")]
         );
     }
 }

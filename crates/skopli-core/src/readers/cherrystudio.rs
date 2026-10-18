@@ -260,16 +260,13 @@ pub fn read_cherrystudio(db_paths: &[PathBuf]) -> ReaderResult {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::readers::shared::{scratch_dir, test_home};
     use rusqlite::Connection;
     use std::fs;
 
-    fn home() -> PathBuf {
-        PathBuf::from("/home/u")
-    }
-
     #[test]
     fn appdata_path_is_appended_when_present() {
-        let paths = cherrystudio_db_paths(Some("C:\\Users\\u\\AppData\\Roaming"), &home());
+        let paths = cherrystudio_db_paths(Some("C:\\Users\\u\\AppData\\Roaming"), &test_home());
         assert_eq!(paths.len(), 3);
         assert_eq!(
             paths[2],
@@ -282,29 +279,16 @@ mod tests {
 
     #[test]
     fn default_paths_cover_linux_and_macos() {
-        let paths = cherrystudio_db_paths(None, &home());
+        let paths = cherrystudio_db_paths(None, &test_home());
         assert_eq!(paths.len(), 2);
         assert_eq!(
             paths[0],
-            home()
+            test_home()
                 .join(".config")
                 .join("CherryStudio")
                 .join("Data")
                 .join("cherrystudio.sqlite")
         );
-    }
-
-    fn tmp_dir(tag: &str) -> PathBuf {
-        let base = std::env::temp_dir().join(format!(
-            "skopli-cherrystudio-test-{tag}-{}-{}",
-            std::process::id(),
-            std::time::SystemTime::now()
-                .duration_since(std::time::UNIX_EPOCH)
-                .unwrap()
-                .as_nanos()
-        ));
-        fs::create_dir_all(&base).unwrap();
-        base
     }
 
     fn build_db(path: &Path) {
@@ -352,7 +336,7 @@ mod tests {
 
     #[test]
     fn reads_invocation_and_legacy_aggregate_with_cache_splits() {
-        let dir = tmp_dir("both-kinds");
+        let dir = scratch_dir("both-kinds");
         let db = dir.join("cherrystudio.sqlite");
         build_db(&db);
         let result = read_cherrystudio(std::slice::from_ref(&db));
@@ -415,7 +399,7 @@ mod tests {
 
     #[test]
     fn missing_db_yields_no_events() {
-        let dir = tmp_dir("absent");
+        let dir = scratch_dir("absent");
         let db = dir.join("cherrystudio.sqlite");
         assert!(read_cherrystudio(&[db]).events.is_empty());
         fs::remove_dir_all(&dir).ok();
@@ -427,7 +411,7 @@ mod tests {
     // only by row id, so no real usage is lost or double counted.
     #[test]
     fn overlapping_aggregate_and_invocations_all_survive() {
-        let dir = tmp_dir("overlap");
+        let dir = scratch_dir("overlap");
         let db = dir.join("cherrystudio.sqlite");
         build_db_with(
             &db,
@@ -460,7 +444,7 @@ mod tests {
     // with the standard diagnostic; NULL/absent cells still map to 0.
     #[test]
     fn malformed_numeric_text_skips_row() {
-        let dir = tmp_dir("malformed-text");
+        let dir = scratch_dir("malformed-text");
         let db = dir.join("cherrystudio.sqlite");
         build_db_with(
             &db,
@@ -492,7 +476,7 @@ mod tests {
     // typeof = 'integer') and skips the row rather than silently truncating.
     #[test]
     fn fractional_token_count_skips_row() {
-        let dir = tmp_dir("fractional");
+        let dir = scratch_dir("fractional");
         let db = dir.join("cherrystudio.sqlite");
         build_db_with(
             &db,
@@ -525,7 +509,7 @@ mod tests {
     // skips the row rather than silently clamping to 0.
     #[test]
     fn negative_token_count_skips_row() {
-        let dir = tmp_dir("negative");
+        let dir = scratch_dir("negative");
         let db = dir.join("cherrystudio.sqlite");
         build_db_with(
             &db,

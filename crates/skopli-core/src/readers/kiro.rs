@@ -518,22 +518,19 @@ pub fn read_kiro(db_paths: &[PathBuf]) -> ReaderResult {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::readers::shared::{scratch_dir, test_home};
     use std::fs;
-
-    fn home() -> PathBuf {
-        PathBuf::from("/home/u")
-    }
 
     #[test]
     fn default_paths_prefer_dot_kiro_then_kiro_cli_then_legacy() {
-        let paths = kiro_db_paths(None, None, &home());
-        assert_eq!(paths[0], home().join(".kiro").join("data.sqlite3"));
-        let kiro_cli = home()
+        let paths = kiro_db_paths(None, None, &test_home());
+        assert_eq!(paths[0], test_home().join(".kiro").join("data.sqlite3"));
+        let kiro_cli = test_home()
             .join(".local")
             .join("share")
             .join("kiro-cli")
             .join("data.sqlite3");
-        let amazon_q = home()
+        let amazon_q = test_home()
             .join(".local")
             .join("share")
             .join("amazon-q")
@@ -548,7 +545,7 @@ mod tests {
 
     #[test]
     fn localappdata_adds_windows_kiro_cli_and_legacy_roots() {
-        let paths = kiro_db_paths(Some("C:\\Users\\u\\AppData\\Local"), None, &home());
+        let paths = kiro_db_paths(Some("C:\\Users\\u\\AppData\\Local"), None, &test_home());
         assert!(
             paths.contains(
                 &PathBuf::from("C:\\Users\\u\\AppData\\Local")
@@ -567,7 +564,7 @@ mod tests {
 
     #[test]
     fn xdg_data_home_overrides_linux_kiro_cli_and_legacy_roots() {
-        let paths = kiro_db_paths(None, Some("/xdg/data"), &home());
+        let paths = kiro_db_paths(None, Some("/xdg/data"), &test_home());
         assert!(
             paths.contains(
                 &PathBuf::from("/xdg/data")
@@ -584,7 +581,7 @@ mod tests {
         );
         assert!(
             !paths.contains(
-                &home()
+                &test_home()
                     .join(".local")
                     .join("share")
                     .join("amazon-q")
@@ -595,7 +592,7 @@ mod tests {
 
     #[test]
     fn candidates_are_deduped_first_seen_wins() {
-        let paths = kiro_db_paths(None, None, &home());
+        let paths = kiro_db_paths(None, None, &test_home());
         let mut unique = paths.clone();
         unique.sort();
         unique.dedup();
@@ -651,19 +648,6 @@ mod tests {
         assert_eq!(estimate_tokens(&multibyte), 10);
     }
 
-    fn tmp_dir(tag: &str) -> PathBuf {
-        let base = std::env::temp_dir().join(format!(
-            "skopli-kiro-test-{tag}-{}-{}",
-            std::process::id(),
-            std::time::SystemTime::now()
-                .duration_since(std::time::UNIX_EPOCH)
-                .unwrap()
-                .as_nanos()
-        ));
-        fs::create_dir_all(&base).unwrap();
-        base
-    }
-
     fn build_db(path: &Path, table: &str, rows: &[(&str, &str)]) {
         let conn = rusqlite::Connection::open(path).unwrap();
         conn.execute_batch(&format!(
@@ -708,7 +692,7 @@ mod tests {
 
     #[test]
     fn empty_paths_yield_no_events_then_read_after_db_appears() {
-        let dir = tmp_dir("presence");
+        let dir = scratch_dir("presence");
         let db = dir.join("data.sqlite3");
         assert!(read_kiro(std::slice::from_ref(&db)).events.is_empty());
         let prompt = "p".repeat(40);
@@ -743,7 +727,7 @@ mod tests {
 
     #[test]
     fn one_event_per_history_turn() {
-        let dir = tmp_dir("turns");
+        let dir = scratch_dir("turns");
         let db = dir.join("data.sqlite3");
         let text = "z".repeat(40);
         build_db(
@@ -769,7 +753,7 @@ mod tests {
 
     #[test]
     fn missing_timestamp_falls_back_to_file_mtime() {
-        let dir = tmp_dir("fallback-ts");
+        let dir = scratch_dir("fallback-ts");
         let db = dir.join("data.sqlite3");
         let text = "z".repeat(40);
         build_db(
@@ -788,7 +772,7 @@ mod tests {
 
     #[test]
     fn zero_estimate_turns_are_dropped() {
-        let dir = tmp_dir("zero");
+        let dir = scratch_dir("zero");
         let db = dir.join("data.sqlite3");
         build_db(
             &db,
@@ -804,7 +788,7 @@ mod tests {
 
     #[test]
     fn conversations_v2_is_read_when_present() {
-        let dir = tmp_dir("v2");
+        let dir = scratch_dir("v2");
         let db = dir.join("data.sqlite3");
         let text = "z".repeat(40);
         build_db(
@@ -822,7 +806,7 @@ mod tests {
 
     #[test]
     fn tool_use_assistant_content_is_estimated() {
-        let dir = tmp_dir("tooluse");
+        let dir = scratch_dir("tooluse");
         let db = dir.join("data.sqlite3");
         let prompt = "p".repeat(40);
         let content = "c".repeat(60);
@@ -844,7 +828,7 @@ mod tests {
 
     #[test]
     fn malformed_value_uses_one_based_row_ordinal_scoped_by_table() {
-        let dir = tmp_dir("malformed-row");
+        let dir = scratch_dir("malformed-row");
         let db = dir.join("data.sqlite3");
         let text = "z".repeat(40);
         build_db(
@@ -894,7 +878,7 @@ mod tests {
 
     #[test]
     fn two_table_malformed_rows_have_distinct_table_scoped_identities() {
-        let dir = tmp_dir("two-table-malformed");
+        let dir = scratch_dir("two-table-malformed");
         let db = dir.join("data.sqlite3");
         build_db_two_tables(
             &db,
@@ -916,7 +900,7 @@ mod tests {
 
     #[test]
     fn migrated_conversation_id_copy_in_both_tables_is_not_double_counted() {
-        let dir = tmp_dir("dup-tables-cid");
+        let dir = scratch_dir("dup-tables-cid");
         let db = dir.join("data.sqlite3");
         let text = "z".repeat(40);
         let state = state_json_cid("conv-abc", "m", &[(text.as_str(), text.as_str(), None)]);
@@ -937,7 +921,7 @@ mod tests {
 
     #[test]
     fn exact_copy_without_conversation_id_in_both_tables_is_not_double_counted() {
-        let dir = tmp_dir("dup-tables-fp");
+        let dir = scratch_dir("dup-tables-fp");
         let db = dir.join("data.sqlite3");
         let text = "z".repeat(40);
         let state = state_json(
@@ -960,7 +944,7 @@ mod tests {
 
     #[test]
     fn distinct_conversations_sharing_key_and_index_survive_across_tables() {
-        let dir = tmp_dir("distinct-tables");
+        let dir = scratch_dir("distinct-tables");
         let db = dir.join("data.sqlite3");
         let text = "z".repeat(40);
         let v2 = state_json_cid("conv-v2", "m", &[(text.as_str(), text.as_str(), None)]);
@@ -981,7 +965,7 @@ mod tests {
 
     #[test]
     fn different_content_at_same_key_and_index_survives_across_tables() {
-        let dir = tmp_dir("distinct-tables-fp");
+        let dir = scratch_dir("distinct-tables-fp");
         let db = dir.join("data.sqlite3");
         let a = "a".repeat(40);
         let b = "b".repeat(40);
@@ -1009,7 +993,7 @@ mod tests {
 
     #[test]
     fn id_less_turns_differing_only_by_separator_placement_both_survive() {
-        let dir = tmp_dir("distinct-tables-sep");
+        let dir = scratch_dir("distinct-tables-sep");
         let db = dir.join("data.sqlite3");
         let x = "x".repeat(20);
         let y = "y".repeat(20);
@@ -1055,7 +1039,7 @@ mod tests {
 
     #[test]
     fn migrated_conversation_id_copy_in_legacy_db_is_not_double_counted() {
-        let dir = tmp_dir("dup-dbs-cid");
+        let dir = scratch_dir("dup-dbs-cid");
         let current = dir.join("current.sqlite3");
         let legacy = dir.join("legacy.sqlite3");
         let text = "z".repeat(40);
@@ -1081,7 +1065,7 @@ mod tests {
 
     #[test]
     fn independently_continued_legacy_history_is_not_dropped() {
-        let dir = tmp_dir("distinct-dbs");
+        let dir = scratch_dir("distinct-dbs");
         let current = dir.join("current.sqlite3");
         let legacy = dir.join("legacy.sqlite3");
         let text = "z".repeat(40);
@@ -1119,7 +1103,7 @@ mod tests {
 
     #[test]
     fn reset_history_without_conversation_id_survives_across_dbs() {
-        let dir = tmp_dir("reset-dbs-fp");
+        let dir = scratch_dir("reset-dbs-fp");
         let current = dir.join("current.sqlite3");
         let legacy = dir.join("legacy.sqlite3");
         let text = "z".repeat(40);
@@ -1152,7 +1136,7 @@ mod tests {
 
     #[test]
     fn malformed_database_yields_structured_diagnostic() {
-        let dir = tmp_dir("bad-db");
+        let dir = scratch_dir("bad-db");
         let db = dir.join("data.sqlite3");
         fs::write(&db, b"this is not a valid sqlite file").unwrap();
         let result = read_kiro(std::slice::from_ref(&db));
@@ -1170,7 +1154,7 @@ mod tests {
 
     #[test]
     fn database_without_chat_table_is_silent() {
-        let dir = tmp_dir("no-table");
+        let dir = scratch_dir("no-table");
         let db = dir.join("data.sqlite3");
         let conn = rusqlite::Connection::open(&db).unwrap();
         conn.execute_batch("CREATE TABLE state (key TEXT, value TEXT);")
@@ -1203,7 +1187,7 @@ mod tests {
 
     #[test]
     fn conversation_id_column_dedupes_by_cid_across_tables_and_dbs() {
-        let dir = tmp_dir("cid-column-dedupe");
+        let dir = scratch_dir("cid-column-dedupe");
         let current = dir.join("current.sqlite3");
         let legacy = dir.join("legacy.sqlite3");
         let text = "z".repeat(40);
@@ -1230,7 +1214,7 @@ mod tests {
 
     #[test]
     fn json_conversation_id_wins_over_differing_column_id() {
-        let dir = tmp_dir("cid-json-wins");
+        let dir = scratch_dir("cid-json-wins");
         let db = dir.join("data.sqlite3");
         let text = "z".repeat(40);
         let state = state_json_cid("conv-json", "m", &[(text.as_str(), text.as_str(), None)]);
@@ -1267,7 +1251,7 @@ mod tests {
 
     #[test]
     fn timestamp_falls_back_to_request_metadata_start() {
-        let dir = tmp_dir("rm-timestamp");
+        let dir = scratch_dir("rm-timestamp");
         let db = dir.join("data.sqlite3");
         let text = "z".repeat(40);
         let meta = serde_json::json!({
@@ -1287,7 +1271,7 @@ mod tests {
 
     #[test]
     fn next_message_pending_turn_is_not_emitted() {
-        let dir = tmp_dir("next-message");
+        let dir = scratch_dir("next-message");
         let db = dir.join("data.sqlite3");
         let state = serde_json::json!({
             "model": "m",

@@ -335,28 +335,28 @@ fn read_pi_root_into(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::readers::shared::{scratch_dir, test_home};
     use std::fs;
-
-    fn home() -> PathBuf {
-        PathBuf::from("/home/u")
-    }
 
     #[test]
     fn kimchi_default_root_is_its_own_harness_dir_not_pi() {
-        let roots = kimchi_sessions_roots(None, &home());
-        assert_eq!(roots, vec![home().join(".config/kimchi/harness/sessions")]);
-        assert!(!roots.contains(&pi_sessions_root(None, &home())));
+        let roots = kimchi_sessions_roots(None, &test_home());
+        assert_eq!(
+            roots,
+            vec![test_home().join(".config/kimchi/harness/sessions")]
+        );
+        assert!(!roots.contains(&pi_sessions_root(None, &test_home())));
     }
 
     #[test]
     fn gajae_coding_agent_dir_appends_sessions() {
-        let roots = gajae_sessions_roots(Some("/custom/agent"), None, None, &home());
+        let roots = gajae_sessions_roots(Some("/custom/agent"), None, None, &test_home());
         assert_eq!(roots, vec![PathBuf::from("/custom/agent").join("sessions")]);
     }
 
     #[test]
     fn gajae_config_dir_appends_agent_sessions() {
-        let roots = gajae_sessions_roots(None, Some("/custom/gjc"), None, &home());
+        let roots = gajae_sessions_roots(None, Some("/custom/gjc"), None, &test_home());
         assert_eq!(
             roots,
             vec![PathBuf::from("/custom/gjc").join("agent").join("sessions")]
@@ -365,17 +365,17 @@ mod tests {
 
     #[test]
     fn gajae_coding_agent_dir_wins_over_config_dir() {
-        let roots = gajae_sessions_roots(Some("/agent"), Some("/gjc"), None, &home());
+        let roots = gajae_sessions_roots(Some("/agent"), Some("/gjc"), None, &test_home());
         assert_eq!(roots, vec![PathBuf::from("/agent").join("sessions")]);
     }
 
     #[test]
     fn gajae_default_home_and_xdg_state() {
-        let roots = gajae_sessions_roots(None, None, Some("/xdg/state"), &home());
+        let roots = gajae_sessions_roots(None, None, Some("/xdg/state"), &test_home());
         assert_eq!(
             roots,
             vec![
-                home().join(".gjc").join("agent").join("sessions"),
+                test_home().join(".gjc").join("agent").join("sessions"),
                 PathBuf::from("/xdg/state")
                     .join("gjc")
                     .join("agent")
@@ -386,33 +386,20 @@ mod tests {
 
     #[test]
     fn gajae_default_home_only_without_xdg() {
-        let roots = gajae_sessions_roots(None, None, None, &home());
+        let roots = gajae_sessions_roots(None, None, None, &test_home());
         assert_eq!(
             roots,
-            vec![home().join(".gjc").join("agent").join("sessions")]
+            vec![test_home().join(".gjc").join("agent").join("sessions")]
         );
     }
 
     #[test]
     fn gajae_empty_overrides_fall_through_to_default() {
-        let roots = gajae_sessions_roots(Some(""), Some(""), Some(""), &home());
+        let roots = gajae_sessions_roots(Some(""), Some(""), Some(""), &test_home());
         assert_eq!(
             roots,
-            vec![home().join(".gjc").join("agent").join("sessions")]
+            vec![test_home().join(".gjc").join("agent").join("sessions")]
         );
-    }
-
-    fn tmp_dir(tag: &str) -> PathBuf {
-        let base = std::env::temp_dir().join(format!(
-            "skopli-pi-test-{tag}-{}-{}",
-            std::process::id(),
-            std::time::SystemTime::now()
-                .duration_since(std::time::UNIX_EPOCH)
-                .unwrap()
-                .as_nanos()
-        ));
-        fs::create_dir_all(&base).unwrap();
-        base
     }
 
     fn write_session(dir: &Path, file: &str, session_id: &str, message_id: &str) {
@@ -429,7 +416,7 @@ mod tests {
 
     #[test]
     fn dedup_mirrored_session_across_roots_and_keeps_distinct_session() {
-        let base = tmp_dir("dedup");
+        let base = scratch_dir("dedup");
         let home_root = base.join("home");
         let xdg_root = base.join("xdg");
         let home_sessions = home_root.join(".gjc").join("agent").join("sessions");

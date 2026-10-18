@@ -5,8 +5,8 @@ use serde_json::Value;
 
 use super::reader::{Reader, ReaderContext};
 use super::shared::{
-    ReaderResult, ReaderWarning, as_string, basename, epoch_to_iso, file_mtime_iso, finite_number,
-    is_record, list_files, read_json, reparse_iso,
+    ReaderResult, ReaderWarning, as_string, basename, dirname, epoch_to_iso, file_mtime_iso,
+    finite_number, is_record, list_files, read_json, reparse_iso,
 };
 use crate::types::{TokenCounts, UsageEvent};
 
@@ -293,15 +293,6 @@ fn message_timestamp(msg: &Value) -> Option<String> {
         return Some(iso);
     }
     None
-}
-
-/// The parent directory path (node `dirname`), `/`-normalized.
-fn dirname(path: &str) -> String {
-    let normalized = path.replace('\\', "/");
-    match normalized.rfind('/') {
-        Some(i) => normalized[..i].to_owned(),
-        None => String::new(),
-    }
 }
 
 /// Read all codebuff usage events. Faithful port of `readCodebuff`.

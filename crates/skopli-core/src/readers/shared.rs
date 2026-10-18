@@ -1,5 +1,5 @@
 use std::fs;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 
 use serde_json::Value;
 use walkdir::WalkDir;
@@ -322,6 +322,34 @@ pub fn file_stem_name(path: &str) -> String {
 }
 
 /// The parent directory's name (node `basename(dirname(path))`).
+/// The directory part of a slash- or backslash-separated path, without the
+/// trailing separator. Empty when the path has no directory part.
+pub fn dirname(path: &str) -> String {
+    let normalized = path.replace('\\', "/");
+    match normalized.rfind('/') {
+        Some(i) => normalized[..i].to_owned(),
+        None => String::new(),
+    }
+}
+
+/// A token cell the producer always writes. `None` (malformed) when absent,
+/// `null`, or not a non-negative finite number.
+pub fn required_cell(value: Option<&Value>) -> Option<u64> {
+    match value {
+        None | Some(Value::Null) => None,
+        Some(v) => finite_number(v).filter(|n| *n >= 0.0).map(|n| n as u64),
+    }
+}
+
+/// A token cell the producer may omit. Absent or `null` is `0`; a populated
+/// cell that is not a non-negative finite number is malformed (`None`).
+pub fn optional_cell(value: Option<&Value>) -> Option<u64> {
+    match value {
+        None | Some(Value::Null) => Some(0),
+        Some(v) => finite_number(v).filter(|n| *n >= 0.0).map(|n| n as u64),
+    }
+}
+
 pub fn parent_dir_name(path: &str) -> String {
     let normalized = path.replace('\\', "/");
     let without_file = match normalized.rfind('/') {
@@ -500,8 +528,15 @@ pub fn read_jsonl_lines(
     Some(out)
 }
 
+/// A fixed fake home for root-resolution tests.
 #[cfg(test)]
-pub(crate) fn scratch_dir(tag: &str) -> PathBuf {
+pub(crate) fn test_home() -> std::path::PathBuf {
+    std::path::PathBuf::from("/home/u")
+}
+
+/// A fresh per-test scratch directory under the system temp dir.
+#[cfg(test)]
+pub(crate) fn scratch_dir(tag: &str) -> std::path::PathBuf {
     let base = std::env::temp_dir().join(format!(
         "skopli-{tag}-{}-{}",
         std::process::id(),

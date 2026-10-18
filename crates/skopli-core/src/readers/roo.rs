@@ -6,8 +6,8 @@ use serde_json::Value;
 
 use super::reader::{Reader, ReaderContext};
 use super::shared::{
-    ReaderResult, ReaderWarning, as_string, basename, dir_exists, finite_number, is_record,
-    list_files, parse_timestamp_to_iso, read_json,
+    ReaderResult, ReaderWarning, as_string, basename, dir_exists, dirname, finite_number,
+    is_record, list_files, parse_timestamp_to_iso, read_json,
 };
 use crate::types::{TokenCounts, UsageEvent};
 
@@ -151,15 +151,6 @@ fn model_for_task(task_dir: &str) -> String {
         }
     }
     model.unwrap_or_else(|| "unknown".to_owned())
-}
-
-/// The parent directory path (node `dirname`), `/`-normalized.
-fn dirname(path: &str) -> String {
-    let normalized = path.replace('\\', "/");
-    match normalized.rfind('/') {
-        Some(i) => normalized[..i].to_owned(),
-        None => String::new(),
-    }
 }
 
 /// Read a single task's `ui_messages.json`. Faithful port of `readTaskFile`

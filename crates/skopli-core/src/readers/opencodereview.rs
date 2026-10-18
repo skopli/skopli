@@ -5,7 +5,7 @@ use serde_json::Value;
 use super::reader::{Reader, ReaderContext};
 use super::shared::{
     JsonlLine, ReaderResult, ReaderWarning, as_string, dir_exists, file_mtime_iso, file_stem_name,
-    finite_number, is_record, list_files, parse_timestamp_to_iso, read_jsonl_lines,
+    is_record, list_files, optional_cell, parse_timestamp_to_iso, read_jsonl_lines, required_cell,
 };
 use crate::types::{TokenCounts, UsageEvent};
 
@@ -36,28 +36,6 @@ const UNKNOWN_MODEL: &str = "opencodereview-unknown";
 /// The sessions root: `<home>/.opencodereview/sessions`.
 pub fn opencodereview_sessions_root(home: &Path) -> PathBuf {
     home.join(".opencodereview").join("sessions")
-}
-
-/// An optional token cell (`cache_read_tokens`/`cache_write_tokens` are
-/// `omitempty` upstream). An absent or JSON-`null` cell is `0`; a populated
-/// cell that is not a non-negative finite number is invalid (`None`), which
-/// marks the whole record malformed. Mirrors the null-vs-populated-invalid
-/// split used by the cherrystudio reader.
-fn optional_cell(value: Option<&Value>) -> Option<u64> {
-    match value {
-        None | Some(Value::Null) => Some(0),
-        Some(v) => finite_number(v).filter(|n| *n >= 0.0).map(|n| n as u64),
-    }
-}
-
-/// A required token cell (`prompt_tokens`/`completion_tokens` are always
-/// written upstream). The cell must be populated with a non-negative finite
-/// number; an absent, `null`, or invalid cell marks the record malformed.
-fn required_cell(value: Option<&Value>) -> Option<u64> {
-    match value {
-        None | Some(Value::Null) => None,
-        Some(v) => finite_number(v).filter(|n| *n >= 0.0).map(|n| n as u64),
-    }
 }
 
 /// The outcome of parsing one `llm_response` usage map.
@@ -225,20 +203,8 @@ pub fn read_opencodereview(home: &Path) -> ReaderResult {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::readers::shared::scratch_dir;
     use std::fs;
-
-    fn tmp_dir(tag: &str) -> PathBuf {
-        let base = std::env::temp_dir().join(format!(
-            "skopli-ocr-test-{tag}-{}-{}",
-            std::process::id(),
-            std::time::SystemTime::now()
-                .duration_since(std::time::UNIX_EPOCH)
-                .unwrap()
-                .as_nanos()
-        ));
-        fs::create_dir_all(&base).unwrap();
-        base
-    }
 
     fn write_session(dir: &Path, repo: &str, name: &str, body: &str) {
         let repo_dir = dir.join(".opencodereview").join("sessions").join(repo);
@@ -257,7 +223,7 @@ mod tests {
 
     #[test]
     fn empty_home_yields_no_events_then_reads_after_sessions_appear() {
-        let dir = tmp_dir("presence");
+        let dir = scratch_dir("presence");
         assert!(read_opencodereview(&dir).events.is_empty());
         write_session(
             &dir,
@@ -277,7 +243,7 @@ mod tests {
 
     #[test]
     fn sums_each_llm_response_and_ignores_session_end_summary() {
-        let dir = tmp_dir("sum");
+        let dir = scratch_dir("sum");
         write_session(
             &dir,
             "-home-user-proj",
@@ -302,7 +268,7 @@ mod tests {
 
     #[test]
     fn llm_response_without_model_falls_back_to_session_model() {
-        let dir = tmp_dir("model-fallback");
+        let dir = scratch_dir("model-fallback");
         write_session(
             &dir,
             "-home-user-proj",
@@ -317,7 +283,7 @@ mod tests {
 
     #[test]
     fn zero_usage_lines_are_dropped() {
-        let dir = tmp_dir("zero");
+        let dir = scratch_dir("zero");
         write_session(
             &dir,
             "-home-user-proj",
@@ -330,7 +296,7 @@ mod tests {
 
     #[test]
     fn null_optional_cells_stay_zero_but_populated_invalid_cells_are_skipped() {
-        let dir = tmp_dir("malformed");
+        let dir = scratch_dir("malformed");
         write_session(
             &dir,
             "-home-user-proj",
@@ -364,7 +330,7 @@ mod tests {
 
     #[test]
     fn absent_or_null_required_cells_skip_the_record() {
-        let dir = tmp_dir("required");
+        let dir = scratch_dir("required");
         write_session(
             &dir,
             "-home-user-proj",
