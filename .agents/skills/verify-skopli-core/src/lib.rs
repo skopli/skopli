@@ -173,16 +173,18 @@ pub const PATTERNS: [Pattern; 8] = [
 /// The two shapes the time dimensions vary over: a full row and a clamped 1h split.
 pub const TIME_PATTERNS: [usize; 2] = [1, 3];
 
+/// Each keyed field gets its own prefix so a rollup that keys on the wrong
+/// field is told apart from one that keys on the right one.
 pub fn event(key: &str, instant: &str, p: &Pattern) -> UsageEvent {
     let [input, output, cache_read, cache_write, reasoning] = p.tokens;
     UsageEvent {
-        harness: key.to_owned(),
+        harness: format!("h{key}"),
         timestamp: instant.to_owned(),
-        session_id: key.to_owned(),
+        session_id: format!("s{key}"),
         message_id: "m".to_owned(),
         turn: p.turn,
         subagent: false,
-        model: key.to_owned(),
+        model: format!("m{key}"),
         tokens: TokenCounts {
             input,
             output,
@@ -193,7 +195,7 @@ pub fn event(key: &str, instant: &str, p: &Pattern) -> UsageEvent {
         },
         calls: p.calls,
         cost_usd: p.cost_usd,
-        workspace: Some(key.to_owned()),
+        workspace: Some(format!("w{key}")),
         title: None,
     }
 }
@@ -227,7 +229,8 @@ pub fn opts(by: RollupBy, tz: &str, block_ms: Option<i64>) -> RollupOptions {
 }
 
 /// The whole domain: keyed dimensions vary key and shape at one instant; day
-/// and block vary instant and shape under one key.
+/// and block vary instant and shape under one key. `Not/A_Zone` is the
+/// documented unknown-zone fallback to the UTC calendar date.
 pub fn cases() -> Vec<(Vec<UsageEvent>, RollupOptions)> {
     let keyed: Vec<UsageEvent> = KEYS
         .iter()
@@ -253,7 +256,7 @@ pub fn cases() -> Vec<(Vec<UsageEvent>, RollupOptions)> {
         }
     }
     for events in sequences(&timed) {
-        for tz in ["UTC", "America/New_York"] {
+        for tz in ["UTC", "America/New_York", "Not/A_Zone"] {
             out.push((events.clone(), opts(RollupBy::Day, tz, None)));
         }
         for width in BLOCK_WIDTHS {
@@ -279,7 +282,7 @@ pub fn expected_key(e: &UsageEvent, options: &RollupOptions) -> String {
         RollupBy::Harness => e.harness.clone(),
         RollupBy::Workspace => e.workspace.clone().expect("domain always sets workspace"),
         RollupBy::Day => match options.tz.as_deref() {
-            Some("UTC") => instant(e).day_utc,
+            Some("UTC" | "Not/A_Zone") => instant(e).day_utc,
             Some("America/New_York") => instant(e).day_ny,
             other => panic!("no day table for zone {other:?}"),
         }
@@ -483,8 +486,11 @@ pub fn describe(events: &[UsageEvent], options: &RollupOptions) -> String {
         .iter()
         .map(|e| {
             format!(
-                "{{key {} at {} tokens {:?} cacheWrite1h {:?} calls {:?} cost {:?} turn {}}}",
+                "{{harness/session/model/workspace {}/{}/{}/{} at {} tokens {:?} cacheWrite1h {:?} calls {:?} cost {:?} turn {}}}",
+                e.harness,
+                e.session_id,
                 e.model,
+                e.workspace.as_deref().unwrap_or("-"),
                 e.timestamp,
                 [
                     e.tokens.input,
