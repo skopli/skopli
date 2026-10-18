@@ -215,15 +215,28 @@ fn identity(raw: &Value, name: &str) -> Option<String> {
 /// The first parseable of startTime/timestamp/time re-serialized as ISO, else
 /// the fallback.
 fn timestamp(raw: &Value, fallback: &str) -> String {
-    for name in ["startTime", "timestamp", "time"] {
-        if let Some(value) = raw.get(name).and_then(as_string)
-            && let Some(ms) = date_parse_ms(value.trim())
-            && let Some(iso) = to_iso_string(ms)
-        {
-            return iso;
-        }
+    ["startTime", "timestamp", "time"]
+        .into_iter()
+        .filter_map(|name| raw.get(name))
+        .find_map(epoch_ms)
+        .and_then(to_iso_string)
+        .unwrap_or_else(|| fallback.to_owned())
+}
+
+/// An ISO 8601 string or the OTel JS SDK's hrtime tuple `[seconds, nanos]`
+/// (the file exporter's span time shape) as epoch milliseconds.
+fn epoch_ms(value: &Value) -> Option<i64> {
+    match value {
+        Value::String(s) => date_parse_ms(s.trim()),
+        Value::Array(parts) => match parts.as_slice() {
+            [seconds, nanos] => seconds
+                .as_i64()?
+                .checked_mul(1000)?
+                .checked_add(nanos.as_i64()? / 1_000_000),
+            _ => None,
+        },
+        _ => None,
     }
-    fallback.to_owned()
 }
 
 /// A parsed OTel usage candidate before source-priority selection.
@@ -555,6 +568,21 @@ mod tests {
             .map(|e| (e.session_id.as_str(), e.message_id.as_str()))
             .collect();
         assert_eq!(ids, vec![("sess-1", "sess-1:rec-2"), ("sess-2", "t2:s1")]);
+    }
+
+    #[test]
+    fn otel_hrtime_start_time_is_the_event_timestamp() {
+        let home = scratch_dir("copilot-otel-hrtime");
+        write(
+            &home,
+            ".copilot/otel",
+            r#"{"type":"span","name":"chat qwen","traceId":"t1","spanId":"s1","startTime":[1792350001,747000000],"endTime":[1792350126,755000000],"attributes":{"gen_ai.operation.name":"chat","gen_ai.request.model":"qwen","gen_ai.conversation.id":"sess-1","gen_ai.usage.input_tokens":11465,"gen_ai.usage.output_tokens":10,"gen_ai.usage.cache_read.input_tokens":5,"gen_ai.response.model":"qwen"}}
+"#,
+        );
+        let result = read(&home);
+        assert!(result.warnings.is_empty(), "{:?}", result.warnings);
+        assert_eq!(result.events.len(), 1);
+        assert_eq!(result.events[0].timestamp, "2026-10-18T19:00:01.747Z");
     }
 
     #[test]
