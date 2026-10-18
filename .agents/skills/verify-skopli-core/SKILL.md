@@ -19,8 +19,9 @@ cargo test --release --manifest-path .agents/skills/verify-skopli-core/Cargo.tom
 
 The tool is `cargo test` on the toolchain pinned by `rust-toolchain.toml` (Rust 1.89.0).
 Node 24 is required because one test runs `src/rollup.ts` directly through Node's TypeScript support.
-The run takes under a minute after the first build and about five seconds of that is the check itself.
-The crate has its own `Cargo.lock`; the Rust core is a path dependency, so the check always runs against the working tree.
+The run takes under a minute after the first build and about ten seconds of that is the check itself.
+The Rust core is a path dependency, so the check always runs against the working tree.
+The crate has its own `Cargo.lock`, seeded from the root `Cargo.lock` so the harness builds the core against the same `jiff` and bundled tzdb that ship; when the root lock changes, copy it over this one and let `cargo` prune it on the next run.
 
 ## What is checked
 
@@ -31,25 +32,28 @@ Three tests live in `tests/rollup.rs`; the domain and the properties live in `sr
 1. Conservation.
    Every token counter, the clamped `cacheWrite1h`, `events`, `turns`, `calls` (absent means one) and finite `costUsd` sum to exactly the same value over the rows as over the input, and no row has `cacheWrite1h` above its `cacheWrite`.
 2. Keyed rows.
-   For `model`, `session`, `harness`, `workspace` and `day`, the row keys are the distinct keys of the input in ascending byte order, each row holds exactly the events with its key, and `cacheWrite1h` and `costUsd` are present on a row exactly when one of its events carried them.
+   For `model`, `session`, `harness`, `workspace` and `day`, the row keys are the distinct expected keys of the input in ascending byte order, each row holds exactly the events with its key, `cacheWrite1h` is present on a row exactly when one of its events carried it, and `costUsd` exactly when one of its events carried a finite cost.
+   The expected key is the event's own field for the four named dimensions and a literal calendar table in `INSTANTS` for `day`, so nothing in the expectation comes from the crate under test.
 3. Blocks.
-   For `block`, the rows equal an executable spec written from `golden/rollup-block/README.md`: sort by instant, open a block at the first event floored to the hour, keep events while `ms < start + width`, send unparseable instants to one trailing `invalid-date` row, fall back to five hours for a missing or non-positive width.
-   Block keys must also be on the hour and strictly ascending.
+   For `block`, the rows equal an executable spec written from `golden/rollup-block/README.md`: sort by instant, open a block at the first event floored to the hour, keep events while `ms < start + width`, send unparseable instants to one trailing `invalid-date` row, fall back to `18000000` ms for a missing or non-positive width.
+   The spec takes each instant's epoch milliseconds and hour-floor key from the same literal table, so a parser or formatter regression in the core shows up as a spec mismatch.
+   Block keys must also be strictly ascending.
 
-`rollup_agrees_with_the_typescript_facade` sends the same cases through `src/rollup.ts` and requires identical JSON rows, numbers compared as floats.
+`rollup_agrees_with_the_typescript_facade` pipes the same cases over stdin to `src/rollup.ts` and requires identical JSON rows, numbers compared as floats.
+Non-finite costs travel as the strings `"NaN"` and `"Infinity"` and are revived to numbers before the TypeScript rollup runs, so its finite filter sees real non-finite values.
 
 `counters_near_u64_max_do_not_wrap` is one directed case: two events whose `input` counters together exceed `u64::MAX`.
 
 ## Bounds
 
-- At most three events per case, with repetition, so 78,385 cases in total.
+- At most three events per case, with repetition, so 100,925 cases in total.
 - Keyed dimensions vary over three keys and eight token, calls, cost and turn shapes at one instant.
-- `day` and `block` vary over seven instants around the hour, day and five-hour edges, one unparseable instant, and two shapes, in `UTC` and `America/New_York` for `day` and `UTC` for `block`.
+- `day` and `block` vary over eight instants around the UTC hour, day and five-hour edges and the New York midnight (`04:59:59.999Z` and `05:00:00.000Z` on a date where New York is on EST), one unparseable instant, and two shapes, in `UTC` and `America/New_York` for `day` and `UTC` for `block`.
 - Block widths: absent, zero, one hour, ninety minutes and thirty minutes.
 - Counters go up to `2^40` so every sum is exact in a 64-bit float on the TypeScript side.
 - Costs are dyadic fractions plus `Infinity` and `NaN`, so sums are exact and the finite filter is exercised.
 
-Not covered: workspace fallback to a non-workspace key, negative epochs, offsets other than `Z`, more than three events, non-UTC block zones, and the readers that produce events.
+Not covered: workspace fallback to a non-workspace key, negative epochs, offsets other than `Z`, more than three events, non-UTC block zones, daylight-saving transitions, and the readers that produce events.
 
 ## Assumptions
 
@@ -69,7 +73,7 @@ Fix the model, state why in the commit, and rerun.
 
 The check currently fails on two real findings and on nothing else:
 
-- `block keys repeat or go backwards`: a block width below one hour yields several rows with the same key, because every block start is floored to the hour while the window is shorter than an hour.
+- `block order: keys repeat or go backwards`: a block width below one hour yields several rows with the same key, because every block start is floored to the hour while the window is shorter than an hour.
   Two events at `22:30` with a thirty-minute width produce two `22:00` rows.
   Rust and TypeScript agree, so the parity test stays green.
 - `counters_near_u64_max_do_not_wrap`: the core adds `u64` counters unchecked, so a sum past `u64::MAX` panics in a debug build and wraps in a release build.
@@ -78,10 +82,12 @@ When these are fixed in the core, the run goes fully green and this section shou
 
 ## When the verified code changes on purpose
 
-- A new rollup dimension: add it to the `by` list in `cases()` and extend `rollup_key` coverage in `check_keyed`.
+- A new rollup dimension: add it to the `by` list in `cases()` and a matching arm to `expected_key`.
 - A new counter on `TokenCounts` or `Rollup`: add it to `Pattern`, `event()`, the `pairs` table in `check_conservation` and the parity JSON if it is optional.
-- A change to the block rule: update `block_spec` and `golden/rollup-block/README.md` in the same change, in that order of authority.
-- A change to the timestamp grammar: add the new accepted and rejected forms to `INSTANTS`.
+- A change to the block rule or the default width: update `block_spec` and `golden/rollup-block/README.md` in the same change, in that order of authority.
+- A change to the timestamp grammar: add the new accepted and rejected forms to `INSTANTS`, each with its epoch milliseconds, hour floor and day keys worked out by hand.
+- A new day zone: add a column to `Instant` and an arm to `expected_key`.
+- A non-UTC block zone: `block_spec` floors in UTC and `Instant.hour` holds the UTC hour, so add a per-zone hour column and pass the zone into `block_spec` before adding the zone to `cases()`; until then such a case fails as a modeling error, not a finding.
 - A change to the clamp, the finite-cost rule or the absent-calls default: update the matching line in `check_conservation` and say in the commit which promise changed.
 
 Keep the domain small enough that a run stays under a minute; widen a single dimension rather than all of them.

@@ -1,6 +1,7 @@
 use std::collections::BTreeMap;
+use std::io::Write;
 use std::path::Path;
-use std::process::Command;
+use std::process::{Command, Stdio};
 
 use serde_json::Value;
 use skopli_core::rollup::{RollupBy, rollup};
@@ -19,22 +20,24 @@ fn as_floats(value: &Value) -> Value {
     }
 }
 
-/// Keep the first counterexample per distinct failure message.
+/// Group failures by the text before the first `:` and keep the first
+/// counterexample of each class.
 fn report(failures: Vec<(String, String)>, total: usize) {
-    let mut first: BTreeMap<String, (String, usize)> = BTreeMap::new();
+    let mut first: BTreeMap<String, (String, String, usize)> = BTreeMap::new();
     for (message, case) in failures {
+        let class = message.split(':').next().unwrap().to_owned();
         first
-            .entry(message)
-            .and_modify(|e| e.1 += 1)
-            .or_insert((case, 1));
+            .entry(class)
+            .and_modify(|e| e.2 += 1)
+            .or_insert((message, case, 1));
     }
     assert!(
         first.is_empty(),
         "{} of {total} cases failed:\n{}",
-        first.values().map(|v| v.1).sum::<usize>(),
+        first.values().map(|v| v.2).sum::<usize>(),
         first
             .iter()
-            .map(|(m, (c, n))| format!("- {m} ({n} cases), first: {c}"))
+            .map(|(class, (m, c, n))| format!("- {class} ({n} cases), first: {m}\n  {c}"))
             .collect::<Vec<_>>()
             .join("\n")
     );
@@ -46,13 +49,26 @@ fn rollup_keeps_its_promises_on_every_case() {
     let failures: Vec<(String, String)> = cases
         .iter()
         .filter_map(|(events, options)| {
-            check(events, options).err().map(|m| {
-                let rows = serde_json::to_string(&rollup(events, options)).unwrap();
+            let out = rollup(events, options);
+            check(events, options, &out).err().map(|m| {
+                let rows = serde_json::to_string(&out).unwrap();
                 (m, format!("{}\n  rows: {rows}", describe(events, options)))
             })
         })
         .collect();
     report(failures, cases.len());
+}
+
+/// Serialize the events with non-finite costs as the strings `"NaN"` and
+/// `"Infinity"`, which JSON cannot carry as numbers; `ts-rollup.mjs` revives them.
+fn events_json(events: &[skopli_core::types::UsageEvent]) -> Value {
+    let mut values = serde_json::to_value(events).unwrap();
+    for (value, event) in values.as_array_mut().unwrap().iter_mut().zip(events) {
+        if let Some(cost) = event.cost_usd.filter(|c| !c.is_finite()) {
+            value["costUsd"] = Value::from(if cost.is_nan() { "NaN" } else { "Infinity" });
+        }
+    }
+    values
 }
 
 #[test]
@@ -66,17 +82,24 @@ fn rollup_agrees_with_the_typescript_facade() {
             if let Some(ms) = o.block_ms {
                 options["blockMs"] = Value::from(ms);
             }
-            serde_json::json!({ "events": events, "options": options })
+            serde_json::json!({ "events": events_json(events), "options": options })
         })
         .collect();
-    let dir = Path::new(env!("CARGO_MANIFEST_DIR"));
-    let file = std::env::temp_dir().join("verify-skopli-core-cases.json");
-    std::fs::write(&file, serde_json::to_vec(&input).unwrap()).unwrap();
-    let run = Command::new("node")
-        .arg(dir.join("ts-rollup.mjs"))
-        .arg(&file)
-        .output()
+    let script = Path::new(env!("CARGO_MANIFEST_DIR")).join("ts-rollup.mjs");
+    let mut child = Command::new("node")
+        .arg(script)
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
         .expect("node 24 must be on PATH");
+    child
+        .stdin
+        .take()
+        .unwrap()
+        .write_all(&serde_json::to_vec(&input).unwrap())
+        .unwrap();
+    let run = child.wait_with_output().unwrap();
     assert!(
         run.status.success(),
         "ts-rollup.mjs failed: {}",
@@ -91,7 +114,7 @@ fn rollup_agrees_with_the_typescript_facade() {
             let rust = serde_json::to_value(rollup(events, options)).unwrap();
             (as_floats(&rust) != as_floats(ts_out)).then(|| {
                 (
-                    format!("rust and typescript differ for {:?}", options.by),
+                    format!("parity: rust and typescript differ for {:?}", options.by),
                     format!(
                         "{}\n  rust: {rust}\n  ts:   {ts_out}",
                         describe(events, options)
@@ -111,8 +134,8 @@ fn counters_near_u64_max_do_not_wrap() {
     let mut big = PATTERNS[1];
     big.tokens = [u64::MAX, 0, 0, 0, 0];
     let events = [
-        event("a", INSTANTS[0], &big),
-        event("a", INSTANTS[0], &PATTERNS[1]),
+        event("a", INSTANTS[0].iso, &big),
+        event("a", INSTANTS[0].iso, &PATTERNS[1]),
     ];
     let out = rollup(&events, &opts(RollupBy::Model, "UTC", None));
     check_conservation(&events, &out).unwrap_or_else(|m| panic!("{m}"));

@@ -1,28 +1,102 @@
 //! Bounded exhaustive check of `skopli_core::rollup`: every sequence of up to
 //! `MAX_EVENTS` events drawn from the finite domain below is rolled up, and the
 //! result is checked against the promises in `.agents/skills/verify-skopli-core/SKILL.md`.
+//! Expected keys and instants are literals worked out from the calendar, never
+//! from the crate under test.
 
-use skopli_core::readers::shared::date_parse_ms;
-use skopli_core::rollup::{DEFAULT_BLOCK_MS, Rollup, RollupBy, RollupOptions, rollup, rollup_key};
-use skopli_core::time::to_iso_string;
+use skopli_core::rollup::{Rollup, RollupBy, RollupOptions};
 use skopli_core::types::{TokenCounts, UsageEvent};
 
 pub const MAX_EVENTS: usize = 3;
 pub const KEYS: [&str; 3] = ["b", "a", "c"];
-/// Instants around the hour, day and five-hour block edges, plus one that does not parse.
-pub const INSTANTS: [&str; 7] = [
-    "2026-03-01T22:30:00.000Z",
-    "2026-03-01T22:59:59.999Z",
-    "2026-03-01T23:00:00.000Z",
-    "2026-03-02T00:00:00.000Z",
-    "2026-03-02T03:59:59.999Z",
-    "2026-03-02T04:00:00.000Z",
-    "not-a-date",
+pub const HOUR_MS: i64 = 3_600_000;
+/// The five-hour default from `golden/rollup-block/README.md`.
+pub const DEFAULT_BLOCK_MS: i64 = 18_000_000;
+
+/// One timestamp with its epoch milliseconds, UTC hour floor and calendar day
+/// in each zone, all written by hand. New York is on EST (UTC-5) on these dates.
+#[derive(Clone, Copy)]
+pub struct Instant {
+    pub iso: &'static str,
+    pub ms: Option<i64>,
+    pub hour: &'static str,
+    pub day_utc: &'static str,
+    pub day_ny: &'static str,
+}
+
+const INVALID: &str = "invalid-date";
+
+/// Instants around the UTC hour, day and five-hour block edges, the New York
+/// midnight, and one that does not parse.
+pub const INSTANTS: [Instant; 9] = [
+    Instant {
+        iso: "2026-03-01T22:30:00.000Z",
+        ms: Some(1_772_404_200_000),
+        hour: "2026-03-01T22:00:00.000Z",
+        day_utc: "2026-03-01",
+        day_ny: "2026-03-01",
+    },
+    Instant {
+        iso: "2026-03-01T22:59:59.999Z",
+        ms: Some(1_772_405_999_999),
+        hour: "2026-03-01T22:00:00.000Z",
+        day_utc: "2026-03-01",
+        day_ny: "2026-03-01",
+    },
+    Instant {
+        iso: "2026-03-01T23:00:00.000Z",
+        ms: Some(1_772_406_000_000),
+        hour: "2026-03-01T23:00:00.000Z",
+        day_utc: "2026-03-01",
+        day_ny: "2026-03-01",
+    },
+    Instant {
+        iso: "2026-03-02T00:00:00.000Z",
+        ms: Some(1_772_409_600_000),
+        hour: "2026-03-02T00:00:00.000Z",
+        day_utc: "2026-03-02",
+        day_ny: "2026-03-01",
+    },
+    Instant {
+        iso: "2026-03-02T03:59:59.999Z",
+        ms: Some(1_772_423_999_999),
+        hour: "2026-03-02T03:00:00.000Z",
+        day_utc: "2026-03-02",
+        day_ny: "2026-03-01",
+    },
+    Instant {
+        iso: "2026-03-02T04:00:00.000Z",
+        ms: Some(1_772_424_000_000),
+        hour: "2026-03-02T04:00:00.000Z",
+        day_utc: "2026-03-02",
+        day_ny: "2026-03-01",
+    },
+    Instant {
+        iso: "2026-03-02T04:59:59.999Z",
+        ms: Some(1_772_427_599_999),
+        hour: "2026-03-02T04:00:00.000Z",
+        day_utc: "2026-03-02",
+        day_ny: "2026-03-01",
+    },
+    Instant {
+        iso: "2026-03-02T05:00:00.000Z",
+        ms: Some(1_772_427_600_000),
+        hour: "2026-03-02T05:00:00.000Z",
+        day_utc: "2026-03-02",
+        day_ny: "2026-03-02",
+    },
+    Instant {
+        iso: "not-a-date",
+        ms: None,
+        hour: INVALID,
+        day_utc: INVALID,
+        day_ny: INVALID,
+    },
 ];
 pub const BLOCK_WIDTHS: [Option<i64>; 5] = [
     None,
     Some(0),
-    Some(3_600_000),
+    Some(HOUR_MS),
     Some(5_400_000),
     Some(1_800_000),
 ];
@@ -157,11 +231,15 @@ pub fn opts(by: RollupBy, tz: &str, block_ms: Option<i64>) -> RollupOptions {
 pub fn cases() -> Vec<(Vec<UsageEvent>, RollupOptions)> {
     let keyed: Vec<UsageEvent> = KEYS
         .iter()
-        .flat_map(|k| PATTERNS.iter().map(|p| event(k, INSTANTS[0], p)))
+        .flat_map(|k| PATTERNS.iter().map(|p| event(k, INSTANTS[0].iso, p)))
         .collect();
     let timed: Vec<UsageEvent> = INSTANTS
         .iter()
-        .flat_map(|t| TIME_PATTERNS.iter().map(|&i| event("k", t, &PATTERNS[i])))
+        .flat_map(|t| {
+            TIME_PATTERNS
+                .iter()
+                .map(|&i| event("k", t.iso, &PATTERNS[i]))
+        })
         .collect();
     let mut out = Vec::new();
     for events in sequences(&keyed) {
@@ -183,6 +261,31 @@ pub fn cases() -> Vec<(Vec<UsageEvent>, RollupOptions)> {
         }
     }
     out
+}
+
+fn instant(e: &UsageEvent) -> &'static Instant {
+    INSTANTS
+        .iter()
+        .find(|i| i.iso == e.timestamp)
+        .expect("every event timestamp is in INSTANTS")
+}
+
+/// The key the documentation promises for `e`, from the event's own fields and
+/// the literal day table.
+pub fn expected_key(e: &UsageEvent, options: &RollupOptions) -> String {
+    match options.by {
+        RollupBy::Model => e.model.clone(),
+        RollupBy::Session => e.session_id.clone(),
+        RollupBy::Harness => e.harness.clone(),
+        RollupBy::Workspace => e.workspace.clone().expect("domain always sets workspace"),
+        RollupBy::Day => match options.tz.as_deref() {
+            Some("UTC") => instant(e).day_utc,
+            Some("America/New_York") => instant(e).day_ny,
+            other => panic!("no day table for zone {other:?}"),
+        }
+        .to_owned(),
+        RollupBy::Block => panic!("block keys come from block_spec"),
+    }
 }
 
 fn sum<T: Into<u128>>(items: impl Iterator<Item = T>) -> u128 {
@@ -228,7 +331,10 @@ pub fn check_conservation(events: &[UsageEvent], out: &[Rollup]) -> Result<(), S
             .cache_write1h
             .is_some_and(|v| v > r.tokens.cache_write)
     }) {
-        return Err(format!("row {} has cacheWrite1h above cacheWrite", r.key));
+        return Err(format!(
+            "cacheWrite1h clamp: row {} has cacheWrite1h above cacheWrite",
+            r.key
+        ));
     }
     if sum(out.iter().map(|r| r.events)) != events.len() as u128 {
         return Err("events: row count differs from input count".to_owned());
@@ -237,8 +343,11 @@ pub fn check_conservation(events: &[UsageEvent], out: &[Rollup]) -> Result<(), S
         return Err("turns: rows do not count the turn flags".to_owned());
     }
     let want_calls = sum(events.iter().map(|e| e.calls.unwrap_or(1)));
-    if sum(out.iter().map(|r| r.calls)) != want_calls {
-        return Err(format!("calls: events sum to {want_calls}"));
+    let got_calls = sum(out.iter().map(|r| r.calls));
+    if want_calls != got_calls {
+        return Err(format!(
+            "calls: events sum to {want_calls}, rows sum to {got_calls}"
+        ));
     }
     let want_cost: f64 = events.iter().filter_map(finite_cost).sum();
     let got_cost: f64 = out.iter().filter_map(|r| r.cost_usd).sum();
@@ -250,14 +359,14 @@ pub fn check_conservation(events: &[UsageEvent], out: &[Rollup]) -> Result<(), S
     Ok(())
 }
 
-/// Promise 2: keyed rows are the distinct keys in ascending byte order, and each
-/// row holds exactly the events with its key.
+/// Promise 2: keyed rows are the distinct expected keys in ascending byte
+/// order, and each row holds exactly the events with its key.
 pub fn check_keyed(
     events: &[UsageEvent],
     options: &RollupOptions,
     out: &[Rollup],
 ) -> Result<(), String> {
-    let mut want: Vec<String> = events.iter().map(|e| rollup_key(e, options)).collect();
+    let mut want: Vec<String> = events.iter().map(|e| expected_key(e, options)).collect();
     want.sort();
     want.dedup();
     let got: Vec<&str> = out.iter().map(|r| r.key.as_str()).collect();
@@ -267,11 +376,11 @@ pub fn check_keyed(
     for r in out {
         let mine: Vec<&UsageEvent> = events
             .iter()
-            .filter(|e| rollup_key(e, options) == r.key)
+            .filter(|e| expected_key(e, options) == r.key)
             .collect();
         if r.events as usize != mine.len() {
             return Err(format!(
-                "row {}: {} events, {} share the key",
+                "row events: row {} has {} events, {} share the key",
                 r.key,
                 r.events,
                 mine.len()
@@ -280,13 +389,13 @@ pub fn check_keyed(
         if r.tokens.cache_write1h.is_some() != mine.iter().any(|e| e.tokens.cache_write1h.is_some())
         {
             return Err(format!(
-                "row {}: cacheWrite1h presence differs from its events",
+                "cacheWrite1h presence: row {} differs from its events",
                 r.key
             ));
         }
         if r.cost_usd.is_some() != mine.iter().any(|e| finite_cost(e).is_some()) {
             return Err(format!(
-                "row {}: costUsd presence differs from its events",
+                "costUsd presence: row {} differs from its events",
                 r.key
             ));
         }
@@ -300,30 +409,32 @@ pub fn check_keyed(
 /// trailing `invalid-date` row.
 pub fn block_spec(events: &[UsageEvent], width: Option<i64>) -> Vec<(String, u64)> {
     let width = width.filter(|w| *w > 0).unwrap_or(DEFAULT_BLOCK_MS);
-    let mut parsed: Vec<Option<i64>> = events.iter().map(|e| date_parse_ms(&e.timestamp)).collect();
-    parsed.sort();
+    let mut parsed: Vec<(i64, &Instant)> = events
+        .iter()
+        .map(instant)
+        .filter_map(|i| i.ms.map(|ms| (ms, i)))
+        .collect();
+    parsed.sort_by_key(|(ms, _)| *ms);
     let mut rows: Vec<(String, u64)> = Vec::new();
     let mut end: Option<i64> = None;
-    for ms in parsed.into_iter().flatten() {
+    for (ms, i) in parsed {
         if end.is_none_or(|end| ms >= end) {
-            let start = ms - ms.rem_euclid(3_600_000);
+            let start = ms - ms.rem_euclid(HOUR_MS);
             end = Some(start.saturating_add(width));
-            rows.push((to_iso_string(start).expect("in range"), 0));
+            rows.push((i.hour.to_owned(), 0));
         }
         rows.last_mut().expect("open block").1 += 1;
     }
-    let invalid = events
-        .iter()
-        .filter(|e| date_parse_ms(&e.timestamp).is_none())
-        .count() as u64;
+    let invalid = events.iter().filter(|e| instant(e).ms.is_none()).count() as u64;
     if invalid > 0 {
-        rows.push(("invalid-date".to_owned(), invalid));
+        rows.push((INVALID.to_owned(), invalid));
     }
     rows
 }
 
 /// Promise 3: block rows match the documented rule and carry distinct,
-/// ascending, hour-aligned keys.
+/// ascending keys. Matching the spec already pins every key to a literal
+/// hour-floor instant, so the order check compares the ISO strings bytewise.
 pub fn check_block(
     events: &[UsageEvent],
     options: &RollupOptions,
@@ -334,24 +445,23 @@ pub fn check_block(
     if want != got {
         return Err(format!("blocks: spec gives {want:?}, rollup gives {got:?}"));
     }
-    let starts: Vec<i64> = out.iter().filter_map(|r| date_parse_ms(&r.key)).collect();
-    if let Some(bad) = starts.iter().find(|s| s.rem_euclid(3_600_000) != 0) {
-        return Err(format!("block start {bad} is not on the hour"));
-    }
+    let starts: Vec<&str> = out
+        .iter()
+        .map(|r| r.key.as_str())
+        .filter(|k| *k != INVALID)
+        .collect();
     if starts.windows(2).any(|w| w[0] >= w[1]) {
-        return Err("block keys repeat or go backwards".to_owned());
+        return Err("block order: keys repeat or go backwards".to_owned());
     }
     Ok(())
 }
 
-pub fn check(events: &[UsageEvent], options: &RollupOptions) -> Result<Vec<Rollup>, String> {
-    let out = rollup(events, options);
-    check_conservation(events, &out)?;
+pub fn check(events: &[UsageEvent], options: &RollupOptions, out: &[Rollup]) -> Result<(), String> {
+    check_conservation(events, out)?;
     match options.by {
-        RollupBy::Block => check_block(events, options, &out)?,
-        _ => check_keyed(events, options, &out)?,
+        RollupBy::Block => check_block(events, options, out),
+        _ => check_keyed(events, options, out),
     }
-    Ok(out)
 }
 
 pub fn describe(events: &[UsageEvent], options: &RollupOptions) -> String {
