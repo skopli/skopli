@@ -158,8 +158,10 @@ pub fn gajae_sessions_roots(
 }
 
 /// Resolve the Kimchi Coding sessions roots: `<agent dir>/sessions`, where the
-/// agent dir is `KIMCHI_CODING_AGENT_DIR` or `~/.config/kimchi/harness`.
-/// `~/.pi/agent/sessions` belongs to pi and is never read here.
+/// agent dir is `KIMCHI_CODING_AGENT_DIR` or `~/.config/kimchi/harness`. The
+/// variable is the value kimchi exports to its subprocesses; honouring it is a
+/// skopli override, not a kimchi relocation knob. `~/.pi/agent/sessions`
+/// belongs to pi and is never read here.
 pub fn kimchi_sessions_roots(agent_dir: Option<&str>, home: &Path) -> Vec<PathBuf> {
     let agent_dir = match agent_dir.filter(|v| !v.is_empty()) {
         Some(v) => PathBuf::from(v),
