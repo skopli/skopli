@@ -124,6 +124,12 @@ It never kills by name and never touches `.verify/evidence/`.
 Run it after every drive, including failed ones, so no preview server or port is left behind.
 Build outputs (`web/*/dist`, `native/`, `dist/`) stay in place; they are ordinary gitignored build artifacts.
 
+## Core arithmetic
+
+This skill replays one golden case through the facade; it does not check that `rollup()` is right for inputs the corpus never saw.
+For a change to `crates/skopli-core/src/rollup.rs`, `src/rollup.ts`, the shared timestamp parser or the ISO formatter, run `.agents/skills/verify-skopli-core/SKILL.md` as well.
+It checks every input in a small finite domain against the documented promises and against the TypeScript twin in under a minute.
+
 ## Helpers
 
 | Script                | Invocation                                                                          | Purpose                                                               |
