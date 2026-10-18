@@ -14,8 +14,9 @@ use crate::types::{TokenCounts, UsageEvent};
 
 /// The DeepSeek Harness reader wired into the harness registry. DeepSeek
 /// Harness stores each session as an append-only JSONL event log under
-/// `~/.dsh/<project>/<session>/session.jsonl`, optionally Zstandard-compressed
-/// as `session.jsonl.zstd`. The first line is a `{type:'session', id,
+/// `~/.dsh/<project>/<session>/session.jsonl` (or a versioned
+/// `session.vN.jsonl`), optionally Zstandard-compressed as `.zstd` with one
+/// frame appended per flush. The first line is a `{type:'session', id,
 /// createdAt, parentSession?, origin?, ...}` header; every later line is a
 /// `{type, seq, time, data}` event, each carrying its own epoch-millisecond
 /// `time`. Token usage rides the finalized `assistant/message` events
@@ -162,10 +163,6 @@ fn dedup_key(session_id: &str, seq: Option<&Value>) -> Option<String> {
     Some(format!("{session_id}:{}", seq as u64))
 }
 
-/// Read the raw bytes of a `session.jsonl` (plaintext) or `session.jsonl.zstd`
-/// (Zstandard) file to a UTF-8 string. A missing/unreadable file or a
-/// malformed/truncated zstd stream yields `None`, which the caller turns into
-/// the standard file-level malformed diagnostic.
 /// `session.jsonl`, `session.v4.jsonl`, and their `.zstd` forms.
 fn is_session_log(name: &str) -> bool {
     let name = name.strip_suffix(".zstd").unwrap_or(name);
@@ -181,31 +178,46 @@ fn is_session_log(name: &str) -> bool {
     }
 }
 
-fn read_log_text(file: &str) -> Option<String> {
+/// The decoded text of a session log and whether a trailing zstd frame failed
+/// to decode (the text then holds only the frames before it).
+struct LogText {
+    text: String,
+    truncated: bool,
+}
+
+/// Read a plaintext or `.zstd` session log to UTF-8. A missing or unreadable
+/// file, or a zstd stream with no decodable frame, yields `None`, which the
+/// caller turns into the file-level malformed diagnostic.
+fn read_log_text(file: &str) -> Option<LogText> {
     let bytes = std::fs::read(file).ok()?;
-    if file.ends_with(".zstd") {
-        String::from_utf8(decode_zstd_frames(&bytes)?).ok()
+    let (bytes, truncated) = if file.ends_with(".zstd") {
+        decode_zstd_frames(&bytes)
     } else {
-        String::from_utf8(bytes).ok()
+        (bytes, false)
+    };
+    if bytes.is_empty() && truncated {
+        return None;
     }
+    let text = String::from_utf8(bytes).ok()?;
+    Some(LogText { text, truncated })
 }
 
 /// Decode every frame of a zstd stream. The recorder appends one frame per
 /// flush, and `StreamingDecoder` stops after the first, so decode until the
 /// input is exhausted. A frame that fails to decode ends the stream; whatever
-/// decoded before it is kept, so a half-written tail does not hide the rest.
-fn decode_zstd_frames(bytes: &[u8]) -> Option<Vec<u8>> {
+/// decoded before it is kept and the failure is reported as the second value.
+fn decode_zstd_frames(bytes: &[u8]) -> (Vec<u8>, bool) {
     let mut cursor = std::io::Cursor::new(bytes);
     let mut out = Vec::new();
     while (cursor.position() as usize) < bytes.len() {
-        let Ok(mut decoder) = ruzstd::decoding::StreamingDecoder::new(&mut cursor) else {
-            break;
-        };
-        if decoder.read_to_end(&mut out).is_err() {
-            break;
+        let decoded = ruzstd::decoding::StreamingDecoder::new(&mut cursor)
+            .ok()
+            .and_then(|mut decoder| decoder.read_to_end(&mut out).ok());
+        if decoded.is_none() {
+            return (out, true);
         }
     }
-    (!out.is_empty()).then_some(out)
+    (out, false)
 }
 
 /// Read one session log (already decompressed to text) into usage events.
@@ -218,16 +230,18 @@ fn read_session(
     seen: &mut HashSet<String>,
 ) -> Vec<UsageEvent> {
     let mut events: Vec<UsageEvent> = Vec::new();
-    let text = match read_log_text(file) {
-        Some(t) => t,
-        None => {
-            warnings.push(ReaderWarning {
-                message: format!("skipping malformed {HARNESS} file {file}\n"),
-            });
-            skipped.push(file.to_owned());
-            return events;
-        }
+    let Some(LogText { text, truncated }) = read_log_text(file) else {
+        warnings.push(ReaderWarning {
+            message: format!("skipping malformed {HARNESS} file {file}\n"),
+        });
+        skipped.push(file.to_owned());
+        return events;
     };
+    if truncated {
+        warnings.push(ReaderWarning {
+            message: format!("skipping undecodable tail of {HARNESS} file {file}\n"),
+        });
+    }
 
     let mut header = SessionHeader::default();
     let fallback_id = super::shared::parent_dir_name(file);
@@ -813,39 +827,62 @@ mod tests {
         fs::remove_dir_all(&dir).ok();
     }
 
-    #[test]
-    fn every_zstd_frame_of_an_appended_log_is_read() {
-        // Two frames written by the reference `zstd` CLI and concatenated, as
-        // the recorder appends one frame per flush: the header line, then one
-        // `assistant/message` with usage.
-        const FRAMES: &[u8] = &[
-            40, 181, 47, 253, 36, 93, 157, 2, 0, 162, 132, 17, 25, 112, 85, 117, 242, 1, 109, 33,
-            50, 22, 133, 164, 85, 21, 187, 23, 201, 160, 48, 213, 164, 9, 80, 17, 136, 3, 65, 224,
-            203, 107, 136, 152, 126, 19, 77, 118, 29, 86, 173, 177, 199, 22, 4, 162, 210, 186, 76,
-            26, 75, 133, 155, 93, 159, 132, 230, 174, 187, 154, 157, 235, 155, 231, 98, 228, 248,
-            117, 134, 143, 60, 32, 3, 0, 121, 42, 60, 159, 91, 180, 45, 77, 13, 37, 163, 127, 40,
-            181, 47, 253, 100, 20, 0, 197, 5, 0, 194, 204, 38, 32, 80, 105, 219, 6, 102, 98, 165,
-            149, 14, 235, 182, 200, 70, 148, 255, 107, 132, 24, 51, 214, 50, 111, 241, 31, 81, 120,
-            192, 201, 76, 69, 12, 12, 0, 239, 189, 3, 210, 37, 88, 4, 69, 149, 99, 130, 40, 109,
-            214, 199, 4, 209, 142, 29, 17, 1, 227, 200, 243, 90, 5, 43, 104, 199, 172, 148, 80,
-            118, 199, 247, 190, 86, 97, 241, 196, 235, 162, 74, 61, 223, 22, 165, 4, 214, 152, 227,
-            213, 34, 182, 60, 143, 86, 82, 40, 205, 49, 62, 30, 24, 228, 123, 109, 47, 166, 28,
-            175, 88, 123, 147, 204, 54, 31, 79, 126, 53, 215, 111, 242, 218, 138, 142, 136, 99, 56,
-            199, 145, 24, 7, 195, 0, 114, 242, 187, 164, 62, 26, 39, 191, 88, 62, 126, 19, 202,
-            188, 75, 64, 47, 109, 78, 204, 250, 252, 50, 11, 253, 38, 9, 0, 58, 201, 71, 106, 31,
-            55, 173, 249, 234, 214, 248, 76, 178, 105, 123, 195, 56, 80, 4, 90, 16, 175, 18, 5,
-            205, 172, 1, 82,
-        ];
-        let dir = scratch_dir("zstd-frames");
+    // Two frames written by the reference `zstd` CLI and concatenated, as the
+    // recorder appends one frame per flush: the header line, then one
+    // `assistant/message` with usage.
+    const APPENDED_FRAMES: &[u8] = &[
+        40, 181, 47, 253, 36, 93, 157, 2, 0, 162, 132, 17, 25, 112, 85, 117, 242, 1, 109, 33, 50,
+        22, 133, 164, 85, 21, 187, 23, 201, 160, 48, 213, 164, 9, 80, 17, 136, 3, 65, 224, 203,
+        107, 136, 152, 126, 19, 77, 118, 29, 86, 173, 177, 199, 22, 4, 162, 210, 186, 76, 26, 75,
+        133, 155, 93, 159, 132, 230, 174, 187, 154, 157, 235, 155, 231, 98, 228, 248, 117, 134,
+        143, 60, 32, 3, 0, 121, 42, 60, 159, 91, 180, 45, 77, 13, 37, 163, 127, 40, 181, 47, 253,
+        100, 20, 0, 197, 5, 0, 194, 204, 38, 32, 80, 105, 219, 6, 102, 98, 165, 149, 14, 235, 182,
+        200, 70, 148, 255, 107, 132, 24, 51, 214, 50, 111, 241, 31, 81, 120, 192, 201, 76, 69, 12,
+        12, 0, 239, 189, 3, 210, 37, 88, 4, 69, 149, 99, 130, 40, 109, 214, 199, 4, 209, 142, 29,
+        17, 1, 227, 200, 243, 90, 5, 43, 104, 199, 172, 148, 80, 118, 199, 247, 190, 86, 97, 241,
+        196, 235, 162, 74, 61, 223, 22, 165, 4, 214, 152, 227, 213, 34, 182, 60, 143, 86, 82, 40,
+        205, 49, 62, 30, 24, 228, 123, 109, 47, 166, 28, 175, 88, 123, 147, 204, 54, 31, 79, 126,
+        53, 215, 111, 242, 218, 138, 142, 136, 99, 56, 199, 145, 24, 7, 195, 0, 114, 242, 187, 164,
+        62, 26, 39, 191, 88, 62, 126, 19, 202, 188, 75, 64, 47, 109, 78, 204, 250, 252, 50, 11,
+        253, 38, 9, 0, 58, 201, 71, 106, 31, 55, 173, 249, 234, 214, 248, 76, 178, 105, 123, 195,
+        56, 80, 4, 90, 16, 175, 18, 5, 205, 172, 1, 82,
+    ];
+
+    fn read_zstd_log(tag: &str, bytes: &[u8]) -> (PathBuf, ReaderResult) {
+        let dir = scratch_dir(tag);
         let session_dir = dir.join("--proj--").join("session-1");
         fs::create_dir_all(&session_dir).unwrap();
-        fs::write(session_dir.join("session.v4.jsonl.zstd"), FRAMES).unwrap();
+        fs::write(session_dir.join("session.v4.jsonl.zstd"), bytes).unwrap();
         let result = read_deepseek(&dir);
+        fs::remove_dir_all(&dir).ok();
+        (session_dir.join("session.v4.jsonl.zstd"), result)
+    }
+
+    #[test]
+    fn every_zstd_frame_of_an_appended_log_is_read() {
+        let (_, result) = read_zstd_log("zstd-frames", APPENDED_FRAMES);
         assert!(result.warnings.is_empty(), "{:?}", result.warnings);
         assert_eq!(result.events.len(), 1);
         assert_eq!(result.events[0].tokens.input, 5407);
         assert_eq!(result.events[0].workspace.as_deref(), Some("/work/proj"));
-        fs::remove_dir_all(&dir).ok();
+    }
+
+    #[test]
+    fn undecodable_tail_keeps_earlier_frames_and_warns() {
+        let mut bytes = APPENDED_FRAMES.to_vec();
+        bytes.extend_from_slice(&[0x28, 0xB5, 0x2F, 0xFD, 0x20, 0x40, 0x00]);
+        let (file, result) = read_zstd_log("zstd-tail", &bytes);
+        assert_eq!(result.events.len(), 1);
+        assert!(result.skipped.is_empty());
+        assert_eq!(
+            result.warnings,
+            vec![ReaderWarning {
+                message: format!(
+                    "skipping undecodable tail of deepseek file {}\n",
+                    file.to_string_lossy()
+                ),
+            }]
+        );
     }
 
     fn build_sqlite_db(path: &Path, session_rows: &[&str], event_rows: &[&str]) {
