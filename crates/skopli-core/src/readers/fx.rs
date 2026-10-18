@@ -749,7 +749,7 @@ mod tests {
                 ]
             }),
         );
-        assert_only_diagnostic(&sessions);
+        assert_only_diagnostic(&sessions, "sidecar");
         fs::remove_dir_all(&dir).ok();
     }
 
@@ -780,86 +780,56 @@ mod tests {
         })
     }
 
-    fn assert_only_diagnostic(sessions: &Path) {
+    fn assert_only_diagnostic(sessions: &Path, case: &str) {
         let result = read_fx(sessions);
-        assert!(result.events.is_empty(), "expected no events");
-        assert_eq!(result.skipped.len(), 1, "expected one skipped sidecar");
-        assert_eq!(result.warnings.len(), 1, "expected one warning");
+        assert!(result.events.is_empty(), "{case}: expected no events");
+        assert_eq!(
+            result.skipped.len(),
+            1,
+            "{case}: expected one skipped sidecar"
+        );
+        assert_eq!(result.warnings.len(), 1, "{case}: expected one warning");
     }
 
     #[test]
-    fn missing_required_token_field_is_a_diagnostic() {
-        let dir = scratch_dir("missing-token");
-        let sessions = dir.join("sessions");
-        write_sidecar(
-            &sessions,
-            "1770000000000-1770000000000000000-a1b2c3d4e5f60718",
-            snapshot_with_model(|m| {
-                m.remove("input_tokens");
-            }),
-        );
-        assert_only_diagnostic(&sessions);
-        fs::remove_dir_all(&dir).ok();
-    }
-
-    #[test]
-    fn null_required_token_field_is_a_diagnostic() {
-        let dir = scratch_dir("null-token");
-        let sessions = dir.join("sessions");
-        write_sidecar(
-            &sessions,
-            "1770000000000-1770000000000000000-a1b2c3d4e5f60718",
-            snapshot_with_model(|m| {
-                m.insert("output_tokens".into(), Value::Null);
-            }),
-        );
-        assert_only_diagnostic(&sessions);
-        fs::remove_dir_all(&dir).ok();
-    }
-
-    #[test]
-    fn string_token_field_is_a_diagnostic() {
-        let dir = scratch_dir("string-token");
-        let sessions = dir.join("sessions");
-        write_sidecar(
-            &sessions,
-            "1770000000000-1770000000000000000-a1b2c3d4e5f60718",
-            snapshot_with_model(|m| {
-                m.insert("cache_read_tokens".into(), Value::from("12"));
-            }),
-        );
-        assert_only_diagnostic(&sessions);
-        fs::remove_dir_all(&dir).ok();
-    }
-
-    #[test]
-    fn negative_token_field_is_a_diagnostic() {
-        let dir = scratch_dir("negative-token");
-        let sessions = dir.join("sessions");
-        write_sidecar(
-            &sessions,
-            "1770000000000-1770000000000000000-a1b2c3d4e5f60718",
-            snapshot_with_model(|m| {
-                m.insert("cache_write_tokens".into(), Value::from(-1));
-            }),
-        );
-        assert_only_diagnostic(&sessions);
-        fs::remove_dir_all(&dir).ok();
-    }
-
-    #[test]
-    fn fractional_token_field_is_a_diagnostic() {
-        let dir = scratch_dir("fractional-token");
-        let sessions = dir.join("sessions");
-        write_sidecar(
-            &sessions,
-            "1770000000000-1770000000000000000-a1b2c3d4e5f60718",
-            snapshot_with_model(|m| {
-                m.insert("input_tokens".into(), Value::from(1.5));
-            }),
-        );
-        assert_only_diagnostic(&sessions);
-        fs::remove_dir_all(&dir).ok();
+    fn malformed_model_aggregates_are_a_diagnostic() {
+        // `None` removes the cell; `Some` overwrites it.
+        let cases = [
+            ("missing required token", "input_tokens", None),
+            ("null required token", "output_tokens", Some(Value::Null)),
+            ("string token", "cache_read_tokens", Some(Value::from("12"))),
+            (
+                "negative token",
+                "cache_write_tokens",
+                Some(Value::from(-1)),
+            ),
+            ("fractional token", "input_tokens", Some(Value::from(1.5))),
+            ("blank model name", "model", Some(Value::from("   "))),
+            ("missing model cell", "model", None),
+            (
+                "malformed request count",
+                "request_count",
+                Some(Value::from("many")),
+            ),
+        ];
+        for (name, field, replacement) in cases {
+            let dir = scratch_dir("bad-aggregate");
+            let sessions = dir.join("sessions");
+            write_sidecar(
+                &sessions,
+                "1770000000000-1770000000000000000-a1b2c3d4e5f60718",
+                snapshot_with_model(|m| match replacement {
+                    Some(v) => {
+                        m.insert(field.into(), v);
+                    }
+                    None => {
+                        m.remove(field);
+                    }
+                }),
+            );
+            assert_only_diagnostic(&sessions, name);
+            fs::remove_dir_all(&dir).ok();
+        }
     }
 
     #[test]
@@ -873,52 +843,7 @@ mod tests {
             r#"{{"schema_version":1,"session_id":"{session_id}","snapshot":{{"schema_version":1,"billing":"complete","total_cost":0.02,"models":[{{"model":"openai/gpt-5.4","total_cost":0.02,"input_tokens":18446744073709551616,"output_tokens":4,"cache_read_tokens":0,"cache_write_tokens":0,"reasoning_tokens":0,"request_count":1}}]}}}}"#
         );
         fs::write(session_dir.join(SIDECAR_FILE), raw).unwrap();
-        assert_only_diagnostic(&sessions);
-        fs::remove_dir_all(&dir).ok();
-    }
-
-    #[test]
-    fn blank_model_name_is_a_diagnostic() {
-        let dir = scratch_dir("blank-model");
-        let sessions = dir.join("sessions");
-        write_sidecar(
-            &sessions,
-            "1770000000000-1770000000000000000-a1b2c3d4e5f60718",
-            snapshot_with_model(|m| {
-                m.insert("model".into(), Value::from("   "));
-            }),
-        );
-        assert_only_diagnostic(&sessions);
-        fs::remove_dir_all(&dir).ok();
-    }
-
-    #[test]
-    fn missing_model_cell_is_a_diagnostic() {
-        let dir = scratch_dir("missing-model");
-        let sessions = dir.join("sessions");
-        write_sidecar(
-            &sessions,
-            "1770000000000-1770000000000000000-a1b2c3d4e5f60718",
-            snapshot_with_model(|m| {
-                m.remove("model");
-            }),
-        );
-        assert_only_diagnostic(&sessions);
-        fs::remove_dir_all(&dir).ok();
-    }
-
-    #[test]
-    fn malformed_request_count_is_a_diagnostic() {
-        let dir = scratch_dir("bad-request-count");
-        let sessions = dir.join("sessions");
-        write_sidecar(
-            &sessions,
-            "1770000000000-1770000000000000000-a1b2c3d4e5f60718",
-            snapshot_with_model(|m| {
-                m.insert("request_count".into(), Value::from("many"));
-            }),
-        );
-        assert_only_diagnostic(&sessions);
+        assert_only_diagnostic(&sessions, "sidecar");
         fs::remove_dir_all(&dir).ok();
     }
 
@@ -936,23 +861,7 @@ mod tests {
             "extra": true,
         });
         fs::write(session_dir.join(SIDECAR_FILE), envelope.to_string()).unwrap();
-        assert_only_diagnostic(&sessions);
-        fs::remove_dir_all(&dir).ok();
-    }
-
-    #[test]
-    fn missing_snapshot_schema_version_is_a_diagnostic() {
-        let dir = scratch_dir("no-inner-version");
-        let sessions = dir.join("sessions");
-        write_sidecar(
-            &sessions,
-            "1770000000000-1770000000000000000-a1b2c3d4e5f60718",
-            serde_json::json!({
-                "billing": "complete",
-                "models": []
-            }),
-        );
-        assert_only_diagnostic(&sessions);
+        assert_only_diagnostic(&sessions, "sidecar");
         fs::remove_dir_all(&dir).ok();
     }
 
@@ -969,58 +878,45 @@ mod tests {
             "snapshot": { "schema_version": 1, "billing": "complete", "models": [] },
         });
         fs::write(session_dir.join(SIDECAR_FILE), envelope.to_string()).unwrap();
-        assert_only_diagnostic(&sessions);
+        assert_only_diagnostic(&sessions, "sidecar");
         fs::remove_dir_all(&dir).ok();
     }
 
     #[test]
-    fn absent_models_is_a_diagnostic() {
-        let dir = scratch_dir("no-models");
-        let sessions = dir.join("sessions");
-        write_sidecar(
-            &sessions,
-            "1770000000000-1770000000000000000-a1b2c3d4e5f60718",
-            serde_json::json!({
-                "schema_version": 1,
-                "billing": "complete"
-            }),
-        );
-        assert_only_diagnostic(&sessions);
-        fs::remove_dir_all(&dir).ok();
-    }
-
-    #[test]
-    fn non_array_models_is_a_diagnostic() {
-        let dir = scratch_dir("models-not-array");
-        let sessions = dir.join("sessions");
-        write_sidecar(
-            &sessions,
-            "1770000000000-1770000000000000000-a1b2c3d4e5f60718",
-            serde_json::json!({
-                "schema_version": 1,
-                "billing": "complete",
-                "models": { "model": "openai/gpt-5.4" }
-            }),
-        );
-        assert_only_diagnostic(&sessions);
-        fs::remove_dir_all(&dir).ok();
-    }
-
-    #[test]
-    fn unknown_billing_is_a_diagnostic() {
-        let dir = scratch_dir("unknown-billing");
-        let sessions = dir.join("sessions");
-        write_sidecar(
-            &sessions,
-            "1770000000000-1770000000000000000-a1b2c3d4e5f60718",
-            serde_json::json!({
-                "schema_version": 1,
-                "billing": "mystery",
-                "models": []
-            }),
-        );
-        assert_only_diagnostic(&sessions);
-        fs::remove_dir_all(&dir).ok();
+    fn malformed_snapshots_are_a_diagnostic() {
+        let cases = [
+            (
+                "missing snapshot schema version",
+                serde_json::json!({ "billing": "complete", "models": [] }),
+            ),
+            (
+                "absent models",
+                serde_json::json!({ "schema_version": 1, "billing": "complete" }),
+            ),
+            (
+                "non-array models",
+                serde_json::json!({
+                    "schema_version": 1,
+                    "billing": "complete",
+                    "models": { "model": "openai/gpt-5.4" }
+                }),
+            ),
+            (
+                "unknown billing",
+                serde_json::json!({ "schema_version": 1, "billing": "mystery", "models": [] }),
+            ),
+        ];
+        for (name, snapshot) in cases {
+            let dir = scratch_dir("bad-snapshot");
+            let sessions = dir.join("sessions");
+            write_sidecar(
+                &sessions,
+                "1770000000000-1770000000000000000-a1b2c3d4e5f60718",
+                snapshot,
+            );
+            assert_only_diagnostic(&sessions, name);
+            fs::remove_dir_all(&dir).ok();
+        }
     }
 
     #[test]
@@ -1036,7 +932,7 @@ mod tests {
             "snapshot": { "schema_version": 1, "billing": "complete", "models": [] },
         });
         fs::write(session_dir.join(SIDECAR_FILE), envelope.to_string()).unwrap();
-        assert_only_diagnostic(&sessions);
+        assert_only_diagnostic(&sessions, "sidecar");
         fs::remove_dir_all(&dir).ok();
     }
 
