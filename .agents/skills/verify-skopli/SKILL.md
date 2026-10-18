@@ -1,6 +1,6 @@
 ---
 name: verify-skopli
-description: Drive Skopli the way a user does and capture proof. Covers the docs site (theme, search, nine-language code tabs, page actions, Markdown twins and llms feeds), the marketing site, and the library surface replayed against the golden corpus. Use before calling a web or facade change done, when a reviewer asks for runtime evidence, or when a claim about the sites needs a screenshot or response body.
+description: Drive Skopli the way a user does and capture proof. Covers the docs site (theme, search, nine-language code tabs, page actions, Markdown twins and llms feeds), the marketing site, and the library surface replayed against the golden corpus or a real home directory. Use before calling a web or facade change done, when a reviewer asks for runtime evidence, or when a claim about the sites needs a screenshot or response body.
 ---
 
 # Verify Skopli
@@ -97,6 +97,15 @@ node .agents/skills/verify-skopli/scripts/golden.mjs claude/basic --out .verify/
 It reads `golden/claude/basic/input-manifest.json`, calls the facade's `readUsage` and `rollup` with the manifest's environment, writes `actual-events.json`, `actual-rollup.json` and `result.json` into the output directory, and exits `0` only when events and every rollup match the expected files.
 Any `golden/<harness>/<case>/` with an `expected-events.json` is a valid case id.
 
+To read a real or copied harness home instead of a golden case, use `scripts/home.mjs`:
+
+```sh
+node .agents/skills/verify-skopli/scripts/home.mjs <home-dir> --out .verify/evidence/<run>/library-home
+```
+
+It calls `detectHarnesses` and `readUsage` with that directory as `home` and `cwd` and an empty `env`, so nothing from the current machine's environment leaks in, and writes `home-result.json` (detected harnesses, event and session counts overall and per harness under `byHarness`, first diagnostic) next to `home-read.json`, the full `readUsage` result with its events, diagnostics and skipped files.
+There is no expected output to compare against; the proof is the recorded counts and the absence of diagnostics.
+
 ## Evidence
 
 Evidence goes under `.verify/evidence/<run>/<feature>/`, where `<run>` is a UTC timestamp such as `20261018T180000Z`.
@@ -110,7 +119,7 @@ A proof holds the action and the resulting state, never only the final screen:
 
 Proof standards: exercise the real user path (click the toggle, do not set `localStorage` by hand; click `Copy page`, do not fetch the `.md` yourself and call it copied).
 Verify the side effect alongside the visible change: the storage key after a toggle, the clipboard text after a copy, the `hidden` attribute on the other panels after a tab click.
-Nothing here is mocked; the sites make no external calls and the library reads only the golden input directory.
+Nothing here is mocked; the sites make no external calls and the library reads only the golden input directory or the home directory named on the command line.
 Record the feature id and the entry point used with every artifact, and report an unreachable path with the attempted command and the unmet precondition instead of substituting another path.
 
 ## Cleanup
@@ -119,7 +128,7 @@ Record the feature id and the entry point used with every artifact, and report a
 bash .agents/skills/verify-skopli/scripts/cleanup.sh
 ```
 
-It reads the PIDs from `.verify/run/state.sh`, confirms each command line is an `astro preview`, sends `SIGTERM`, waits up to ten seconds, then removes `.verify/run/`.
+It reads the PIDs from `.verify/run/state.sh`, confirms each command line is an `astro preview`, sends `SIGTERM`, waits up to ten seconds, sends `SIGKILL` to any server still alive, then removes `.verify/run/`.
 It never kills by name and never touches `.verify/evidence/`.
 Run it after every drive, including failed ones, so no preview server or port is left behind.
 Build outputs (`web/*/dist`, `native/`, `dist/`) stay in place; they are ordinary gitignored build artifacts.
@@ -138,6 +147,7 @@ It checks every input in a small finite domain against the documented promises a
 | `scripts/doctor.sh`   | `bash .agents/skills/verify-skopli/scripts/doctor.sh`                               | read-only health check, exit `0` when worth driving                   |
 | `scripts/browser.mjs` | `node .agents/skills/verify-skopli/scripts/browser.mjs --out <dir> <steps>`         | headless Chromium step runner with transcript, screenshots and bodies |
 | `scripts/golden.mjs`  | `node .agents/skills/verify-skopli/scripts/golden.mjs <harness>/<case> --out <dir>` | replay a golden case through the facade and compare                   |
+| `scripts/home.mjs`    | `node .agents/skills/verify-skopli/scripts/home.mjs <home-dir> --out <dir>`         | detect and read an arbitrary home directory through the facade        |
 | `scripts/cleanup.sh`  | `bash .agents/skills/verify-skopli/scripts/cleanup.sh`                              | stop the servers by PID, keep evidence                                |
 
 The scripts are executable and run on Linux only: they depend on `bash`, `curl`, `ss`, `/proc`, `git`, Node 24 and the repository's dev dependencies.

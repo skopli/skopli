@@ -42,10 +42,18 @@ for (let i = 0; i < argv.length; i++) {
   const arg = argv[i];
   if (arg === "--out") out = argv[++i];
   else if (arg === "--viewport") {
-    const [w, h] = argv[++i].split("x").map(Number);
-    viewport = { width: w, height: h };
+    const size = /^(\d+)x(\d+)$/.exec(argv[++i] ?? "");
+    if (!size) {
+      console.error(`--viewport needs <w>x<h>\n${usage}`);
+      process.exit(2);
+    }
+    viewport = { width: Number(size[1]), height: Number(size[2]) };
   } else if (arg in arity) {
     const n = arity[arg];
+    if (i + n >= argv.length) {
+      console.error(`step "${arg}" needs ${n} argument(s)\n${usage}`);
+      process.exit(2);
+    }
     steps.push([arg, ...argv.slice(i + 1, i + 1 + n)]);
     i += n;
   } else {
