@@ -302,8 +302,13 @@ fn finite_cost(e: &UsageEvent) -> Option<f64> {
     e.cost_usd.filter(|c| c.is_finite())
 }
 
-/// Promise 1: a rollup moves every counter into exactly one row and invents none.
-pub fn check_conservation(events: &[UsageEvent], out: &[Rollup]) -> Result<(), String> {
+/// Promise 1: the rows hold every counter of `events` exactly once and invent
+/// none. Applied to the whole run and, through `check_row`, to each row with
+/// its own events.
+pub fn check_conservation<'a>(
+    events: impl Iterator<Item = &'a UsageEvent> + Clone,
+    out: &[Rollup],
+) -> Result<(), String> {
     type Counter = fn(&TokenCounts) -> u64;
     let pairs: [(&str, Counter); 5] = [
         ("input", |t| t.input),
@@ -313,13 +318,13 @@ pub fn check_conservation(events: &[UsageEvent], out: &[Rollup]) -> Result<(), S
         ("reasoning", |t| t.reasoning),
     ];
     for (name, get) in pairs {
-        let want = sum(events.iter().map(|e| get(&e.tokens)));
+        let want = sum(events.clone().map(|e| get(&e.tokens)));
         let got = sum(out.iter().map(|r| get(&r.tokens)));
         if want != got {
             return Err(format!("{name}: events sum to {want}, rows sum to {got}"));
         }
     }
-    let want1h = sum(events.iter().map(clamped1h));
+    let want1h = sum(events.clone().map(clamped1h));
     let got1h = sum(out.iter().map(|r| r.tokens.cache_write1h.unwrap_or(0)));
     if want1h != got1h {
         return Err(format!(
@@ -336,24 +341,44 @@ pub fn check_conservation(events: &[UsageEvent], out: &[Rollup]) -> Result<(), S
             r.key
         ));
     }
-    if sum(out.iter().map(|r| r.events)) != events.len() as u128 {
+    if sum(out.iter().map(|r| r.events)) != events.clone().count() as u128 {
         return Err("events: row count differs from input count".to_owned());
     }
-    if sum(out.iter().map(|r| r.turns)) != events.iter().filter(|e| e.turn).count() as u128 {
+    if sum(out.iter().map(|r| r.turns)) != events.clone().filter(|e| e.turn).count() as u128 {
         return Err("turns: rows do not count the turn flags".to_owned());
     }
-    let want_calls = sum(events.iter().map(|e| e.calls.unwrap_or(1)));
+    let want_calls = sum(events.clone().map(|e| e.calls.unwrap_or(1)));
     let got_calls = sum(out.iter().map(|r| r.calls));
     if want_calls != got_calls {
         return Err(format!(
             "calls: events sum to {want_calls}, rows sum to {got_calls}"
         ));
     }
-    let want_cost: f64 = events.iter().filter_map(finite_cost).sum();
+    let want_cost: f64 = events.filter_map(finite_cost).sum();
     let got_cost: f64 = out.iter().filter_map(|r| r.cost_usd).sum();
     if want_cost != got_cost {
         return Err(format!(
             "costUsd: finite events sum to {want_cost}, rows sum to {got_cost}"
+        ));
+    }
+    Ok(())
+}
+
+/// One row holds exactly the counters of the events that belong to it, and
+/// carries an optional field exactly when one of those events does.
+fn check_row(r: &Rollup, mine: &[&UsageEvent]) -> Result<(), String> {
+    check_conservation(mine.iter().copied(), std::slice::from_ref(r))
+        .map_err(|m| format!("row {m}; key {}", r.key))?;
+    if r.tokens.cache_write1h.is_some() != mine.iter().any(|e| e.tokens.cache_write1h.is_some()) {
+        return Err(format!(
+            "cacheWrite1h presence: row {} differs from its events",
+            r.key
+        ));
+    }
+    if r.cost_usd.is_some() != mine.iter().any(|e| finite_cost(e).is_some()) {
+        return Err(format!(
+            "costUsd presence: row {} differs from its events",
+            r.key
         ));
     }
     Ok(())
@@ -378,27 +403,7 @@ pub fn check_keyed(
             .iter()
             .filter(|e| expected_key(e, options) == r.key)
             .collect();
-        if r.events as usize != mine.len() {
-            return Err(format!(
-                "row events: row {} has {} events, {} share the key",
-                r.key,
-                r.events,
-                mine.len()
-            ));
-        }
-        if r.tokens.cache_write1h.is_some() != mine.iter().any(|e| e.tokens.cache_write1h.is_some())
-        {
-            return Err(format!(
-                "cacheWrite1h presence: row {} differs from its events",
-                r.key
-            ));
-        }
-        if r.cost_usd.is_some() != mine.iter().any(|e| finite_cost(e).is_some()) {
-            return Err(format!(
-                "costUsd presence: row {} differs from its events",
-                r.key
-            ));
-        }
+        check_row(r, &mine)?;
     }
     Ok(())
 }
@@ -406,44 +411,53 @@ pub fn check_keyed(
 /// The documented block rule, written from `golden/rollup-block/README.md`: sort
 /// by instant, open a block at the first event floored to the UTC hour, keep
 /// events while `ms < start + width`, and send unparseable instants to one
-/// trailing `invalid-date` row.
-pub fn block_spec(events: &[UsageEvent], width: Option<i64>) -> Vec<(String, u64)> {
+/// trailing `invalid-date` row. Returns each row's key with its member events.
+pub fn block_spec(events: &[UsageEvent], width: Option<i64>) -> Vec<(String, Vec<&UsageEvent>)> {
     let width = width.filter(|w| *w > 0).unwrap_or(DEFAULT_BLOCK_MS);
-    let mut parsed: Vec<(i64, &Instant)> = events
+    let mut parsed: Vec<(i64, &Instant, &UsageEvent)> = events
         .iter()
-        .map(instant)
-        .filter_map(|i| i.ms.map(|ms| (ms, i)))
+        .filter_map(|e| {
+            let i = instant(e);
+            i.ms.map(|ms| (ms, i, e))
+        })
         .collect();
-    parsed.sort_by_key(|(ms, _)| *ms);
-    let mut rows: Vec<(String, u64)> = Vec::new();
+    parsed.sort_by_key(|(ms, ..)| *ms);
+    let mut rows: Vec<(String, Vec<&UsageEvent>)> = Vec::new();
     let mut end: Option<i64> = None;
-    for (ms, i) in parsed {
+    for (ms, i, e) in parsed {
         if end.is_none_or(|end| ms >= end) {
             let start = ms - ms.rem_euclid(HOUR_MS);
             end = Some(start.saturating_add(width));
-            rows.push((i.hour.to_owned(), 0));
+            rows.push((i.hour.to_owned(), Vec::new()));
         }
-        rows.last_mut().expect("open block").1 += 1;
+        rows.last_mut().expect("open block").1.push(e);
     }
-    let invalid = events.iter().filter(|e| instant(e).ms.is_none()).count() as u64;
-    if invalid > 0 {
+    let invalid: Vec<&UsageEvent> = events.iter().filter(|e| instant(e).ms.is_none()).collect();
+    if !invalid.is_empty() {
         rows.push((INVALID.to_owned(), invalid));
     }
     rows
 }
 
-/// Promise 3: block rows match the documented rule and carry distinct,
-/// ascending keys. Matching the spec already pins every key to a literal
-/// hour-floor instant, so the order check compares the ISO strings bytewise.
+/// Promise 3: block rows match the documented rule, each holds exactly its
+/// member events, and the keys are distinct and ascending. Matching the spec
+/// already pins every key to a literal hour-floor instant, so the order check
+/// compares the ISO strings bytewise.
 pub fn check_block(
     events: &[UsageEvent],
     options: &RollupOptions,
     out: &[Rollup],
 ) -> Result<(), String> {
-    let got: Vec<(String, u64)> = out.iter().map(|r| (r.key.clone(), r.events)).collect();
     let want = block_spec(events, options.block_ms);
-    if want != got {
-        return Err(format!("blocks: spec gives {want:?}, rollup gives {got:?}"));
+    let want_keys: Vec<&str> = want.iter().map(|(k, _)| k.as_str()).collect();
+    let got_keys: Vec<&str> = out.iter().map(|r| r.key.as_str()).collect();
+    if want_keys != got_keys {
+        return Err(format!(
+            "blocks: spec gives {want_keys:?}, rollup gives {got_keys:?}"
+        ));
+    }
+    for (r, (_, mine)) in out.iter().zip(&want) {
+        check_row(r, mine)?;
     }
     let starts: Vec<&str> = out
         .iter()
@@ -457,7 +471,7 @@ pub fn check_block(
 }
 
 pub fn check(events: &[UsageEvent], options: &RollupOptions, out: &[Rollup]) -> Result<(), String> {
-    check_conservation(events, out)?;
+    check_conservation(events.iter(), out)?;
     match options.by {
         RollupBy::Block => check_block(events, options, out),
         _ => check_keyed(events, options, out),

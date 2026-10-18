@@ -32,12 +32,14 @@ Three tests live in `tests/rollup.rs`; the domain and the properties live in `sr
 1. Conservation.
    Every token counter, the clamped `cacheWrite1h`, `events`, `turns`, `calls` (absent means one) and finite `costUsd` sum to exactly the same value over the rows as over the input, and no row has `cacheWrite1h` above its `cacheWrite`.
 2. Keyed rows.
-   For `model`, `session`, `harness`, `workspace` and `day`, the row keys are the distinct expected keys of the input in ascending byte order, each row holds exactly the events with its key, `cacheWrite1h` is present on a row exactly when one of its events carried it, and `costUsd` exactly when one of its events carried a finite cost.
+   For `model`, `session`, `harness`, `workspace` and `day`, the row keys are the distinct expected keys of the input in ascending byte order, and each row holds exactly the events with its key: conservation from item 1 is re-run per row over those events alone, `cacheWrite1h` is present on a row exactly when one of its events carried it, and `costUsd` exactly when one of its events carried a finite cost.
    The expected key is the event's own field for the four named dimensions and a literal calendar table in `INSTANTS` for `day`, so nothing in the expectation comes from the crate under test.
 3. Blocks.
-   For `block`, the rows equal an executable spec written from `golden/rollup-block/README.md`: sort by instant, open a block at the first event floored to the hour, keep events while `ms < start + width`, send unparseable instants to one trailing `invalid-date` row, fall back to `18000000` ms for a missing or non-positive width.
+   For `block`, the row keys equal an executable spec written from `golden/rollup-block/README.md`: sort by instant, open a block at the first event floored to the hour, keep events while `ms < start + width`, send unparseable instants to one trailing `invalid-date` row, fall back to `18000000` ms for a missing or non-positive width.
+   The spec also names each block's member events, and every row gets the same per-row conservation and presence checks as a keyed row, so an event filed in the wrong block fails even when the counts per block come out right.
    The spec takes each instant's epoch milliseconds and hour-floor key from the same literal table, so a parser or formatter regression in the core shows up as a spec mismatch.
    Block keys must also be strictly ascending.
+   The README promises only ascending order; the distinct-key promise comes from the `Rollup` type, which has no identity other than `key`, so a consumer that keys rows by it merges or overwrites two rows with the same key.
 
 `rollup_agrees_with_the_typescript_facade` pipes the same cases over stdin to `src/rollup.ts` and requires identical JSON rows, numbers compared as floats.
 Non-finite costs travel as the strings `"NaN"` and `"Infinity"` and are revived to numbers before the TypeScript rollup runs, so its finite filter sees real non-finite values.
@@ -75,6 +77,7 @@ The check currently fails on two real findings and on nothing else:
 
 - `block order: keys repeat or go backwards`: a block width below one hour yields several rows with the same key, because every block start is floored to the hour while the window is shorter than an hour.
   Two events at `22:30` with a thirty-minute width produce two `22:00` rows.
+  This follows the README's hour-floor rule, so it is not a spec misreading; it is a finding because `key` is the only identity a row has, and two rows sharing one are indistinguishable to every consumer.
   Rust and TypeScript agree, so the parity test stays green.
 - `counters_near_u64_max_do_not_wrap`: the core adds `u64` counters unchecked, so a sum past `u64::MAX` panics in a debug build and wraps in a release build.
 

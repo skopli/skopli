@@ -138,5 +138,5 @@ fn counters_near_u64_max_do_not_wrap() {
         event("a", INSTANTS[0].iso, &PATTERNS[1]),
     ];
     let out = rollup(&events, &opts(RollupBy::Model, "UTC", None));
-    check_conservation(&events, &out).unwrap_or_else(|m| panic!("{m}"));
+    check_conservation(events.iter(), &out).unwrap_or_else(|m| panic!("{m}"));
 }
