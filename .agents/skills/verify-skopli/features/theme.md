@@ -38,6 +38,7 @@ node .agents/skills/verify-skopli/scripts/browser.mjs --out .verify/evidence/<ru
   eval "document.querySelector('[data-theme-toggle]').getAttribute('aria-label')" \
   screenshot 03-light-after-reload \
   click 'role=link[name="Rollups"]' \
+  eval "location.pathname" \
   assert "document.documentElement.dataset.theme === 'light'" \
   click 'role=button[name="Switch to dark theme"]' \
   assert "document.documentElement.dataset.theme === 'dark'" \
@@ -47,8 +48,8 @@ node .agents/skills/verify-skopli/scripts/browser.mjs --out .verify/evidence/<ru
 - **First paint.** Steps 1 to 5 load a docs page and read the theme before touching anything. The theme is `"dark"`, the stored value is `null`, and the saved body `skopli_guide_reading` carries the `localStorage.getItem("skopli-theme")` script inside `<head>`.
 - **Toggle to light.** Steps 6 to 10 click the header toggle. The page turns light, the stored value is `"light"`, and the label is now `Switch to dark theme`.
 - **Persist across reload.** Steps 11 to 14 reload. The page is still light and the label still reads `Switch to dark theme`.
-- **Persist across pages.** Steps 15 and 16 follow the sidebar link to `Rollups`. The next page is light too.
-- **Back to dark.** Steps 17 to 19 toggle again. The theme is `"dark"` and so is the stored value.
+- **Persist across pages.** Steps 15 to 17 follow the sidebar link to `Rollups`. The pathname is `"/skopli/guide/rollups/"`, which proves the navigation happened, and the next page is light too.
+- **Back to dark.** Steps 18 to 20 toggle again. The theme is `"dark"` and so is the stored value.
 - **Marketing site.** Run a second invocation for the other origin.
 
 ```sh

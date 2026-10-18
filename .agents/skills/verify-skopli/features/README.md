@@ -16,7 +16,7 @@ Read the index before driving, then use the matching feature file as the recipe.
 ## Driving conventions
 
 - Browser actions run through `node .agents/skills/verify-skopli/scripts/browser.mjs --out <dir> <steps>`.
-- Library actions run through `node .agents/skills/verify-skopli/scripts/golden.mjs <harness>/<case> --out <dir>`.
+- Library actions run through `node .agents/skills/verify-skopli/scripts/golden.mjs <harness>/<case> --out <dir>` for the golden corpus and `node .agents/skills/verify-skopli/scripts/home.mjs <home-dir> --out <dir>` for an arbitrary home directory.
 - Prefer `role=` selectors with accessible names; fall back to the data attributes and classes the feature files name.
 - Treat every command as literal; keep quoted names, routes and keys unchanged.
 - The two sites are different origins, so `localStorage` is not shared between them; prove persistence within one origin.
@@ -52,4 +52,4 @@ Name only user paths, stable handles, required state, commands and observable pr
 - [Code tabs](./code-tabs.md) covers the nine-language tabs on docs pages and the marketing quickstart, keyboard navigation, and the persisted language.
 - [Page actions](./page-actions.md) covers Copy page, View as Markdown and the Open in menu on every docs page.
 - [Markdown twins and llms feeds](./markdown-feeds.md) covers the `.md` twin of every docs page, `llms.txt` on both sites and `llms-full.txt`.
-- [Library golden replay](./library-golden.md) covers reading and rolling up a golden case through the built facade.
+- [Library golden replay](./library-golden.md) covers reading and rolling up a golden case through the built facade, and reading a real home directory.

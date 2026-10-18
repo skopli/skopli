@@ -46,6 +46,10 @@ for (let i = 0; i < argv.length; i++) {
     viewport = { width: w, height: h };
   } else if (arg in arity) {
     const n = arity[arg];
+    if (i + n >= argv.length) {
+      console.error(`step "${arg}" needs ${n} argument(s)\n${usage}`);
+      process.exit(2);
+    }
     steps.push([arg, ...argv.slice(i + 1, i + 1 + n)]);
     i += n;
   } else {

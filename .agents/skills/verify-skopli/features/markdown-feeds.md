@@ -14,7 +14,7 @@ Every docs page has a Markdown twin at the same path with `.md` in place of the 
 
 - Swap the trailing `/` of a docs URL for `.md`, for example `/skopli/guide/reading.md`.
 - Follow `View as Markdown` on a docs page or in its footer.
-- Follow `llms.txt` in the footer of either site.
+- Follow `llms.txt` in the footer of either site; both footers lead to the docs feed, so the marketing site's own `/llms.txt` is reached by URL only.
 - Request `/skopli/llms-full.txt` directly; `llms.txt` links to it as `Full docs in one file`.
 
 ## Driving it with browser.mjs
@@ -31,7 +31,9 @@ node .agents/skills/verify-skopli/scripts/browser.mjs --out .verify/evidence/<ru
   eval "Promise.all(['index','guide/getting-started','guide/reading','guide/rollups','guide/pricing-basics','pricing/model-matching','pricing/cost-math','pricing/long-context-tiers','pricing/rollups-vs-events','reference/harnesses','reference/coverage','reference/api','contributing'].map(s=>fetch('/skopli/'+s+'.md').then(r=>s+':'+r.status))).then(a=>a.join(','))" \
   fetch http://127.0.0.1:4322/skopli/llms.txt \
   fetch http://127.0.0.1:4322/skopli/llms-full.txt \
-  fetch http://127.0.0.1:4321/llms.txt
+  fetch http://127.0.0.1:4321/llms.txt \
+  goto http://127.0.0.1:4321/ \
+  eval "[...document.querySelectorAll('footer a')].find(a=>a.textContent.trim()==='llms.txt').href"
 ```
 
 - **Twin.** Steps 1 and 2 fetch a twin and the page that advertises it. The transcript shows `200 text/markdown` for the twin; `skopli_guide_reading.md` starts with `# Reading usage` and a `>` description line; `skopli_guide_reading` contains `rel="alternate" type="text/markdown" href="https://docs.skopli.com/skopli/guide/reading.md"`.
@@ -39,6 +41,7 @@ node .agents/skills/verify-skopli/scripts/browser.mjs --out .verify/evidence/<ru
 - **Index feed.** Step 5 saves `skopli_llms.txt`. It starts with `# Skopli`, has one `- [<title>](https://docs.skopli.com/skopli/<slug>.md): <description>` line per page and ends with the `Full docs in one file` link to `llms-full.txt`.
 - **Full feed.** Step 6 saves `skopli_llms-full.txt` with 13 `# ` headings and 12 `---` separators.
 - **Marketing feed.** Step 7 saves `llms.txt` from the marketing site: `text/plain`, starts with `# Skopli`, links the docs `llms.txt` and `llms-full.txt`.
+- **Marketing footer.** Steps 8 and 9 read the footer link. Its href is `"https://docs.skopli.com/skopli/llms.txt"`, the docs feed, not the marketing file from step 7.
 - **Proof.** The saved bodies next to the transcript are the proof; the transcript records status and content type for each.
 
 ## Gotchas

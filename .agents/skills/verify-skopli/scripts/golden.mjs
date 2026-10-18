@@ -16,7 +16,7 @@ const input = join(dir, "input");
 const read = (name) => JSON.parse(readFileSync(join(dir, name), "utf8"));
 const manifest = read("input-manifest.json");
 
-const place = (v) => (isAbsolute(v) ? v : v === "." ? input : join(input, v));
+const place = (v) => (isAbsolute(v) ? v : join(input, v));
 const env = Object.fromEntries(Object.entries(manifest.env ?? {}).map(([k, v]) => [k, place(v)]));
 const options = {
   home: manifest.home ? place(manifest.home) : "/nonexistent",

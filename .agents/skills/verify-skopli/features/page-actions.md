@@ -44,7 +44,7 @@ node .agents/skills/verify-skopli/scripts/browser.mjs --out .verify/evidence/<ru
 ```
 
 - **Copy.** Steps 1 to 8 click the button and read the clipboard once the label flips. The clipboard starts with `# Reading usage` and its character count equals that of the saved `skopli_guide_reading.md` (the file is ASCII, so bytes and characters agree).
-- **Label resets.** Step 9 waits for `Copy page` to return within two seconds.
+- **Label resets.** Step 9 waits for the label to read `Copy page` again after the 1.5 second reset; `wait` uses Playwright's default 30 second timeout, so a label that never resets fails the step.
 - **View as Markdown.** Steps 10 to 12 read the href and follow the link. The href is `/skopli/guide/reading.md` and the result is `"/skopli/guide/reading.md text/markdown"`.
 - **Open in.** Steps 13 to 16 go back and expand the menu. Six links, each `href` containing `Read%20https%3A%2F%2Fdocs.skopli.com%2Fskopli%2Fguide%2Freading.md`; the Cursor link uses the `cursor://` scheme.
 - **Menu closes.** Steps 17 and 18 click the title. The `open` value is `false`.
