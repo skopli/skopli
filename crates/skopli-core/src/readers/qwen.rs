@@ -149,7 +149,7 @@ fn parse_message(
         Some("assistant") => {}
         _ => return None,
     }
-    let usage = value.get("usageMetadata").unwrap_or(&Value::Null);
+    let usage = value.get("usageMetadata")?;
     let tokens = parse_gemini_tokens(usage, &QWEN_TOKEN_FIELDS);
     let tokens = match tokens {
         Some(t) => t,
@@ -191,4 +191,37 @@ fn parse_message(
             title: None,
         }),
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::fs;
+
+    #[test]
+    fn assistant_record_without_usage_is_skipped_silently() {
+        let root = super::super::shared::scratch_dir("qwen-no-usage");
+        let chats = root.join("proj").join("chats");
+        fs::create_dir_all(&chats).unwrap();
+        fs::write(
+            chats.join("s.jsonl"),
+            concat!(
+                r#"{"type":"user","sessionId":"s","timestamp":"2026-10-18T18:17:00.000Z"}"#,
+                "\n",
+                r#"{"type":"assistant","sessionId":"s","timestamp":"2026-10-18T18:17:29.419Z","model":"qwen","message":{"role":"model","parts":[{"text":"To determine"}]}}"#,
+                "\n",
+                r#"{"type":"assistant","sessionId":"s","timestamp":"2026-10-18T18:17:30.000Z","model":"qwen","usageMetadata":{"promptTokenCount":"bad"}}"#,
+                "\n",
+            ),
+        )
+        .unwrap();
+        let result = read_qwen(&root);
+        assert!(result.events.is_empty());
+        assert_eq!(result.skipped.len(), 1);
+        assert!(
+            result.skipped[0].ends_with("s.jsonl:3"),
+            "{:?}",
+            result.skipped
+        );
+    }
 }
