@@ -204,16 +204,19 @@ fn read_log_text(file: &str) -> Option<LogText> {
 
 /// Decode every frame of a zstd stream. The recorder appends one frame per
 /// flush, and `StreamingDecoder` stops after the first, so decode until the
-/// input is exhausted. A frame that fails to decode ends the stream; whatever
-/// decoded before it is kept and the failure is reported as the second value.
+/// input is exhausted. A frame that fails to decode ends the stream; the frames
+/// before it are kept, its own partial output is dropped, and the failure is
+/// reported as the second value.
 fn decode_zstd_frames(bytes: &[u8]) -> (Vec<u8>, bool) {
     let mut cursor = std::io::Cursor::new(bytes);
     let mut out = Vec::new();
     while (cursor.position() as usize) < bytes.len() {
+        let frame_start = out.len();
         let decoded = ruzstd::decoding::StreamingDecoder::new(&mut cursor)
             .ok()
             .and_then(|mut decoder| decoder.read_to_end(&mut out).ok());
         if decoded.is_none() {
+            out.truncate(frame_start);
             return (out, true);
         }
     }
@@ -883,6 +886,25 @@ mod tests {
                 ),
             }]
         );
+    }
+
+    #[test]
+    fn a_frame_that_fails_mid_stream_contributes_no_bytes() {
+        // Minimum 1 KiB window, one raw block larger than the window (so the
+        // decoder hands its surplus out before the next block), then a block
+        // header whose body is missing.
+        let mut partial_line = br#"{"type":"assistant/message","text":""#.to_vec();
+        partial_line.resize(1100, b'x');
+        let mut broken = vec![0x28, 0xB5, 0x2F, 0xFD, 0x00, 0x00];
+        broken.extend_from_slice(&((partial_line.len() as u32) << 3).to_le_bytes()[..3]);
+        broken.extend_from_slice(&partial_line);
+        broken.extend_from_slice(&(200u32 << 3).to_le_bytes()[..3]);
+        assert_eq!(decode_zstd_frames(&broken), (Vec::new(), true));
+        let mut bytes = APPENDED_FRAMES.to_vec();
+        bytes.extend_from_slice(&broken);
+        let (out, truncated) = decode_zstd_frames(&bytes);
+        assert!(truncated);
+        assert_eq!(out, decode_zstd_frames(APPENDED_FRAMES).0);
     }
 
     fn build_sqlite_db(path: &Path, session_rows: &[&str], event_rows: &[&str]) {
