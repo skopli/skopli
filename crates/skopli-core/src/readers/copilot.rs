@@ -6,8 +6,8 @@ use serde_json::Value;
 use super::reader::{Reader, ReaderContext};
 use super::shared::{
     JsonlLine, ReaderResult, ReaderWarning, ScanJsonl, as_string, date_parse_ms, dir_exists,
-    file_mtime_iso, finite_number, is_record, list_files, parent_dir_name, read_jsonl_lines,
-    scan_jsonl,
+    file_mtime_iso, finite_number, is_record, list_files, optional_cell, parent_dir_name,
+    read_jsonl_lines, required_cell, scan_jsonl,
 };
 use crate::time::to_iso_string;
 use crate::types::{TokenCounts, UsageEvent};
@@ -53,11 +53,9 @@ pub fn copilot_session_state_root(home: &Path) -> PathBuf {
 
 /// Read `events.jsonl` session logs under the session-state root. The
 /// `session.start` record names the session and its working directory; each
-/// `session.usage_record` carries one request's model and token counts. The
-/// record id keys dedup so a mirrored log never double counts.
+/// `session.usage_record` carries one request's model and token counts.
 pub fn read_copilot_session_state(root: &Path) -> ReaderResult {
     let mut result = ReaderResult::default();
-    let mut seen = HashSet::new();
     for file in list_files(root, |name| name == "events.jsonl") {
         let Some(lines) = read_jsonl_lines(&file, &mut result.skipped, &mut result.warnings) else {
             continue;
@@ -73,10 +71,7 @@ pub fn read_copilot_session_state(root: &Path) -> ReaderResult {
                 Some("session.usage_record") => {
                     let session_id = session.id.clone().unwrap_or_else(|| parent_dir_name(&file));
                     match usage_record_event(&line.value, &session_id, session.workspace.clone()) {
-                        Some(event) if seen.insert(event.message_id.clone()) => {
-                            result.events.push(event)
-                        }
-                        Some(_) => {}
+                        Some(event) => result.events.push(event),
                         None => {
                             let location = format!("{file}:{}", line.index + 1);
                             result.skipped.push(location.clone());
@@ -119,12 +114,6 @@ fn usage_record_event(
     workspace: Option<String>,
 ) -> Option<UsageEvent> {
     let usage = record.get("data")?.get("usage")?;
-    let count = |name: &str| {
-        usage
-            .get(name)
-            .and_then(finite_number)
-            .map(|n| n.max(0.0) as u64)
-    };
     let timestamp = record
         .get("timestamp")
         .and_then(as_string)
@@ -139,10 +128,10 @@ fn usage_record_event(
         subagent: false,
         model: usage.get("model").and_then(as_string)?,
         tokens: TokenCounts {
-            input: count("inputTokens")?,
-            output: count("outputTokens")?,
-            cache_read: count("cacheReadTokens").unwrap_or(0),
-            cache_write: count("cacheWriteTokens").unwrap_or(0),
+            input: required_cell(usage.get("inputTokens"))?,
+            output: required_cell(usage.get("outputTokens"))?,
+            cache_read: optional_cell(usage.get("cacheReadTokens"))?,
+            cache_write: optional_cell(usage.get("cacheWriteTokens"))?,
             cache_write1h: None,
             reasoning: 0,
         },
@@ -223,8 +212,8 @@ fn identity(raw: &Value, name: &str) -> Option<String> {
     }
 }
 
-/// The first parseable of startTime/timestamp/time re-emitted via `new
-/// Date(value).toISOString()`, else the fallback.
+/// The first parseable of startTime/timestamp/time re-serialized as ISO, else
+/// the fallback.
 fn timestamp(raw: &Value, fallback: &str) -> String {
     for name in ["startTime", "timestamp", "time"] {
         if let Some(value) = raw.get(name).and_then(as_string)
@@ -349,7 +338,7 @@ fn clone_candidate(c: &Candidate) -> Candidate {
     }
 }
 
-/// The `parse` callback of `scanJsonl` in `readCopilotOtel`.
+/// Parse one OTel line into a usage candidate.
 fn parse_candidate(
     line: &JsonlLine,
     file: &str,
@@ -502,6 +491,7 @@ fn parse_candidate(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::readers::shared::scratch_dir;
     use std::fs;
 
     const SESSION_START: &str = r#"{"type":"session.start","data":{"sessionId":"sess-1","startTime":"2026-10-18T18:28:26.796Z","context":{"cwd":"/work/proj"}},"id":"rec-1","timestamp":"2026-10-18T18:28:26.796Z"}"#;
@@ -515,12 +505,14 @@ mod tests {
     }
 
     fn read(home: &Path) -> ReaderResult {
-        CopilotReader.read(&ReaderContext::new(home.to_path_buf()))
+        let result = CopilotReader.read(&ReaderContext::new(home.to_path_buf()));
+        fs::remove_dir_all(home).ok();
+        result
     }
 
     #[test]
     fn session_state_usage_record_emits_one_event() {
-        let home = super::super::shared::scratch_dir("copilot-session-state");
+        let home = scratch_dir("copilot-session-state");
         write(
             &home,
             ".copilot/session-state/sess-1/events.jsonl",
@@ -542,21 +534,8 @@ mod tests {
     }
 
     #[test]
-    fn mirrored_session_state_files_dedupe_by_record_id() {
-        let home = super::super::shared::scratch_dir("copilot-session-mirror");
-        let body = format!("{SESSION_START}\n{USAGE_RECORD}\n");
-        write(&home, ".copilot/session-state/sess-1/events.jsonl", &body);
-        write(
-            &home,
-            ".copilot/.copilot/session-state/sess-1/events.jsonl",
-            &body,
-        );
-        assert_eq!(read(&home).events.len(), 1);
-    }
-
-    #[test]
     fn session_state_owns_sessions_it_records_and_otel_fills_the_rest() {
-        let home = super::super::shared::scratch_dir("copilot-two-sources");
+        let home = scratch_dir("copilot-two-sources");
         write(
             &home,
             ".copilot/session-state/sess-1/events.jsonl",
@@ -579,16 +558,35 @@ mod tests {
     }
 
     #[test]
-    fn usage_record_without_counts_is_malformed() {
-        let home = super::super::shared::scratch_dir("copilot-session-bad");
-        write(
-            &home,
-            ".copilot/session-state/sess-1/events.jsonl",
-            r#"{"type":"session.usage_record","data":{"usage":{"model":"qwen"}},"id":"rec-9","timestamp":"2026-10-18T18:30:27.454Z"}"#,
-        );
-        let result = read(&home);
-        assert!(result.events.is_empty());
-        assert_eq!(result.skipped.len(), 1);
-        assert!(result.skipped[0].ends_with("events.jsonl:1"));
+    fn malformed_usage_records_are_a_diagnostic() {
+        let cases = [
+            ("no counts", r#""model":"qwen""#),
+            (
+                "negative input",
+                r#""model":"qwen","inputTokens":-1,"outputTokens":19"#,
+            ),
+            (
+                "negative cache read",
+                r#""model":"qwen","inputTokens":1,"outputTokens":19,"cacheReadTokens":-5"#,
+            ),
+            (
+                "string cache write",
+                r#""model":"qwen","inputTokens":1,"outputTokens":19,"cacheWriteTokens":"0""#,
+            ),
+        ];
+        for (case, usage) in cases {
+            let home = scratch_dir("copilot-session-bad");
+            write(
+                &home,
+                ".copilot/session-state/sess-1/events.jsonl",
+                &format!(
+                    r#"{{"type":"session.usage_record","data":{{"usage":{{{usage}}}}},"id":"rec-9","timestamp":"2026-10-18T18:30:27.454Z"}}"#
+                ),
+            );
+            let result = read(&home);
+            assert!(result.events.is_empty(), "{case}");
+            assert_eq!(result.skipped.len(), 1, "{case}");
+            assert!(result.skipped[0].ends_with("events.jsonl:1"), "{case}");
+        }
     }
 }

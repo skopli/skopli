@@ -580,7 +580,7 @@ export function detectHarnesses(resolver: PathResolver = defaultPathResolver): D
   if (dirExists(join(geminiRoot(resolver), "tmp"))) supported.push("gemini");
   if (
     existsSync(copilotOtelRoot(resolver)) ||
-    hasFileWithSuffix(copilotSessionStateRoot(resolver), "events.jsonl")
+    listFiles(copilotSessionStateRoot(resolver), (name) => name === "events.jsonl").length > 0
   ) {
     supported.push("copilot");
   }
