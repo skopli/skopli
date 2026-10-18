@@ -217,6 +217,10 @@ function copilotOtelRoot(resolver: PathResolver): string {
   return join(resolver.home(), ".copilot", "otel");
 }
 
+function copilotSessionStateRoot(resolver: PathResolver): string {
+  return join(resolver.home(), ".copilot", "session-state");
+}
+
 function codexRoot(resolver: PathResolver): string {
   const override = resolver.env("CODEX_HOME");
   if (override !== undefined && override !== "") return override;
@@ -572,7 +576,12 @@ export function detectHarnesses(resolver: PathResolver = defaultPathResolver): D
     supported.push("codex");
   }
   if (dirExists(join(geminiRoot(resolver), "tmp"))) supported.push("gemini");
-  if (existsSync(copilotOtelRoot(resolver))) supported.push("copilot");
+  if (
+    existsSync(copilotOtelRoot(resolver)) ||
+    hasFileWithSuffix(copilotSessionStateRoot(resolver), "events.jsonl")
+  ) {
+    supported.push("copilot");
+  }
   if (dirExists(ampThreadsRoot(resolver))) supported.push("amp");
   if (dirExists(droidSessionsRoot(resolver))) supported.push("droid");
   if (dirExists(qwenProjectsRoot(resolver))) supported.push("qwen");

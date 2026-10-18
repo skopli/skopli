@@ -1,16 +1,22 @@
+use std::collections::HashSet;
 use std::path::{Path, PathBuf};
 
 use serde_json::Value;
 
 use super::reader::{Reader, ReaderContext};
 use super::shared::{
-    JsonlLine, ReaderResult, ReaderWarning, ScanJsonl, as_string, dir_exists, file_mtime_iso,
-    finite_number, is_record, list_files, scan_jsonl,
+    JsonlLine, ReaderResult, ReaderWarning, ScanJsonl, as_string, date_parse_ms, dir_exists,
+    file_mtime_iso, finite_number, is_record, list_files, parent_dir_name, read_jsonl_lines,
+    scan_jsonl,
 };
 use crate::time::to_iso_string;
 use crate::types::{TokenCounts, UsageEvent};
 
-/// The copilot (OTel file exporter) reader wired into the harness registry.
+/// Copilot CLI records usage in two places: the always-on session state
+/// (`~/.copilot/session-state/<id>/events.jsonl`, one `session.usage_record`
+/// per model request) and the opt-in OTel file exporter. Session state owns
+/// every session it records; OTel events are kept only for sessions the
+/// session state does not know, so a request is never counted twice.
 pub struct CopilotReader;
 
 impl Reader for CopilotReader {
@@ -19,9 +25,132 @@ impl Reader for CopilotReader {
     }
 
     fn read(&self, ctx: &ReaderContext) -> ReaderResult {
-        let root = copilot_otel_root(ctx.env("COPILOT_OTEL_FILE_EXPORTER_PATH"), ctx.home());
-        read_copilot_otel(&root)
+        let mut result = read_copilot_session_state(&copilot_session_state_root(ctx.home()));
+        let owned: HashSet<&str> = result
+            .events
+            .iter()
+            .map(|e| e.session_id.as_str())
+            .collect();
+        let otel = read_copilot_otel(&copilot_otel_root(
+            ctx.env("COPILOT_OTEL_FILE_EXPORTER_PATH"),
+            ctx.home(),
+        ));
+        let mut otel_events: Vec<UsageEvent> = otel
+            .events
+            .into_iter()
+            .filter(|e| !owned.contains(e.session_id.as_str()))
+            .collect();
+        result.events.append(&mut otel_events);
+        result.skipped.extend(otel.skipped);
+        result.warnings.extend(otel.warnings);
+        result
     }
+}
+
+pub fn copilot_session_state_root(home: &Path) -> PathBuf {
+    home.join(".copilot").join("session-state")
+}
+
+/// Read `events.jsonl` session logs under the session-state root. The
+/// `session.start` record names the session and its working directory; each
+/// `session.usage_record` carries one request's model and token counts. The
+/// record id keys dedup so a mirrored log never double counts.
+pub fn read_copilot_session_state(root: &Path) -> ReaderResult {
+    let mut result = ReaderResult::default();
+    let mut seen = HashSet::new();
+    for file in list_files(root, |name| name == "events.jsonl") {
+        let Some(lines) = read_jsonl_lines(&file, &mut result.skipped, &mut result.warnings) else {
+            continue;
+        };
+        let mut session = SessionHeader::default();
+        for line in lines {
+            match line.value.get("type").and_then(Value::as_str) {
+                Some("session.start") => {
+                    if let Some(data) = line.value.get("data") {
+                        session = SessionHeader::parse(data);
+                    }
+                }
+                Some("session.usage_record") => {
+                    let session_id = session.id.clone().unwrap_or_else(|| parent_dir_name(&file));
+                    match usage_record_event(&line.value, &session_id, session.workspace.clone()) {
+                        Some(event) if seen.insert(event.message_id.clone()) => {
+                            result.events.push(event)
+                        }
+                        Some(_) => {}
+                        None => {
+                            let location = format!("{file}:{}", line.index + 1);
+                            result.skipped.push(location.clone());
+                            result.warnings.push(ReaderWarning {
+                                message: format!(
+                                    "skipping malformed copilot usage record {location}\n"
+                                ),
+                            });
+                        }
+                    }
+                }
+                _ => {}
+            }
+        }
+    }
+    result
+}
+
+#[derive(Default)]
+struct SessionHeader {
+    id: Option<String>,
+    workspace: Option<String>,
+}
+
+impl SessionHeader {
+    fn parse(data: &Value) -> Self {
+        SessionHeader {
+            id: data.get("sessionId").and_then(as_string),
+            workspace: data
+                .get("context")
+                .and_then(|c| c.get("cwd"))
+                .and_then(as_string),
+        }
+    }
+}
+
+fn usage_record_event(
+    record: &Value,
+    session_id: &str,
+    workspace: Option<String>,
+) -> Option<UsageEvent> {
+    let usage = record.get("data")?.get("usage")?;
+    let count = |name: &str| {
+        usage
+            .get(name)
+            .and_then(finite_number)
+            .map(|n| n.max(0.0) as u64)
+    };
+    let timestamp = record
+        .get("timestamp")
+        .and_then(as_string)
+        .and_then(|t| date_parse_ms(t.trim()))
+        .and_then(to_iso_string)?;
+    Some(UsageEvent {
+        harness: "copilot".to_owned(),
+        timestamp,
+        session_id: session_id.to_owned(),
+        message_id: format!("{session_id}:{}", record.get("id").and_then(as_string)?),
+        turn: false,
+        subagent: false,
+        model: usage.get("model").and_then(as_string)?,
+        tokens: TokenCounts {
+            input: count("inputTokens")?,
+            output: count("outputTokens")?,
+            cache_read: count("cacheReadTokens").unwrap_or(0),
+            cache_write: count("cacheWriteTokens").unwrap_or(0),
+            cache_write1h: None,
+            reasoning: 0,
+        },
+        calls: None,
+        cost_usd: None,
+        workspace,
+        title: None,
+    })
 }
 
 /// Resolve the copilot OTel root. Faithful port of `copilotOtelRoot`.
@@ -101,99 +230,13 @@ fn identity(raw: &Value, name: &str) -> Option<String> {
 fn timestamp(raw: &Value, fallback: &str) -> String {
     for name in ["startTime", "timestamp", "time"] {
         if let Some(value) = raw.get(name).and_then(as_string)
-            && let Some(ms) = parse_date_ms(&value)
+            && let Some(ms) = date_parse_ms(value.trim())
             && let Some(iso) = to_iso_string(ms)
         {
             return iso;
         }
     }
     fallback.to_owned()
-}
-
-/// Parse an ISO-8601 / RFC-3339 datetime string to epoch milliseconds, matching
-/// the subset of `Date.parse` the copilot OTel records exercise (a full
-/// date-time with `Z` or a numeric offset, optional fractional seconds).
-/// Returns `None` when unparseable, mirroring `Number.isNaN(Date.parse(...))`.
-fn parse_date_ms(value: &str) -> Option<i64> {
-    let s = value.trim();
-    let bytes = s.as_bytes();
-    // YYYY-MM-DD[T ]HH:MM:SS(.fff)?(Z|+-HH:MM)
-    if bytes.len() < 20 {
-        return None;
-    }
-    let year: i64 = s.get(0..4)?.parse().ok()?;
-    if bytes[4] != b'-' {
-        return None;
-    }
-    let month: u32 = s.get(5..7)?.parse().ok()?;
-    if bytes[7] != b'-' {
-        return None;
-    }
-    let day: u32 = s.get(8..10)?.parse().ok()?;
-    if bytes[10] != b'T' && bytes[10] != b' ' {
-        return None;
-    }
-    let hour: i64 = s.get(11..13)?.parse().ok()?;
-    if bytes[13] != b':' {
-        return None;
-    }
-    let minute: i64 = s.get(14..16)?.parse().ok()?;
-    if bytes[16] != b':' {
-        return None;
-    }
-    let second: i64 = s.get(17..19)?.parse().ok()?;
-    let mut rest = &s[19..];
-    let mut millis: i64 = 0;
-    if let Some(stripped) = rest.strip_prefix('.') {
-        let frac_end = stripped
-            .find(|c: char| !c.is_ascii_digit())
-            .unwrap_or(stripped.len());
-        let frac = &stripped[..frac_end];
-        // JS Date uses millisecond precision: take up to 3 digits.
-        let mut ms_str = frac.chars().take(3).collect::<String>();
-        while ms_str.len() < 3 {
-            ms_str.push('0');
-        }
-        millis = ms_str.parse().ok()?;
-        rest = &stripped[frac_end..];
-    }
-    // Offset: Z, +HH:MM or -HH:MM
-    let mut offset_min: i64 = 0;
-    match rest.as_bytes().first() {
-        Some(b'Z') => {}
-        Some(b'+') | Some(b'-') => {
-            let sign = if rest.starts_with('-') { -1 } else { 1 };
-            let off = &rest[1..];
-            let oh: i64 = off.get(0..2)?.parse().ok()?;
-            let om: i64 = if off.len() >= 5 {
-                off.get(3..5)?.parse().ok()?
-            } else if off.len() >= 4 {
-                off.get(2..4)?.parse().ok()?
-            } else {
-                0
-            };
-            offset_min = sign * (oh * 60 + om);
-        }
-        None => {}
-        _ => return None,
-    }
-
-    let days = days_from_civil(year, month, day);
-    let ms = days * 86_400_000 + hour * 3_600_000 + minute * 60_000 + second * 1_000 + millis
-        - offset_min * 60_000;
-    Some(ms)
-}
-
-/// Howard Hinnant's `days_from_civil` (days since 1970-01-01).
-fn days_from_civil(y: i64, m: u32, d: u32) -> i64 {
-    let y = if m <= 2 { y - 1 } else { y };
-    let era = if y >= 0 { y } else { y - 399 } / 400;
-    let yoe = y - era * 400;
-    let m = m as i64;
-    let d = d as i64;
-    let doy = (153 * (if m > 2 { m - 3 } else { m + 9 }) + 2) / 5 + d - 1;
-    let doe = yoe * 365 + yoe / 4 - yoe / 100 + doy;
-    era * 146_097 + doe - 719_468
 }
 
 /// A parsed OTel usage candidate before source-priority selection.
@@ -212,6 +255,9 @@ pub fn read_copilot_otel(root: &Path) -> ReaderResult {
     let mut warnings: Vec<ReaderWarning> = Vec::new();
 
     let root_str = root.to_string_lossy().into_owned();
+    if !root.exists() {
+        return ReaderResult::default();
+    }
     let files: Vec<String> = if dir_exists(root) && !root_str.ends_with(".jsonl") {
         list_files(root, |name| name.ends_with(".jsonl"))
     } else {
@@ -455,4 +501,98 @@ fn parse_candidate(
         inclusive_input: input.max(0.0),
         event,
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::fs;
+
+    const SESSION_START: &str = r#"{"type":"session.start","data":{"sessionId":"sess-1","startTime":"2026-10-18T18:28:26.796Z","context":{"cwd":"/work/proj"}},"id":"rec-1","timestamp":"2026-10-18T18:28:26.796Z"}"#;
+    const USAGE_RECORD: &str = r#"{"type":"session.usage_record","data":{"usage":{"model":"qwen","inputTokens":11468,"outputTokens":19,"cacheReadTokens":5,"cacheWriteTokens":0,"cost":0.0}},"id":"rec-2","timestamp":"2026-10-18T18:30:27.454Z","parentId":"rec-1"}"#;
+    const OTEL_SPAN: &str = r#"{"type":"span","name":"chat qwen","traceId":"t1","spanId":"s1","startTime":"2026-10-18T18:30:00.000Z","attributes":{"gen_ai.operation.name":"chat","gen_ai.conversation.id":"sess-1","gen_ai.request.model":"qwen","gen_ai.usage.input_tokens":11473,"gen_ai.usage.output_tokens":19}}"#;
+
+    fn write(home: &Path, rel: &str, body: &str) {
+        let path = home.join(rel);
+        fs::create_dir_all(path.parent().unwrap()).unwrap();
+        fs::write(path, body).unwrap();
+    }
+
+    fn read(home: &Path) -> ReaderResult {
+        CopilotReader.read(&ReaderContext::new(home.to_path_buf()))
+    }
+
+    #[test]
+    fn session_state_usage_record_emits_one_event() {
+        let home = super::super::shared::scratch_dir("copilot-session-state");
+        write(
+            &home,
+            ".copilot/session-state/sess-1/events.jsonl",
+            &format!("{SESSION_START}\n{USAGE_RECORD}\n"),
+        );
+        let result = read(&home);
+        assert!(result.warnings.is_empty(), "{:?}", result.warnings);
+        assert_eq!(result.events.len(), 1);
+        let event = &result.events[0];
+        assert_eq!(event.session_id, "sess-1");
+        assert_eq!(event.message_id, "sess-1:rec-2");
+        assert_eq!(event.timestamp, "2026-10-18T18:30:27.454Z");
+        assert_eq!(event.model, "qwen");
+        assert_eq!(event.tokens.input, 11468);
+        assert_eq!(event.tokens.output, 19);
+        assert_eq!(event.tokens.cache_read, 5);
+        assert_eq!(event.workspace.as_deref(), Some("/work/proj"));
+        assert_eq!(event.cost_usd, None);
+    }
+
+    #[test]
+    fn mirrored_session_state_files_dedupe_by_record_id() {
+        let home = super::super::shared::scratch_dir("copilot-session-mirror");
+        let body = format!("{SESSION_START}\n{USAGE_RECORD}\n");
+        write(&home, ".copilot/session-state/sess-1/events.jsonl", &body);
+        write(
+            &home,
+            ".copilot/.copilot/session-state/sess-1/events.jsonl",
+            &body,
+        );
+        assert_eq!(read(&home).events.len(), 1);
+    }
+
+    #[test]
+    fn session_state_owns_sessions_it_records_and_otel_fills_the_rest() {
+        let home = super::super::shared::scratch_dir("copilot-two-sources");
+        write(
+            &home,
+            ".copilot/session-state/sess-1/events.jsonl",
+            &format!("{SESSION_START}\n{USAGE_RECORD}\n"),
+        );
+        let other = OTEL_SPAN
+            .replace("sess-1", "sess-2")
+            .replace("\"t1\"", "\"t2\"");
+        write(
+            &home,
+            ".copilot/otel/a.jsonl",
+            &format!("{OTEL_SPAN}\n{other}\n"),
+        );
+        let events = read(&home).events;
+        let ids: Vec<(&str, &str)> = events
+            .iter()
+            .map(|e| (e.session_id.as_str(), e.message_id.as_str()))
+            .collect();
+        assert_eq!(ids, vec![("sess-1", "sess-1:rec-2"), ("sess-2", "t2:s1")]);
+    }
+
+    #[test]
+    fn usage_record_without_counts_is_malformed() {
+        let home = super::super::shared::scratch_dir("copilot-session-bad");
+        write(
+            &home,
+            ".copilot/session-state/sess-1/events.jsonl",
+            r#"{"type":"session.usage_record","data":{"usage":{"model":"qwen"}},"id":"rec-9","timestamp":"2026-10-18T18:30:27.454Z"}"#,
+        );
+        let result = read(&home);
+        assert!(result.events.is_empty());
+        assert_eq!(result.skipped.len(), 1);
+        assert!(result.skipped[0].ends_with("events.jsonl:1"));
+    }
 }

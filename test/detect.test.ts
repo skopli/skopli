@@ -457,6 +457,22 @@ describe("detectHarnesses deepseek roots", () => {
 // private path resolver, so each test creates one resolved store and asserts
 // kiro is detected there and nowhere by default.
 
+describe("detectHarnesses copilot roots", () => {
+  it("detects a session-state events log without an OTel export", () => {
+    const home = makeHome();
+    try {
+      const resolver = createPathResolver({ home, env: {} });
+      expect(detectHarnesses(resolver).supported).not.toContain("copilot");
+      const sessionDir = join(home, ".copilot", "session-state", "sess-1");
+      mkdirSync(sessionDir, { recursive: true });
+      writeFileSync(join(sessionDir, "events.jsonl"), "");
+      expect(detectHarnesses(resolver).supported).toContain("copilot");
+    } finally {
+      rmSync(home, { recursive: true, force: true });
+    }
+  });
+});
+
 describe("detectHarnesses kiro roots", () => {
   it("is absent when no store exists", () => {
     const home = makeHome();

@@ -1,5 +1,5 @@
 use std::fs;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 use serde_json::Value;
 use walkdir::WalkDir;
@@ -498,4 +498,18 @@ pub fn read_jsonl_lines(
         }
     }
     Some(out)
+}
+
+#[cfg(test)]
+pub(crate) fn scratch_dir(tag: &str) -> PathBuf {
+    let base = std::env::temp_dir().join(format!(
+        "skopli-{tag}-{}-{}",
+        std::process::id(),
+        std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_nanos()
+    ));
+    fs::create_dir_all(&base).unwrap();
+    base
 }
