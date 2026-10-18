@@ -184,13 +184,28 @@ fn is_session_log(name: &str) -> bool {
 fn read_log_text(file: &str) -> Option<String> {
     let bytes = std::fs::read(file).ok()?;
     if file.ends_with(".zstd") {
-        let mut decoder = ruzstd::decoding::StreamingDecoder::new(bytes.as_slice()).ok()?;
-        let mut out = Vec::new();
-        decoder.read_to_end(&mut out).ok()?;
-        String::from_utf8(out).ok()
+        String::from_utf8(decode_zstd_frames(&bytes)?).ok()
     } else {
         String::from_utf8(bytes).ok()
     }
+}
+
+/// Decode every frame of a zstd stream. The recorder appends one frame per
+/// flush, and `StreamingDecoder` stops after the first, so decode until the
+/// input is exhausted. A frame that fails to decode ends the stream; whatever
+/// decoded before it is kept, so a half-written tail does not hide the rest.
+fn decode_zstd_frames(bytes: &[u8]) -> Option<Vec<u8>> {
+    let mut cursor = std::io::Cursor::new(bytes);
+    let mut out = Vec::new();
+    while (cursor.position() as usize) < bytes.len() {
+        let Ok(mut decoder) = ruzstd::decoding::StreamingDecoder::new(&mut cursor) else {
+            break;
+        };
+        if decoder.read_to_end(&mut out).is_err() {
+            break;
+        }
+    }
+    (!out.is_empty()).then_some(out)
 }
 
 /// Read one session log (already decompressed to text) into usage events.
@@ -795,6 +810,41 @@ mod tests {
         assert_eq!(result.events[0].workspace.as_deref(), Some("/work/proj"));
         assert!(is_session_log("session.v4.jsonl.zstd"));
         assert!(!is_session_log("session.v4.jsonl.bak"));
+        fs::remove_dir_all(&dir).ok();
+    }
+
+    #[test]
+    fn every_zstd_frame_of_an_appended_log_is_read() {
+        // Two frames written by the reference `zstd` CLI and concatenated, as
+        // the recorder appends one frame per flush: the header line, then one
+        // `assistant/message` with usage.
+        const FRAMES: &[u8] = &[
+            40, 181, 47, 253, 36, 93, 157, 2, 0, 162, 132, 17, 25, 112, 85, 117, 242, 1, 109, 33,
+            50, 22, 133, 164, 85, 21, 187, 23, 201, 160, 48, 213, 164, 9, 80, 17, 136, 3, 65, 224,
+            203, 107, 136, 152, 126, 19, 77, 118, 29, 86, 173, 177, 199, 22, 4, 162, 210, 186, 76,
+            26, 75, 133, 155, 93, 159, 132, 230, 174, 187, 154, 157, 235, 155, 231, 98, 228, 248,
+            117, 134, 143, 60, 32, 3, 0, 121, 42, 60, 159, 91, 180, 45, 77, 13, 37, 163, 127, 40,
+            181, 47, 253, 100, 20, 0, 197, 5, 0, 194, 204, 38, 32, 80, 105, 219, 6, 102, 98, 165,
+            149, 14, 235, 182, 200, 70, 148, 255, 107, 132, 24, 51, 214, 50, 111, 241, 31, 81, 120,
+            192, 201, 76, 69, 12, 12, 0, 239, 189, 3, 210, 37, 88, 4, 69, 149, 99, 130, 40, 109,
+            214, 199, 4, 209, 142, 29, 17, 1, 227, 200, 243, 90, 5, 43, 104, 199, 172, 148, 80,
+            118, 199, 247, 190, 86, 97, 241, 196, 235, 162, 74, 61, 223, 22, 165, 4, 214, 152, 227,
+            213, 34, 182, 60, 143, 86, 82, 40, 205, 49, 62, 30, 24, 228, 123, 109, 47, 166, 28,
+            175, 88, 123, 147, 204, 54, 31, 79, 126, 53, 215, 111, 242, 218, 138, 142, 136, 99, 56,
+            199, 145, 24, 7, 195, 0, 114, 242, 187, 164, 62, 26, 39, 191, 88, 62, 126, 19, 202,
+            188, 75, 64, 47, 109, 78, 204, 250, 252, 50, 11, 253, 38, 9, 0, 58, 201, 71, 106, 31,
+            55, 173, 249, 234, 214, 248, 76, 178, 105, 123, 195, 56, 80, 4, 90, 16, 175, 18, 5,
+            205, 172, 1, 82,
+        ];
+        let dir = scratch_dir("zstd-frames");
+        let session_dir = dir.join("--proj--").join("session-1");
+        fs::create_dir_all(&session_dir).unwrap();
+        fs::write(session_dir.join("session.v4.jsonl.zstd"), FRAMES).unwrap();
+        let result = read_deepseek(&dir);
+        assert!(result.warnings.is_empty(), "{:?}", result.warnings);
+        assert_eq!(result.events.len(), 1);
+        assert_eq!(result.events[0].tokens.input, 5407);
+        assert_eq!(result.events[0].workspace.as_deref(), Some("/work/proj"));
         fs::remove_dir_all(&dir).ok();
     }
 
