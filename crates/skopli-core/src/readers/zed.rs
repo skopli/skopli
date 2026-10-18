@@ -15,9 +15,9 @@ use crate::types::{TokenCounts, UsageEvent};
 const ZED_HOSTED_PROVIDER: &str = "zed.dev";
 
 /// The zed reader wired into the harness registry. It reads one cumulative row
-/// per hosted thread from the zed `threads.db`, decoding json/zstd blobs.
-/// Faithful port of `readZed`. (No golden case ships for zed - it is
-/// SQLite-only - so this lane is not conformance-covered.)
+/// per hosted thread from the zed `threads.db`, decoding json/zstd blobs. (No
+/// golden case ships for zed - it is SQLite-only - so this lane is not
+/// conformance-covered.)
 pub struct ZedReader;
 
 impl Reader for ZedReader {
@@ -31,7 +31,7 @@ impl Reader for ZedReader {
     }
 }
 
-/// Resolve the zed database paths. Faithful port of `zedDbPaths`.
+/// Resolve the zed database paths.
 pub fn zed_db_paths(
     data_dir: Option<&str>,
     localappdata: Option<&str>,
@@ -67,8 +67,7 @@ pub fn zed_db_paths(
     paths
 }
 
-/// A finite/positive numeric field, else 0, coercing numeric strings. Faithful
-/// port of `numericField`.
+/// A finite/positive numeric field, else 0, coercing numeric strings.
 fn numeric_field(value: Option<&Value>) -> u64 {
     if let Some(v) = value {
         if let Some(n) = finite_number(v) {
@@ -84,7 +83,7 @@ fn numeric_field(value: Option<&Value>) -> u64 {
     0
 }
 
-/// Accumulate one usage object into `target`. Faithful port of `addUsage`.
+/// Accumulate one usage object into `target`.
 fn add_usage(target: &mut TokenCounts, usage: &Value) {
     target.input += numeric_field(usage.get("input_tokens"));
     target.output += numeric_field(usage.get("output_tokens"));
@@ -93,7 +92,6 @@ fn add_usage(target: &mut TokenCounts, usage: &Value) {
 }
 
 /// Sum request-usage entries (array, usage-map, or single usage object).
-/// Faithful port of `sumRequestUsage`.
 fn sum_request_usage(value: Option<&Value>) -> (TokenCounts, u64) {
     let mut tokens = TokenCounts {
         input: 0,
@@ -139,9 +137,9 @@ fn tokens_are_zero(tokens: &TokenCounts) -> bool {
     tokens.input == 0 && tokens.output == 0 && tokens.cache_read == 0 && tokens.cache_write == 0
 }
 
-/// Decode a thread blob. Faithful port of `decodeBlob`: only `json`/`zstd`
-/// (or NULL data_type) are accepted; anything else yields `None`. A decode /
-/// JSON-parse failure surfaces as `Err(())` (the TS `try/catch` skip path).
+/// Decode a thread blob. Only `json`/`zstd` (or NULL data_type) are accepted;
+/// anything else yields `None`. A decode / JSON-parse failure surfaces as
+/// `Err(())` (the TS `try/catch` skip path).
 fn decode_blob(data_type: Option<&str>, data: Option<Vec<u8>>) -> Result<Option<Value>, ()> {
     if let Some(dt) = data_type
         && dt != "json"
@@ -176,7 +174,7 @@ fn id_string(value: Option<&Value>) -> String {
     }
 }
 
-/// Read all zed usage events. Faithful port of `readZed`.
+/// Read all zed usage events.
 pub fn read_zed(db_paths: &[PathBuf]) -> ReaderResult {
     let mut events: Vec<UsageEvent> = Vec::new();
     let mut skipped: Vec<String> = Vec::new();

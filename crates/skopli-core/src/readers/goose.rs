@@ -11,7 +11,7 @@ use super::sqlite_store::{open_readonly, query_rows};
 use crate::types::{TokenCounts, UsageEvent};
 
 /// The goose reader wired into the harness registry. It reads one cumulative
-/// row per session from the goose `sessions.db`. Faithful port of `readGoose`.
+/// row per session from the goose `sessions.db`.
 pub struct GooseReader;
 
 impl Reader for GooseReader {
@@ -25,8 +25,8 @@ impl Reader for GooseReader {
     }
 }
 
-/// Resolve the goose database paths. Faithful port of `gooseDbPaths`:
-/// `GOOSE_PATH_ROOT` is a single path (never comma-split).
+/// Resolve the goose database paths. `GOOSE_PATH_ROOT` is a single path (never
+/// comma-split).
 pub fn goose_db_paths(override_val: Option<&str>, home: &Path) -> Vec<PathBuf> {
     if let Some(v) = override_val
         && !v.trim().is_empty()
@@ -58,8 +58,8 @@ pub fn goose_db_paths(override_val: Option<&str>, home: &Path) -> Vec<PathBuf> {
     ]
 }
 
-/// Resolve a `created_at` cell to an ISO string. Faithful port of `createdAtIso`:
-/// a string goes through `Date.parse`; anything else through `epochToIso`.
+/// Resolve a `created_at` cell to an ISO string. A string goes through
+/// `Date.parse`; anything else through `epochToIso`.
 fn created_at_iso(value: &Value) -> Option<String> {
     if let Some(s) = value.as_str() {
         return reparse_iso(s);
@@ -77,7 +77,7 @@ fn id_string(value: Option<&Value>) -> String {
     }
 }
 
-/// Read all goose usage events. Faithful port of `readGoose`.
+/// Read all goose usage events.
 pub fn read_goose(db_paths: &[PathBuf]) -> ReaderResult {
     let mut events: Vec<UsageEvent> = Vec::new();
     let mut skipped: Vec<String> = Vec::new();

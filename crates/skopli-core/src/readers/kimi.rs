@@ -11,8 +11,7 @@ use super::shared::{
 };
 use crate::types::{TokenCounts, UsageEvent};
 
-/// The kimi reader wired into the harness registry. Faithful port of `readKimi`
-/// in src/readers/kimi.ts.
+/// The kimi reader wired into the harness registry.
 pub struct KimiReader;
 
 impl Reader for KimiReader {
@@ -26,8 +25,8 @@ impl Reader for KimiReader {
     }
 }
 
-/// Resolve kimi roots. Faithful port of `kimiRoots`: `KIMI_DATA_DIR`
-/// (comma-split, trimmed, non-empty) wins; else `~/.kimi` + `~/.kimi-code`.
+/// Resolve kimi roots. `KIMI_DATA_DIR` (comma-split, trimmed, non-empty) wins;
+/// else `~/.kimi` + `~/.kimi-code`.
 pub fn kimi_roots(override_dir: Option<&str>, home: &Path) -> Vec<PathBuf> {
     if let Some(override_val) = override_dir
         && !override_val.is_empty()
@@ -44,8 +43,7 @@ pub fn kimi_roots(override_dir: Option<&str>, home: &Path) -> Vec<PathBuf> {
 
 const DEFAULT_MODEL: &str = "kimi-for-coding";
 
-/// Faithful port of `configModel`: `config.json`'s non-empty `model`, else the
-/// default.
+/// `config.json`'s non-empty `model`, else the default.
 fn config_model(root: &Path) -> String {
     let config_path = root.join("config.json");
     if let Some(config) = read_json(&config_path.to_string_lossy())
@@ -58,7 +56,6 @@ fn config_model(root: &Path) -> String {
     DEFAULT_MODEL.to_owned()
 }
 
-/// Faithful port of `sessionIdFromPath`.
 fn session_id_from_path(file: &str) -> String {
     let parent = dirname(file);
     let session_dir = if basename(&dirname(&parent)) == "agents" {
@@ -69,8 +66,8 @@ fn session_id_from_path(file: &str) -> String {
     basename(&session_dir)
 }
 
-/// Faithful port of `concreteKimiModel`: strip the `kimi-code/` prefix and
-/// reject empty or symbolic (`__x__`) references.
+/// Strip the `kimi-code/` prefix and reject empty or symbolic (`__x__`)
+/// references.
 fn concrete_kimi_model(raw: Option<String>) -> Option<String> {
     let raw = raw?;
     let mut model = raw.trim().to_owned();
@@ -88,7 +85,6 @@ fn token_total(tokens: &TokenCounts) -> u64 {
     tokens.input + tokens.output + tokens.cache_read + tokens.cache_write + tokens.reasoning
 }
 
-/// Faithful port of `usageTokens` in kimi.ts.
 fn usage_tokens(value: Option<&Value>) -> Option<TokenCounts> {
     let value = value?;
     if !is_record(value) {
@@ -139,7 +135,6 @@ struct StatusSlot {
     source: TimestampSource,
 }
 
-/// Faithful port of `shouldReplace`.
 fn should_replace(existing: &StatusSlot, candidate: &StatusSlot) -> bool {
     if candidate.total != existing.total {
         return candidate.total > existing.total;
@@ -166,7 +161,6 @@ struct WireResult {
     slots: Vec<KeyedSlot>,
 }
 
-/// Faithful port of `readWireFile`.
 fn read_wire_file(
     file: &str,
     config_fallback_model: &str,
@@ -301,7 +295,7 @@ fn read_wire_file(
     WireResult { events, slots }
 }
 
-/// Read all kimi usage events. Faithful port of `readKimi`.
+/// Read all kimi usage events.
 pub fn read_kimi(roots: &[PathBuf]) -> ReaderResult {
     let mut events: Vec<UsageEvent> = Vec::new();
     let mut skipped: Vec<String> = Vec::new();

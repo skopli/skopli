@@ -25,7 +25,7 @@ impl Reader for GrokReader {
     }
 }
 
-/// Resolve the grok home. Faithful port of `grokHome`.
+/// Resolve the grok home.
 pub fn grok_home(override_dir: Option<&str>, home: &Path) -> PathBuf {
     if let Some(v) = override_dir
         && !v.is_empty()
@@ -37,7 +37,6 @@ pub fn grok_home(override_dir: Option<&str>, home: &Path) -> PathBuf {
 
 const UNKNOWN_MODEL: &str = "grok-unknown";
 
-/// Faithful port of `getPath`.
 fn get_path<'a>(value: &'a Value, path: &[&str]) -> Option<&'a Value> {
     let mut current = value;
     for key in path {
@@ -49,7 +48,6 @@ fn get_path<'a>(value: &'a Value, path: &[&str]) -> Option<&'a Value> {
     Some(current)
 }
 
-/// Faithful port of `firstString`.
 fn first_string(value: &Value, paths: &[&[&str]]) -> Option<String> {
     for path in paths {
         if let Some(found) = get_path(value, path).and_then(as_string)
@@ -61,7 +59,6 @@ fn first_string(value: &Value, paths: &[&[&str]]) -> Option<String> {
     None
 }
 
-/// Faithful port of `timestampFrom`.
 fn timestamp_from(value: &Value, fallback: &str) -> String {
     if let Some(from_epoch) = epoch_to_iso(value) {
         return from_epoch;
@@ -74,7 +71,6 @@ fn timestamp_from(value: &Value, fallback: &str) -> String {
     fallback.to_owned()
 }
 
-/// Faithful port of `legacyModel`.
 fn legacy_model(value: &Value) -> Option<String> {
     first_string(
         value,
@@ -89,7 +85,6 @@ fn legacy_model(value: &Value) -> Option<String> {
     )
 }
 
-/// Faithful port of `legacyTotal`.
 fn legacy_total(value: &Value) -> Option<f64> {
     for path in [
         &["params", "_meta", "totalTokens"][..],
@@ -106,7 +101,6 @@ fn legacy_total(value: &Value) -> Option<f64> {
     None
 }
 
-/// Faithful port of `legacyTimestamp`.
 fn legacy_timestamp(value: &Value, fallback: &str) -> String {
     for path in [
         &["params", "_meta", "agentTimestampMs"][..],
@@ -125,7 +119,6 @@ fn legacy_timestamp(value: &Value, fallback: &str) -> String {
     fallback.to_owned()
 }
 
-/// Faithful port of `pickAlias`.
 fn pick_alias(value: &Value, keys: &[&str]) -> f64 {
     for key in keys {
         if let Some(found) = value.get(*key).and_then(finite_number) {
@@ -135,7 +128,6 @@ fn pick_alias(value: &Value, keys: &[&str]) -> f64 {
     0.0
 }
 
-/// Faithful port of `legacyUsageTokens`.
 fn legacy_usage_tokens(value: &Value) -> Option<TokenCounts> {
     let usage = get_path(value, &["params", "update", "usage"])?;
     if !is_record(usage) {
@@ -208,7 +200,6 @@ fn input_only(amount: u64) -> TokenCounts {
     }
 }
 
-/// Faithful port of `signalsEffectiveTotal`.
 fn signals_effective_total(value: &Value) -> f64 {
     let before = value
         .get("totalTokensBeforeCompaction")
@@ -230,7 +221,6 @@ fn signals_effective_total(value: &Value) -> f64 {
     }
 }
 
-/// Faithful port of `signalsModel`.
 fn signals_model(value: &Value) -> Option<String> {
     if let Some(primary) = value.get("primaryModelId").and_then(as_string)
         && !primary.trim().is_empty()
@@ -256,7 +246,6 @@ struct ActiveTurn {
     has_usage: bool,
 }
 
-/// Faithful port of `readLegacySession`.
 fn read_legacy_session(
     file: &str,
     skipped: &mut Vec<String>,
@@ -433,7 +422,6 @@ fn open_turn(
     turn
 }
 
-/// Faithful port of `appendSignalsReconciliation`.
 fn append_signals_reconciliation(
     updates_file: &str,
     session_id: &str,
@@ -484,7 +472,6 @@ struct UnifiedEntry {
     key: String,
 }
 
-/// Faithful port of `unifiedIdentity`.
 fn unified_identity(record: &Value) -> String {
     let ctx = record.get("ctx").filter(|c| is_record(c));
     for source in [Some(record), ctx].into_iter().flatten() {
@@ -499,7 +486,6 @@ fn unified_identity(record: &Value) -> String {
     format!("row:{}", serde_json::to_string(record).unwrap_or_default())
 }
 
-/// Faithful port of `readUnifiedLog`.
 fn read_unified_log(
     file: &str,
     skipped: &mut Vec<String>,
@@ -619,7 +605,7 @@ fn read_unified_log(
     out
 }
 
-/// Read all grok usage events. Faithful port of `readGrok`.
+/// Read all grok usage events.
 pub fn read_grok(home: &Path) -> ReaderResult {
     let mut skipped: Vec<String> = Vec::new();
     let mut warnings: Vec<ReaderWarning> = Vec::new();

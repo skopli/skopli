@@ -24,8 +24,7 @@ pub struct ReaderResult {
 }
 
 /// Recursively list files under `dir` whose file name matches `predicate`,
-/// returned sorted. Mirrors `listFiles` in src/readers/shared.ts: a stack DFS
-/// that ignores unreadable directories and sorts the final paths.
+/// returned sorted. A stack DFS that ignores unreadable directories.
 ///
 /// The TS version sorts by the joined path string; we sort the same way,
 /// normalizing separators is NOT done here (TS keeps native separators and
@@ -65,7 +64,7 @@ pub fn as_string(value: &Value) -> Option<String> {
     value.as_str().map(str::to_owned)
 }
 
-/// A finite number, else 0. Mirrors `asNumber` in src/readers/shared.ts.
+/// A finite number, else 0.
 pub fn as_number(value: &Value) -> f64 {
     finite_number(value).unwrap_or(0.0)
 }
@@ -78,8 +77,7 @@ pub fn read_json(path: &str) -> Option<Value> {
     serde_json::from_str::<Value>(&content).ok()
 }
 
-/// The epoch unit for [`epoch_to_iso_unit`]. Mirrors the `"ms" | "s" | "auto"`
-/// parameter of `epochToIso` in src/readers/shared.ts.
+/// The epoch unit for [`epoch_to_iso_unit`].
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum EpochUnit {
     /// The number is epoch milliseconds.
@@ -97,8 +95,7 @@ pub fn epoch_to_iso(value: &Value) -> Option<String> {
 }
 
 /// Parse a value as an epoch and format it as an ISO string, or `None`.
-/// Faithful port of `epochToIso` in src/readers/shared.ts:
-/// non-finite or `<= 0` -> `None`; the `unit` selects the seconds/millis scale
+/// Non-finite or `<= 0` -> `None`; the `unit` selects the seconds/millis scale
 /// (`Auto`: values `>= 1e12` are millis, smaller positive values are seconds).
 /// Out-of-range epochs (where V8's `toISOString` would throw) map to `None`.
 pub fn epoch_to_iso_unit(value: &Value, unit: EpochUnit) -> Option<String> {
@@ -122,8 +119,7 @@ pub fn epoch_to_iso_unit(value: &Value, unit: EpochUnit) -> Option<String> {
 }
 
 /// Resolve a timestamp that may arrive as an ISO/RFC-3339 string, a numeric
-/// string, or a number, to an ISO string. Faithful port of `parseTimestampToIso`
-/// in src/readers/shared.ts:
+/// string, or a number, to an ISO string:
 /// - a number -> `epoch_to_iso` (auto unit);
 /// - a numeric string (`^-?\d+(\.\d+)?$`) -> its `Number` value via auto epoch;
 /// - any other string -> parsed as an ISO date-time (a bare datetime without a
@@ -290,8 +286,7 @@ fn days_from_civil(year: i64, month: u32, day: u32) -> i64 {
     era * 146_097 + doe - 719_468
 }
 
-/// The file's mtime as an ISO string, or the epoch when unavailable. Faithful
-/// port of `fileMtimeIso` in src/readers/shared.ts.
+/// The file's mtime as an ISO string, or the epoch when unavailable.
 pub fn file_mtime_iso(file: &str) -> String {
     let epoch_ms = fs::metadata(file)
         .and_then(|m| m.modified())
@@ -370,9 +365,9 @@ pub struct ScanJsonl<'a, T> {
     pub dedup_key: Option<DedupKey<'a, T>>,
 }
 
-/// Scan JSONL files, parsing each line and optionally deduping. Faithful port
-/// of `scanJsonl` in src/readers/shared.ts. Malformed lines / unreadable files
-/// are recorded through `read_jsonl_lines` into `skipped` + `warnings`.
+/// Scan JSONL files, parsing each line and optionally deduping. Malformed lines
+/// / unreadable files are recorded through `read_jsonl_lines` into `skipped` +
+/// `warnings`.
 pub fn scan_jsonl<T>(
     opts: ScanJsonl<'_, T>,
     skipped: &mut Vec<String>,
@@ -404,8 +399,7 @@ pub fn scan_jsonl<T>(
     values
 }
 
-/// Normalize a workspace path string. Faithful port of `normalizeWorkspace`
-/// in src/readers/shared.ts.
+/// Normalize a workspace path string.
 pub fn normalize_workspace(value: &Value) -> Option<String> {
     let raw = value.as_str()?;
     let forward = raw.trim().replace('\\', "/");
@@ -489,7 +483,7 @@ pub struct JsonlLine {
     pub value: Value,
 }
 
-/// Read a JSONL file into parsed lines. Faithful port of `readJsonlLines`:
+/// Read a JSONL file into parsed lines:
 /// - splits on "\n", trims each line, skips empty lines;
 /// - malformed JSON lines are warned + pushed to `skipped` as `file:index+1`;
 /// - an unreadable file warns + pushes the file path to `skipped`, returns None.

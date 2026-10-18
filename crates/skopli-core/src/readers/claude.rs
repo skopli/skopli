@@ -26,9 +26,8 @@ impl Reader for ClaudeReader {
     }
 }
 
-/// Resolve claude data roots. Faithful port of `claudeRoots` in
-/// src/readers/claude.ts: `CLAUDE_CONFIG_DIR` (comma-split, trimmed, non-empty
-/// parts) wins; otherwise the two default `~/.claude` locations.
+/// Resolve claude data roots. `CLAUDE_CONFIG_DIR` (comma-split, trimmed,
+/// non-empty parts) wins; otherwise the two default `~/.claude` locations.
 ///
 /// `env` returns the value of an environment variable (empty string treated as
 /// unset by the caller, matching the TS PathResolver), `home` is the home dir.
@@ -47,7 +46,6 @@ pub fn claude_roots(config_dir: Option<&str>, home: &Path) -> Vec<PathBuf> {
 }
 
 /// True when a `user`-type line represents a human turn (not a tool result).
-/// Faithful port of `isHumanUserLine`.
 fn is_human_user_line(line: &Value) -> bool {
     if line.get("type").and_then(Value::as_str) != Some("user") {
         return false;
@@ -80,7 +78,6 @@ struct ParseOutcome {
 }
 
 /// Parse a single JSONL value into an optional event + role + malformed flag.
-/// Faithful port of `parseLine` in src/readers/claude.ts.
 fn parse_line(
     parsed: &Value,
     file: &str,
@@ -219,13 +216,12 @@ fn finite_val(v: &Value) -> Option<f64> {
     finite_number(v)
 }
 
-/// Read all Claude-Code-style transcript usage events from the given roots.
-/// Faithful port of `readClaude` in src/readers/claude.ts: for each root, walk
-/// `projects/`, read each `.jsonl`, track user->assistant turn state, warn+skip
-/// malformed assistant records, and dedup globally per-harness on `messageId`
-/// (first occurrence wins). `harness` parameterizes the emitted event's harness
-/// literal so CodeBuddy Code (a Claude Code transcript clone) can reuse this
-/// reader by swapping its home dir and id.
+/// Read all Claude-Code-style transcript usage events from the given roots. For
+/// each root, walk `projects/`, read each `.jsonl`, track user->assistant turn
+/// state, warn+skip malformed assistant records, and dedup globally per-harness
+/// on `messageId` (first occurrence wins). `harness` parameterizes the emitted
+/// event's harness literal so CodeBuddy Code (a Claude Code transcript clone)
+/// can reuse this reader by swapping its home dir and id.
 pub fn read_claude_transcripts(roots: &[PathBuf], harness: &str) -> ReaderResult {
     let mut events: Vec<UsageEvent> = Vec::new();
     let mut skipped: Vec<String> = Vec::new();

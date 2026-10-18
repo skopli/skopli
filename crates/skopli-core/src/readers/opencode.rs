@@ -79,7 +79,7 @@ impl Reader for CommandcodeReader {
     }
 }
 
-/// Resolve the opencode data roots. Faithful port of `opencodeRoots`.
+/// Resolve the opencode data roots.
 pub fn opencode_roots(
     data_dir: Option<&str>,
     xdg_data_home: Option<&str>,
@@ -162,7 +162,6 @@ struct SessionScan {
     meta: HashMap<String, SessionMeta>,
 }
 
-/// Faithful port of `scanSessions`.
 fn scan_sessions(
     root: &Path,
     harness: &str,
@@ -230,9 +229,9 @@ struct ParsedMessage {
     malformed: bool,
 }
 
-/// Faithful port of `parseMessage`. `authoritative_created` mirrors the TS
-/// optional param: when `Some`, it overrides the `time.created` lookup (the
-/// SQLite lane passes the `time_created` column through here).
+/// `authoritative_created` mirrors the TS optional param: when `Some`, it
+/// overrides the `time.created` lookup (the SQLite lane passes the
+/// `time_created` column through here).
 fn parse_message(
     raw: &Value,
     harness: &str,
@@ -348,7 +347,6 @@ fn parse_message(
     }
 }
 
-/// Faithful port of `readJsonStore`.
 fn read_json_store(root: &Path, harness: &str) -> ReaderResult {
     let mut events: Vec<UsageEvent> = Vec::new();
     let mut skipped: Vec<String> = Vec::new();
@@ -432,9 +430,8 @@ fn read_json_store(root: &Path, harness: &str) -> ReaderResult {
     }
 }
 
-/// Read the per-session metadata table from a `.db`. Faithful port of
-/// `readDbSessionMeta`: only present columns are selected, an id-less schema
-/// yields empty meta.
+/// Read the per-session metadata table from a `.db`. Only present columns are
+/// selected, an id-less schema yields empty meta.
 fn read_db_session_meta(db_path: &str) -> HashMap<String, SessionMeta> {
     let mut meta = HashMap::new();
     let conn = match open_readonly(db_path) {
@@ -529,9 +526,8 @@ fn enrich_v2(raw: &Value, message_id: &str, row_role: Option<&str>) -> Value {
 }
 
 /// Read one opencode `.db`, running both the v1 (`message`) and v2
-/// (`session_message`) queries and merging their sessions. Faithful port of
-/// `readDbRows`. Returns `Err` only when BOTH queries fail to open/run (the TS
-/// `stores.length === 0` throw).
+/// (`session_message`) queries and merging their sessions. Returns `Err` only
+/// when BOTH queries fail to open/run (the TS `stores.length === 0` throw).
 fn read_db_rows(db_path: &str, harness: &str) -> Result<ReaderResult, ()> {
     let session_meta = read_db_session_meta(db_path);
     let malformed_label = format!("{harness} message");
@@ -665,8 +661,8 @@ fn read_db_rows(db_path: &str, harness: &str) -> Result<ReaderResult, ()> {
     })
 }
 
-/// List the `opencode.db` / `opencode-*.db` files directly under `root`, sorted.
-/// Faithful port of the inline `dbPaths` reader in `readOpencode`.
+/// List the `opencode.db` / `opencode-*.db` files directly under `root`,
+/// sorted.
 fn opencode_db_paths(root: &Path) -> Vec<PathBuf> {
     let mut paths: Vec<PathBuf> = Vec::new();
     if let Ok(entries) = std::fs::read_dir(root) {
@@ -685,7 +681,6 @@ fn opencode_db_paths(root: &Path) -> Vec<PathBuf> {
 
 /// Read all opencode usage events: every `.db` across every root first (so
 /// authoritative db rows win the message-id dedup), then the legacy JSON store.
-/// Faithful port of `readOpencode`.
 pub fn read_opencode(roots: &[PathBuf], harness: &str) -> ReaderResult {
     let mut events: Vec<UsageEvent> = Vec::new();
     let mut skipped: Vec<String> = Vec::new();

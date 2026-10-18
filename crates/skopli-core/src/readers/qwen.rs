@@ -25,7 +25,7 @@ impl Reader for QwenReader {
     }
 }
 
-/// Resolve the qwen projects root. Faithful port of `qwenProjectsRoot`.
+/// Resolve the qwen projects root.
 pub fn qwen_projects_root(override_dir: Option<&str>, home: &Path) -> PathBuf {
     if let Some(v) = override_dir
         && !v.is_empty()
@@ -35,8 +35,7 @@ pub fn qwen_projects_root(override_dir: Option<&str>, home: &Path) -> PathBuf {
     home.join(".qwen").join("projects")
 }
 
-/// Faithful port of `sessionId(raw, file)`: prefer `raw.sessionId`, else
-/// `<grandparent dir name>-<file stem>`.
+/// Prefer `raw.sessionId`, else `<grandparent dir name>-<file stem>`.
 fn session_id(raw: &Value, file: &str) -> String {
     raw.get("sessionId").and_then(as_string).unwrap_or_else(|| {
         let grandparent = parent_dir_name_full(file);
@@ -73,7 +72,7 @@ struct QwenMessage {
     session_id: String,
 }
 
-/// Read all qwen usage events. Faithful port of `readQwen`.
+/// Read all qwen usage events.
 pub fn read_qwen(root: &Path) -> ReaderResult {
     let mut events: Vec<UsageEvent> = Vec::new();
     let mut skipped: Vec<String> = Vec::new();

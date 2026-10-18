@@ -98,7 +98,7 @@ impl Reader for KimchiReader {
     }
 }
 
-/// Resolve the pi sessions root. Faithful port of `piSessionsRoot`.
+/// Resolve the pi sessions root.
 pub fn pi_sessions_root(override_dir: Option<&str>, home: &Path) -> PathBuf {
     if let Some(v) = override_dir
         && !v.is_empty()
@@ -108,7 +108,7 @@ pub fn pi_sessions_root(override_dir: Option<&str>, home: &Path) -> PathBuf {
     home.join(".pi").join("agent").join("sessions")
 }
 
-/// Resolve the omp sessions root. Faithful port of `ompSessionsRoot`.
+/// Resolve the omp sessions root.
 pub fn omp_sessions_root(home: &Path) -> PathBuf {
     home.join(".omp").join("agent").join("sessions")
 }
@@ -196,7 +196,7 @@ pub fn read_pi_roots(roots: &[PathBuf], harness: &str) -> ReaderResult {
     }
 }
 
-/// Read pi/omp usage events from a sessions root. Faithful port of `readPiRoot`.
+/// Read pi/omp usage events from a sessions root.
 pub fn read_pi_root(root: &Path, harness: &str) -> ReaderResult {
     let mut events: Vec<UsageEvent> = Vec::new();
     let mut skipped: Vec<String> = Vec::new();
@@ -218,7 +218,7 @@ pub fn read_pi_root(root: &Path, harness: &str) -> ReaderResult {
 }
 
 /// Read pi-family usage events from `root` into the shared accumulators,
-/// deduplicating by message id via `seen`. Faithful port of `readPiRoot`'s body.
+/// deduplicating by message id via `seen`.
 fn read_pi_root_into(
     root: &Path,
     harness: &str,

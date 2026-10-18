@@ -24,7 +24,7 @@ impl Reader for AmpReader {
     }
 }
 
-/// Resolve the amp threads root. Faithful port of `ampThreadsRoot`.
+/// Resolve the amp threads root.
 pub fn amp_threads_root(config: Option<&str>, home: &Path) -> PathBuf {
     if let Some(override_val) = config
         && !override_val.is_empty()
@@ -43,7 +43,6 @@ struct AmpRecord {
     turn: bool,
 }
 
-/// Faithful port of `eventsId`.
 fn events_id(usage: &Value) -> String {
     usage
         .get("id")
@@ -51,7 +50,6 @@ fn events_id(usage: &Value) -> String {
         .unwrap_or_else(|| "ledger".to_owned())
 }
 
-/// Faithful port of `ampRecord`.
 #[allow(clippy::too_many_arguments)]
 fn amp_record(
     usage: &Value,
@@ -130,7 +128,7 @@ fn num_to_string(n: f64) -> String {
     }
 }
 
-/// Read all amp usage events from the given root. Faithful port of `readAmp`.
+/// Read all amp usage events from the given root.
 pub fn read_amp(root: &Path) -> ReaderResult {
     let mut events: Vec<UsageEvent> = Vec::new();
     let mut skipped: Vec<String> = Vec::new();

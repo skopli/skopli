@@ -24,10 +24,10 @@ impl Reader for CodebuffReader {
     }
 }
 
-/// Resolve codebuff project roots. Faithful port of `codebuffRoots`: the
-/// `CODEBUFF_DATA_DIR` override (comma-split, trimmed, non-empty) wins, else the
-/// three default `~/.config/manicode*` bases; each base gets `/projects`
-/// appended unless it already ends in `projects`.
+/// Resolve codebuff project roots. The `CODEBUFF_DATA_DIR` override
+/// (comma-split, trimmed, non-empty) wins, else the three default
+/// `~/.config/manicode*` bases; each base gets `/projects` appended unless it
+/// already ends in `projects`.
 pub fn codebuff_roots(config_dir: Option<&str>, home: &Path) -> Vec<PathBuf> {
     let bases: Vec<PathBuf> = match config_dir {
         Some(v) if !v.is_empty() => v
@@ -81,7 +81,7 @@ fn has_signal(usage: &Usage) -> bool {
 }
 
 /// Later sources only fill buckets the earlier, more authoritative source left
-/// empty; they never overwrite. Faithful port of `mergeFallback`.
+/// empty; they never overwrite.
 fn merge_fallback(into: &mut Usage, from: &Usage) {
     if into.input <= 0.0 {
         into.input = from.input;
@@ -100,7 +100,7 @@ fn merge_fallback(into: &mut Usage, from: &Usage) {
     }
 }
 
-/// Faithful port of `pickNumber`: the first finite key wins, clamped to `>= 0`.
+/// The first finite key wins, clamped to `>= 0`.
 fn pick_number(value: &Value, keys: &[&str]) -> f64 {
     for key in keys {
         if let Some(found) = value.get(*key).and_then(finite_number) {
@@ -110,7 +110,6 @@ fn pick_number(value: &Value, keys: &[&str]) -> f64 {
     0.0
 }
 
-/// Faithful port of `parseUsageObject`.
 fn parse_usage_object(value: Option<&Value>) -> Usage {
     let mut usage = empty_usage();
     let value = match value {
@@ -172,8 +171,7 @@ fn parse_usage_object(value: Option<&Value>) -> Usage {
 }
 
 /// OpenRouter-routed calls land their final token counts in the stashed
-/// RunState message history rather than metadata.usage. Faithful port of
-/// `usageFromRunState`.
+/// RunState message history rather than metadata.usage.
 fn usage_from_run_state(metadata: &Value) -> Option<Usage> {
     let history = metadata
         .get("runState")
@@ -223,7 +221,6 @@ fn usage_from_run_state(metadata: &Value) -> Option<Usage> {
     if found_any { Some(accumulator) } else { None }
 }
 
-/// Faithful port of `extractUsage`.
 fn extract_usage(msg: &Value) -> Usage {
     let mut usage = empty_usage();
     let metadata = match msg.get("metadata") {
@@ -247,7 +244,6 @@ fn extract_usage(msg: &Value) -> Usage {
     usage
 }
 
-/// Faithful port of `isAssistant`.
 fn is_assistant(msg: &Value) -> bool {
     let variant = msg
         .get("variant")
@@ -259,7 +255,6 @@ fn is_assistant(msg: &Value) -> bool {
 
 /// chatId is the chat's ISO timestamp with the time-portion colons flipped to
 /// dashes for filesystem safety; only the two separators after T flip back.
-/// Faithful port of `chatIdTimestamp`.
 fn chat_id_timestamp(chat_id: &str) -> Option<String> {
     let t_index = chat_id.find('T')?;
     let date = &chat_id[..t_index];
@@ -273,7 +268,6 @@ fn chat_id_timestamp(chat_id: &str) -> Option<String> {
     reparse_iso(&format!("{date}{time}"))
 }
 
-/// Faithful port of `messageTimestamp`.
 fn message_timestamp(msg: &Value) -> Option<String> {
     for key in ["timestamp", "createdAt"] {
         let value = msg.get(key).unwrap_or(&Value::Null);
@@ -295,7 +289,7 @@ fn message_timestamp(msg: &Value) -> Option<String> {
     None
 }
 
-/// Read all codebuff usage events. Faithful port of `readCodebuff`.
+/// Read all codebuff usage events.
 pub fn read_codebuff(roots: &[PathBuf]) -> ReaderResult {
     let mut events: Vec<UsageEvent> = Vec::new();
     let mut skipped: Vec<String> = Vec::new();

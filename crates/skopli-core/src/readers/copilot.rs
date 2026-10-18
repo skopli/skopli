@@ -153,7 +153,7 @@ fn usage_record_event(
     })
 }
 
-/// Resolve the copilot OTel root. Faithful port of `copilotOtelRoot`.
+/// Resolve the copilot OTel root.
 pub fn copilot_otel_root(config: Option<&str>, home: &Path) -> PathBuf {
     if let Some(override_val) = config
         && !override_val.is_empty()
@@ -163,7 +163,6 @@ pub fn copilot_otel_root(config: Option<&str>, home: &Path) -> PathBuf {
     home.join(".copilot").join("otel")
 }
 
-/// Faithful port of `attributeNumber`.
 fn attribute_number(attributes: &Value, names: &[&str]) -> Option<f64> {
     for name in names {
         let value = attributes.get(*name);
@@ -181,7 +180,6 @@ fn attribute_number(attributes: &Value, names: &[&str]) -> Option<f64> {
     None
 }
 
-/// Faithful port of `attributeString`.
 fn attribute_string(attributes: &Value, names: &[&str]) -> Option<String> {
     for name in names {
         let value = attributes.get(*name);
@@ -206,7 +204,6 @@ fn all_zeros(s: &str) -> bool {
     !s.is_empty() && s.bytes().all(|b| b == b'0')
 }
 
-/// Faithful port of `identity`.
 fn identity(raw: &Value, name: &str) -> Option<String> {
     if let Some(direct) = raw.get(name).and_then(as_string)
         && !direct.is_empty()
@@ -225,8 +222,8 @@ fn identity(raw: &Value, name: &str) -> Option<String> {
     }
 }
 
-/// Faithful port of `timestamp`: the first parseable of startTime/timestamp/time
-/// re-emitted via `new Date(value).toISOString()`, else the fallback.
+/// The first parseable of startTime/timestamp/time re-emitted via `new
+/// Date(value).toISOString()`, else the fallback.
 fn timestamp(raw: &Value, fallback: &str) -> String {
     for name in ["startTime", "timestamp", "time"] {
         if let Some(value) = raw.get(name).and_then(as_string)
@@ -248,8 +245,7 @@ struct Candidate {
     inclusive_input: f64,
 }
 
-/// Read all copilot usage events from the given root. Faithful port of
-/// `readCopilotOtel`.
+/// Read all copilot usage events from the given root.
 pub fn read_copilot_otel(root: &Path) -> ReaderResult {
     let mut skipped: Vec<String> = Vec::new();
     let mut warnings: Vec<ReaderWarning> = Vec::new();
@@ -283,8 +279,7 @@ pub fn read_copilot_otel(root: &Path) -> ReaderResult {
     skipped.extend(inner_skipped);
     warnings.extend(inner_warnings);
 
-    // Source-priority selection + same-source max merge. Faithful port of the
-    // `selected` map logic.
+    // Source-priority selection + same-source max merge.
     let mut selected: Vec<Candidate> = Vec::new();
     let mut index_by_id: std::collections::HashMap<String, usize> =
         std::collections::HashMap::new();

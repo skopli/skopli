@@ -34,7 +34,7 @@ impl Reader for ZcodeReader {
 const ZCODE_PROVIDER: &str = "zhipu";
 const ZCODE_DEFAULT_MODEL: &str = "glm-5.2";
 
-/// Resolve the zcode data root. Faithful port of `zcodeRoot`.
+/// Resolve the zcode data root.
 pub fn zcode_root(override_dir: Option<&str>, home: &Path) -> PathBuf {
     if let Some(v) = override_dir
         && !v.is_empty()
@@ -55,7 +55,7 @@ pub fn zcode_db_path(root: &Path) -> PathBuf {
     root.join("cli").join("db").join("db.sqlite")
 }
 
-/// Faithful port of `firstNumber`: the first finite key wins, clamped `>= 0`.
+/// The first finite key wins, clamped `>= 0`.
 fn first_number(record: &Value, keys: &[&str]) -> u64 {
     for key in keys {
         if let Some(value) = record.get(*key).and_then(finite_number) {
@@ -66,8 +66,7 @@ fn first_number(record: &Value, keys: &[&str]) -> u64 {
 }
 
 /// zcode reports input inclusive of cache and output inclusive of reasoning;
-/// strip the overlap so buckets never double-count. Faithful port of
-/// `normalize`.
+/// strip the overlap so buckets never double-count.
 fn normalize(tokens: &TokenCounts) -> TokenCounts {
     TokenCounts {
         input: tokens
@@ -90,7 +89,7 @@ fn all_zero(tokens: &TokenCounts) -> bool {
         && tokens.reasoning == 0
 }
 
-/// Read the legacy JSONL store. Faithful port of `readJsonlStore`.
+/// Read the legacy JSONL store.
 fn read_jsonl_store(
     root: &Path,
     skipped: &mut Vec<String>,
@@ -218,10 +217,10 @@ fn read_jsonl_store(
     events
 }
 
-/// Read the authoritative SQLite store. Faithful port of `readDbStore`: one
-/// event per non-zero `model_usage` row, with the earliest-started row per
-/// `turn_id` flagged as a turn. Every emitted session id feeds
-/// `covered_sessions` so its JSONL mirror is suppressed.
+/// Read the authoritative SQLite store. One event per non-zero `model_usage`
+/// row, with the earliest-started row per `turn_id` flagged as a turn. Every
+/// emitted session id feeds `covered_sessions` so its JSONL mirror is
+/// suppressed.
 fn read_db_store(
     db_path: &str,
     skipped: &mut Vec<String>,
@@ -371,8 +370,7 @@ fn read_db_store(
 }
 
 /// Read all zcode usage events: the authoritative SQLite store first (feeding
-/// `covered_sessions`), then the legacy JSONL store. Faithful port of
-/// `readZcode`.
+/// `covered_sessions`), then the legacy JSONL store.
 pub fn read_zcode(root: &Path) -> ReaderResult {
     let mut events: Vec<UsageEvent> = Vec::new();
     let mut skipped: Vec<String> = Vec::new();

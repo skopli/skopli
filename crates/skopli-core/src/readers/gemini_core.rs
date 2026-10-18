@@ -4,7 +4,6 @@ use super::shared::{finite_number, is_record};
 use crate::types::TokenCounts;
 
 /// The set of source field names parsed for a gemini-family token record.
-/// Mirrors `GeminiTokenFields` in src/readers/gemini-core.ts.
 pub struct GeminiTokenFields {
     pub input: &'static str,
     pub output: &'static str,
@@ -38,8 +37,8 @@ pub const QWEN_TOKEN_FIELDS: GeminiTokenFields = GeminiTokenFields {
     optional: true,
 };
 
-/// Parse a gemini token record. Faithful port of `parseGeminiTokens`. Returns
-/// `None` when the record is malformed for the given field mapping.
+/// Parse a gemini token record. Returns `None` when the record is malformed for
+/// the given field mapping.
 pub fn parse_gemini_tokens(value: &Value, fields: &GeminiTokenFields) -> Option<TokenCounts> {
     if !is_record(value) {
         return None;

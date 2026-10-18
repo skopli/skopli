@@ -3,8 +3,8 @@ use std::path::{Path, PathBuf};
 
 use super::shared::ReaderResult;
 
-/// Ambient inputs a reader needs to resolve its data roots. Mirrors the TS
-/// `PathResolver` (src/paths.ts): a `home` directory and an `env` lookup where
+/// Ambient inputs a reader needs to resolve its data roots, matching the TS
+/// `PathResolver`: a `home` directory and an `env` lookup where
 /// an empty-string value is treated as unset. When an explicit `env` map is
 /// provided it is the entire environment (the process environment is never
 /// consulted), so tests and relocated setups get full isolation.

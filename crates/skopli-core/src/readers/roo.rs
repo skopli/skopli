@@ -28,9 +28,9 @@ impl Reader for RooReader {
     }
 }
 
-/// Resolve the roo VS Code task roots. Faithful port of `vscodeTaskRoots("roo")`:
-/// the per-OS globalStorage roots for the `rooveterinaryinc.roo-cline/tasks`
-/// extension suffix, plus an `%APPDATA%` root when that env var is set.
+/// Resolve the roo VS Code task roots. The per-OS globalStorage roots for the
+/// `rooveterinaryinc.roo-cline/tasks` extension suffix, plus an `%APPDATA%`
+/// root when that env var is set.
 pub fn roo_task_roots(app_data: Option<&str>, home: &Path) -> Vec<PathBuf> {
     let suffix = ["rooveterinaryinc.roo-cline", "tasks"];
     let with_suffix = |base: PathBuf| -> PathBuf {
@@ -81,8 +81,7 @@ pub fn roo_task_roots(app_data: Option<&str>, home: &Path) -> Vec<PathBuf> {
     roots
 }
 
-/// Faithful port of `numeric`: a finite number (clamped `>= 0`), a finite
-/// numeric string, else 0.
+/// A finite number (clamped `>= 0`), a finite numeric string, else 0.
 fn numeric(value: Option<&Value>) -> u64 {
     let value = match value {
         Some(v) => v,
@@ -100,8 +99,7 @@ fn numeric(value: Option<&Value>) -> u64 {
     0
 }
 
-/// Faithful port of `tagValue`: the trimmed contents of the LAST `<tag>...</tag>`
-/// in `text`, or `None`.
+/// The trimmed contents of the LAST `<tag>..</tag>` in `text`, or `None`.
 fn tag_value(text: &str, tag: &str) -> Option<String> {
     let open = format!("<{tag}>");
     let close = format!("</{tag}>");
@@ -121,9 +119,8 @@ fn tag_value(text: &str, tag: &str) -> Option<String> {
     last.map(|s| s.trim().to_owned())
 }
 
-/// model comes from the sibling api_conversation_history.json: the last `<model>`
-/// value inside any `<environment_details>` block wins. Faithful port of
-/// `modelForTask`.
+/// model comes from the sibling api_conversation_history.json: the last
+/// `<model>` value inside any `<environment_details>` block wins.
 fn model_for_task(task_dir: &str) -> String {
     let sibling = format!("{task_dir}/api_conversation_history.json");
     let text = match fs::read_to_string(&sibling) {
@@ -153,8 +150,7 @@ fn model_for_task(task_dir: &str) -> String {
     model.unwrap_or_else(|| "unknown".to_owned())
 }
 
-/// Read a single task's `ui_messages.json`. Faithful port of `readTaskFile`
-/// specialized to the `roo` harness.
+/// Read a single task's `ui_messages.json` for the `roo` harness.
 fn read_task_file(
     file: &str,
     skipped: &mut Vec<String>,
@@ -257,7 +253,7 @@ fn read_task_file(
     events
 }
 
-/// Read all roo usage events. Faithful port of `readRoo` -> `readVscodeExt`.
+/// Read all roo usage events.
 pub fn read_roo(roots: &[PathBuf]) -> ReaderResult {
     let mut events: Vec<UsageEvent> = Vec::new();
     let mut skipped: Vec<String> = Vec::new();

@@ -15,7 +15,7 @@ const DEVIN_PROVIDER: &str = "devin";
 
 /// The devin reader wired into the harness registry. It reads the CLI SQLite
 /// store (authoritative) and the Desktop ACP `.ndjson` store, dropping Desktop
-/// usage for any session the CLI already covered. Faithful port of `readDevin`.
+/// usage for any session the CLI already covered.
 pub struct DevinReader;
 
 impl Reader for DevinReader {
@@ -30,7 +30,7 @@ impl Reader for DevinReader {
     }
 }
 
-/// Resolve the CLI database path. Faithful port of `devinDbPath`.
+/// Resolve the CLI database path.
 pub fn devin_db_path(data_dir: Option<&str>, home: &Path) -> PathBuf {
     if let Some(v) = data_dir
         && !v.is_empty()
@@ -44,7 +44,7 @@ pub fn devin_db_path(data_dir: Option<&str>, home: &Path) -> PathBuf {
         .join("sessions.db")
 }
 
-/// Resolve the Desktop ACP-events root. Faithful port of `devinDesktopRoot`.
+/// Resolve the Desktop ACP-events root.
 pub fn devin_desktop_root(desktop_dir: Option<&str>, home: &Path) -> PathBuf {
     if let Some(v) = desktop_dir
         && !v.is_empty()
@@ -58,7 +58,7 @@ pub fn devin_desktop_root(desktop_dir: Option<&str>, home: &Path) -> PathBuf {
         .join("acp-events")
 }
 
-/// "adaptive" is a routing mode, not a model. Faithful port of `resolveModel`.
+/// "adaptive" is a routing mode, not a model.
 fn resolve_model(value: Option<String>) -> Option<String> {
     let value = value?;
     let trimmed = value.trim();
@@ -68,7 +68,7 @@ fn resolve_model(value: Option<String>) -> Option<String> {
     Some(trimmed.to_owned())
 }
 
-/// Follow a key path through nested records. Faithful port of `readAtPointer`.
+/// Follow a key path through nested records.
 fn read_at_pointer<'a>(root: &'a Value, path: &[&str]) -> Option<&'a Value> {
     let mut current = root;
     for key in path {
@@ -99,7 +99,7 @@ fn row_id_string(value: Option<&Value>) -> String {
     }
 }
 
-/// Read the CLI SQLite store. Faithful port of `readCli`.
+/// Read the CLI SQLite store.
 fn read_cli(
     db_path: &str,
     skipped: &mut Vec<String>,
@@ -326,7 +326,7 @@ fn ndjson_stem(file: &str) -> String {
     base.strip_suffix(".ndjson").unwrap_or(base).to_owned()
 }
 
-/// Read the Desktop ACP `.ndjson` store. Faithful port of `readDesktop`.
+/// Read the Desktop ACP `.ndjson` store.
 fn read_desktop(
     root: &Path,
     title_to_session: &HashMap<String, Option<String>>,
@@ -533,7 +533,7 @@ fn parse_ts_opt(value: Option<&Value>) -> Option<String> {
     value.and_then(parse_timestamp_to_iso)
 }
 
-/// Read all devin usage events. Faithful port of `readDevin`.
+/// Read all devin usage events.
 pub fn read_devin(db_path: &Path, desktop_root: &Path) -> ReaderResult {
     let mut events: Vec<UsageEvent> = Vec::new();
     let mut skipped: Vec<String> = Vec::new();
