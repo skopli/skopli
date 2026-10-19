@@ -29,15 +29,9 @@ public record ModelPrice(
     }
 
     static ModelPrice fromWire(Map<String, Object> m) {
-        Optional<List<PriceTier>> tiers = Optional.empty();
         Object t = m.get("tiers");
-        if (t != null) {
-            List<PriceTier> parsed = new ArrayList<>();
-            for (Object tier : Wire.asArray(t)) {
-                parsed.add(PriceTier.fromWire(Wire.asObject(tier)));
-            }
-            tiers = Optional.of(List.copyOf(parsed));
-        }
+        Optional<List<PriceTier>> tiers =
+                t == null ? Optional.empty() : Optional.of(Wire.objects(t, PriceTier::fromWire));
         return new ModelPrice(
                 Wire.asDouble(m.get("input")),
                 Wire.asDouble(m.get("output")),
