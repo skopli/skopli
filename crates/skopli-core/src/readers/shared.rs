@@ -240,10 +240,11 @@ pub fn date_parse_ms(input: &str) -> Option<i64> {
                 if frac_end == frac_start {
                     return None;
                 }
-                let mut frac = String::from("0.");
-                frac.push_str(std::str::from_utf8(&s[frac_start..frac_end]).ok()?);
-                let seconds_frac: f64 = frac.parse().ok()?;
-                milli = (seconds_frac * 1000.0).round() as i64;
+                milli = s[frac_start..frac_end]
+                    .iter()
+                    .chain(b"00")
+                    .take(3)
+                    .fold(0, |acc, b| acc * 10 + i64::from(b - b'0'));
                 idx = frac_end;
             }
         }
@@ -263,11 +264,7 @@ pub fn date_parse_ms(input: &str) -> Option<i64> {
             }
         }
     }
-    if !(0..=23).contains(&hour)
-        || !(0..=59).contains(&minute)
-        || !(0..=59).contains(&second)
-        || !(0..=999).contains(&milli)
-    {
+    if !(0..=23).contains(&hour) || !(0..=59).contains(&minute) || !(0..=59).contains(&second) {
         return None;
     }
     let days = days_from_civil(year, month as u32, day as u32);
@@ -535,4 +532,24 @@ pub(crate) fn scratch_dir(tag: &str) -> std::path::PathBuf {
     ));
     fs::create_dir_all(&base).unwrap();
     base
+}
+
+#[cfg(test)]
+mod tests {
+    use super::reparse_iso;
+
+    #[test]
+    fn fractional_seconds_are_truncated_to_milliseconds() {
+        let cases = [
+            ("2026-10-18T18:30:27.9995Z", "2026-10-18T18:30:27.999Z"),
+            ("2026-10-18T18:30:27.1235Z", "2026-10-18T18:30:27.123Z"),
+            ("2026-10-18T18:30:27.123456789Z", "2026-10-18T18:30:27.123Z"),
+            ("2026-10-18T18:30:27.5Z", "2026-10-18T18:30:27.500Z"),
+            ("2026-10-18T18:30:27.12+01:00", "2026-10-18T17:30:27.120Z"),
+        ];
+        for (input, expected) in cases {
+            assert_eq!(reparse_iso(input).as_deref(), Some(expected), "{input}");
+        }
+        assert_eq!(reparse_iso("2026-10-18T18:30:27.Z"), None);
+    }
 }
