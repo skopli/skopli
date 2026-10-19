@@ -211,12 +211,11 @@ pub struct Doc {
     pub value: Value,
 }
 
-pub fn docs(path: &Path) -> Vec<Doc> {
-    let Ok(text) = fs::read_to_string(path) else {
-        return Vec::new();
-    };
+/// The documents in `text`, the contents of `path`; empty for files that are
+/// not JSON.
+pub fn docs(path: &Path, text: &str) -> Vec<Doc> {
     match path.extension().and_then(|e| e.to_str()) {
-        Some("json") => serde_json::from_str(&text)
+        Some("json") => serde_json::from_str(text)
             .map(|value| vec![Doc { line: None, value }])
             .unwrap_or_default(),
         Some("jsonl" | "ndjson") => text
@@ -322,6 +321,14 @@ pub fn bump(value: &mut Value, leaf: &[String], class: TokenClass) {
     }
 }
 
+pub fn get<'a>(value: &'a Value, path: &[String]) -> &'a Value {
+    path.iter().fold(value, |v, k| match v {
+        Value::Array(a) => &a[k.parse::<usize>().unwrap()],
+        Value::Object(m) => &m[k],
+        _ => unreachable!("leaf paths only descend through containers"),
+    })
+}
+
 pub fn get_mut<'a>(value: &'a mut Value, path: &[String]) -> &'a mut Value {
     path.iter().fold(value, |v, k| match v {
         Value::Array(a) => &mut a[k.parse::<usize>().unwrap()],
@@ -386,17 +393,21 @@ pub enum TokenClass {
 
 impl TokenClass {
     /// `None` for cells that are not token counters or are derived totals.
+    /// A cell named `tokens` is classified by its parent (`input.tokens`).
     pub fn of(path: &[String]) -> Option<Self> {
         let p = path.join(".").to_ascii_lowercase();
-        let last = path
-            .last()
-            .map(|s| s.to_ascii_lowercase())
-            .unwrap_or_default();
+        let mut names = path.iter().rev().map(|s| s.to_ascii_lowercase());
+        let mut last = names.next().unwrap_or_default();
+        if last == "tokens" {
+            last = names.next().unwrap_or_default();
+        }
         if p.contains("total") || last.contains("cost") || last.contains("price") {
             return None;
         }
         if last.contains("reason") || last.contains("thought") {
             Some(Self::Reasoning)
+        } else if last.contains("cachemiss") {
+            Some(Self::Input)
         } else if p.contains("cache") {
             Some(Self::Cache)
         } else if last.contains("input") || last.contains("prompt") {
@@ -411,15 +422,24 @@ impl TokenClass {
         }
     }
 
-    /// The event counters a cell of this class may move: its own, plus the
-    /// ones readers derive from it (prompt minus cached, completion minus
-    /// reasoning, the 1h split clamped under the writes).
-    pub fn may_move(self) -> &'static [&'static str] {
+    /// The event counters a cell of this class speaks for; a bump must move
+    /// exactly one of them by `+1`.
+    pub fn own(self) -> &'static [&'static str] {
         match self {
-            Self::Input => &["input", "cacheRead", "cacheWrite"],
-            Self::Output => &["output", "reasoning"],
-            Self::Cache => &["cacheRead", "cacheWrite", "cacheWrite1h", "input"],
-            Self::Reasoning => &["reasoning", "output"],
+            Self::Input => &["input"],
+            Self::Output => &["output"],
+            Self::Cache => &["cacheRead", "cacheWrite", "cacheWrite1h"],
+            Self::Reasoning => &["reasoning"],
+        }
+    }
+
+    /// The one counter a reader derives by subtracting this class (prompt
+    /// minus cached, completion minus reasoning); a bump may move it by `-1`.
+    pub fn derived(self) -> Option<&'static str> {
+        match self {
+            Self::Cache => Some("input"),
+            Self::Reasoning => Some("output"),
+            Self::Input | Self::Output => None,
         }
     }
 }
@@ -470,14 +490,21 @@ impl Outcome {
     }
 }
 
-/// The verdict for one token cell bumped by `+1`: the counters that moved and
-/// whether the record survived or became a diagnostic.
-pub fn judge_bump(class: TokenClass, base: &Outcome, bumped: &Outcome) -> Result<(), String> {
+/// A failed verdict: the failure class and the counterexample.
+pub type Fault = (&'static str, String);
+
+/// The verdict for one token cell bumped by `+1`: exactly one of the class's
+/// own counters moves by `+1`, at most its derived counter moves by `-1`, or
+/// the record becomes a diagnostic.
+pub fn judge_bump(class: TokenClass, base: &Outcome, bumped: &Outcome) -> Result<(), Fault> {
     if bumped.events < base.events {
         return if bumped.diagnostics > base.diagnostics {
             Ok(())
         } else {
-            Err("silent drop: the bumped record vanished without a diagnostic".to_owned())
+            Err((
+                "silent drop",
+                "the bumped record vanished without a diagnostic".to_owned(),
+            ))
         };
     }
     let moved: Vec<(&str, i128)> = COUNTERS
@@ -490,31 +517,47 @@ pub fn judge_bump(class: TokenClass, base: &Outcome, bumped: &Outcome) -> Result
         return if bumped.diagnostics > base.diagnostics {
             Ok(())
         } else {
-            Err("ignored cell: the bump moved no counter and raised no diagnostic".to_owned())
+            Err((
+                "ignored cell",
+                "the bump moved no counter and raised no diagnostic".to_owned(),
+            ))
         };
     }
-    for (name, delta) in &moved {
-        if !class.may_move().contains(name) {
-            return Err(format!(
-                "dimension swap: a {class:?} cell moved {name} by {delta}; moved {moved:?}"
+    let mut own = 0;
+    for &(name, delta) in &moved {
+        let is_own = class.own().contains(&name);
+        own += usize::from(is_own);
+        let want = if is_own {
+            1
+        } else if class.derived() == Some(name) {
+            -1
+        } else {
+            0
+        };
+        if delta != want {
+            return Err((
+                if is_own { "scaled" } else { "dimension swap" },
+                format!("a {class:?} cell bumped by 1 moved {name} by {delta}; moved {moved:?}"),
             ));
         }
-        if delta.abs() != 1 {
-            return Err(format!(
-                "scaled: a {class:?} cell bumped by 1 moved {name} by {delta}; moved {moved:?}"
-            ));
-        }
+    }
+    if own != 1 {
+        return Err((
+            "dimension swap",
+            format!("a {class:?} cell moved {own} of its own counters; moved {moved:?}"),
+        ));
     }
     Ok(())
 }
 
 /// The verdict for a token cell overwritten with text: the record is kept or
 /// becomes a diagnostic, never silently lost.
-pub fn judge_corruption(base: &Outcome, corrupted: &Outcome) -> Result<(), String> {
+pub fn judge_corruption(base: &Outcome, corrupted: &Outcome) -> Result<(), Fault> {
     if corrupted.events < base.events && corrupted.diagnostics <= base.diagnostics {
-        return Err(
-            "silent drop: a corrupted token cell lost the record without a diagnostic".to_owned(),
-        );
+        return Err((
+            "silent drop",
+            "a corrupted token cell lost the record without a diagnostic".to_owned(),
+        ));
     }
     Ok(())
 }

@@ -7,7 +7,9 @@ use verify_skopli_core::readers::{Scratch, golden_cases, read, sorted_dirs};
 /// The TypeScript detector over every layout with zero, one or two markers
 /// present, plus all present: the verdict depends only on the layout, each
 /// single marker is claimed by exactly the harness it was read off, and a pair
-/// detects exactly the union of its singles.
+/// detects exactly the union of its singles. The Rust detector claims no
+/// harness from an empty marker, so its verdict is a subset of TypeScript's
+/// on every layout.
 #[test]
 fn layouts_detect_as_the_marker_table_says() {
     let n = MARKERS.len();
@@ -48,11 +50,17 @@ fn layouts_detect_as_the_marker_table_says() {
         d
     };
     let mut failures = Vec::new();
-    for (idx, got) in layouts.iter().zip(&first) {
+    for ((idx, got), home) in layouts.iter().zip(&first).zip(&homes) {
+        let names: Vec<&str> = idx.iter().map(|&i| MARKERS[i].path).collect();
         let want = expected(idx);
         if *got != want {
-            let names: Vec<&str> = idx.iter().map(|&i| MARKERS[i].path).collect();
             failures.push(format!("{names:?}: expected {want:?}, got {got:?}"));
+        }
+        let rust = rust_detect(home).supported;
+        if !rust.is_empty() {
+            failures.push(format!(
+                "{names:?}: rust claims {rust:?} from empty markers"
+            ));
         }
     }
     assert!(
@@ -63,7 +71,7 @@ fn layouts_detect_as_the_marker_table_says() {
         failures[..failures.len().min(12)].join("\n")
     );
     eprintln!(
-        "{} layouts over {n} markers agree with the marker table",
+        "{} layouts over {n} markers agree with the marker table; rust claims none of them",
         layouts.len()
     );
 }

@@ -51,7 +51,7 @@ fn readers_never_panic_on_damaged_input() {
                 .into_iter()
                 .map(|(label, bytes)| (label.to_owned(), bytes))
                 .collect();
-            for doc in docs(&path) {
+            for doc in docs(&path, &text) {
                 for leaf in leaves(&doc.value) {
                     for (label, replacement) in adversarial_values() {
                         let mut mutated = Doc {
@@ -126,8 +126,8 @@ const KNOWN_SILENT_DROPS: &[(&str, &str, &str)] = &[
 
 /// Token cells a reader reads around on purpose, each with the reason the
 /// reader's own documentation gives. A cell matches when its harness is the
-/// first field and its path contains the second. An entry no mutation touches
-/// fails the check so the list cannot drift from the corpus.
+/// first field and `path=value` contains the second. An entry no mutation
+/// touches fails the check so the list cannot drift from the corpus.
 const IGNORED_BY_DESIGN: &[(&str, &str, &str)] = &[
     (
         "amp",
@@ -141,8 +141,8 @@ const IGNORED_BY_DESIGN: &[(&str, &str, &str)] = &[
     ),
     (
         "claude",
-        "cache_creation.ephemeral_1h_input_tokens",
-        "a negative 1h write is clamped to zero, so the golden record stays at zero after the bump",
+        "cache_creation.ephemeral_1h_input_tokens=-",
+        "a negative 1h write is clamped to zero, so the record stays at zero after the bump",
     ),
     (
         "deepseek",
@@ -186,32 +186,51 @@ const IGNORED_BY_DESIGN: &[(&str, &str, &str)] = &[
     ),
 ];
 
-/// Bumping one live token cell by one moves only counters that cell may speak
-/// for, by exactly one, or turns the record into a diagnostic; overwriting it
-/// with text never loses the record silently. A cell is live when removing
-/// its record changes the events.
+/// Readers whose golden input holds no token cell the mapping check can
+/// reach: SQLite databases, or counters inside a JSON string. The check fails
+/// when this list and the set of readers with no live mutation differ.
+const NO_MAPPING_COVERAGE: &[&str] = &[
+    "cherrystudio",
+    "cline",
+    "goose",
+    "hermes",
+    "kilo",
+    "kilocode",
+    "kiro",
+    "roo",
+    "zed",
+];
+
+/// Bumping one live token cell by one moves exactly one of its own counters
+/// by one, at most its derived counter by minus one, or turns the record into
+/// a diagnostic; overwriting it with text never loses the record silently. A
+/// cell is live when removing its record changes the events.
 #[test]
 fn token_cells_reach_their_own_event_field() {
     let mut failures = Vec::new();
     let mut runs = 0;
     let mut inert = 0;
+    let mut covered: BTreeSet<String> = BTreeSet::new();
     let mut reproduced: BTreeSet<(&str, &str, &str)> = BTreeSet::new();
     let mut designed: BTreeSet<(&str, &str, &str)> = BTreeSet::new();
-    for case in golden_cases() {
+    let cases = golden_cases();
+    for case in &cases {
         let scratch = Scratch::new("map");
-        let Seed { input, ctx, .. } = seed(&case, &scratch.0);
+        let Seed { input, ctx, .. } = seed(case, &scratch.0);
         let baseline = read(&case.harness, &ctx).unwrap();
         let base = Outcome::of(&baseline);
         for rel in files_under(&input) {
             let path = input.join(&rel);
-            let text = fs::read_to_string(&path).unwrap_or_default();
+            let Ok(text) = fs::read_to_string(&path) else {
+                continue;
+            };
             let mut live: BTreeMap<Vec<String>, bool> = BTreeMap::new();
-            for doc in docs(&path) {
+            for doc in docs(&path, &text) {
                 for leaf in leaves(&doc.value) {
                     let Some(class) = TokenClass::of(&leaf) else {
                         continue;
                     };
-                    let Some(_) = integer_cell(doc.value.pointer(&pointer(&leaf)).unwrap()) else {
+                    let Some(n) = integer_cell(get(&doc.value, &leaf)) else {
                         continue;
                     };
                     let record = record_of(&leaf).to_vec();
@@ -243,11 +262,12 @@ fn token_cells_reach_their_own_event_field() {
                     let cell = leaf.join(".");
                     if let Some(entry) = IGNORED_BY_DESIGN
                         .iter()
-                        .find(|(h, c, _)| *h == case.harness && cell.contains(c))
+                        .find(|(h, c, _)| *h == case.harness && format!("{cell}={n}").contains(c))
                     {
                         designed.insert(*entry);
                         continue;
                     }
+                    covered.insert(case.harness.clone());
                     for label in ["+1", "text"] {
                         let mut mutated = Doc {
                             line: doc.line,
@@ -266,7 +286,7 @@ fn token_cells_reach_their_own_event_field() {
                         } else {
                             judge_corruption(&base, &outcome)
                         };
-                        if let Err(m) = verdict {
+                        if let Err((kind, detail)) = verdict {
                             if let Some(known) = KNOWN_SILENT_DROPS.iter().find(|(h, c, l)| {
                                 *h == case.harness && cell.ends_with(c) && *l == label
                             }) {
@@ -274,9 +294,9 @@ fn token_cells_reach_their_own_event_field() {
                                 continue;
                             }
                             failures.push((
-                                format!("{} in {}", m.split(':').next().unwrap(), case.id()),
+                                format!("{kind} in {}", case.id()),
                                 format!(
-                                    "{} {}:{} {cell} {label}: {m}",
+                                    "{} {}:{} {cell} {label}: {detail}",
                                     case.id(),
                                     rel.display(),
                                     doc.line.map_or(0, |l| l + 1)
@@ -288,6 +308,19 @@ fn token_cells_reach_their_own_event_field() {
             }
             fs::write(&path, &text).unwrap();
         }
+    }
+    let uncovered: Vec<&str> = cases
+        .iter()
+        .map(|c| c.harness.as_str())
+        .filter(|h| !covered.contains(*h))
+        .collect::<BTreeSet<_>>()
+        .into_iter()
+        .collect();
+    if uncovered != NO_MAPPING_COVERAGE {
+        failures.push((
+            "mapping coverage differs from NO_MAPPING_COVERAGE".to_owned(),
+            format!("readers with no live mutation: {uncovered:?}"),
+        ));
     }
     for known in KNOWN_SILENT_DROPS {
         if !reproduced.contains(known) {
@@ -306,17 +339,12 @@ fn token_cells_reach_their_own_event_field() {
         }
     }
     eprintln!(
-        "{runs} live token cell mutations, {inert} inert cells skipped, {} ignored-by-design entries exercised, {} known silent drops reproduced",
+        "{runs} live token cell mutations over {} readers, {inert} inert cells skipped, {} ignored-by-design entries exercised, {} known silent drops reproduced",
+        covered.len(),
         designed.len(),
         reproduced.len()
     );
     report("mapping", failures, runs);
-}
-
-fn pointer(leaf: &[String]) -> String {
-    leaf.iter()
-        .map(|k| format!("/{}", k.replace('~', "~0").replace('/', "~1")))
-        .collect()
 }
 
 /// Two reads of the same home are identical, the event count is the golden

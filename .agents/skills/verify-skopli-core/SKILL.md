@@ -142,18 +142,21 @@ A reader may return an event whose timestamp no longer parses; when it does, the
 - Every file, JSON or not, replaced by the empty file, its first byte, its first half, all but its last byte, a lone `{`, and five bytes of binary.
 
 `token_cells_reach_their_own_event_field` is the mapping check.
-A token cell is a leaf whose name says which counter it is (`input`/`prompt`, `output`/`completion`/`candidates`, `cache`, `reason`/`thought`); cells whose path says `total`, `cost` or `price` are derived and skipped.
+A token cell is a leaf whose name says which counter it is (`input`/`prompt`/`cachemiss`, `output`/`completion`/`candidates`, `cache`, `reason`/`thought`); a leaf named `tokens` takes its parent's name (`input.tokens`), and cells whose path says `total`, `cost` or `price` are derived and skipped.
 A cell is live when removing its record (the deepest array element on its path, or the whole document) changes the events; inert cells are skipped and counted.
 For each live cell the check bumps the cell by one, keeping any sibling `total` consistent so a reader that reads the total to decide whether the input includes cached tokens keeps its reading, and overwrites the cell with text.
-The bump must move only counters that class may speak for (its own, plus the ones readers derive from it: `prompt` minus cached, `completion` minus reasoning, the 1h split clamped under the writes), each by exactly one, or turn the record into a diagnostic.
-A bump that moves another counter is a dimension swap; one that moves a counter by more than one is a scaling; one that moves nothing and raises nothing is an ignored cell.
+The bump must move exactly one of the class's own counters (`input`; `output`; one of `cacheRead`, `cacheWrite`, `cacheWrite1h`; `reasoning`) by exactly one, may also move the one counter readers derive by subtracting that class (`input` for a cache cell, since `prompt` includes cached tokens; `output` for a reasoning cell, since `completion` includes reasoning) by exactly minus one, and may move nothing else; or it must turn the record into a diagnostic.
+A bump that moves any other counter, moves the derived counter the wrong way, or moves no own counter is a dimension swap; one that moves an own counter by anything but one is a scaling; one that moves nothing and raises nothing is an ignored cell.
 The text overwrite may keep or drop the record, but a drop must raise a diagnostic.
-Two literal tables in the test keep the check honest:
+Three literal tables in the test keep the check honest:
 
-- `IGNORED_BY_DESIGN` names the live cells a reader reads around on purpose, each with the reason from the reader's own documentation (amp per-message usage behind a ledger, the claude 5m and clamped 1h splits, the deepseek chunk sample, the fx snapshot totals, prime child usage, the reasonix prompt total).
+- `IGNORED_BY_DESIGN` names the live cells a reader reads around on purpose, each with the reason from the reader's own documentation (amp per-message usage behind a ledger, the claude 5m split, the one negative claude 1h split that the reader clamps to zero, the deepseek chunk sample, the fx snapshot totals, prime child usage, the reasonix prompt total).
+  A row matches on `path=value`, so the clamp row matches only the negative cell and the positive 1h cells are checked.
   An entry that matches no cell fails the check, so the list cannot outlive the corpus.
 - `KNOWN_SILENT_DROPS` names the findings the check makes in the product today (below).
   An entry that stops reproducing fails the check, so the list cannot outlive its fix.
+- `NO_MAPPING_COVERAGE` names the readers whose golden input holds no token cell the check can reach.
+  The check fails when that list differs from the set of readers with no live mutation, in either direction, so a reader cannot lose or gain coverage unnoticed.
 
 `readers_are_deterministic_and_timestamps_round_trip` reads each case twice and requires identical events, skipped and warnings; the event count must be the golden one; every timestamp must parse, format back through `to_iso_string` and parse to the same instant; every cost must be finite.
 
@@ -161,10 +164,10 @@ Two literal tables in the test keep the check honest:
 
 - One mutation per run: a single cell replaced or a single file damaged, never two at once.
 - 15,905 damaged inputs across the forty-five cases, 92 of which leave the reader with an unusable timestamp that the wire read drops.
-- 616 live token cell mutations, 91 inert cells skipped, 11 ignored-by-design entries exercised, 4 known silent drops reproduced.
+- 630 live token cell mutations over 31 readers, 91 inert cells skipped, 11 ignored-by-design entries exercised, 4 known silent drops reproduced.
 - Files the readers open through other means (SQLite databases, zstd streams) get only the byte-level damage, since they hold no JSON leaves to shift.
 
-Not covered: two faults in one record, faults in file names or directory structure, records the golden case does not contain, readers' handling of a cell type they never see in the corpus, and the exact diagnostic text.
+Not covered: the token mapping of the nine readers in `NO_MAPPING_COVERAGE` (`cherrystudio`, `goose`, `hermes`, `kilo`, `kiro` and `zed` read SQLite only; `cline`, `roo` and `kilocode` keep their counters inside a JSON string in `ui_messages.json`, which the leaf walk does not enter), two faults in one record, faults in file names or directory structure, records the golden case does not contain, readers' handling of a cell type they never see in the corpus, and the exact diagnostic text.
 
 ### Assumptions
 
@@ -190,9 +193,12 @@ The check was shown to catch each of these deliberate breaks, applied one at a t
 
 | Break                                                                             | Where               | Caught by                                                           |
 | --------------------------------------------------------------------------------- | ------------------- | ------------------------------------------------------------------- |
-| swap `input` and `output` in the claude token struct                              | `readers/claude.rs` | mapping: `dimension swap in claude/basic (22 runs)`, 28 of 616 runs |
+| swap `input` and `output` in the claude token struct                              | `readers/claude.rs` | mapping: `dimension swap in claude/basic (22 runs)`, 28 of 630 runs |
+| swap `input` and `cache_read` in the claude token struct                          | `readers/claude.rs` | mapping: `dimension swap in claude/basic (21 runs)`, 26 of 630 runs |
 | report a gemini record with unreadable tokens as well-formed (`malformed: false`) | `readers/gemini.rs` | mapping: `silent drop in gemini/basic (9 runs)`                     |
 | `unwrap()` the codex `input_tokens` cell instead of reading it as a number        | `readers/codex.rs`  | totality: `panic in codex/archived (14 runs)`, 147 of 15,905 runs   |
+
+The `codebuddy` reader shares the claude parser, so both claude breaks also fail `codebuddy/basic`.
 
 ## Detection
 
@@ -204,6 +210,7 @@ The layouts are the empty home, every single marker, every pair of markers and a
 The TypeScript detector is run twice over all of them and must return the same answer (a pure function of the layout), and each answer must be exactly the harnesses and products the present markers speak for.
 The single-marker layouts establish that no two harnesses claim the same marker; `pi` (`.pi/agent/sessions`) and `kimchi` (`.config/kimchi/harness/sessions`) are distinct markers, which pins the decision that kimchi does not claim pi's session root.
 Marker files are one empty line, so a reader opening one meets a real, empty record stream.
+The Rust detector runs over the same homes and must claim no harness from any of them, since an empty marker holds no record; so on every enumerated layout the Rust verdict is a subset of the TypeScript one.
 
 `rust_and_typescript_agree_on_golden_homes` copies every golden case to the default root its reader resolves with no environment override (`DEFAULT_ROOTS`, read off each reader's root resolver), one home per case plus one home holding all of them, and requires both detectors to report exactly that case's harness alone and exactly the set of all harnesses together.
 This is the agreement check between the two detectors: the TypeScript probe sees a marker where the Rust reader yields an event, for every harness, and neither sees anything else.
@@ -224,7 +231,7 @@ SKOPLI_VERIFY_HOMES=<recordings dir> SKOPLI_VERIFY_HOMES_OUT=<table.md> \
 - Empty environment and the home as working directory; the environment overrides and workspace-relative roots `src/detect.ts` also probes are not enumerated.
 - Default roots on Linux and macOS as `src/detect.ts` spells them.
 
-Not covered: environment overrides, roots under a working directory other than the home (the `trajectories` marker is probed under the working directory, which the bare home also is), Windows roots, markers whose contents must parse for TypeScript to claim them, and the Rust detector over the marker layouts (its verdict needs a readable record, which an empty marker is not; the golden-homes check covers it instead).
+Not covered: environment overrides, roots under a working directory other than the home (the `trajectories` marker is probed under the working directory, which the bare home also is), Windows roots, markers whose contents must parse for TypeScript to claim them, and a Rust claim on the marker layouts (its verdict needs a readable record, which an empty marker is not, so the layouts only establish that Rust claims nothing there; the golden-homes check covers the positive agreement).
 
 ### Assumptions
 
@@ -232,10 +239,11 @@ Not covered: environment overrides, roots under a working directory other than t
   A probe added to `src/detect.ts` without a row here passes the enumeration unnoticed, so the table must change in the same commit.
 - The recordings a replay uses were produced by the harness itself; a home the Rust pass yields no events for is a reader finding or an unproductive recording, and the table says which by listing the TypeScript verdict alongside.
 
-### Broken variant
+### Broken variants
 
 Changing the gemini probe in `src/detect.ts` from `tmp` to `sessions` fails both checks: `70 of 2417 layouts disagree with the marker table` and `gemini/basic: typescript [], rust ["gemini"]`.
-The variant was applied to the working tree, run, and reverted.
+Making `skopli_wire::read::detect` mark a harness supported when its reader raised a warning, not only when it yielded an event, fails the layout check: `820 of 2417 layouts disagree with the marker table`, starting with `[".local/share/opencode/opencode.db"]: rust claims ["opencode"] from empty markers`.
+Each variant was applied to the working tree, run, and reverted.
 
 ## When the verified code changes on purpose
 
@@ -243,6 +251,7 @@ The variant was applied to the working tree, run, and reverted.
 - A reader starts reading a cell it ignored: remove its `IGNORED_BY_DESIGN` row; the check fails until you do.
 - A reader fixes a silent drop: remove its `KNOWN_SILENT_DROPS` row; the check fails until you do.
 - A reader reads a new token cell name: add the name to `TokenClass::of`; until then the cell is not a token cell and is not checked.
+- A reader starts deriving a counter from a new class, or a golden case gains a reachable token cell for a reader in `NO_MAPPING_COVERAGE`: update `TokenClass::derived` or remove the reader from the list; the check fails until you do.
 - A new or moved probe in `src/detect.ts`: add or edit its `MARKERS` row with the harness it speaks for; a new unsupported product also needs a name in `unsupported_name`.
 - A change to the pi and kimchi ownership: both markers are rows in `MARKERS`, so the shared root would fail the single-marker layouts until the table says who owns it.
 - A new rollup dimension: add it to the `by` list in `cases()` and a matching arm to `expected_key`.
