@@ -1,4 +1,4 @@
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::io::Read;
 use std::path::{Path, PathBuf};
 
@@ -6,8 +6,8 @@ use serde_json::Value;
 
 use super::reader::{Reader, ReaderContext};
 use super::shared::{
-    EpochUnit, ReaderResult, ReaderWarning, as_string, dir_exists, epoch_to_iso_unit,
-    finite_number, is_record, list_files, optional_cell, required_cell,
+    EpochUnit, ReaderResult, ReaderWarning, as_string, basename, dir_exists, dirname,
+    epoch_to_iso_unit, finite_number, is_record, list_files, optional_cell, required_cell,
 };
 use super::sqlite_store::{blob_column, open_readonly, pragma_int, table_exists};
 use crate::types::{TokenCounts, UsageEvent};
@@ -163,19 +163,38 @@ fn dedup_key(session_id: &str, seq: Option<&Value>) -> Option<String> {
     Some(format!("{session_id}:{}", seq as u64))
 }
 
-/// `session.jsonl`, `session.v4.jsonl`, and their `.zstd` forms.
-fn is_session_log(name: &str) -> bool {
+/// The format generation a session log file name encodes: `session.jsonl` is
+/// generation 0 and `session.vN.jsonl` is generation N, each optionally with a
+/// `.zstd` suffix. `None` for any other name.
+fn session_log_generation(name: &str) -> Option<u32> {
     let name = name.strip_suffix(".zstd").unwrap_or(name);
-    let Some(stem) = name.strip_suffix(".jsonl") else {
-        return false;
-    };
-    match stem.strip_prefix("session") {
-        Some("") => true,
-        Some(version) => version
-            .strip_prefix(".v")
-            .is_some_and(|v| !v.is_empty() && v.bytes().all(|b| b.is_ascii_digit())),
-        None => false,
+    let version = name.strip_suffix(".jsonl")?.strip_prefix("session")?;
+    if version.is_empty() {
+        return Some(0);
     }
+    let digits = version.strip_prefix(".v")?;
+    if digits.is_empty() || !digits.bytes().all(|b| b.is_ascii_digit()) {
+        return None;
+    }
+    digits.parse().ok()
+}
+
+/// The session logs under `home`, keeping only the highest generation in each
+/// session directory. Migration writes the current generation beside its
+/// predecessors and never removes them, so the lower generations in a directory
+/// are earlier copies of the same session.
+fn session_logs(home: &Path) -> Vec<String> {
+    let files = list_files(home, |name| session_log_generation(name).is_some());
+    let generation = |file: &str| session_log_generation(&basename(file)).unwrap_or(0);
+    let mut latest: HashMap<String, u32> = HashMap::new();
+    for file in &files {
+        let entry = latest.entry(dirname(file)).or_insert(0);
+        *entry = (*entry).max(generation(file));
+    }
+    files
+        .into_iter()
+        .filter(|file| generation(file) == latest[&dirname(file)])
+        .collect()
 }
 
 /// The decoded text of a session log and whether a trailing zstd frame failed
@@ -576,9 +595,9 @@ fn read_sqlite_db(
     events
 }
 
-/// Read all DeepSeek Harness usage events reachable from `home`. Every
-/// `session.jsonl` / `session.jsonl.zstd` under `<home>` (walked recursively,
-/// since sessions nest under project directories) is read; one event is emitted
+/// Read all DeepSeek Harness usage events reachable from `home`. The highest
+/// session-log generation in every session directory under `<home>` (walked
+/// recursively, since sessions nest under project directories) is read; one event is emitted
 /// per finalized `assistant/message` that carries usage. Any SQLite session
 /// database under `<home>` (identified by its reserved `application_id`) is read
 /// too; its events dedupe against the JSONL lane by the logical `session_id:seq`
@@ -597,8 +616,7 @@ pub fn read_deepseek(home: &Path) -> ReaderResult {
         };
     }
 
-    let files = list_files(home, is_session_log);
-    for file in &files {
+    for file in &session_logs(home) {
         events.extend(read_session(file, &mut skipped, &mut warnings, &mut seen));
     }
 
@@ -825,8 +843,26 @@ mod tests {
         assert_eq!(result.events[0].tokens.input, 5407);
         assert_eq!(result.events[0].tokens.cache_read, 3);
         assert_eq!(result.events[0].workspace.as_deref(), Some("/work/proj"));
-        assert!(is_session_log("session.v4.jsonl.zstd"));
-        assert!(!is_session_log("session.v4.jsonl.bak"));
+        assert_eq!(session_log_generation("session.v4.jsonl.zstd"), Some(4));
+        assert_eq!(session_log_generation("session.v4.jsonl.bak"), None);
+        fs::remove_dir_all(&dir).ok();
+    }
+
+    #[test]
+    fn only_the_highest_generation_of_a_migrated_session_is_read() {
+        let dir = scratch_dir("generations");
+        let session_dir = dir.join("--proj--").join("session-1");
+        fs::create_dir_all(&session_dir).unwrap();
+        let header = r#"{"type":"session","id":"session-1","createdAt":1792348454740}"#;
+        let message = r#"{"type":"assistant/message","seq":14,"time":1792348551216,"data":{"message":{"source":{"model":"qwen"}},"usage":{"inputTokens":10,"outputTokens":1}}}"#;
+        for name in ["session.jsonl", "session.v2.jsonl", "session.v4.jsonl"] {
+            fs::write(session_dir.join(name), format!("{header}\n{message}\n")).unwrap();
+        }
+        let result = read_deepseek(&dir);
+        assert!(result.warnings.is_empty(), "{:?}", result.warnings);
+        assert_eq!(result.events.len(), 1);
+        assert!(result.events[0].message_id.contains("session.v4.jsonl"));
+        assert_eq!(result.events[0].tokens.input, 10);
         fs::remove_dir_all(&dir).ok();
     }
 
