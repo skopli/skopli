@@ -216,8 +216,7 @@ function withinHour(ms: number, tz: string | undefined): number {
     });
     const parts: Record<string, string> = {};
     for (const p of format.formatToParts(new Date(ms))) parts[p.type] = p.value;
-    const minute = Number(parts.minute === "24" ? "0" : parts.minute);
-    return minute * 60_000 + Number(parts.second) * 1000 + subSecond;
+    return Number(parts.minute) * 60_000 + Number(parts.second) * 1000 + subSecond;
   } catch {
     return ((ms % HOUR_MS) + HOUR_MS) % HOUR_MS;
   }

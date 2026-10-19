@@ -104,6 +104,17 @@
     ]
   },
   {
+    "name": "minute-twenty-four-floors-to-the-local-hour",
+    "tz": "Europe/London",
+    "blockMs": 3600000,
+    "timestamps": [
+      "2026-01-01T22:24:30.000Z"
+    ],
+    "expected": [
+      { "key": "2026-01-01T22:00:00.000Z", "events": 1 }
+    ]
+  },
+  {
     "name": "kolkata-floors-local-hour",
     "tz": "Asia/Kolkata",
     "blockMs": 18000000,

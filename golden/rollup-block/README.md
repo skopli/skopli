@@ -52,6 +52,10 @@ An array of cases, each:
 - `forty-minute-width-floors-from-the-hour`: a width that does not divide the
   hour is measured from the hour start, so 22:50 with a forty-minute width
   anchors to `22:40`.
+- `minute-twenty-four-floors-to-the-local-hour`: an event at minute `:24` of a
+  named non-UTC zone (`Europe/London`, on UTC in January) floors to `22:00`,
+  pinning that the wall-clock minute is read as a minute and never confused
+  with a `24` hour digit.
 - `kolkata-floors-local-hour`: `Asia/Kolkata` (UTC+5:30) floors the local
   wall-clock hour, so 09:17Z (14:47 local) anchors to 14:00 local = 08:30Z.
 - `fall-back-first-occurrence-anchors-earlier-hour`: during the
