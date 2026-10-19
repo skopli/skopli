@@ -203,9 +203,7 @@ public final class Ffi {
 
     private static String takeString(MemorySegment str) {
         String value = cString(str);
-        if (str.address() != 0) {
-            Skopli.ag_string_free(str);
-        }
+        Skopli.ag_string_free(str);
         return value;
     }
 

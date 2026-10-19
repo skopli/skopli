@@ -140,8 +140,6 @@ public sealed class Pricing : IDisposable
         }
     }
 
-    // -----------------------------------------------------------------------
-
     /// <summary>
     /// Resolve the source catalogs and build a fresh native handle, swapping it
     /// in and freeing the previous one. Must be called with <c>_lock</c> held. A

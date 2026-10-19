@@ -34,30 +34,25 @@ let fetchTimeout: TimeInterval = 10
 /// transport errors throw so the caller falls back to a stale cache.
 @usableFromInline let defaultFetch: @Sendable (URL) throws -> Data = { url in
     let semaphore = DispatchSemaphore(value: 0)
-    let outcome = FetchOutcome()
+    nonisolated(unsafe) var result: Result<Data, Error> =
+        .failure(SkopliError.internalError("fetch produced no result"))
     var request = URLRequest(url: url)
     request.timeoutInterval = fetchTimeout
     let task = URLSession.shared.dataTask(with: request) { data, response, error in
         defer { semaphore.signal() }
         if let error {
-            outcome.result = .failure(error)
+            result = .failure(error)
             return
         }
         if let http = response as? HTTPURLResponse, !(200..<300).contains(http.statusCode) {
-            outcome.result = .failure(SkopliError.internalError("\(url) responded \(http.statusCode)"))
+            result = .failure(SkopliError.internalError("\(url) responded \(http.statusCode)"))
             return
         }
-        outcome.result = .success(data ?? Data())
+        result = .success(data ?? Data())
     }
     task.resume()
     semaphore.wait()
-    return try outcome.result.get()
-}
-
-/// The completion handler's single write happens before `semaphore.signal()`,
-/// and the reader waits on that semaphore, so the box needs no lock.
-private final class FetchOutcome: @unchecked Sendable {
-    var result: Result<Data, Error> = .failure(SkopliError.internalError("fetch produced no result"))
+    return try result.get()
 }
 
 /// The default priority-ordered market sources: OpenRouter > LiteLLM >
