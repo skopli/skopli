@@ -107,6 +107,35 @@ node .agents/skills/verify-skopli/scripts/home.mjs <home-dir> --out .verify/evid
 It calls `detectHarnesses` and `readUsage` with that directory as `home` and `cwd` and an empty `env`, so nothing from the current machine's environment leaks in, and writes `home-result.json` (detected harnesses, event and session counts overall and per harness under `byHarness`, first diagnostic) next to `home-read.json`, the full `readUsage` result with its events, diagnostics and skipped files.
 There is no expected output to compare against; the proof is the recorded counts and the absence of diagnostics.
 
+## Usage gateway
+
+Golden cases captured from a real harness need the harness to log the usage shape its cloud provider would send.
+A local `llama-server` reports cache reuse in its own fields, so `scripts/gateway.ts` sits between the harness and the server and rewrites only the `usage` block on the way back.
+
+```sh
+node .agents/skills/verify-skopli/scripts/gateway.ts --port 8081 --upstream http://127.0.0.1:8080 --log .verify/evidence/<run>/gateway-usage.jsonl
+```
+
+It binds `127.0.0.1` on `--port` (default `8081`), forwards every request to `--upstream` (default `http://127.0.0.1:8080`) with its body and headers unchanged, streams responses through line by line, and prints its PID on start.
+Stop it by that PID.
+`--log` is optional and appends one JSON line per rewritten exchange (route, status, whether it streamed, whether the request carried `cache_control`, the usage block as sent to the harness), which is the per-call evidence for a capture.
+
+Point a harness at it with the base URL variables it reads and a dummy key, for example `OPENAI_BASE_URL=http://127.0.0.1:8081/v1 OPENAI_API_KEY=sk-dummy` or `ANTHROPIC_BASE_URL=http://127.0.0.1:8081 ANTHROPIC_API_KEY=sk-ant-dummy`.
+The key is never checked; confirm it does not appear in the promoted capture.
+
+Cache mapping, with `llama-server` as the source of truth for what was reused from its prefix cache:
+
+| Route                  | Server fields read                                               | Rewrite                                                                                                                                                                                                                                                                                                                |
+| ---------------------- | ---------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `/v1/chat/completions` | `timings.cache_n`                                                | `usage.prompt_tokens_details.cached_tokens = cache_n`; `prompt_tokens` stays the full prompt. In a stream the `timings` seen on any chunk apply to the chunk that carries `usage`.                                                                                                                                     |
+| `/v1/messages`         | `usage.cache_read_input_tokens`, `usage.input_tokens` (uncached) | `cache_read_input_tokens` kept; when the request carried `cache_control`, `cache_creation_input_tokens` = the uncached tokens and `input_tokens` = 0, otherwise `cache_creation_input_tokens` = 0 and `input_tokens` unchanged. In a stream `message_start` is rewritten and `message_delta.usage` is made cumulative. |
+| `/v1/responses`        | none                                                             | forwarded unchanged; the server already fills `usage.input_tokens_details.cached_tokens`.                                                                                                                                                                                                                              |
+
+Both routes are server-reported: the server's own counters are used and nothing is derived from request text.
+Run the server with prompt caching on (the default) and at least one slot per concurrent harness session, since a slot's prefix cache is what turn two reuses.
+A capture's README names the gateway, the server build, the model and that the cache numbers are server-reported.
+The unit test is `scripts/gateway.test.ts`, run by `pnpm run test`.
+
 ## Evidence
 
 Evidence goes under `.verify/evidence/<run>/<feature>/`, where `<run>` is a UTC timestamp such as `20261018T180000Z`.
@@ -149,6 +178,7 @@ It checks every input in a small finite domain against the documented promises a
 | `scripts/browser.mjs` | `node .agents/skills/verify-skopli/scripts/browser.mjs --out <dir> <steps>`         | headless Chromium step runner with transcript, screenshots and bodies |
 | `scripts/golden.mjs`  | `node .agents/skills/verify-skopli/scripts/golden.mjs <harness>/<case> --out <dir>` | replay a golden case through the facade and compare                   |
 | `scripts/home.mjs`    | `node .agents/skills/verify-skopli/scripts/home.mjs <home-dir> --out <dir>`         | detect and read an arbitrary home directory through the facade        |
+| `scripts/gateway.ts`  | `node .agents/skills/verify-skopli/scripts/gateway.ts --port <n> --upstream <url>`  | usage-rewriting proxy in front of a local `llama-server` for captures |
 | `scripts/cleanup.sh`  | `bash .agents/skills/verify-skopli/scripts/cleanup.sh`                              | stop the servers by PID, keep evidence                                |
 
 The scripts are executable and run on Linux only: they depend on `bash`, `curl`, `ss`, `/proc`, `git`, Node 24 and the repository's dev dependencies.
