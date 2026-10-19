@@ -4,6 +4,8 @@ use std::path::Path;
 use serde_json::Value;
 use walkdir::WalkDir;
 
+pub use crate::time::date_parse_ms;
+use crate::time::to_iso_string;
 use crate::types::UsageEvent;
 
 /// A warning surfaced while reading; the caller decides how to present it.
@@ -127,7 +129,7 @@ pub fn epoch_to_iso_unit(value: &Value, unit: EpochUnit) -> Option<String> {
             }
         }
     };
-    crate::time::to_iso_string(ms.trunc() as i64)
+    to_iso_string(ms.trunc() as i64)
 }
 
 /// Resolve a timestamp that may arrive as an ISO/RFC-3339 string, a numeric
@@ -187,102 +189,7 @@ fn is_numeric_literal(s: &str) -> bool {
 /// Re-serialize an ECMA-262 Date Time String Format timestamp as
 /// `YYYY-MM-DDTHH:mm:ss.sssZ`, or `None` when [`date_parse_ms`] rejects it.
 pub fn reparse_iso(input: &str) -> Option<String> {
-    let ms = date_parse_ms(input)?;
-    crate::time::to_iso_string(ms)
-}
-
-/// Parse an ECMA-262 Date Time String Format timestamp to epoch millis:
-/// `YYYY-MM-DD` (`T`HH:mm(:ss(.sss)?)?)? (Z | ±HH:mm)?
-/// A date-only string is UTC midnight and a date-time without an offset is UTC.
-/// Anything else is `None`.
-pub fn date_parse_ms(input: &str) -> Option<i64> {
-    let s = input.as_bytes();
-    let digits = |from: usize, len: usize| -> Option<i64> {
-        let slice = s.get(from..from + len)?;
-        if !slice.iter().all(u8::is_ascii_digit) {
-            return None;
-        }
-        std::str::from_utf8(slice).ok()?.parse::<i64>().ok()
-    };
-    if s.len() < 10 || s[4] != b'-' || s[7] != b'-' {
-        return None;
-    }
-    let year = digits(0, 4)?;
-    let month = digits(5, 2)?;
-    let day = digits(8, 2)?;
-    if !(1..=12).contains(&month) || !(1..=31).contains(&day) {
-        return None;
-    }
-    let mut hour = 0i64;
-    let mut minute = 0i64;
-    let mut second = 0i64;
-    let mut milli = 0i64;
-    let mut offset_min = 0i64;
-    if s.len() > 10 {
-        if s[10] != b'T' && s[10] != b' ' {
-            return None;
-        }
-        if s.len() < 16 || s[13] != b':' {
-            return None;
-        }
-        hour = digits(11, 2)?;
-        minute = digits(14, 2)?;
-        let mut idx = 16;
-        if s.len() > idx && s[idx] == b':' {
-            second = digits(17, 2)?;
-            idx = 19;
-            if s.len() > idx && s[idx] == b'.' {
-                let frac_start = idx + 1;
-                let mut frac_end = frac_start;
-                while frac_end < s.len() && s[frac_end].is_ascii_digit() {
-                    frac_end += 1;
-                }
-                if frac_end == frac_start {
-                    return None;
-                }
-                milli = s[frac_start..frac_end]
-                    .iter()
-                    .chain(b"00")
-                    .take(3)
-                    .fold(0, |acc, b| acc * 10 + i64::from(b - b'0'));
-                idx = frac_end;
-            }
-        }
-        if s.len() > idx {
-            match s[idx] {
-                b'Z' if s.len() == idx + 1 => {}
-                b'+' | b'-' => {
-                    let sign = if s[idx] == b'-' { -1 } else { 1 };
-                    if s.len() < idx + 6 || s[idx + 3] != b':' {
-                        return None;
-                    }
-                    let oh = digits(idx + 1, 2)?;
-                    let om = digits(idx + 4, 2)?;
-                    offset_min = sign * (oh * 60 + om);
-                }
-                _ => return None,
-            }
-        }
-    }
-    if !(0..=23).contains(&hour) || !(0..=59).contains(&minute) || !(0..=59).contains(&second) {
-        return None;
-    }
-    let days = days_from_civil(year, month as u32, day as u32);
-    let total_ms = days * 86_400_000 + hour * 3_600_000 + minute * 60_000 + second * 1_000 + milli
-        - offset_min * 60_000;
-    Some(total_ms)
-}
-
-/// Days since 1970-01-01 for a civil (proleptic Gregorian) date. Howard
-/// Hinnant's `days_from_civil`.
-fn days_from_civil(year: i64, month: u32, day: u32) -> i64 {
-    let y = if month <= 2 { year - 1 } else { year };
-    let era = if y >= 0 { y } else { y - 399 } / 400;
-    let yoe = y - era * 400;
-    let m = month as i64;
-    let doy = (153 * (if m > 2 { m - 3 } else { m + 9 }) + 2) / 5 + day as i64 - 1;
-    let doe = yoe * 365 + yoe / 4 - yoe / 100 + doy;
-    era * 146_097 + doe - 719_468
+    to_iso_string(date_parse_ms(input)?)
 }
 
 /// The file's mtime as an ISO string, or the epoch when unavailable.
@@ -293,7 +200,7 @@ pub fn file_mtime_iso(file: &str) -> String {
         .and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok())
         .map(|d| d.as_millis() as i64)
         .unwrap_or(0);
-    crate::time::to_iso_string(epoch_ms).unwrap_or_else(|| "1970-01-01T00:00:00.000Z".to_owned())
+    to_iso_string(epoch_ms).unwrap_or_else(|| "1970-01-01T00:00:00.000Z".to_owned())
 }
 
 /// The last path component of a slash- or backslash-separated path.

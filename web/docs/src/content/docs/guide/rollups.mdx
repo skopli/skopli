@@ -137,15 +137,22 @@ Every facade uses the same timezone logic, so a Ruby day rollup and a Go day rol
 Events without one fall under the `(unknown)` sentinel rather than disappearing.
 
 **block** groups into fixed billing windows.
-`blockMs` sets the width.
-A missing or non-positive value uses the default of five hours (18,000,000 ms).
-Block starts are floored to the hour in `tz`.
+`blockMs` sets the width in whole milliseconds.
+A missing, fractional or non-positive value uses the default of five hours (18,000,000 ms).
+A block opens at the first event's instant floored in `tz`, and holds every event before `start + blockMs`; the next event opens a new block.
+The floor is to the hour for a width of an hour or more, and to the width itself, measured from the start of the local hour, for a shorter width.
+Two blocks therefore never share a key, and keys ascend.
+Because the grain restarts at every hour, a shorter width that does not divide the hour can key a block at an instant inside the previous block's window: with forty minutes, events at 22:50 and 23:25 give blocks keyed 22:40 and 23:00, and the first block ran until 23:20.
+Every event still belongs to exactly one block and lies in its block's `[key, key + blockMs)`; where two such windows overlap, the earlier block holds the events in the shared span.
 
 ## Counting
 
 `events` counts rows.
 `turns` counts rows where `turn` is true.
 `calls` sums each event's reported `calls` when that value is finite, else counts 1, so a Hermes Agent row that aggregates eight calls adds eight.
+Token and call counters never wrap.
+The Rust core, and every facade that reaches it, saturates a counter at 2^64 - 1.
+The TypeScript facade sums JavaScript numbers, which stay exact up to 2^53 - 1 and then keep growing with rounding to the nearest double, so both agree on every realistic total and neither can shrink one.
 `costUsd` is only the recorded cost, present only when at least one event in the group recorded one.
 It is not a price.
 For prices, hand the rollups to [`priceRollups`](/skopli/guide/pricing-basics/), or use [`priceEvents`](/skopli/pricing/rollups-vs-events/) when any model has long-context tiers.

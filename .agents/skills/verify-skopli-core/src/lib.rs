@@ -7,6 +7,9 @@
 use skopli_core::rollup::{Rollup, RollupBy, RollupOptions};
 use skopli_core::types::{TokenCounts, UsageEvent};
 
+#[cfg(kani)]
+mod kani_proofs;
+
 pub const MAX_EVENTS: usize = 3;
 pub const KEYS: [&str; 3] = ["b", "a", "c"];
 pub const HOUR_MS: i64 = 3_600_000;
@@ -295,6 +298,18 @@ fn sum<T: Into<u128>>(items: impl Iterator<Item = T>) -> u128 {
     items.map(Into::into).sum()
 }
 
+/// The saturating-sum promise: rows total exactly the events below the `u64`
+/// ceiling; past it every saturated row sits at the ceiling, so the rows total
+/// at least the ceiling and never more than the true sum.
+fn conserved(want: u128, got: u128) -> bool {
+    let ceiling = u128::from(u64::MAX);
+    if want <= ceiling {
+        want == got
+    } else {
+        (ceiling..=want).contains(&got)
+    }
+}
+
 fn clamped1h(e: &UsageEvent) -> u128 {
     e.tokens
         .cache_write1h
@@ -306,8 +321,8 @@ fn finite_cost(e: &UsageEvent) -> Option<f64> {
 }
 
 /// Promise 1: the rows hold every counter of `events` exactly once and invent
-/// none. Applied to the whole run and, through `check_row`, to each row with
-/// its own events.
+/// none, saturating at `u64::MAX` rather than wrapping. Applied to the whole
+/// run and, through `check_row`, to each row with its own events.
 pub fn check_conservation<'a>(
     events: impl Iterator<Item = &'a UsageEvent> + Clone,
     out: &[Rollup],
@@ -323,13 +338,13 @@ pub fn check_conservation<'a>(
     for (name, get) in pairs {
         let want = sum(events.clone().map(|e| get(&e.tokens)));
         let got = sum(out.iter().map(|r| get(&r.tokens)));
-        if want != got {
+        if !conserved(want, got) {
             return Err(format!("{name}: events sum to {want}, rows sum to {got}"));
         }
     }
     let want1h = sum(events.clone().map(clamped1h));
     let got1h = sum(out.iter().map(|r| r.tokens.cache_write1h.unwrap_or(0)));
-    if want1h != got1h {
+    if !conserved(want1h, got1h) {
         return Err(format!(
             "cacheWrite1h: clamped events sum to {want1h}, rows sum to {got1h}"
         ));
@@ -352,7 +367,7 @@ pub fn check_conservation<'a>(
     }
     let want_calls = sum(events.clone().map(|e| e.calls.unwrap_or(1)));
     let got_calls = sum(out.iter().map(|r| r.calls));
-    if want_calls != got_calls {
+    if !conserved(want_calls, got_calls) {
         return Err(format!(
             "calls: events sum to {want_calls}, rows sum to {got_calls}"
         ));
@@ -412,11 +427,16 @@ pub fn check_keyed(
 }
 
 /// The documented block rule, written from `golden/rollup-block/README.md`: sort
-/// by instant, open a block at the first event floored to the UTC hour, keep
-/// events while `ms < start + width`, and send unparseable instants to one
-/// trailing `invalid-date` row. Returns each row's key with its member events.
+/// by instant, open a block at the first event floored to the block grain (the
+/// width below one hour, the UTC hour otherwise), keep events while
+/// `ms < start + width`, and send unparseable instants to one trailing
+/// `invalid-date` row. A key is the literal hour from the table with the whole
+/// grains past it written into the minute, second and millisecond fields, so
+/// no key text comes from the crate under test. Returns each row's key with
+/// its member events.
 pub fn block_spec(events: &[UsageEvent], width: Option<i64>) -> Vec<(String, Vec<&UsageEvent>)> {
     let width = width.filter(|w| *w > 0).unwrap_or(DEFAULT_BLOCK_MS);
+    let grain = width.min(HOUR_MS);
     let mut parsed: Vec<(i64, &Instant, &UsageEvent)> = events
         .iter()
         .filter_map(|e| {
@@ -429,9 +449,16 @@ pub fn block_spec(events: &[UsageEvent], width: Option<i64>) -> Vec<(String, Vec
     let mut end: Option<i64> = None;
     for (ms, i, e) in parsed {
         if end.is_none_or(|end| ms >= end) {
-            let start = ms - ms.rem_euclid(HOUR_MS);
-            end = Some(start.saturating_add(width));
-            rows.push((i.hour.to_owned(), Vec::new()));
+            let past_hour = ms.rem_euclid(HOUR_MS) / grain * grain;
+            end = Some((ms - ms.rem_euclid(HOUR_MS) + past_hour).saturating_add(width));
+            let key = format!(
+                "{}{:02}:{:02}.{:03}Z",
+                &i.hour[..14],
+                past_hour / 60_000,
+                past_hour % 60_000 / 1000,
+                past_hour % 1000
+            );
+            rows.push((key, Vec::new()));
         }
         rows.last_mut().expect("open block").1.push(e);
     }
@@ -444,8 +471,8 @@ pub fn block_spec(events: &[UsageEvent], width: Option<i64>) -> Vec<(String, Vec
 
 /// Promise 3: block rows match the documented rule, each holds exactly its
 /// member events, and the keys are distinct and ascending. Matching the spec
-/// already pins every key to a literal hour-floor instant, so the order check
-/// compares the ISO strings bytewise.
+/// already pins every key to an ISO instant of fixed width, so the order check
+/// compares the strings bytewise.
 pub fn check_block(
     events: &[UsageEvent],
     options: &RollupOptions,

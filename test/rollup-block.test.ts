@@ -56,6 +56,17 @@ describe("rollup billing blocks (omitted blockMs uses the default)", () => {
       { key: "2026-01-01T14:00:00.000Z", events: 1 },
     ]);
   });
+
+  // The wire reads blockMs as an i64, so a fractional width is no width at
+  // all; a sub-millisecond grain would otherwise open blocks whose starts
+  // collide once toISOString drops the fraction.
+  it("a fractional blockMs uses the default instead of a sub-millisecond grain", () => {
+    const events = [event("1970-01-01T00:00:00.000Z"), event("1970-01-01T00:00:00.001Z")];
+    const rows = rollup(events, { by: "block", tz: "UTC", blockMs: 0.7 });
+    expect(rows.map((r) => ({ key: r.key, events: r.events }))).toEqual([
+      { key: "1970-01-01T00:00:00.000Z", events: 2 },
+    ]);
+  });
 });
 
 // An omitted tz must resolve the system zone (matching the Rust core, which

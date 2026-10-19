@@ -78,6 +78,57 @@
     ]
   },
   {
+    "name": "sub-hour-width-floors-to-the-width",
+    "tz": "UTC",
+    "blockMs": 1800000,
+    "timestamps": [
+      "2026-03-01T22:10:00.000Z",
+      "2026-03-01T22:40:00.000Z"
+    ],
+    "expected": [
+      { "key": "2026-03-01T22:00:00.000Z", "events": 1 },
+      { "key": "2026-03-01T22:30:00.000Z", "events": 1 }
+    ]
+  },
+  {
+    "name": "forty-minute-width-floors-from-the-hour",
+    "tz": "UTC",
+    "blockMs": 2400000,
+    "timestamps": [
+      "2026-03-01T22:10:00.000Z",
+      "2026-03-01T22:50:00.000Z"
+    ],
+    "expected": [
+      { "key": "2026-03-01T22:00:00.000Z", "events": 1 },
+      { "key": "2026-03-01T22:40:00.000Z", "events": 1 }
+    ]
+  },
+  {
+    "name": "forty-minute-width-key-inside-previous-window",
+    "tz": "UTC",
+    "blockMs": 2400000,
+    "timestamps": [
+      "2026-03-01T22:50:00.000Z",
+      "2026-03-01T23:10:00.000Z",
+      "2026-03-01T23:25:00.000Z"
+    ],
+    "expected": [
+      { "key": "2026-03-01T22:40:00.000Z", "events": 2 },
+      { "key": "2026-03-01T23:00:00.000Z", "events": 1 }
+    ]
+  },
+  {
+    "name": "minute-twenty-four-floors-to-the-local-hour",
+    "tz": "Europe/London",
+    "blockMs": 3600000,
+    "timestamps": [
+      "2026-01-01T22:24:30.000Z"
+    ],
+    "expected": [
+      { "key": "2026-01-01T22:00:00.000Z", "events": 1 }
+    ]
+  },
+  {
     "name": "kolkata-floors-local-hour",
     "tz": "Asia/Kolkata",
     "blockMs": 18000000,
