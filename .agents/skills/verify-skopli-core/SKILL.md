@@ -138,5 +138,5 @@ Keep the domain small enough that a run stays under a minute; widen a single dim
 
 ## Limits
 
-The exhaustive check covers every input in the stated domain and says nothing about inputs outside it; only the three Kani harnesses speak for all inputs, and only for the kernels they name.
+The exhaustive check covers every input in the stated domain and says nothing about inputs outside it; only the Kani harnesses in `src/kani_proofs.rs` speak for all inputs, and only for the kernels they name.
 It does not check the readers, pricing, the wire format or any facade other than TypeScript.
