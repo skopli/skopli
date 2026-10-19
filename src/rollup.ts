@@ -26,10 +26,6 @@ export type Rollup = {
   costUsd?: number;
 };
 
-function emptyTokens(): TokenCounts {
-  return { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, reasoning: 0 };
-}
-
 function dayKey(timestamp: string, tz: string | undefined): string {
   const date = new Date(timestamp);
   if (Number.isNaN(date.getTime())) return "invalid-date";
@@ -73,25 +69,36 @@ export function rollupKey(event: UsageEvent, options: RollupOptions): string {
 
 // accumulate one event's counters into the bucket; shared by the keyed and
 // block rollup paths so both bill tokens/calls/cost identically
-function accumulate(entry: Rollup, event: UsageEvent): void {
-  entry.tokens.input += event.tokens.input;
-  entry.tokens.output += event.tokens.output;
-  entry.tokens.cacheRead += event.tokens.cacheRead;
-  entry.tokens.cacheWrite += event.tokens.cacheWrite;
-  if (event.tokens.cacheWrite1h !== undefined) {
-    // clamp each event's 1h split into [0, its own cacheWrite] before
-    // summing, so one malformed event cannot rebill other events' writes
-    // at the 1h rate; non-finite splits are treated as 0
-    const reported1h = Number.isFinite(event.tokens.cacheWrite1h) ? event.tokens.cacheWrite1h : 0;
-    const clamped1h = Math.min(Math.max(reported1h, 0), Math.max(event.tokens.cacheWrite, 0));
-    entry.tokens.cacheWrite1h = (entry.tokens.cacheWrite1h ?? 0) + clamped1h;
+function emptyRollup(key: string): Rollup {
+  return {
+    key,
+    tokens: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, reasoning: 0 },
+    events: 0,
+    turns: 0,
+    calls: 0,
+  };
+}
+
+// Add one event's counters to a running sum. Each event's cacheWrite1h is
+// clamped to its own cacheWrite first, so one malformed event cannot rebill
+// other events' writes at the 1h rate. Mirrors add_tokens in rollup.rs.
+function addTokens(sum: TokenCounts, event: TokenCounts): void {
+  sum.input += event.input;
+  sum.output += event.output;
+  sum.cacheRead += event.cacheRead;
+  sum.cacheWrite += event.cacheWrite;
+  sum.reasoning += event.reasoning;
+  if (event.cacheWrite1h !== undefined) {
+    const reported1h = Number.isFinite(event.cacheWrite1h) ? event.cacheWrite1h : 0;
+    const clamped1h = Math.min(Math.max(reported1h, 0), Math.max(event.cacheWrite, 0));
+    sum.cacheWrite1h = (sum.cacheWrite1h ?? 0) + clamped1h;
   }
-  entry.tokens.reasoning += event.tokens.reasoning;
+}
+
+function accumulate(entry: Rollup, event: UsageEvent): void {
+  addTokens(entry.tokens, event.tokens);
   entry.events += 1;
   if (event.turn) entry.turns += 1;
-  // an event with no reported call count still represents at least one call;
-  // a reported count must be finite or it is treated as absent so
-  // NaN/Infinity cannot poison rollups and downstream pricing
   const reported = event.calls;
   entry.calls += reported !== undefined && Number.isFinite(reported) ? Math.max(0, reported) : 1;
   const recorded = event.costUsd;
@@ -100,13 +107,6 @@ function accumulate(entry: Rollup, event: UsageEvent): void {
   }
 }
 
-function newBucket(key: string): Rollup {
-  return { key, tokens: emptyTokens(), events: 0, turns: 0, calls: 0 };
-}
-
-// days since 1970-01-01 for a civil (proleptic Gregorian) date; Howard
-// Hinnant's days_from_civil, mirrored from readers::shared in the core so the
-// rollup boundary parses timestamps with the SAME grammar on both sides
 function daysFromCivil(year: number, month: number, day: number): number {
   const y = month <= 2 ? year - 1 : year;
   const era = Math.floor((y >= 0 ? y : y - 399) / 400);
@@ -117,13 +117,11 @@ function daysFromCivil(year: number, month: number, day: number): number {
   return era * 146_097 + doe - 719_468;
 }
 
-// parse an ISO-8601 date-time string to epoch millis using the SAME strict
-// grammar as the Rust core's date_parse_ms (ECMA-262 Date Time String Format:
-// YYYY-MM-DD (T HH:mm(:ss(.sss)?)?)? (Z | ±HH:mm)?, offsetless date-time is
-// UTC). Returns undefined for anything outside it, so both sides bucket the
-// same non-canonical or offsetless input into the invalid-date block rather
-// than letting host Date leniency diverge. Mirrors date_parse_ms in rollup.rs
-// via readers::shared.
+// Parse an ECMA-262 Date Time String Format timestamp to epoch millis:
+// YYYY-MM-DD (T HH:mm(:ss(.sss)?)?)? (Z | ±HH:mm)?, offsetless date-time is UTC.
+// Anything else is undefined, so both twins bucket the same non-canonical input
+// into the invalid-date block rather than letting host Date leniency diverge.
+// Mirrors date_parse_ms in time.rs.
 function dateParseMs(input: string): number | undefined {
   const isDigits = (from: number, len: number): number | undefined => {
     const slice = input.slice(from, from + len);
@@ -196,65 +194,54 @@ function dateParseMs(input: string): number | undefined {
 
 const HOUR_MS = 3_600_000;
 
-function floorUtcHour(ms: number): number {
-  return ms - (((ms % HOUR_MS) + HOUR_MS) % HOUR_MS);
-}
-
-// the epoch millisecond of ms floored to the start of its clock hour in tz.
-// Explicit "UTC" floors via direct arithmetic; an omitted tz resolves the
-// system zone (the same path dayKey uses: Intl with no timeZone option) and a
-// named zone floors the local wall-clock hour (honoring fractional-hour
-// offsets) and converts back to the instant. Mirrors floor_to_hour_ms in
-// rollup.rs, which routes an omitted zone to TimeZone::system().
-function floorToHourMs(ms: number, tz: string | undefined): number {
-  if (tz === "UTC") return floorUtcHour(ms);
+// Milliseconds from the start of the wall-clock hour in tz to ms. Explicit
+// "UTC" is direct arithmetic; an omitted tz is the system zone (the same path
+// dayKey takes) and an unknown zone falls back to UTC. Subtracting it from the
+// instant keeps the occurrence of a repeated (fall-back) hour. Mirrors
+// within_hour in rollup.rs.
+function withinHour(ms: number, tz: string | undefined): number {
+  const subSecond = ((ms % 1000) + 1000) % 1000;
+  if (tz === "UTC") return ((ms % HOUR_MS) + HOUR_MS) % HOUR_MS;
   try {
     const format = new Intl.DateTimeFormat("en-US", {
       ...(tz !== undefined ? { timeZone: tz } : {}),
       hour12: false,
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-      hour: "2-digit",
       minute: "2-digit",
       second: "2-digit",
     });
     const parts: Record<string, string> = {};
     for (const p of format.formatToParts(new Date(ms))) parts[p.type] = p.value;
-    // the zone's minute/second past the wall-clock hour, in ms, plus the
-    // sub-second remainder of the instant, is the amount to subtract to reach
-    // the local hour start
     const minute = Number(parts.minute === "24" ? "0" : parts.minute);
-    const second = Number(parts.second);
-    const subSecond = ((ms % 1000) + 1000) % 1000;
-    const withinHour = minute * 60_000 + second * 1000 + subSecond;
-    return ms - withinHour;
+    return minute * 60_000 + Number(parts.second) * 1000 + subSecond;
   } catch {
-    return floorUtcHour(ms);
+    return ((ms % HOUR_MS) + HOUR_MS) % HOUR_MS;
   }
 }
 
-// aggregate events into session-window billing blocks. Events are ordered by
-// timestamp; a block opens at the first event's timestamp floored to the hour
-// in tz and spans blockMs. Events in [start, start + blockMs) join the block;
-// the first event past that opens a new one. The row key is the ISO instant of
-// the block start. Mirrors block_rollup in rollup.rs.
+// The start of the block an event at ms opens: the instant floored to its
+// hour. Mirrors block_start in rollup.rs.
+function blockStart(ms: number, withinHourMs: number): number {
+  return ms - withinHourMs;
+}
+
+// The first instant past a block. Mirrors block_end in rollup.rs.
+function blockEnd(start: number, width: number): number {
+  return start + width;
+}
+
+// Session-window billing blocks: events ordered by instant, a block opening at
+// the first event's block start in tz and holding events in [start, end).
+// Unparseable timestamps sort last and share one trailing "invalid-date" row.
+// The strict dateParseMs gives the boundary the same grammar as the Rust core.
+// Mirrors block_rollup in rollup.rs.
 function blockRollup(events: UsageEvent[], options: RollupOptions): Rollup[] {
-  const blockMs =
+  const width =
     options.blockMs !== undefined && Number.isFinite(options.blockMs) && options.blockMs > 0
       ? options.blockMs
       : DEFAULT_BLOCK_MS;
-  const tz = options.tz;
 
-  // order by parsed timestamp; unparseable timestamps sort last and share a
-  // single "invalid-date" block so a bad row never derails valid windows. The
-  // strict dateParseMs (not host Date) gives this boundary the same grammar as
-  // the Rust core, so a non-canonical or offsetless timestamp buckets to
-  // invalid-date on BOTH sides rather than diverging on host leniency
-  const withMs = events.map((e) => {
-    return { event: e, ms: dateParseMs(e.timestamp) };
-  });
-  withMs.sort((a, b) => {
+  const ordered = events.map((event) => ({ event, ms: dateParseMs(event.timestamp) }));
+  ordered.sort((a, b) => {
     if (a.ms === undefined) return b.ms === undefined ? 0 : 1;
     if (b.ms === undefined) return -1;
     return a.ms - b.ms;
@@ -262,22 +249,16 @@ function blockRollup(events: UsageEvent[], options: RollupOptions): Rollup[] {
 
   const out: Rollup[] = [];
   let current: Rollup | undefined;
-  let blockStartMs: number | undefined;
-  for (const { event, ms } of withMs) {
+  let end: number | undefined;
+  for (const { event, ms } of ordered) {
     if (ms === undefined) {
-      if (current === undefined || current.key !== "invalid-date") {
-        current = newBucket("invalid-date");
-        out.push(current);
-      }
-      accumulate(current, event);
-      continue;
+      if (current?.key !== "invalid-date") current = emptyRollup("invalid-date");
+    } else if (current === undefined || end === undefined || ms >= end) {
+      const start = blockStart(ms, withinHour(ms, options.tz));
+      end = blockEnd(start, width);
+      current = emptyRollup(new Date(start).toISOString());
     }
-    const inOpenBlock = blockStartMs !== undefined && ms < blockStartMs + blockMs;
-    if (!inOpenBlock || current === undefined) {
-      blockStartMs = floorToHourMs(ms, tz);
-      current = newBucket(new Date(blockStartMs).toISOString());
-      out.push(current);
-    }
+    if (out.at(-1) !== current) out.push(current);
     accumulate(current, event);
   }
   return out;
@@ -291,7 +272,7 @@ export function rollup(events: UsageEvent[], options: RollupOptions): Rollup[] {
     const key = rollupKey(event, options);
     let entry = map.get(key);
     if (entry === undefined) {
-      entry = newBucket(key);
+      entry = emptyRollup(key);
       map.set(key, entry);
     }
     accumulate(entry, event);

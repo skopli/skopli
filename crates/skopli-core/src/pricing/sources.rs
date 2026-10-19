@@ -35,6 +35,7 @@ use serde_json::Value;
 #[cfg(any(feature = "net", test))]
 use super::parse::{parse_litellm, parse_models_dev, parse_openrouter};
 use super::types::{PriceMap, PricingCatalog};
+use crate::time::{date_parse_ms, to_iso_string};
 
 /// Default cache TTL: one hour (matches the TS `DEFAULT_TTL_MS`).
 const DEFAULT_TTL_MS: u64 = 60 * 60 * 1000;
@@ -195,8 +196,7 @@ fn load_cached(cache_dir: &Path, name: &str, ttl_ms: u64, now: u64) -> Option<Ca
     let obj = parsed.as_object()?;
     let fetched_at = obj.get("fetchedAt")?.as_str()?.to_owned();
     let payload = obj.get("payload")?.clone();
-    // Parse the ISO timestamp back to epoch ms; a bad timestamp invalidates.
-    let fetched_ms = parse_iso_ms(&fetched_at)?;
+    let fetched_ms = date_parse_ms(&fetched_at)?;
     // Compare in i128 so a TTL above i64::MAX never wraps negative and marks a
     // fresh entry stale; now/fetched_ms fit i64, ttl_ms fits u64, all fit i128.
     let age = i128::from(now) - i128::from(fetched_ms);
@@ -216,7 +216,7 @@ static TEMP_SEQ: AtomicU64 = AtomicU64::new(0);
 /// `fetchedAt` ISO timestamp written. Faithful port of `storeCached`: write to a
 /// unique temp file then rename, so a concurrent reader never sees a torn file.
 fn store_cached(cache_dir: &Path, name: &str, payload: &Value, now: u64) -> Result<String, String> {
-    let fetched_at = iso_from_ms(now);
+    let fetched_at = fetched_at_stamp(now);
     let file = serde_json::json!({ "fetchedAt": fetched_at, "payload": payload });
     let serialized = serde_json::to_string(&file).map_err(|e| e.to_string())?;
     std::fs::create_dir_all(cache_dir).map_err(|e| e.to_string())?;
@@ -322,8 +322,8 @@ fn load_one(
     if prices.is_empty() {
         return cached_catalog;
     }
-    let fetched_at =
-        store_cached(&opts.cache_dir, name, &payload, now).unwrap_or_else(|_| iso_from_ms(now));
+    let fetched_at = store_cached(&opts.cache_dir, name, &payload, now)
+        .unwrap_or_else(|_| fetched_at_stamp(now));
     Some(PricingCatalog {
         source: name.to_owned(),
         fetched_at: Some(fetched_at),
@@ -331,103 +331,14 @@ fn load_one(
     })
 }
 
-/// Format epoch-ms as an ISO-8601 UTC timestamp (`YYYY-MM-DDTHH:MM:SS.mmmZ`),
-/// matching JS `new Date(ms).toISOString()`.
-fn iso_from_ms(ms: u64) -> String {
-    let secs = (ms / 1000) as i64;
-    let millis = (ms % 1000) as u32;
-    let (year, month, day, hour, min, sec) = civil_from_epoch_secs(secs);
-    format!("{year:04}-{month:02}-{day:02}T{hour:02}:{min:02}:{sec:02}.{millis:03}Z")
-}
-
-/// Parse an ISO-8601 timestamp back to epoch-ms, matching JS `Date.parse` on the
-/// stamps a cache file can carry: `YYYY-MM-DDTHH:MM:SS` with an optional
-/// fractional-second part (truncated to integral ms) and either a `Z` suffix or
-/// a `+HH:MM` / `-HH:MM` UTC offset. Pre-epoch stamps yield a negative result;
-/// anything malformed is `None` (invalidating the cache entry, like a `NaN`
-/// `Date.parse`).
-fn parse_iso_ms(s: &str) -> Option<i64> {
-    let bytes = s.as_bytes();
-    if bytes.len() < 19 || bytes[4] != b'-' || bytes[7] != b'-' || bytes[10] != b'T' {
-        return None;
-    }
-    let year: i64 = s.get(0..4)?.parse().ok()?;
-    let month: u32 = s.get(5..7)?.parse().ok()?;
-    let day: u32 = s.get(8..10)?.parse().ok()?;
-    let hour: u32 = s.get(11..13)?.parse().ok()?;
-    let min: u32 = s.get(14..16)?.parse().ok()?;
-    let sec: u32 = s.get(17..19)?.parse().ok()?;
-    let mut rest = &s[19..];
-
-    let mut millis: i64 = 0;
-    if rest.starts_with('.') {
-        let frac_end = rest[1..]
-            .find(|c: char| !c.is_ascii_digit())
-            .map(|i| i + 1)
-            .unwrap_or(rest.len());
-        let frac = &rest[1..frac_end];
-        if frac.is_empty() {
-            return None;
-        }
-        let mut digits = frac.bytes().chain(std::iter::repeat(b'0'));
-        for _ in 0..3 {
-            millis = millis * 10 + (digits.next().unwrap() - b'0') as i64;
-        }
-        rest = &rest[frac_end..];
-    }
-
-    let offset_secs: i64 = match rest.as_bytes().first() {
-        Some(b'Z') if rest.len() == 1 => 0,
-        Some(b'+') | Some(b'-') if rest.len() == 6 && rest.as_bytes()[3] == b':' => {
-            let sign = if rest.starts_with('-') { -1 } else { 1 };
-            let oh: i64 = rest.get(1..3)?.parse().ok()?;
-            let om: i64 = rest.get(4..6)?.parse().ok()?;
-            sign * (oh * 3600 + om * 60)
-        }
-        _ => return None,
-    };
-
-    let days = epoch_days_from_civil(year, month, day)?;
-    let total_secs =
-        days * 86400 + (hour as i64) * 3600 + (min as i64) * 60 + sec as i64 - offset_secs;
-    Some(total_secs * 1000 + millis)
-}
-
-/// Days since the Unix epoch for a civil (proleptic Gregorian) date.
-/// Howard Hinnant's `days_from_civil` algorithm.
-fn epoch_days_from_civil(year: i64, month: u32, day: u32) -> Option<i64> {
-    if !(1..=12).contains(&month) || !(1..=31).contains(&day) {
-        return None;
-    }
-    let y = if month <= 2 { year - 1 } else { year };
-    let era = if y >= 0 { y } else { y - 399 } / 400;
-    let yoe = y - era * 400;
-    let m = month as i64;
-    let d = day as i64;
-    let doy = (153 * (if m > 2 { m - 3 } else { m + 9 }) + 2) / 5 + d - 1;
-    let doe = yoe * 365 + yoe / 4 - yoe / 100 + doy;
-    Some(era * 146097 + doe - 719468)
-}
-
-/// Inverse of [`epoch_days_from_civil`] plus the time-of-day, from epoch secs.
-/// Howard Hinnant's `civil_from_days` algorithm.
-fn civil_from_epoch_secs(secs: i64) -> (i64, u32, u32, u32, u32, u32) {
-    let days = secs.div_euclid(86400);
-    let rem = secs.rem_euclid(86400);
-    let hour = (rem / 3600) as u32;
-    let min = ((rem % 3600) / 60) as u32;
-    let sec = (rem % 60) as u32;
-    let z = days + 719468;
-    let era = if z >= 0 { z } else { z - 146096 } / 146097;
-    let doe = z - era * 146097;
-    let yoe = (doe - doe / 1460 + doe / 36524 - doe / 146096) / 365;
-    let y = yoe + era * 400;
-    let doy = doe - (365 * yoe + yoe / 4 - yoe / 100);
-    let mp = (5 * doy + 2) / 153;
-    let d = (doy - (153 * mp + 2) / 5 + 1) as u32;
-    let m = (if mp < 10 { mp + 3 } else { mp - 9 }) as u32;
-    let year = if m <= 2 { y + 1 } else { y };
-    (year, m, d, hour, min, sec)
+/// The cache `fetchedAt` stamp for `now`: the V8 `toISOString` shape every
+/// facade writes. Empty for a clock outside the representable range, which the
+/// read side rejects as a missing cache.
+fn fetched_at_stamp(now: u64) -> String {
+    i64::try_from(now)
+        .ok()
+        .and_then(to_iso_string)
+        .unwrap_or_default()
 }
 
 #[cfg(test)]
@@ -450,19 +361,6 @@ mod tests {
                 { "id": "vendor/model-a", "pricing": { "prompt": "0.000001", "completion": "0.000002" } }
             ]
         })
-    }
-
-    #[test]
-    fn iso_round_trips_epoch_ms() {
-        // 2026-08-01T09:00:00.000Z
-        let ms = parse_iso_ms("2026-08-01T09:00:00.000Z").unwrap();
-        assert_eq!(iso_from_ms(ms as u64), "2026-08-01T09:00:00.000Z");
-        // A known epoch: 2001-09-09T01:46:40.000Z == 1_000_000_000_000 ms.
-        assert_eq!(iso_from_ms(1_000_000_000_000), "2001-09-09T01:46:40.000Z");
-        assert_eq!(
-            parse_iso_ms("2001-09-09T01:46:40.000Z"),
-            Some(1_000_000_000_000)
-        );
     }
 
     #[test]

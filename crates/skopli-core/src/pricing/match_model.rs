@@ -256,7 +256,7 @@ pub fn is_zero_cost(price: &ModelPrice) -> bool {
     if !flat_zero {
         return false;
     }
-    for tier in price.tiers.as_deref().unwrap_or(&[]) {
+    for tier in price.tiers() {
         if tier.input != 0.0
             || tier.output != 0.0
             || tier.cache_read.unwrap_or(0.0) != 0.0

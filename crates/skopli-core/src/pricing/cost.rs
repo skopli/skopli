@@ -7,9 +7,11 @@
 //! Token counters arrive as `u64` and are cast to `f64` at the exact points the
 //! TS reads them as numbers.
 
+use std::cmp::Ordering;
+
 use crate::types::TokenCounts;
 
-use super::types::{ModelPrice, TierMode};
+use super::types::{ModelPrice, PriceTier, TierMode};
 
 /// A marginal-rate breakpoint. Mirrors the anonymous `Breakpoint` type.
 struct Breakpoint {
@@ -55,14 +57,11 @@ struct RateStep {
 /// Faithful port of `rateSchedule`: the base rates plus a sorted list of
 /// tier steps, each inheriting cacheRead/cacheWrite from the previous level.
 fn rate_schedule(price: &ModelPrice) -> (EffectiveRates, Vec<RateStep>) {
-    // `[...tiers].sort((a, b) => a.threshold - b.threshold)` - a stable numeric
-    // sort of a clone.
-    let mut tiers: Vec<&super::types::PriceTier> =
-        price.tiers.as_deref().unwrap_or(&[]).iter().collect();
+    let mut tiers: Vec<&PriceTier> = price.tiers().iter().collect();
     tiers.sort_by(|a, b| {
         a.threshold
             .partial_cmp(&b.threshold)
-            .unwrap_or(std::cmp::Ordering::Equal)
+            .unwrap_or(Ordering::Equal)
     });
 
     let mut read = price.cache_read;
