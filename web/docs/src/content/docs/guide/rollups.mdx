@@ -141,7 +141,9 @@ Events without one fall under the `(unknown)` sentinel rather than disappearing.
 A missing or non-positive value uses the default of five hours (18,000,000 ms).
 A block opens at the first event's instant floored in `tz`, and holds every event before `start + blockMs`; the next event opens a new block.
 The floor is to the hour for a width of an hour or more, and to the width itself, measured from the start of the local hour, for a shorter width.
-Two blocks therefore never share a key.
+Two blocks therefore never share a key, and keys ascend.
+Because the grain restarts at every hour, a shorter width that does not divide the hour can key a block at an instant inside the previous block's window: with forty minutes, events at 22:50 and 23:25 give blocks keyed 22:40 and 23:00, and the first block ran until 23:20.
+Every event still belongs to exactly one block and lies in its block's `[key, key + blockMs)`; where two such windows overlap, the earlier block holds the events in the shared span.
 
 ## Counting
 

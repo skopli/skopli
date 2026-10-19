@@ -225,7 +225,10 @@ function withinHour(ms: number, tz: string | undefined): number {
 // The start of the block an event at ms opens: the instant floored to the width
 // grain, measured from the start of its wall-clock hour. The grain is the width
 // below one hour and the hour otherwise, so consecutive blocks always have
-// distinct, ascending starts. Mirrors block_start in rollup.rs.
+// distinct, ascending starts. Because the grain restarts at each hour, a
+// sub-hour width that does not divide the hour can start a block inside the
+// previous block's [start, start + width); the earlier block keeps the events
+// in that span. Mirrors block_start in rollup.rs.
 function blockStart(ms: number, withinHourMs: number, width: number): number {
   return ms - (withinHourMs % Math.min(width, HOUR_MS));
 }

@@ -7,10 +7,17 @@ spans `blockMs`; events in `[start, start + blockMs)` join it, and the first
 event past that opens a new block. The grain is the hour for any `blockMs` of an
 hour or more, and `blockMs` itself below an hour, measured from the start of the
 local wall-clock hour. A block therefore never starts mid-hour unless the width
-is shorter than an hour, and two blocks never share a key. Each row's key is the
-ISO-8601 instant of its block start. This fixture pins that windowing so any consumer that anchors, splits, or
-floors a block wrong fails against shared gold. The Rust core and every language
-facade (which reaches the same core over the C ABI) consume it the same way.
+is shorter than an hour, and two blocks never share a key. Because the grain
+restarts at every hour, a sub-hour width that does not divide the hour can give
+a key inside the previous block's window: with a forty-minute width, events at
+22:50 and 23:25 open blocks keyed `22:40` and `23:00`, and `23:00` lies inside
+the first block's window `[22:40, 23:20)`. Keys stay distinct and ascending and
+every event belongs to exactly one block; only a consumer that reads
+`[key, key + blockMs)` as the instants a block holds sees overlapping windows.
+Each row's key is the ISO-8601 instant of its block start. This fixture pins
+that windowing so any consumer that anchors, splits, or floors a block wrong
+fails against shared gold. The Rust core and every language facade (which
+reaches the same core over the C ABI) consume it the same way.
 
 ## `cases.json`
 
@@ -52,6 +59,10 @@ An array of cases, each:
 - `forty-minute-width-floors-from-the-hour`: a width that does not divide the
   hour is measured from the hour start, so 22:50 with a forty-minute width
   anchors to `22:40`.
+- `forty-minute-width-key-inside-previous-window`: with the same width, 22:50
+  and 23:10 share the `22:40` block, whose window runs to 23:20, and 23:25 opens
+  a block keyed `23:00`, an instant inside that window. Keys stay distinct and
+  ascending and each event sits in exactly one block.
 - `minute-twenty-four-floors-to-the-local-hour`: an event at minute `:24` of a
   named non-UTC zone (`Europe/London`, on UTC in January) floors to `22:00`,
   pinning that the wall-clock minute is read as a minute and never confused
