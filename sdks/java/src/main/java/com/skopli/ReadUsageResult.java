@@ -1,7 +1,6 @@
 package com.skopli;
 
 import com.skopli.internal.Wire;
-import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -14,22 +13,13 @@ public record ReadUsageResult(
         Map<String, List<String>> skipped) {
 
     static ReadUsageResult fromWire(Map<String, Object> m) {
-        List<UsageEvent> events = new ArrayList<>();
-        for (Object e : Wire.asArray(m.get("events"))) {
-            events.add(UsageEvent.fromWire(Wire.asObject(e)));
-        }
-        List<Diagnostic> diagnostics = new ArrayList<>();
-        for (Object d : Wire.asArray(m.get("diagnostics"))) {
-            diagnostics.add(Diagnostic.fromWire(Wire.asObject(d)));
-        }
         Map<String, List<String>> skipped = new LinkedHashMap<>();
         for (Map.Entry<String, Object> entry : Wire.asObject(m.get("skipped")).entrySet()) {
-            List<String> paths = new ArrayList<>();
-            for (Object p : Wire.asArray(entry.getValue())) {
-                paths.add(Wire.asString(p));
-            }
-            skipped.put(entry.getKey(), paths);
+            skipped.put(entry.getKey(), Wire.list(entry.getValue(), Wire::asString));
         }
-        return new ReadUsageResult(List.copyOf(events), List.copyOf(diagnostics), Map.copyOf(skipped));
+        return new ReadUsageResult(
+                Wire.objects(m.get("events"), UsageEvent::fromWire),
+                Wire.objects(m.get("diagnostics"), Diagnostic::fromWire),
+                Map.copyOf(skipped));
     }
 }

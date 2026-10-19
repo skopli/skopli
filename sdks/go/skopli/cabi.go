@@ -123,21 +123,18 @@ func callJSONOpts(
 	return bufToBytes(out), nil
 }
 
-// detectHarnessesRaw calls ag_detect_harnesses.
 func detectHarnessesRaw(optsJSON []byte) ([]byte, error) {
 	return callJSONOpts(func(o *C.char, l C.uintptr_t, out *C.AgBuf) C.AgStatus {
 		return C.ag_detect_harnesses(o, l, out)
 	}, optsJSON)
 }
 
-// readUsageRaw calls ag_read_usage.
 func readUsageRaw(optsJSON []byte) ([]byte, error) {
 	return callJSONOpts(func(o *C.char, l C.uintptr_t, out *C.AgBuf) C.AgStatus {
 		return C.ag_read_usage(o, l, out)
 	}, optsJSON)
 }
 
-// rollupRaw calls ag_rollup with an events array and rollup options.
 func rollupRaw(eventsJSON, optsJSON []byte) ([]byte, error) {
 	ePtr, eLen, freeE := borrowBytes(eventsJSON)
 	defer freeE()
@@ -150,7 +147,6 @@ func rollupRaw(eventsJSON, optsJSON []byte) ([]byte, error) {
 	return bufToBytes(out), nil
 }
 
-// costUSDRaw calls ag_cost_usd, returning the scalar cost.
 func costUSDRaw(tokensJSON, priceJSON []byte) (float64, error) {
 	tPtr, tLen, freeT := borrowBytes(tokensJSON)
 	defer freeT()
@@ -163,7 +159,6 @@ func costUSDRaw(tokensJSON, priceJSON []byte) (float64, error) {
 	return float64(out), nil
 }
 
-// defaultCacheDirRaw calls ag_default_cache_dir.
 func defaultCacheDirRaw() (string, error) {
 	var out *C.char
 	if status := C.ag_default_cache_dir(&out); status != C.AG_STATUS_OK {
@@ -178,7 +173,6 @@ type pricingHandle struct {
 	ptr *C.AgPricing
 }
 
-// pricingNewRaw calls ag_pricing_new, returning an owned native handle.
 func pricingNewRaw(optsJSON []byte) (*pricingHandle, error) {
 	optsPtr, optsLen, free := borrowBytes(optsJSON)
 	defer free()
@@ -197,7 +191,6 @@ func (h *pricingHandle) free() {
 	}
 }
 
-// priceEventsRaw calls ag_pricing_price_events on a live handle.
 func (h *pricingHandle) priceEventsRaw(eventsJSON, optsJSON []byte) ([]byte, error) {
 	ePtr, eLen, freeE := borrowBytes(eventsJSON)
 	defer freeE()
@@ -211,7 +204,6 @@ func (h *pricingHandle) priceEventsRaw(eventsJSON, optsJSON []byte) ([]byte, err
 	return bufToBytes(out), nil
 }
 
-// priceRollupsRaw calls ag_pricing_price_rollups on a live handle.
 func (h *pricingHandle) priceRollupsRaw(rollupsJSON []byte) ([]byte, error) {
 	rPtr, rLen, freeR := borrowBytes(rollupsJSON)
 	defer freeR()
@@ -223,8 +215,6 @@ func (h *pricingHandle) priceRollupsRaw(rollupsJSON []byte) ([]byte, error) {
 	return bufToBytes(out), nil
 }
 
-// lookupModelRaw calls ag_pricing_lookup_model on a live handle with a bare
-// model-name buffer.
 func (h *pricingHandle) lookupModelRaw(model []byte) ([]byte, error) {
 	mPtr, mLen, freeM := borrowBytes(model)
 	defer freeM()
@@ -236,7 +226,6 @@ func (h *pricingHandle) lookupModelRaw(model []byte) ([]byte, error) {
 	return bufToBytes(out), nil
 }
 
-// catalogInfoRaw calls ag_pricing_catalog_info on a live handle.
 func (h *pricingHandle) catalogInfoRaw() ([]byte, error) {
 	var out C.AgBuf
 	if status := C.ag_pricing_catalog_info(h.ptr, &out); status != C.AG_STATUS_OK {
