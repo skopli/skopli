@@ -104,12 +104,7 @@ public final class Pricing implements AutoCloseable {
         lock.lock();
         try {
             ensureFresh();
-            String out = Ffi.catalogInfo(handle);
-            List<CatalogInfo> infos = new ArrayList<>();
-            for (Object info : Wire.asArray(Json.parse(out))) {
-                infos.add(CatalogInfo.fromWire(Wire.asObject(info)));
-            }
-            return List.copyOf(infos);
+            return Wire.objects(Json.parse(Ffi.catalogInfo(handle)), CatalogInfo::fromWire);
         } finally {
             lock.unlock();
         }
@@ -128,11 +123,7 @@ public final class Pricing implements AutoCloseable {
                 arr.add(rollupToWire(r));
             }
             String out = Ffi.priceRollups(handle, Json.write(arr));
-            List<PricedRollup> result = new ArrayList<>();
-            for (Object r : Wire.asArray(Json.parse(out))) {
-                result.add(PricedRollup.fromWire(Wire.asObject(r)));
-            }
-            return List.copyOf(result);
+            return Wire.objects(Json.parse(out), PricedRollup::fromWire);
         } finally {
             lock.unlock();
         }
@@ -160,11 +151,7 @@ public final class Pricing implements AutoCloseable {
             String eventsJson = Skopli.eventsToJson(events);
             String optsJson = Json.write(options.toWire());
             String out = Ffi.priceEvents(handle, eventsJson, optsJson);
-            List<PricedRollup> result = new ArrayList<>();
-            for (Object r : Wire.asArray(Json.parse(out))) {
-                result.add(PricedRollup.fromWire(Wire.asObject(r)));
-            }
-            return List.copyOf(result);
+            return Wire.objects(Json.parse(out), PricedRollup::fromWire);
         } finally {
             lock.unlock();
         }

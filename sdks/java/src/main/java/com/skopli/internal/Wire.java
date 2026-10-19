@@ -1,10 +1,12 @@
 package com.skopli.internal;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.OptionalDouble;
 import java.util.OptionalLong;
+import java.util.function.Function;
 
 /**
  * Coercion helpers between the {@link com.skopli.json.Json} value tree
@@ -30,6 +32,20 @@ public final class Wire {
             return (List<Object>) l;
         }
         throw new IllegalStateException("expected JSON array, got " + typeName(v));
+    }
+
+    /** Map a JSON array element-wise into an immutable list. */
+    public static <T> List<T> list(Object arr, Function<Object, T> element) {
+        List<T> out = new ArrayList<>();
+        for (Object v : asArray(arr)) {
+            out.add(element.apply(v));
+        }
+        return List.copyOf(out);
+    }
+
+    /** Map a JSON array of objects through a record's {@code fromWire}. */
+    public static <T> List<T> objects(Object arr, Function<Map<String, Object>, T> fromWire) {
+        return list(arr, v -> fromWire.apply(asObject(v)));
     }
 
     public static String asString(Object v) {

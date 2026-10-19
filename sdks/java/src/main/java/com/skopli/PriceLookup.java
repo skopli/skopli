@@ -1,7 +1,6 @@
 package com.skopli;
 
 import com.skopli.internal.Wire;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -67,15 +66,10 @@ public sealed interface PriceLookup permits PriceLookup.PriceHit, PriceLookup.Pr
                     Wire.optDouble(m.get("usd")),
                     Wire.asBool(m.get("tieredAggregate")));
         }
-        List<String> attempted = new ArrayList<>();
-        if (m.get("attempted") != null) {
-            for (Object a : Wire.asArray(m.get("attempted"))) {
-                attempted.add(Wire.asString(a));
-            }
-        }
+        Object attempted = m.get("attempted");
         return new PriceMiss(
                 Wire.asString(m.get("model")),
-                List.copyOf(attempted),
+                attempted == null ? List.of() : Wire.list(attempted, Wire::asString),
                 Wire.optString(m.get("reason")),
                 Wire.optString(m.get("key")),
                 Wire.optDouble(m.get("usd")));
