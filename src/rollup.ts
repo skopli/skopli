@@ -67,8 +67,6 @@ export function rollupKey(event: UsageEvent, options: RollupOptions): string {
   }
 }
 
-// accumulate one event's counters into the bucket; shared by the keyed and
-// block rollup paths so both bill tokens/calls/cost identically
 function emptyRollup(key: string): Rollup {
   return {
     key,

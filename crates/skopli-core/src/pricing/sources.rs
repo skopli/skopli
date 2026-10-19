@@ -216,7 +216,7 @@ static TEMP_SEQ: AtomicU64 = AtomicU64::new(0);
 /// `fetchedAt` ISO timestamp written. Faithful port of `storeCached`: write to a
 /// unique temp file then rename, so a concurrent reader never sees a torn file.
 fn store_cached(cache_dir: &Path, name: &str, payload: &Value, now: u64) -> Result<String, String> {
-    let fetched_at = fetched_at_stamp(now);
+    let fetched_at = fetched_at_stamp(now).ok_or("clock outside the ISO range")?;
     let file = serde_json::json!({ "fetchedAt": fetched_at, "payload": payload });
     let serialized = serde_json::to_string(&file).map_err(|e| e.to_string())?;
     std::fs::create_dir_all(cache_dir).map_err(|e| e.to_string())?;
@@ -323,22 +323,19 @@ fn load_one(
         return cached_catalog;
     }
     let fetched_at = store_cached(&opts.cache_dir, name, &payload, now)
-        .unwrap_or_else(|_| fetched_at_stamp(now));
+        .ok()
+        .or_else(|| fetched_at_stamp(now));
     Some(PricingCatalog {
         source: name.to_owned(),
-        fetched_at: Some(fetched_at),
+        fetched_at,
         prices,
     })
 }
 
 /// The cache `fetchedAt` stamp for `now`: the V8 `toISOString` shape every
-/// facade writes. Empty for a clock outside the representable range, which the
-/// read side rejects as a missing cache.
-fn fetched_at_stamp(now: u64) -> String {
-    i64::try_from(now)
-        .ok()
-        .and_then(to_iso_string)
-        .unwrap_or_default()
+/// facade writes, or `None` for a clock outside the representable range.
+fn fetched_at_stamp(now: u64) -> Option<String> {
+    to_iso_string(i64::try_from(now).ok()?)
 }
 
 #[cfg(test)]

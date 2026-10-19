@@ -321,8 +321,8 @@ fn finite_cost(e: &UsageEvent) -> Option<f64> {
 }
 
 /// Promise 1: the rows hold every counter of `events` exactly once and invent
-/// none, saturating at `u64::MAX` rather than wrapping. Applied to the whole run and, through `check_row`, to each row with
-/// its own events.
+/// none, saturating at `u64::MAX` rather than wrapping. Applied to the whole
+/// run and, through `check_row`, to each row with its own events.
 pub fn check_conservation<'a>(
     events: impl Iterator<Item = &'a UsageEvent> + Clone,
     out: &[Rollup],

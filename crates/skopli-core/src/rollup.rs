@@ -126,14 +126,16 @@ pub fn add_tokens(sum: &mut TokenCounts, event: &TokenCounts) {
     }
 }
 
-/// The zone to do civil-time arithmetic in: `None` for UTC, which the integer
-/// paths handle directly, and for an unknown zone name, which falls back to UTC.
-fn zone(tz: Option<&str>) -> Option<TimeZone> {
-    match tz {
-        Some("UTC") => None,
-        None => Some(TimeZone::system()),
-        Some(name) => TimeZone::get(name).ok(),
-    }
+/// The civil date-time of `ms` in `tz`, or `None` when the integer UTC paths
+/// apply: an explicit `UTC`, an unknown zone name (which falls back to UTC) or
+/// an instant outside the zone's range.
+fn local(ms: i64, tz: Option<&str>) -> Option<jiff::civil::DateTime> {
+    let zone = match tz {
+        Some("UTC") => return None,
+        None => TimeZone::system(),
+        Some(name) => TimeZone::get(name).ok()?,
+    };
+    Some(zone.to_datetime(jiff::Timestamp::from_millisecond(ms).ok()?))
 }
 
 /// The `YYYY-MM-DD` calendar date of `timestamp` in `tz`, or `invalid-date`.
@@ -141,18 +143,13 @@ fn day_key(timestamp: &str, tz: Option<&str>) -> String {
     let Some(ms) = date_parse_ms(timestamp) else {
         return INVALID_DATE.to_owned();
     };
-    let local = zone(tz).and_then(|zone| {
-        let date = zone
-            .to_datetime(jiff::Timestamp::from_millisecond(ms).ok()?)
-            .date();
-        Some(format!(
-            "{:04}-{:02}-{:02}",
-            date.year(),
-            date.month(),
-            date.day()
-        ))
-    });
-    local.unwrap_or_else(|| utc_day_key(ms))
+    local(ms, tz).map_or_else(
+        || utc_day_key(ms),
+        |local| {
+            let date = local.date();
+            format!("{:04}-{:02}-{:02}", date.year(), date.month(), date.day())
+        },
+    )
 }
 
 fn utc_day_key(ms: i64) -> String {
@@ -182,17 +179,15 @@ pub fn rollup_key(event: &UsageEvent, options: &RollupOptions) -> String {
 /// (fall-back) hour; re-resolving the floored civil time would collapse both
 /// occurrences onto the earlier one. Out-of-range instants use the UTC hour.
 fn within_hour(ms: i64, tz: Option<&str>) -> i64 {
-    let local = zone(tz).and_then(|zone| {
-        let time = zone
-            .to_datetime(jiff::Timestamp::from_millisecond(ms).ok()?)
-            .time();
-        Some(
+    local(ms, tz).map_or_else(
+        || ms.rem_euclid(HOUR_MS),
+        |local| {
+            let time = local.time();
             i64::from(time.minute()) * 60_000
                 + i64::from(time.second()) * 1000
-                + ms.rem_euclid(1000),
-        )
-    });
-    local.unwrap_or_else(|| ms.rem_euclid(HOUR_MS))
+                + ms.rem_euclid(1000)
+        },
+    )
 }
 
 /// The start of the block an event at `ms` opens: the instant floored to the
