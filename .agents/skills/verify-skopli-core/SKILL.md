@@ -203,7 +203,7 @@ The `codebuddy` reader shares the claude parser, so both claude breaks also fail
 
 ## Detection
 
-Three tests live in `tests/detect.rs`; the marker table and the two detector bridges live in `src/detect.rs`, and `ts-detect.mjs` runs `detectHarnesses` from `src/detect.ts` over a batch of homes in one Node process.
+Four tests live in `tests/detect.rs`; the marker table and the two detector bridges live in `src/detect.rs`, and `ts-detect.mjs` runs `detectHarnesses` from `src/detect.ts` over a batch of homes in one Node process.
 The Rust side is `skopli_wire::read::detect`, the entry the facades call, which marks a harness supported when its reader yields an event.
 
 `layouts_detect_as_the_marker_table_says` enumerates home layouts over the 80 markers in `MARKERS`, each a directory or file `src/detect.ts` probes under the home with an empty environment and the home as working directory, tagged with the harness it speaks for or with the unsupported product it names.
@@ -220,7 +220,8 @@ This is the agreement check between the two detectors: the TypeScript probe sees
 
 `recorded_homes_probe_every_harness_that_yields_events` replays recorded homes read-only when `SKOPLI_VERIFY_HOMES` names a directory of `<harness>/<endpoint>/` homes.
 Both detectors run on each; every harness the Rust pass yields events for must also be probed by TypeScript, and the per-home table (TypeScript verdict, Rust verdict, event count per harness, unsupported products) is printed and written to `SKOPLI_VERIFY_HOMES_OUT` when set.
-The check is skipped with a note when the variable is unset, so the default run needs no recordings.
+The check is skipped with a note when the variable is unset, so the default run needs no recordings; when it is set to a path that is missing or holds no `<harness>/<endpoint>/` home the check fails naming the path, so a mistyped root cannot pass with an empty table.
+`empty_recordings_root_fails_the_replay` pins that on a missing path and on a root with a harness directory but no endpoint.
 
 ```sh
 SKOPLI_VERIFY_HOMES=<recordings dir> SKOPLI_VERIFY_HOMES_OUT=<table.md> \

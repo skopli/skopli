@@ -13,7 +13,7 @@ use std::process::{Command, Stdio};
 
 use serde_json::{Value, json};
 
-use crate::readers::copy_tree;
+use crate::readers::{copy_tree, sorted_dirs};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Kind {
@@ -274,6 +274,28 @@ pub fn ts_detect<'a>(homes: impl IntoIterator<Item = &'a Home>) -> Vec<Detection
         .iter()
         .map(Detection::from_value)
         .collect()
+}
+
+/// The `<harness>/<endpoint>/` homes under a recordings root, labelled
+/// `harness/endpoint`. A root that is missing or holds no home is a broken
+/// replay, not a clean one.
+pub fn recorded_homes(root: &Path) -> Vec<(String, Home)> {
+    let name = |p: &Path| p.file_name().unwrap().to_string_lossy().into_owned();
+    let mut homes = Vec::new();
+    for harness in sorted_dirs(root) {
+        for endpoint in sorted_dirs(&harness) {
+            homes.push((
+                format!("{}/{}", name(&harness), name(&endpoint)),
+                Home::bare(&endpoint),
+            ));
+        }
+    }
+    assert!(
+        !homes.is_empty(),
+        "{} holds no <harness>/<endpoint>/ home",
+        root.display()
+    );
+    homes
 }
 
 /// The Rust detector through the wire entry point the facades call.

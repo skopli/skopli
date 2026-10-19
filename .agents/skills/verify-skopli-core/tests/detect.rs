@@ -1,8 +1,9 @@
 use std::collections::{BTreeMap, BTreeSet};
 use std::fs;
+use std::panic::catch_unwind;
 
 use verify_skopli_core::detect::*;
-use verify_skopli_core::readers::{Scratch, golden_cases, read, sorted_dirs};
+use verify_skopli_core::readers::{Scratch, golden_cases, read};
 
 /// The TypeScript detector over every layout with zero, one or two markers
 /// present, plus all present: the verdict depends only on the layout, each
@@ -155,6 +156,24 @@ fn rust_and_typescript_agree_on_golden_homes() {
     );
 }
 
+/// A recordings root that is missing, or holds no `<harness>/<endpoint>/`
+/// home, fails the replay instead of passing with an empty table.
+#[test]
+fn empty_recordings_root_fails_the_replay() {
+    let scratch = Scratch::new("no-homes");
+    fs::create_dir_all(scratch.0.join("harness-without-endpoints")).unwrap();
+    for root in [scratch.0.join("missing"), scratch.0.clone()] {
+        let message = catch_unwind(|| recorded_homes(&root))
+            .err()
+            .and_then(|p| p.downcast::<String>().ok())
+            .unwrap_or_else(|| panic!("{} passed the replay", root.display()));
+        assert_eq!(
+            *message,
+            format!("{} holds no <harness>/<endpoint>/ home", root.display())
+        );
+    }
+}
+
 /// Recorded homes, when `SKOPLI_VERIFY_HOMES` names a directory of
 /// `<harness>/<endpoint>/` homes: both detectors run read-only on each, every
 /// harness the Rust pass yields events for is also probed by TypeScript, and
@@ -165,25 +184,14 @@ fn recorded_homes_probe_every_harness_that_yields_events() {
         eprintln!("skipped: SKOPLI_VERIFY_HOMES is not set");
         return;
     };
-    let mut homes = Vec::new();
-    let mut labels = Vec::new();
-    for harness in sorted_dirs(root.as_ref()) {
-        for endpoint in sorted_dirs(&harness) {
-            labels.push(format!(
-                "{}/{}",
-                harness.file_name().unwrap().to_string_lossy(),
-                endpoint.file_name().unwrap().to_string_lossy()
-            ));
-            homes.push(Home::bare(&endpoint));
-        }
-    }
-    let ts = ts_detect(&homes);
+    let homes = recorded_homes(root.as_ref());
+    let ts = ts_detect(homes.iter().map(|(_, h)| h));
     let mut table = vec![
         "| home | typescript supported | rust supported | events | unsupported |".to_owned(),
         "| --- | --- | --- | --- | --- |".to_owned(),
     ];
     let mut failures = Vec::new();
-    for ((label, home), ts) in labels.iter().zip(&homes).zip(&ts) {
+    for ((label, home), ts) in homes.iter().zip(&ts) {
         let rust = rust_detect(home);
         let ctx = skopli_wire::parse::context_from_options(&serde_json::json!({
             "home": home.home, "env": {}, "cwd": home.cwd
