@@ -139,4 +139,9 @@ fn counters_near_u64_max_do_not_wrap() {
     ];
     let out = rollup(&events, &opts(RollupBy::Model, "UTC", None));
     check_conservation(events.iter(), &out).unwrap_or_else(|m| panic!("{m}"));
+    assert_eq!(
+        out[0].tokens.input,
+        u64::MAX,
+        "the row saturates at the ceiling"
+    );
 }

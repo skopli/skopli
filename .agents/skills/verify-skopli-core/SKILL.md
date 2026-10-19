@@ -37,9 +37,10 @@ Three tests live in `tests/rollup.rs`; the domain and the properties live in `sr
    Every event carries a different value in each of `harness`, `session_id`, `model` and `workspace` (`hb`, `sb`, `mb`, `wb` for key `b`), so a core that keys one dimension on another field fails rather than passing by coincidence.
    For `day`, an unknown zone name is expected to give the UTC calendar date, the fallback `rollup.rs` documents.
 3. Blocks.
-   For `block`, the row keys equal an executable spec written from `golden/rollup-block/README.md`: sort by instant, open a block at the first event floored to the hour, keep events while `ms < start + width`, send unparseable instants to one trailing `invalid-date` row, fall back to `18000000` ms for a missing or non-positive width.
+   For `block`, the row keys equal an executable spec written from `golden/rollup-block/README.md`: sort by instant, open a block at the first event floored to the block grain (the width below one hour, the hour otherwise), keep events while `ms < start + width`, send unparseable instants to one trailing `invalid-date` row, fall back to `18000000` ms for a missing or non-positive width.
    The spec also names each block's member events, and every row gets the same per-row conservation and presence checks as a keyed row, so an event filed in the wrong block fails even when the counts per block come out right.
    The spec takes each instant's epoch milliseconds and hour-floor key from the same literal table, so a parser or formatter regression in the core shows up as a spec mismatch.
+   A sub-hour start is the literal hour plus whole grains, formatted through the core's V8-pinned formatter, which the core's own tests check against literal V8 output.
    Block keys must also be strictly ascending.
    The README promises only ascending order; the distinct-key promise comes from the `Rollup` type, which has no identity other than `key`, so a consumer that keys rows by it merges or overwrites two rows with the same key.
 
@@ -75,15 +76,35 @@ It is a real bug when the failure is in `rollup.rs` or `rollup.ts` and the docum
 It is a modeling error when `src/lib.rs` disagrees with the documentation or the golden corpus: the block spec was read wrong, a domain value is outside what the core promises to handle, or the expected presence rule for an optional field was stated too strictly.
 Fix the model, state why in the commit, and rerun.
 
-The check currently fails on two real findings and on nothing else:
+The check is green: 107,100 cases, zero findings, parity with the TypeScript facade.
+Two earlier findings are closed in the core and pinned here: block starts below one hour are floored to the width, so no two blocks share a key, and every counter saturates at `u64::MAX` instead of wrapping.
+`check_conservation` states the saturating rule as `conserved`: rows total exactly the events below the ceiling; past it the rows total at least the ceiling and never more than the true sum.
+`counters_near_u64_max_do_not_wrap` drives one row past the ceiling and expects it to sit there.
 
-- `block order: keys repeat or go backwards`: a block width below one hour yields several rows with the same key, because every block start is floored to the hour while the window is shorter than an hour.
-  Two events at `22:30` with a thirty-minute width produce two `22:00` rows.
-  This follows the README's hour-floor rule, so it is not a spec misreading; it is a finding because `key` is the only identity a row has, and two rows sharing one are indistinguishable to every consumer.
-  Rust and TypeScript agree, so the parity test stays green.
-- `counters_near_u64_max_do_not_wrap`: the core adds `u64` counters unchecked, so a sum past `u64::MAX` panics in a debug build and wraps in a release build.
+## Proofs
 
-When these are fixed in the core, the run goes fully green and this section should shrink to say so.
+`src/kani_proofs.rs` proves the pure integer kernels of `rollup.rs` for every input, not only the enumerated domain, with Kani.
+The kernels are `add_tokens`, `block_start` and `block_end`; each is plain integer arithmetic with no allocation, string or map.
+Install with `cargo install --locked kani-verifier && cargo kani setup`, then run one harness at a time from the repository root:
+
+```sh
+timeout 600 cargo kani --manifest-path .agents/skills/verify-skopli-core/Cargo.toml --harness <name>
+```
+
+| Harness                                                     | Proves                                                                                                                                                                                      | Inputs                                                                                 |
+| ----------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
+| `add_tokens_saturates_and_keeps_the_split_under_the_writes` | every counter is the saturating sum, the 1h split is clamped to its own event's writes first, and a row whose split was within its writes stays so                                          | any two `TokenCounts`                                                                  |
+| `block_start_floors_to_the_grain_and_contains_the_event`    | the start is at most the event, less than one grain before it, inside the local hour, equal to the hour start at a width of an hour or more, and the event lies in `[start, end)`; no panic | any instant in V8's range, any positive width, any `[0, HOUR_MS)` offset into the hour |
+| `later_block_starts_strictly_after_the_open_one`            | an event at or past the open block's end opens a block with a strictly greater start, so block keys are distinct and ascending                                                              | two such instants, one width, two offsets                                              |
+
+The offset into the hour is left free in `[0, HOUR_MS)` rather than derived from UTC, so the block proofs hold for every zone's wall clock.
+Per function: `add_tokens`, `block_start` and `block_end` are proved by Kani for all inputs under the assumptions in the table; `rollup`, `rollup_key`, `day_key`, `within_hour` and `to_iso_string` are enumerated by the harness over its domain, not proved.
+No loops are involved, so no unwind bound is set.
+Last run: Kani 0.68.0 with CBMC 6.11.0 and CaDiCaL 3.0.0, each harness verified in about one second of solver time, with no unsupported construct.
+An earlier draft of the second harness also asserted `(start - hour_start) % grain == 0`; the second symbolic 64-bit remainder did not finish in ten minutes, and `ms - start < grain` states the same floor without it.
+The third harness fails against the former hour-floor rule, which was checked by running it once with that rule restored.
+
+The formatting of a start into its key is `to_iso_string`, which allocates and is outside the kernels; it is pinned by the core's tests against literal V8 output and by the exhaustive check above.
 
 ## When the verified code changes on purpose
 
@@ -99,6 +120,5 @@ Keep the domain small enough that a run stays under a minute; widen a single dim
 
 ## Limits
 
-This is bounded exhaustive checking, not a proof over all inputs.
-It covers every input in the stated domain and says nothing about inputs outside it.
+The exhaustive check covers every input in the stated domain and says nothing about inputs outside it; only the three Kani harnesses speak for all inputs, and only for the kernels they name.
 It does not check the readers, pricing, the wire format or any facade other than TypeScript.
