@@ -93,8 +93,8 @@ thread_local! {
 /// A failed entry point: the status to return and the detail to record. Built
 /// at the point of failure, recorded once by [`entry`].
 pub(crate) struct AgError {
-    pub(crate) status: AgStatus,
-    pub(crate) message: String,
+    status: AgStatus,
+    message: String,
 }
 
 impl AgError {
