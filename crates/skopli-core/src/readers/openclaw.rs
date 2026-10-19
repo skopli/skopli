@@ -10,8 +10,7 @@ use super::shared::{
 };
 use crate::types::{TokenCounts, UsageEvent};
 
-/// The openclaw reader wired into the harness registry. Faithful port of
-/// `readOpenclaw` in src/readers/openclaw.ts.
+/// The openclaw reader wired into the harness registry.
 pub struct OpenclawReader;
 
 impl Reader for OpenclawReader {
@@ -25,8 +24,8 @@ impl Reader for OpenclawReader {
     }
 }
 
-/// Resolve openclaw roots. Faithful port of `openclawRoots`: `OPENCLAW_DIR`
-/// (comma-split, trimmed, non-empty) wins; else the four default `~/.*bot` dirs.
+/// Resolve openclaw roots. `OPENCLAW_DIR` (comma-split, trimmed, non-empty)
+/// wins; else the four default `~/.*bot` dirs.
 pub fn openclaw_roots(override_dir: Option<&str>, home: &Path) -> Vec<PathBuf> {
     if let Some(override_val) = override_dir
         && !override_val.is_empty()
@@ -46,7 +45,6 @@ pub fn openclaw_roots(override_dir: Option<&str>, home: &Path) -> Vec<PathBuf> {
     ]
 }
 
-/// Faithful port of `isModelChange`.
 fn is_model_change(record: &Value) -> bool {
     if record.get("type").and_then(Value::as_str) == Some("model_change") {
         return true;
@@ -55,14 +53,12 @@ fn is_model_change(record: &Value) -> bool {
         && record.get("customType").and_then(Value::as_str) == Some("model-snapshot")
 }
 
-/// Faithful port of `isTranscriptFile`: `.jsonl`, or a rotated `.jsonl.deleted.`
-/// / `.jsonl.reset.` archive.
+/// `.jsonl`, or a rotated `.jsonl.deleted.` / `.jsonl.reset.` archive.
 fn is_transcript_file(name: &str) -> bool {
     name.ends_with(".jsonl") || name.contains(".jsonl.deleted.") || name.contains(".jsonl.reset.")
 }
 
-/// Faithful port of `sessionIdFromName`: the filename up to the first `.jsonl`,
-/// or `None` when nothing precedes it.
+/// The filename up to the first `.jsonl`, or `None` when nothing precedes it.
 fn session_id_from_name(name: &str) -> Option<String> {
     let index = name.find(".jsonl")?;
     if index == 0 {
@@ -71,7 +67,6 @@ fn session_id_from_name(name: &str) -> Option<String> {
     Some(name[..index].to_owned())
 }
 
-/// Faithful port of `usageTokens` in openclaw.ts.
 fn usage_tokens(value: Option<&Value>) -> Option<TokenCounts> {
     let value = value?;
     if !is_record(value) {
@@ -104,8 +99,7 @@ fn usage_tokens(value: Option<&Value>) -> Option<TokenCounts> {
     Some(tokens)
 }
 
-/// Faithful port of `timestampFrom` in openclaw.ts: an epoch (auto) value, else
-/// an ISO/parseable string, else the fallback.
+/// An epoch (auto unit) value, else an ISO/parseable string, else the fallback.
 fn timestamp_from(value: Option<&Value>, fallback: &str) -> String {
     let value = value.unwrap_or(&Value::Null);
     if let Some(from_epoch) = epoch_to_iso(value) {
@@ -124,7 +118,7 @@ struct OpenclawEntry {
     key: String,
 }
 
-/// Read all openclaw usage events. Faithful port of `readOpenclaw`.
+/// Read all openclaw usage events.
 pub fn read_openclaw(roots: &[PathBuf]) -> ReaderResult {
     let mut events: Vec<UsageEvent> = Vec::new();
     let mut skipped: Vec<String> = Vec::new();

@@ -25,7 +25,7 @@ impl Reader for DroidReader {
     }
 }
 
-/// Resolve the droid sessions root. Faithful port of `droidSessionsRoot`.
+/// Resolve the droid sessions root.
 pub fn droid_sessions_root(override_dir: Option<&str>, home: &Path) -> PathBuf {
     if let Some(v) = override_dir
         && !v.is_empty()
@@ -35,7 +35,6 @@ pub fn droid_sessions_root(override_dir: Option<&str>, home: &Path) -> PathBuf {
     home.join(".factory").join("sessions")
 }
 
-/// Faithful port of `normalizeModel`.
 fn normalize_model(model: &str) -> String {
     // strip a leading "custom:" then remove any "[...]" bracketed segments
     let without_custom = strip_prefix_custom(model);
@@ -92,8 +91,8 @@ fn remove_brackets(model: &str) -> String {
     out
 }
 
-/// Faithful port of `sidecarModel`: reads the sibling `.jsonl`, matches
-/// `Model:\s*([^"\\[]+)` and normalizes the capture.
+/// Reads the sibling `.jsonl`, matches `Model:\s*([^"\\[]+)` and normalizes the
+/// capture.
 fn sidecar_model(file: &str) -> Option<String> {
     let jsonl = if let Some(stripped) = file.strip_suffix(".settings.json") {
         format!("{stripped}.jsonl")
@@ -110,7 +109,6 @@ fn sidecar_model(file: &str) -> Option<String> {
     Some(normalize_model(captured))
 }
 
-/// Faithful port of `providerModel`.
 fn provider_model(provider: Option<&str>) -> String {
     match provider.map(str::to_lowercase).as_deref() {
         Some("anthropic") | Some("claude") => "claude-unknown".to_owned(),
@@ -125,7 +123,7 @@ struct Entry {
     modified: i64,
 }
 
-/// Read all droid usage events. Faithful port of `readDroid`.
+/// Read all droid usage events.
 pub fn read_droid(root: &Path) -> ReaderResult {
     let mut by_session: HashMap<String, Entry> = HashMap::new();
     let mut order: Vec<String> = Vec::new();

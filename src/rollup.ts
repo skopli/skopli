@@ -160,8 +160,7 @@ function dateParseMs(input: string): number | undefined {
         let fracEnd = fracStart;
         while (fracEnd < input.length && /[0-9]/.test(input[fracEnd] ?? "")) fracEnd += 1;
         if (fracEnd === fracStart) return undefined;
-        const secondsFrac = Number(`0.${input.slice(fracStart, fracEnd)}`);
-        milli = Math.round(secondsFrac * 1000);
+        milli = Number(input.slice(fracStart, fracEnd).padEnd(3, "0").slice(0, 3));
         idx = fracEnd;
       }
     }
@@ -184,7 +183,6 @@ function dateParseMs(input: string): number | undefined {
   if (hour < 0 || hour > 23) return undefined;
   if (minute < 0 || minute > 59) return undefined;
   if (second < 0 || second > 59) return undefined;
-  if (milli < 0 || milli > 999) return undefined;
   const days = daysFromCivil(year, month, day);
   return (
     days * 86_400_000 +

@@ -5,13 +5,13 @@ use serde_json::Value;
 
 use super::reader::{Reader, ReaderContext};
 use super::shared::{
-    ReaderResult, ReaderWarning, as_string, epoch_to_iso, finite_number, reparse_iso,
+    ReaderResult, ReaderWarning, as_string, epoch_to_iso, finite_number, reparse_iso, scalar_text,
 };
 use super::sqlite_store::{open_readonly, query_rows};
 use crate::types::{TokenCounts, UsageEvent};
 
 /// The goose reader wired into the harness registry. It reads one cumulative
-/// row per session from the goose `sessions.db`. Faithful port of `readGoose`.
+/// row per session from the goose `sessions.db`.
 pub struct GooseReader;
 
 impl Reader for GooseReader {
@@ -25,8 +25,8 @@ impl Reader for GooseReader {
     }
 }
 
-/// Resolve the goose database paths. Faithful port of `gooseDbPaths`:
-/// `GOOSE_PATH_ROOT` is a single path (never comma-split).
+/// Resolve the goose database paths. `GOOSE_PATH_ROOT` is a single path (never
+/// comma-split).
 pub fn goose_db_paths(override_val: Option<&str>, home: &Path) -> Vec<PathBuf> {
     if let Some(v) = override_val
         && !v.trim().is_empty()
@@ -58,8 +58,8 @@ pub fn goose_db_paths(override_val: Option<&str>, home: &Path) -> Vec<PathBuf> {
     ]
 }
 
-/// Resolve a `created_at` cell to an ISO string. Faithful port of `createdAtIso`:
-/// a string goes through `Date.parse`; anything else through `epochToIso`.
+/// Resolve a `created_at` cell to an ISO string: a string is reparsed as a
+/// date-time, anything else is read as an epoch value.
 fn created_at_iso(value: &Value) -> Option<String> {
     if let Some(s) = value.as_str() {
         return reparse_iso(s);
@@ -67,17 +67,7 @@ fn created_at_iso(value: &Value) -> Option<String> {
     epoch_to_iso(value)
 }
 
-/// The `String(fields["id"] ?? "")` fallback for a non-string id.
-fn id_string(value: Option<&Value>) -> String {
-    match value {
-        Some(Value::String(s)) => s.clone(),
-        Some(Value::Number(n)) => n.to_string(),
-        Some(Value::Bool(b)) => b.to_string(),
-        _ => String::new(),
-    }
-}
-
-/// Read all goose usage events. Faithful port of `readGoose`.
+/// Read all goose usage events.
 pub fn read_goose(db_paths: &[PathBuf]) -> ReaderResult {
     let mut events: Vec<UsageEvent> = Vec::new();
     let mut skipped: Vec<String> = Vec::new();
@@ -119,10 +109,7 @@ pub fn read_goose(db_paths: &[PathBuf]) -> ReaderResult {
             if !row.is_object() {
                 continue;
             }
-            let session_id = row
-                .get("id")
-                .and_then(as_string)
-                .unwrap_or_else(|| id_string(row.get("id")));
+            let session_id = scalar_text(row.get("id"));
             if session_id.is_empty() || seen_sessions.contains(&session_id) {
                 continue;
             }

@@ -5,8 +5,8 @@ use serde_json::Value;
 
 use super::reader::{Reader, ReaderContext};
 use super::shared::{
-    ReaderResult, ReaderWarning, as_string, finite_number, is_record, list_files,
-    parse_timestamp_to_iso, read_jsonl_lines,
+    ReaderResult, ReaderWarning, as_string, basename, finite_number, is_record, list_files,
+    parse_timestamp_to_iso, read_jsonl_lines, scalar_text,
 };
 use super::sqlite_store::{open_readonly, query_rows};
 use crate::types::{TokenCounts, UsageEvent};
@@ -15,7 +15,7 @@ const DEVIN_PROVIDER: &str = "devin";
 
 /// The devin reader wired into the harness registry. It reads the CLI SQLite
 /// store (authoritative) and the Desktop ACP `.ndjson` store, dropping Desktop
-/// usage for any session the CLI already covered. Faithful port of `readDevin`.
+/// usage for any session the CLI already covered.
 pub struct DevinReader;
 
 impl Reader for DevinReader {
@@ -30,7 +30,7 @@ impl Reader for DevinReader {
     }
 }
 
-/// Resolve the CLI database path. Faithful port of `devinDbPath`.
+/// Resolve the CLI database path.
 pub fn devin_db_path(data_dir: Option<&str>, home: &Path) -> PathBuf {
     if let Some(v) = data_dir
         && !v.is_empty()
@@ -44,7 +44,7 @@ pub fn devin_db_path(data_dir: Option<&str>, home: &Path) -> PathBuf {
         .join("sessions.db")
 }
 
-/// Resolve the Desktop ACP-events root. Faithful port of `devinDesktopRoot`.
+/// Resolve the Desktop ACP-events root.
 pub fn devin_desktop_root(desktop_dir: Option<&str>, home: &Path) -> PathBuf {
     if let Some(v) = desktop_dir
         && !v.is_empty()
@@ -58,7 +58,7 @@ pub fn devin_desktop_root(desktop_dir: Option<&str>, home: &Path) -> PathBuf {
         .join("acp-events")
 }
 
-/// "adaptive" is a routing mode, not a model. Faithful port of `resolveModel`.
+/// "adaptive" is a routing mode, not a model.
 fn resolve_model(value: Option<String>) -> Option<String> {
     let value = value?;
     let trimmed = value.trim();
@@ -68,7 +68,7 @@ fn resolve_model(value: Option<String>) -> Option<String> {
     Some(trimmed.to_owned())
 }
 
-/// Follow a key path through nested records. Faithful port of `readAtPointer`.
+/// Follow a key path through nested records.
 fn read_at_pointer<'a>(root: &'a Value, path: &[&str]) -> Option<&'a Value> {
     let mut current = root;
     for key in path {
@@ -89,17 +89,7 @@ struct CliRead {
     title_to_session: HashMap<String, Option<String>>,
 }
 
-/// The `String(value ?? "")` fallback the TS uses for a non-string row id.
-fn row_id_string(value: Option<&Value>) -> String {
-    match value {
-        Some(Value::String(s)) => s.clone(),
-        Some(Value::Number(n)) => n.to_string(),
-        Some(Value::Bool(b)) => b.to_string(),
-        _ => String::new(),
-    }
-}
-
-/// Read the CLI SQLite store. Faithful port of `readCli`.
+/// Read the CLI SQLite store.
 fn read_cli(
     db_path: &str,
     skipped: &mut Vec<String>,
@@ -178,10 +168,7 @@ fn read_cli(
         if !is_record(row) {
             continue;
         }
-        let row_id = row
-            .get("row_id")
-            .and_then(as_string)
-            .unwrap_or_else(|| row_id_string(row.get("row_id")));
+        let row_id = scalar_text(row.get("row_id"));
         let session_id = row.get("session_id").and_then(as_string);
         let chat_raw = row.get("chat_message").and_then(as_string);
         let (session_id, chat_raw) = match (session_id, chat_raw) {
@@ -311,7 +298,7 @@ fn read_cli(
     }
 }
 
-/// `Math.max(0, finiteNumber(v) ?? 0)` for a token field, as a u64.
+/// A token cell as a u64: a finite number clamped at 0, else 0.
 fn max0(value: Option<&Value>) -> u64 {
     value
         .and_then(finite_number)
@@ -319,14 +306,13 @@ fn max0(value: Option<&Value>) -> u64 {
         .unwrap_or(0)
 }
 
-/// The file stem with the `.ndjson` extension stripped, matching the TS
-/// `file.replace(/^.*[\\/]/, "").replace(/\.ndjson$/, "")`.
+/// The file name with the `.ndjson` extension stripped.
 fn ndjson_stem(file: &str) -> String {
-    let base = file.rsplit(['/', '\\']).next().unwrap_or(file);
-    base.strip_suffix(".ndjson").unwrap_or(base).to_owned()
+    let base = basename(file);
+    base.strip_suffix(".ndjson").unwrap_or(&base).to_owned()
 }
 
-/// Read the Desktop ACP `.ndjson` store. Faithful port of `readDesktop`.
+/// Read the Desktop ACP `.ndjson` store.
 fn read_desktop(
     root: &Path,
     title_to_session: &HashMap<String, Option<String>>,
@@ -447,13 +433,14 @@ fn read_desktop(
                         .and_then(as_string),
                 )
             });
-            let legacy_ts = parse_ts_opt(read_at_pointer(
-                notification,
-                &["content", "metadata", "created_at"],
-            ))
-            .or_else(|| parse_ts_opt(read_at_pointer(notification, &["metadata", "created_at"])))
-            .or_else(|| parse_ts_opt(notification.get("created_at")))
-            .or_else(|| parse_ts_opt(notification.get("timestamp")));
+            let legacy_ts = [
+                read_at_pointer(notification, &["content", "metadata", "created_at"]),
+                read_at_pointer(notification, &["metadata", "created_at"]),
+                notification.get("created_at"),
+                notification.get("timestamp"),
+            ]
+            .into_iter()
+            .find_map(|v| v.and_then(parse_timestamp_to_iso));
             let legacy_ts = match legacy_ts {
                 Some(t) => t,
                 None => {
@@ -528,12 +515,7 @@ fn read_desktop(
     events
 }
 
-/// `parseTimestampToIso` for an optional value (None -> None).
-fn parse_ts_opt(value: Option<&Value>) -> Option<String> {
-    value.and_then(parse_timestamp_to_iso)
-}
-
-/// Read all devin usage events. Faithful port of `readDevin`.
+/// Read all devin usage events.
 pub fn read_devin(db_path: &Path, desktop_root: &Path) -> ReaderResult {
     let mut events: Vec<UsageEvent> = Vec::new();
     let mut skipped: Vec<String> = Vec::new();

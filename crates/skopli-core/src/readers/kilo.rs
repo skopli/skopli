@@ -15,7 +15,7 @@ use crate::types::{TokenCounts, UsageEvent};
 
 /// The kilo reader wired into the harness registry. It reads the kilo SQLite
 /// `message` store, one row per message, and reconstructs per-session turn
-/// ordering. Faithful port of `readKilo` (src/readers/kilo.ts).
+/// ordering.
 pub struct KiloReader;
 
 impl Reader for KiloReader {
@@ -29,8 +29,8 @@ impl Reader for KiloReader {
     }
 }
 
-/// Resolve the kilo database path. Faithful port of `kiloDbPath`:
-/// `KILO_DATA_DIR` overrides, else `~/.local/share/kilo/kilo.db`.
+/// Resolve the kilo database path. `KILO_DATA_DIR` overrides, else
+/// `~/.local/share/kilo/kilo.db`.
 pub fn kilo_db_path(override_val: Option<&str>, home: &Path) -> PathBuf {
     if let Some(v) = override_val
         && !v.is_empty()
@@ -43,7 +43,7 @@ pub fn kilo_db_path(override_val: Option<&str>, home: &Path) -> PathBuf {
         .join("kilo.db")
 }
 
-/// One decoded kilo message, mirroring the TS `KiloMessage`.
+/// One decoded kilo message.
 struct KiloMessage {
     id: String,
     session_id: String,
@@ -52,8 +52,7 @@ struct KiloMessage {
     event: Option<UsageEvent>,
 }
 
-/// Parse one kilo `message` row + its JSON `data`. Faithful port of
-/// `parseKiloMessage`.
+/// Parse one kilo `message` row + its JSON `data`.
 fn parse_kilo_message(
     row: &SqliteMessageRow,
     raw: &Value,
@@ -134,7 +133,6 @@ fn parse_kilo_message(
     let timestamp = if created == 0.0 {
         file_mtime_iso(db_path)
     } else {
-        // `new Date(created).toISOString()`; created is finite and > 0 here.
         to_iso_string(created.trunc() as i64).unwrap_or_else(|| file_mtime_iso(db_path))
     };
     let event = UsageEvent {
@@ -170,7 +168,7 @@ fn parse_kilo_message(
     }
 }
 
-/// Read all kilo usage events. Faithful port of `readKilo`.
+/// Read all kilo usage events.
 pub fn read_kilo(db_path: &Path) -> ReaderResult {
     if !db_path.exists() {
         return ReaderResult::default();

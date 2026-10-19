@@ -3,15 +3,10 @@ use std::path::{Path, PathBuf};
 
 use super::shared::ReaderResult;
 
-/// Ambient inputs a reader needs to resolve its data roots. Mirrors the TS
-/// `PathResolver` (src/paths.ts): a `home` directory and an `env` lookup where
-/// an empty-string value is treated as unset. When an explicit `env` map is
-/// provided it is the entire environment (the process environment is never
+/// Ambient inputs a reader needs to resolve its data roots: a `home` directory
+/// and an `env` lookup where an empty-string value is treated as unset. The
+/// `env` map is the entire environment (the process environment is never
 /// consulted), so tests and relocated setups get full isolation.
-///
-/// This is the Rust analogue of the reader-facing path-resolution surface the
-/// ABI supplies: a `home_dir` plus the env/override map that drives each
-/// reader's env-override roots (e.g. `CLAUDE_CONFIG_DIR`).
 #[derive(Debug, Clone)]
 pub struct ReaderContext {
     home: PathBuf,
@@ -34,8 +29,8 @@ impl ReaderContext {
         }
     }
 
-    /// Set an environment override. Empty values are treated as unset, matching
-    /// the TS resolver, so `env("X")` returns `None` for an empty override.
+    /// Set an environment override. Empty values are treated as unset, so
+    /// `env("X")` returns `None` for an empty override.
     pub fn with_env(mut self, name: impl Into<String>, value: impl Into<String>) -> Self {
         self.env.insert(name.into(), value.into());
         self
@@ -62,7 +57,7 @@ impl ReaderContext {
     }
 
     /// Look up an environment variable. An empty-string value is treated as
-    /// unset (returns `None`), matching the TS `PathResolver`.
+    /// unset (returns `None`).
     pub fn env(&self, name: &str) -> Option<&str> {
         match self.env.get(name) {
             Some(v) if !v.is_empty() => Some(v.as_str()),
@@ -74,8 +69,8 @@ impl ReaderContext {
 /// A usage reader for a single harness. Adding a reader = implementing this
 /// trait and registering it in the harness registry.
 ///
-/// A reader resolves its own data roots from the `ReaderContext` (env-override
-/// path resolution, exactly like the TS readers), then reads and returns a
+/// A reader resolves its own data roots from the `ReaderContext`, then reads
+/// and returns a
 /// `ReaderResult` carrying events + skipped + warnings (diagnostics). The
 /// harness/exporter owns the downstream normalization (relativization, the
 /// canonical event sort, and the gold envelope shape).

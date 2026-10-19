@@ -24,7 +24,7 @@ impl Reader for GeminiReader {
     }
 }
 
-/// Resolve the gemini data root. Faithful port of `geminiRoot`.
+/// Resolve the gemini data root.
 pub fn gemini_root(config_dir: Option<&str>, home: &Path) -> PathBuf {
     if let Some(override_val) = config_dir
         && !override_val.is_empty()
@@ -46,7 +46,6 @@ struct ToEvent {
     malformed: bool,
 }
 
-/// Faithful port of `toEvent`.
 fn to_event(raw: &Value, index: usize, ctx: &FileContext, turn: bool) -> ToEvent {
     if !is_record(raw) {
         return ToEvent {
@@ -105,7 +104,6 @@ fn to_event(raw: &Value, index: usize, ctx: &FileContext, turn: bool) -> ToEvent
     }
 }
 
-/// Faithful port of `collectEvents`.
 fn collect_events(
     messages: &[(usize, Value)],
     ctx: &FileContext,
@@ -139,7 +137,6 @@ struct Extracted {
     session_id: Option<String>,
 }
 
-/// Faithful port of `extractMessages`.
 fn extract_messages(parsed: &Value) -> Extracted {
     if let Value::Array(arr) = parsed {
         return Extracted {
@@ -166,7 +163,7 @@ fn extract_messages(parsed: &Value) -> Extracted {
     }
 }
 
-/// Read all gemini usage events from the given root. Faithful port of `readGemini`.
+/// Read all gemini usage events from the given root.
 pub fn read_gemini(root: &Path) -> ReaderResult {
     let mut events: Vec<UsageEvent> = Vec::new();
     let mut skipped: Vec<String> = Vec::new();

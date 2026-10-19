@@ -7,6 +7,7 @@ use serde_json::Value;
 use super::reader::{Reader, ReaderContext};
 use super::shared::{
     ReaderResult, ReaderWarning, as_string, finite_number, is_record, parse_timestamp_to_iso,
+    scalar_text,
 };
 use super::sqlite_store::{blob_column, open_readonly, table_columns};
 use crate::types::{TokenCounts, UsageEvent};
@@ -15,9 +16,9 @@ use crate::types::{TokenCounts, UsageEvent};
 const ZED_HOSTED_PROVIDER: &str = "zed.dev";
 
 /// The zed reader wired into the harness registry. It reads one cumulative row
-/// per hosted thread from the zed `threads.db`, decoding json/zstd blobs.
-/// Faithful port of `readZed`. (No golden case ships for zed - it is
-/// SQLite-only - so this lane is not conformance-covered.)
+/// per hosted thread from the zed `threads.db`, decoding json/zstd blobs. (No
+/// golden case ships for zed - it is SQLite-only - so this lane is not
+/// conformance-covered.)
 pub struct ZedReader;
 
 impl Reader for ZedReader {
@@ -31,7 +32,7 @@ impl Reader for ZedReader {
     }
 }
 
-/// Resolve the zed database paths. Faithful port of `zedDbPaths`.
+/// Resolve the zed database paths.
 pub fn zed_db_paths(
     data_dir: Option<&str>,
     localappdata: Option<&str>,
@@ -67,8 +68,7 @@ pub fn zed_db_paths(
     paths
 }
 
-/// A finite/positive numeric field, else 0, coercing numeric strings. Faithful
-/// port of `numericField`.
+/// A finite/positive numeric field, else 0, coercing numeric strings.
 fn numeric_field(value: Option<&Value>) -> u64 {
     if let Some(v) = value {
         if let Some(n) = finite_number(v) {
@@ -84,7 +84,7 @@ fn numeric_field(value: Option<&Value>) -> u64 {
     0
 }
 
-/// Accumulate one usage object into `target`. Faithful port of `addUsage`.
+/// Accumulate one usage object into `target`.
 fn add_usage(target: &mut TokenCounts, usage: &Value) {
     target.input += numeric_field(usage.get("input_tokens"));
     target.output += numeric_field(usage.get("output_tokens"));
@@ -93,7 +93,6 @@ fn add_usage(target: &mut TokenCounts, usage: &Value) {
 }
 
 /// Sum request-usage entries (array, usage-map, or single usage object).
-/// Faithful port of `sumRequestUsage`.
 fn sum_request_usage(value: Option<&Value>) -> (TokenCounts, u64) {
     let mut tokens = TokenCounts {
         input: 0,
@@ -139,9 +138,8 @@ fn tokens_are_zero(tokens: &TokenCounts) -> bool {
     tokens.input == 0 && tokens.output == 0 && tokens.cache_read == 0 && tokens.cache_write == 0
 }
 
-/// Decode a thread blob. Faithful port of `decodeBlob`: only `json`/`zstd`
-/// (or NULL data_type) are accepted; anything else yields `None`. A decode /
-/// JSON-parse failure surfaces as `Err(())` (the TS `try/catch` skip path).
+/// Decode a thread blob. Only `json`/`zstd` (or NULL data_type) are accepted;
+/// anything else yields `None`. A decode or JSON-parse failure is `Err(())`.
 fn decode_blob(data_type: Option<&str>, data: Option<Vec<u8>>) -> Result<Option<Value>, ()> {
     if let Some(dt) = data_type
         && dt != "json"
@@ -166,17 +164,7 @@ fn decode_blob(data_type: Option<&str>, data: Option<Vec<u8>>) -> Result<Option<
     Ok(Some(value))
 }
 
-/// The `String(row["id"] ?? "")` fallback for a non-string thread id.
-fn id_string(value: Option<&Value>) -> String {
-    match value {
-        Some(Value::String(s)) => s.clone(),
-        Some(Value::Number(n)) => n.to_string(),
-        Some(Value::Bool(b)) => b.to_string(),
-        _ => String::new(),
-    }
-}
-
-/// Read all zed usage events. Faithful port of `readZed`.
+/// Read all zed usage events.
 pub fn read_zed(db_paths: &[PathBuf]) -> ReaderResult {
     let mut events: Vec<UsageEvent> = Vec::new();
     let mut skipped: Vec<String> = Vec::new();
@@ -249,10 +237,7 @@ pub fn read_zed(db_paths: &[PathBuf]) -> ReaderResult {
             }
             let row_val = Value::Object(obj);
 
-            let thread_id = row_val
-                .get("id")
-                .and_then(as_string)
-                .unwrap_or_else(|| id_string(row_val.get("id")));
+            let thread_id = scalar_text(row_val.get("id"));
             if thread_id.is_empty() || seen.contains(&thread_id) {
                 continue;
             }
@@ -306,9 +291,13 @@ pub fn read_zed(db_paths: &[PathBuf]) -> ReaderResult {
                 continue;
             }
             let count = request_count;
-            let timestamp = parse_ts(row_val.get("updated_at"))
-                .or_else(|| parse_ts(blob.get("updated_at")))
-                .or_else(|| parse_ts(row_val.get("created_at")));
+            let timestamp = [
+                row_val.get("updated_at"),
+                blob.get("updated_at"),
+                row_val.get("created_at"),
+            ]
+            .into_iter()
+            .find_map(|v| v.and_then(parse_timestamp_to_iso));
             let timestamp = match timestamp {
                 Some(t) => t,
                 None => {
@@ -341,9 +330,4 @@ pub fn read_zed(db_paths: &[PathBuf]) -> ReaderResult {
         skipped,
         warnings,
     }
-}
-
-/// `parseTimestampToIso` for an optional value (None -> None).
-fn parse_ts(value: Option<&Value>) -> Option<String> {
-    value.and_then(parse_timestamp_to_iso)
 }

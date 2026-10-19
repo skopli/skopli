@@ -217,6 +217,10 @@ function copilotOtelRoot(resolver: PathResolver): string {
   return join(resolver.home(), ".copilot", "otel");
 }
 
+function copilotSessionStateRoot(resolver: PathResolver): string {
+  return join(resolver.home(), ".copilot", "session-state");
+}
+
 function codexRoot(resolver: PathResolver): string {
   const override = resolver.env("CODEX_HOME");
   if (override !== undefined && override !== "") return override;
@@ -401,14 +405,9 @@ function gajaeSessionsRoots(resolver: PathResolver): string[] {
 }
 
 function kimchiSessionsRoots(resolver: PathResolver): string[] {
-  const configPath = resolver.env("KIMCHI_CONFIG_PATH");
-  if (configPath !== undefined && configPath !== "") {
-    return [join(configPath, "agent", "sessions")];
-  }
-  return [
-    join(resolver.home(), ".config", "kimchi", "agent", "sessions"),
-    join(resolver.home(), ".pi", "agent", "sessions"),
-  ];
+  const agentDir = resolver.env("KIMCHI_CODING_AGENT_DIR");
+  if (agentDir !== undefined && agentDir !== "") return [join(agentDir, "sessions")];
+  return [join(resolver.home(), ".config", "kimchi", "harness", "sessions")];
 }
 
 function qwenProjectsRoot(resolver: PathResolver): string {
@@ -425,6 +424,11 @@ function traeTrajectoriesRoot(resolver: PathResolver): string | undefined {
   const cwd = resolver.cwd();
   if (cwd === undefined || cwd === "") return undefined;
   return join(cwd, "trajectories");
+}
+
+// `session.jsonl`, `session.v4.jsonl`, and their `.zstd` forms.
+function isDeepseekSessionLog(name: string): boolean {
+  return /^session(\.v\d+)?\.jsonl(\.zstd)?$/.test(name);
 }
 
 function deepseekRoot(resolver: PathResolver): string {
@@ -572,7 +576,12 @@ export function detectHarnesses(resolver: PathResolver = defaultPathResolver): D
     supported.push("codex");
   }
   if (dirExists(join(geminiRoot(resolver), "tmp"))) supported.push("gemini");
-  if (existsSync(copilotOtelRoot(resolver))) supported.push("copilot");
+  if (
+    existsSync(copilotOtelRoot(resolver)) ||
+    listFiles(copilotSessionStateRoot(resolver), (name) => name === "events.jsonl").length > 0
+  ) {
+    supported.push("copilot");
+  }
   if (dirExists(ampThreadsRoot(resolver))) supported.push("amp");
   if (dirExists(droidSessionsRoot(resolver))) supported.push("droid");
   if (dirExists(qwenProjectsRoot(resolver))) supported.push("qwen");
@@ -640,8 +649,7 @@ export function detectHarnesses(resolver: PathResolver = defaultPathResolver): D
       listFiles(
         root,
         (name) =>
-          name === "session.jsonl" ||
-          name === "session.jsonl.zstd" ||
+          isDeepseekSessionLog(name) ||
           name.endsWith(".db") ||
           name.endsWith(".sqlite") ||
           name.endsWith(".sqlite3"),

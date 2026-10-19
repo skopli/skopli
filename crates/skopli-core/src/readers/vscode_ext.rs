@@ -5,16 +5,15 @@ use std::path::{Path, PathBuf};
 use serde_json::Value;
 
 use super::shared::{
-    ReaderResult, ReaderWarning, as_string, basename, dir_exists, finite_number, is_record,
-    list_files, parse_timestamp_to_iso, read_json,
+    ReaderResult, ReaderWarning, as_string, basename, dir_exists, dirname, finite_number,
+    is_record, list_files, parse_timestamp_to_iso, read_json,
 };
 use crate::types::{TokenCounts, UsageEvent};
 
 /// Resolve the per-OS VS Code globalStorage task roots for the extension whose
 /// id + subdir make up `suffix` (e.g. `["saoudrizwan.claude-dev", "tasks"]`).
-/// Faithful port of `vscodeTaskRoots` in src/readers/roo-cline-kilo.ts: only the
-/// extension-id suffix varies by harness, so all clients share the layout, plus
-/// an `%APPDATA%` root when that env var is set.
+/// Only the extension-id suffix varies by harness, so all clients share the
+/// layout, plus an `%APPDATA%` root when that env var is set.
 pub fn vscode_task_roots(app_data: Option<&str>, home: &Path, suffix: &[&str]) -> Vec<PathBuf> {
     let with_suffix = |base: PathBuf| -> PathBuf {
         let mut p = base;
@@ -64,8 +63,7 @@ pub fn vscode_task_roots(app_data: Option<&str>, home: &Path, suffix: &[&str]) -
     roots
 }
 
-/// Faithful port of `numeric` in src/readers/roo-cline-kilo.ts: a finite number
-/// (clamped `>= 0`), a finite numeric string, else 0.
+/// A finite number (clamped `>= 0`), a finite numeric string, else 0.
 pub fn numeric(value: Option<&Value>) -> u64 {
     let value = match value {
         Some(v) => v,
@@ -83,8 +81,7 @@ pub fn numeric(value: Option<&Value>) -> u64 {
     0
 }
 
-/// Faithful port of `tagValue`: the trimmed contents of the LAST `<tag>...</tag>`
-/// in `text`, or `None`.
+/// The trimmed contents of the LAST `<tag>..</tag>` in `text`, or `None`.
 fn tag_value(text: &str, tag: &str) -> Option<String> {
     let open = format!("<{tag}>");
     let close = format!("</{tag}>");
@@ -104,9 +101,8 @@ fn tag_value(text: &str, tag: &str) -> Option<String> {
     last.map(|s| s.trim().to_owned())
 }
 
-/// model comes from the sibling api_conversation_history.json: the last `<model>`
-/// value inside any `<environment_details>` block wins. Faithful port of
-/// `modelForTask`.
+/// model comes from the sibling api_conversation_history.json: the last
+/// `<model>` value inside any `<environment_details>` block wins.
 fn model_for_task(task_dir: &str) -> String {
     let sibling = format!("{task_dir}/api_conversation_history.json");
     let text = match fs::read_to_string(&sibling) {
@@ -136,17 +132,7 @@ fn model_for_task(task_dir: &str) -> String {
     model.unwrap_or_else(|| "unknown".to_owned())
 }
 
-/// The parent directory path (node `dirname`), `/`-normalized.
-fn dirname(path: &str) -> String {
-    let normalized = path.replace('\\', "/");
-    match normalized.rfind('/') {
-        Some(i) => normalized[..i].to_owned(),
-        None => String::new(),
-    }
-}
-
 /// Read a single task's `ui_messages.json` for the given extension harness.
-/// Faithful port of `readTaskFile` in src/readers/roo-cline-kilo.ts.
 fn read_task_file(
     file: &str,
     harness: &str,
@@ -250,10 +236,9 @@ fn read_task_file(
     events
 }
 
-/// Read all VS Code extension-store usage events for `harness`. Faithful port
-/// of `readVscodeExt` in src/readers/roo-cline-kilo.ts. `seen` (messageId) and
-/// `covered_sessions` are shared with the cline CLI lane so the extension store
-/// is authoritative over its CLI mirror.
+/// Read all VS Code extension-store usage events for `harness`. `seen`
+/// (messageId) and `covered_sessions` are shared with the cline CLI lane so the
+/// extension store is authoritative over its CLI mirror.
 pub fn read_vscode_ext(
     harness: &str,
     roots: &[PathBuf],

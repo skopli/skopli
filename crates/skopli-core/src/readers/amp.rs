@@ -5,7 +5,7 @@ use serde_json::Value;
 use super::reader::{Reader, ReaderContext};
 use super::shared::{
     ReaderResult, ReaderWarning, as_string, file_mtime_iso, finite_number, is_record, list_files,
-    read_json,
+    number_text, read_json,
 };
 use crate::time::to_iso_string;
 use crate::types::{TokenCounts, UsageEvent};
@@ -24,7 +24,7 @@ impl Reader for AmpReader {
     }
 }
 
-/// Resolve the amp threads root. Faithful port of `ampThreadsRoot`.
+/// Resolve the amp threads root.
 pub fn amp_threads_root(config: Option<&str>, home: &Path) -> PathBuf {
     if let Some(override_val) = config
         && !override_val.is_empty()
@@ -43,7 +43,6 @@ struct AmpRecord {
     turn: bool,
 }
 
-/// Faithful port of `eventsId`.
 fn events_id(usage: &Value) -> String {
     usage
         .get("id")
@@ -51,7 +50,6 @@ fn events_id(usage: &Value) -> String {
         .unwrap_or_else(|| "ledger".to_owned())
 }
 
-/// Faithful port of `ampRecord`.
 #[allow(clippy::too_many_arguments)]
 fn amp_record(
     usage: &Value,
@@ -121,16 +119,7 @@ fn amp_record(
     })
 }
 
-/// finiteNumber(x)?.toString() — JS number-to-string for an integer.
-fn num_to_string(n: f64) -> String {
-    if n.fract() == 0.0 && n.is_finite() {
-        format!("{}", n as i64)
-    } else {
-        format!("{n}")
-    }
-}
-
-/// Read all amp usage events from the given root. Faithful port of `readAmp`.
+/// Read all amp usage events from the given root.
 pub fn read_amp(root: &Path) -> ReaderResult {
     let mut events: Vec<UsageEvent> = Vec::new();
     let mut skipped: Vec<String> = Vec::new();
@@ -188,7 +177,7 @@ pub fn read_amp(root: &Path) -> ReaderResult {
             let ledger_msg_id = entry
                 .get("toMessageId")
                 .and_then(finite_number)
-                .map(num_to_string)
+                .map(number_text)
                 .or_else(|| entry.get("id").and_then(as_string))
                 .or(Some(format!("{file}:ledger:{index}")));
             let record = amp_record(
@@ -232,7 +221,7 @@ pub fn read_amp(root: &Path) -> ReaderResult {
                 message
                     .get("messageId")
                     .and_then(finite_number)
-                    .map(num_to_string)
+                    .map(number_text)
             });
             let numeric_message_id = message.get("messageId").and_then(finite_number);
             let message_record = amp_record(

@@ -1,4 +1,5 @@
-use std::collections::HashSet;
+use std::cmp::Reverse;
+use std::collections::{BTreeMap, HashSet};
 use std::io::Read;
 use std::path::{Path, PathBuf};
 
@@ -6,16 +7,17 @@ use serde_json::Value;
 
 use super::reader::{Reader, ReaderContext};
 use super::shared::{
-    EpochUnit, ReaderResult, ReaderWarning, as_string, dir_exists, epoch_to_iso_unit,
-    finite_number, is_record, list_files,
+    EpochUnit, ReaderResult, ReaderWarning, as_string, basename, dir_exists, dirname,
+    epoch_to_iso_unit, finite_number, is_record, list_files, optional_cell, required_cell,
 };
 use super::sqlite_store::{blob_column, open_readonly, pragma_int, table_exists};
 use crate::types::{TokenCounts, UsageEvent};
 
 /// The DeepSeek Harness reader wired into the harness registry. DeepSeek
 /// Harness stores each session as an append-only JSONL event log under
-/// `~/.dsh/<project>/<session>/session.jsonl`, optionally Zstandard-compressed
-/// as `session.jsonl.zstd`. The first line is a `{type:'session', id,
+/// `~/.dsh/<project>/<session>/session.jsonl` (or a versioned
+/// `session.vN.jsonl`), optionally Zstandard-compressed as `.zstd` with one
+/// frame appended per flush. The first line is a `{type:'session', id,
 /// createdAt, parentSession?, origin?, ...}` header; every later line is a
 /// `{type, seq, time, data}` event, each carrying its own epoch-millisecond
 /// `time`. Token usage rides the finalized `assistant/message` events
@@ -59,27 +61,6 @@ pub fn deepseek_home(override_dir: Option<&str>, home: &Path) -> PathBuf {
         return PathBuf::from(v);
     }
     home.join(".dsh")
-}
-
-/// A required token cell (`inputTokens`/`outputTokens` are non-optional in the
-/// upstream `TokenUsage`). The cell must be a non-negative finite number; an
-/// absent, `null`, or invalid cell marks the usage malformed.
-fn required_cell(value: Option<&Value>) -> Option<u64> {
-    match value {
-        None | Some(Value::Null) => None,
-        Some(v) => finite_number(v).filter(|n| *n >= 0.0).map(|n| n as u64),
-    }
-}
-
-/// An optional token cell (`cacheReadTokens`/`cacheWriteTokens`/`reasoningTokens`
-/// are `?` in the upstream `TokenUsage`). An absent or `null` cell is `0`; a
-/// populated cell that is not a non-negative finite number marks the usage
-/// malformed.
-fn optional_cell(value: Option<&Value>) -> Option<u64> {
-    match value {
-        None | Some(Value::Null) => Some(0),
-        Some(v) => finite_number(v).filter(|n| *n >= 0.0).map(|n| n as u64),
-    }
 }
 
 /// The outcome of parsing one `assistant/message` `data.usage` map.
@@ -183,42 +164,114 @@ fn dedup_key(session_id: &str, seq: Option<&Value>) -> Option<String> {
     Some(format!("{session_id}:{}", seq as u64))
 }
 
-/// Read the raw bytes of a `session.jsonl` (plaintext) or `session.jsonl.zstd`
-/// (Zstandard) file to a UTF-8 string. A missing/unreadable file or a
-/// malformed/truncated zstd stream yields `None`, which the caller turns into
-/// the standard file-level malformed diagnostic.
-fn read_log_text(file: &str) -> Option<String> {
-    let bytes = std::fs::read(file).ok()?;
-    if file.ends_with(".zstd") {
-        let mut decoder = ruzstd::decoding::StreamingDecoder::new(bytes.as_slice()).ok()?;
-        let mut out = Vec::new();
-        decoder.read_to_end(&mut out).ok()?;
-        String::from_utf8(out).ok()
-    } else {
-        String::from_utf8(bytes).ok()
+/// The format generation a session log file name encodes: `session.jsonl` is
+/// generation 0 and `session.vN.jsonl` is generation N, each optionally with a
+/// `.zstd` suffix. `None` for any other name.
+fn session_log_generation(name: &str) -> Option<u32> {
+    let name = name.strip_suffix(".zstd").unwrap_or(name);
+    let version = name.strip_suffix(".jsonl")?.strip_prefix("session")?;
+    if version.is_empty() {
+        return Some(0);
     }
+    let digits = version.strip_prefix(".v")?;
+    if digits.is_empty() || !digits.bytes().all(|b| b.is_ascii_digit()) {
+        return None;
+    }
+    digits.parse().ok()
 }
 
-/// Read one session log (already decompressed to text) into usage events.
+/// The session logs under `home` grouped by session directory, highest
+/// generation first. Migration writes the current generation beside its
+/// predecessors and never removes them, so the logs in one directory are
+/// copies of the same session and the reader takes the newest it can read.
+fn session_logs(home: &Path) -> Vec<Vec<String>> {
+    let mut by_session: BTreeMap<String, Vec<String>> = BTreeMap::new();
+    for file in list_files(home, |name| session_log_generation(name).is_some()) {
+        by_session.entry(dirname(&file)).or_default().push(file);
+    }
+    by_session
+        .into_values()
+        .map(|mut logs| {
+            logs.sort_by_key(|file| Reverse(session_log_generation(&basename(file))));
+            logs
+        })
+        .collect()
+}
+
+/// The decoded text of a session log and whether a trailing zstd frame failed
+/// to decode (the text then holds only the frames before it).
+struct LogText {
+    text: String,
+    truncated: bool,
+}
+
+/// Read a plaintext or `.zstd` session log to UTF-8. A missing or unreadable
+/// file, or a zstd stream with no decodable frame, yields `None`, which the
+/// caller turns into the file-level malformed diagnostic.
+fn read_log_text(file: &str) -> Option<LogText> {
+    let bytes = std::fs::read(file).ok()?;
+    let (bytes, truncated) = if file.ends_with(".zstd") {
+        decode_zstd_frames(&bytes)
+    } else {
+        (bytes, false)
+    };
+    if bytes.is_empty() && truncated {
+        return None;
+    }
+    let text = String::from_utf8(bytes).ok()?;
+    Some(LogText { text, truncated })
+}
+
+/// Decode every frame of a zstd stream. The recorder appends one frame per
+/// flush, and `StreamingDecoder` stops after the first, so decode until the
+/// input is exhausted. A frame that fails to decode ends the stream; the frames
+/// before it are kept, its own partial output is dropped, and the failure is
+/// reported as the second value.
+fn decode_zstd_frames(bytes: &[u8]) -> (Vec<u8>, bool) {
+    let mut cursor = std::io::Cursor::new(bytes);
+    let mut out = Vec::new();
+    while (cursor.position() as usize) < bytes.len() {
+        let frame_start = out.len();
+        let decoded = ruzstd::decoding::StreamingDecoder::new(&mut cursor)
+            .ok()
+            .and_then(|mut decoder| decoder.read_to_end(&mut out).ok());
+        if decoded.is_none() {
+            out.truncate(frame_start);
+            return (out, true);
+        }
+    }
+    (out, false)
+}
+
+/// Read one session from the first of its `logs` that can be read into usage
+/// events; each unreadable log before it is a file-level malformed diagnostic.
 /// Each emitted event's logical `session_id:seq` identity is inserted into
 /// `seen` so the SQLite lane can skip a duplicate of the same event.
 fn read_session(
-    file: &str,
+    logs: &[String],
     skipped: &mut Vec<String>,
     warnings: &mut Vec<ReaderWarning>,
     seen: &mut HashSet<String>,
 ) -> Vec<UsageEvent> {
     let mut events: Vec<UsageEvent> = Vec::new();
-    let text = match read_log_text(file) {
-        Some(t) => t,
+    let readable = logs.iter().find_map(|file| match read_log_text(file) {
+        Some(log) => Some((file, log)),
         None => {
             warnings.push(ReaderWarning {
                 message: format!("skipping malformed {HARNESS} file {file}\n"),
             });
-            skipped.push(file.to_owned());
-            return events;
+            skipped.push(file.clone());
+            None
         }
+    });
+    let Some((file, LogText { text, truncated })) = readable else {
+        return events;
     };
+    if truncated {
+        warnings.push(ReaderWarning {
+            message: format!("skipping undecodable tail of {HARNESS} file {file}\n"),
+        });
+    }
 
     let mut header = SessionHeader::default();
     let fallback_id = super::shared::parent_dir_name(file);
@@ -550,9 +603,9 @@ fn read_sqlite_db(
     events
 }
 
-/// Read all DeepSeek Harness usage events reachable from `home`. Every
-/// `session.jsonl` / `session.jsonl.zstd` under `<home>` (walked recursively,
-/// since sessions nest under project directories) is read; one event is emitted
+/// Read all DeepSeek Harness usage events reachable from `home`. The highest
+/// session-log generation in every session directory under `<home>` (walked
+/// recursively, since sessions nest under project directories) is read; one event is emitted
 /// per finalized `assistant/message` that carries usage. Any SQLite session
 /// database under `<home>` (identified by its reserved `application_id`) is read
 /// too; its events dedupe against the JSONL lane by the logical `session_id:seq`
@@ -571,11 +624,8 @@ pub fn read_deepseek(home: &Path) -> ReaderResult {
         };
     }
 
-    let files = list_files(home, |name| {
-        name == "session.jsonl" || name == "session.jsonl.zstd"
-    });
-    for file in &files {
-        events.extend(read_session(file, &mut skipped, &mut warnings, &mut seen));
+    for logs in session_logs(home) {
+        events.extend(read_session(&logs, &mut skipped, &mut warnings, &mut seen));
     }
 
     let databases = list_files(home, |name| {
@@ -595,41 +645,28 @@ pub fn read_deepseek(home: &Path) -> ReaderResult {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::readers::shared::{scratch_dir, test_home};
     use std::fs;
-
-    fn home() -> PathBuf {
-        PathBuf::from("/home/u")
-    }
 
     #[test]
     fn default_home_resolves_dot_dsh() {
-        assert_eq!(deepseek_home(None, &home()), home().join(".dsh"));
+        assert_eq!(deepseek_home(None, &test_home()), test_home().join(".dsh"));
     }
 
     #[test]
     fn dsh_home_override_wins() {
         assert_eq!(
-            deepseek_home(Some("/custom/dsh"), &home()),
+            deepseek_home(Some("/custom/dsh"), &test_home()),
             PathBuf::from("/custom/dsh")
         );
     }
 
     #[test]
     fn empty_override_falls_through_to_default() {
-        assert_eq!(deepseek_home(Some(""), &home()), home().join(".dsh"));
-    }
-
-    fn tmp_dir(tag: &str) -> PathBuf {
-        let base = std::env::temp_dir().join(format!(
-            "skopli-deepseek-test-{tag}-{}-{}",
-            std::process::id(),
-            std::time::SystemTime::now()
-                .duration_since(std::time::UNIX_EPOCH)
-                .unwrap()
-                .as_nanos()
-        ));
-        fs::create_dir_all(&base).unwrap();
-        base
+        assert_eq!(
+            deepseek_home(Some(""), &test_home()),
+            test_home().join(".dsh")
+        );
     }
 
     fn write_session(dir: &Path, project: &str, session: &str, body: &str) -> PathBuf {
@@ -642,7 +679,7 @@ mod tests {
 
     #[test]
     fn empty_home_yields_no_events_then_reads_after_sessions_appear() {
-        let dir = tmp_dir("presence");
+        let dir = scratch_dir("presence");
         assert!(read_deepseek(&dir).events.is_empty());
         write_session(
             &dir,
@@ -664,7 +701,7 @@ mod tests {
 
     #[test]
     fn cache_and_reasoning_cells_map_through() {
-        let dir = tmp_dir("cache");
+        let dir = scratch_dir("cache");
         write_session(
             &dir,
             "--proj--",
@@ -682,7 +719,7 @@ mod tests {
 
     #[test]
     fn subagent_flag_from_parent_session() {
-        let dir = tmp_dir("subagent");
+        let dir = scratch_dir("subagent");
         write_session(
             &dir,
             "--proj--",
@@ -698,7 +735,7 @@ mod tests {
 
     #[test]
     fn usage_chunks_are_ignored_only_messages_emit() {
-        let dir = tmp_dir("chunks");
+        let dir = scratch_dir("chunks");
         write_session(
             &dir,
             "--proj--",
@@ -715,7 +752,7 @@ mod tests {
 
     #[test]
     fn zero_usage_messages_are_dropped() {
-        let dir = tmp_dir("zero");
+        let dir = scratch_dir("zero");
         write_session(
             &dir,
             "--proj--",
@@ -729,7 +766,7 @@ mod tests {
 
     #[test]
     fn missing_required_cell_skips_the_record() {
-        let dir = tmp_dir("required");
+        let dir = scratch_dir("required");
         let file = write_session(
             &dir,
             "--proj--",
@@ -750,7 +787,7 @@ mod tests {
 
     #[test]
     fn malformed_zstd_produces_file_level_diagnostic() {
-        let dir = tmp_dir("zstd-bad");
+        let dir = scratch_dir("zstd-bad");
         let session_dir = dir.join("--proj--").join("s1");
         fs::create_dir_all(&session_dir).unwrap();
         let path = session_dir.join("session.jsonl.zstd");
@@ -780,7 +817,7 @@ mod tests {
             147, 58, 158, 53, 197, 188, 252, 252, 38, 136, 254, 18, 5, 0, 105, 90, 160, 243, 108,
             75, 139, 41, 213, 219, 106, 154, 210, 3, 176, 9, 36, 2,
         ];
-        let dir = tmp_dir("zstd-good");
+        let dir = scratch_dir("zstd-good");
         let session_dir = dir.join("--proj--").join("s1");
         fs::create_dir_all(&session_dir).unwrap();
         fs::write(session_dir.join("session.jsonl.zstd"), FRAME).unwrap();
@@ -789,6 +826,159 @@ mod tests {
         assert_eq!(events[0].session_id, "z");
         assert_eq!(events[0].tokens.input, 4);
         fs::remove_dir_all(&dir).ok();
+    }
+
+    #[test]
+    fn versioned_session_log_names_are_read() {
+        let dir = scratch_dir("v4");
+        let session_dir = dir.join("--proj--").join("session-1");
+        fs::create_dir_all(&session_dir).unwrap();
+        fs::write(
+            session_dir.join("session.v4.jsonl"),
+            concat!(
+                r#"{"type":"session","version":4,"id":"session-1","createdAt":1792348454740,"cwd":"/work/proj"}"#,
+                "\n",
+                r#"{"type":"assistant/message","seq":14,"time":1792348551216,"data":{"turn":1,"step":1,"message":{"role":"assistant","content":[],"source":{"kind":"model","provider":"llama","model":"qwen"}},"usage":{"inputTokens":5407,"outputTokens":68,"totalTokens":5478,"cacheReadTokens":3}}}"#,
+                "\n",
+            ),
+        )
+        .unwrap();
+        let result = read_deepseek(&dir);
+        assert!(result.warnings.is_empty(), "{:?}", result.warnings);
+        assert_eq!(result.events.len(), 1);
+        assert_eq!(result.events[0].session_id, "session-1");
+        assert_eq!(result.events[0].model, "qwen");
+        assert_eq!(result.events[0].tokens.input, 5407);
+        assert_eq!(result.events[0].tokens.cache_read, 3);
+        assert_eq!(result.events[0].workspace.as_deref(), Some("/work/proj"));
+        assert_eq!(session_log_generation("session.v4.jsonl.zstd"), Some(4));
+        assert_eq!(session_log_generation("session.v4.jsonl.bak"), None);
+        fs::remove_dir_all(&dir).ok();
+    }
+
+    #[test]
+    fn only_the_highest_generation_of_a_migrated_session_is_read() {
+        let dir = scratch_dir("generations");
+        let session_dir = dir.join("--proj--").join("session-1");
+        fs::create_dir_all(&session_dir).unwrap();
+        let header = r#"{"type":"session","id":"session-1","createdAt":1792348454740}"#;
+        let message = r#"{"type":"assistant/message","seq":14,"time":1792348551216,"data":{"message":{"source":{"model":"qwen"}},"usage":{"inputTokens":10,"outputTokens":1}}}"#;
+        for name in ["session.jsonl", "session.v2.jsonl", "session.v4.jsonl"] {
+            fs::write(session_dir.join(name), format!("{header}\n{message}\n")).unwrap();
+        }
+        let result = read_deepseek(&dir);
+        assert!(result.warnings.is_empty(), "{:?}", result.warnings);
+        assert_eq!(result.events.len(), 1);
+        assert!(result.events[0].message_id.contains("session.v4.jsonl"));
+        assert_eq!(result.events[0].tokens.input, 10);
+        fs::remove_dir_all(&dir).ok();
+    }
+
+    #[test]
+    fn an_unreadable_newest_generation_falls_back_to_the_newest_readable_one() {
+        let dir = scratch_dir("generation-fallback");
+        let session_dir = dir.join("--proj--").join("session-1");
+        fs::create_dir_all(&session_dir).unwrap();
+        let header = r#"{"type":"session","id":"session-1","createdAt":1792348454740}"#;
+        let message = r#"{"type":"assistant/message","seq":14,"time":1792348551216,"data":{"message":{"source":{"model":"qwen"}},"usage":{"inputTokens":10,"outputTokens":1}}}"#;
+        fs::write(
+            session_dir.join("session.jsonl"),
+            format!("{header}\n{message}\n"),
+        )
+        .unwrap();
+        let broken = session_dir.join("session.v4.jsonl.zstd");
+        fs::write(&broken, [0x28, 0xB5, 0x2F, 0xFD, 0x20, 0x40, 0x00]).unwrap();
+        let result = read_deepseek(&dir);
+        assert_eq!(result.events.len(), 1, "{:?}", result.events);
+        assert!(result.events[0].message_id.contains("session.jsonl:"));
+        assert_eq!(result.skipped, vec![broken.to_string_lossy().into_owned()]);
+        assert_eq!(
+            result.warnings,
+            vec![ReaderWarning {
+                message: format!(
+                    "skipping malformed deepseek file {}\n",
+                    broken.to_string_lossy()
+                ),
+            }]
+        );
+        fs::remove_dir_all(&dir).ok();
+    }
+
+    // Two frames written by the reference `zstd` CLI and concatenated, as the
+    // recorder appends one frame per flush: the header line, then one
+    // `assistant/message` with usage.
+    const APPENDED_FRAMES: &[u8] = &[
+        40, 181, 47, 253, 36, 93, 157, 2, 0, 162, 132, 17, 25, 112, 85, 117, 242, 1, 109, 33, 50,
+        22, 133, 164, 85, 21, 187, 23, 201, 160, 48, 213, 164, 9, 80, 17, 136, 3, 65, 224, 203,
+        107, 136, 152, 126, 19, 77, 118, 29, 86, 173, 177, 199, 22, 4, 162, 210, 186, 76, 26, 75,
+        133, 155, 93, 159, 132, 230, 174, 187, 154, 157, 235, 155, 231, 98, 228, 248, 117, 134,
+        143, 60, 32, 3, 0, 121, 42, 60, 159, 91, 180, 45, 77, 13, 37, 163, 127, 40, 181, 47, 253,
+        100, 20, 0, 197, 5, 0, 194, 204, 38, 32, 80, 105, 219, 6, 102, 98, 165, 149, 14, 235, 182,
+        200, 70, 148, 255, 107, 132, 24, 51, 214, 50, 111, 241, 31, 81, 120, 192, 201, 76, 69, 12,
+        12, 0, 239, 189, 3, 210, 37, 88, 4, 69, 149, 99, 130, 40, 109, 214, 199, 4, 209, 142, 29,
+        17, 1, 227, 200, 243, 90, 5, 43, 104, 199, 172, 148, 80, 118, 199, 247, 190, 86, 97, 241,
+        196, 235, 162, 74, 61, 223, 22, 165, 4, 214, 152, 227, 213, 34, 182, 60, 143, 86, 82, 40,
+        205, 49, 62, 30, 24, 228, 123, 109, 47, 166, 28, 175, 88, 123, 147, 204, 54, 31, 79, 126,
+        53, 215, 111, 242, 218, 138, 142, 136, 99, 56, 199, 145, 24, 7, 195, 0, 114, 242, 187, 164,
+        62, 26, 39, 191, 88, 62, 126, 19, 202, 188, 75, 64, 47, 109, 78, 204, 250, 252, 50, 11,
+        253, 38, 9, 0, 58, 201, 71, 106, 31, 55, 173, 249, 234, 214, 248, 76, 178, 105, 123, 195,
+        56, 80, 4, 90, 16, 175, 18, 5, 205, 172, 1, 82,
+    ];
+
+    fn read_zstd_log(tag: &str, bytes: &[u8]) -> (PathBuf, ReaderResult) {
+        let dir = scratch_dir(tag);
+        let session_dir = dir.join("--proj--").join("session-1");
+        fs::create_dir_all(&session_dir).unwrap();
+        fs::write(session_dir.join("session.v4.jsonl.zstd"), bytes).unwrap();
+        let result = read_deepseek(&dir);
+        fs::remove_dir_all(&dir).ok();
+        (session_dir.join("session.v4.jsonl.zstd"), result)
+    }
+
+    #[test]
+    fn every_zstd_frame_of_an_appended_log_is_read() {
+        let (_, result) = read_zstd_log("zstd-frames", APPENDED_FRAMES);
+        assert!(result.warnings.is_empty(), "{:?}", result.warnings);
+        assert_eq!(result.events.len(), 1);
+        assert_eq!(result.events[0].tokens.input, 5407);
+        assert_eq!(result.events[0].workspace.as_deref(), Some("/work/proj"));
+    }
+
+    #[test]
+    fn undecodable_tail_keeps_earlier_frames_and_warns() {
+        let mut bytes = APPENDED_FRAMES.to_vec();
+        bytes.extend_from_slice(&[0x28, 0xB5, 0x2F, 0xFD, 0x20, 0x40, 0x00]);
+        let (file, result) = read_zstd_log("zstd-tail", &bytes);
+        assert_eq!(result.events.len(), 1);
+        assert!(result.skipped.is_empty());
+        assert_eq!(
+            result.warnings,
+            vec![ReaderWarning {
+                message: format!(
+                    "skipping undecodable tail of deepseek file {}\n",
+                    file.to_string_lossy()
+                ),
+            }]
+        );
+    }
+
+    #[test]
+    fn a_frame_that_fails_mid_stream_contributes_no_bytes() {
+        // Minimum 1 KiB window, one raw block larger than the window (so the
+        // decoder hands its surplus out before the next block), then a block
+        // header whose body is missing.
+        let mut partial_line = br#"{"type":"assistant/message","text":""#.to_vec();
+        partial_line.resize(1100, b'x');
+        let mut broken = vec![0x28, 0xB5, 0x2F, 0xFD, 0x00, 0x00];
+        broken.extend_from_slice(&((partial_line.len() as u32) << 3).to_le_bytes()[..3]);
+        broken.extend_from_slice(&partial_line);
+        broken.extend_from_slice(&(200u32 << 3).to_le_bytes()[..3]);
+        assert_eq!(decode_zstd_frames(&broken), (Vec::new(), true));
+        let mut bytes = APPENDED_FRAMES.to_vec();
+        bytes.extend_from_slice(&broken);
+        let (out, truncated) = decode_zstd_frames(&bytes);
+        assert!(truncated);
+        assert_eq!(out, decode_zstd_frames(APPENDED_FRAMES).0);
     }
 
     fn build_sqlite_db(path: &Path, session_rows: &[&str], event_rows: &[&str]) {
@@ -861,7 +1051,7 @@ mod tests {
 
     #[test]
     fn sqlite_only_root_reads_events() {
-        let dir = tmp_dir("sqlite-only");
+        let dir = scratch_dir("sqlite-only");
         let db = dir.join("sessions.db");
         build_sqlite_db(
             &db,
@@ -907,7 +1097,7 @@ mod tests {
 
     #[test]
     fn both_backends_dedupe_by_session_and_seq() {
-        let dir = tmp_dir("both-backends");
+        let dir = scratch_dir("both-backends");
         write_session(
             &dir,
             "--proj--",
@@ -949,7 +1139,7 @@ mod tests {
 
     #[test]
     fn malformed_db_yields_structured_diagnostic() {
-        let dir = tmp_dir("sqlite-bad");
+        let dir = scratch_dir("sqlite-bad");
         let db = dir.join("sessions.db");
         fs::write(&db, b"this is not a valid sqlite file at all").unwrap();
         let result = read_deepseek(&dir);
@@ -970,7 +1160,7 @@ mod tests {
 
     #[test]
     fn malformed_event_row_uses_one_based_row_ordinal_label() {
-        let dir = tmp_dir("sqlite-bad-row");
+        let dir = scratch_dir("sqlite-bad-row");
         let db = dir.join("sessions.db");
         build_sqlite_db(
             &db,
@@ -1002,7 +1192,7 @@ mod tests {
 
     #[test]
     fn non_deepseek_sqlite_is_ignored() {
-        let dir = tmp_dir("sqlite-foreign");
+        let dir = scratch_dir("sqlite-foreign");
         let db = dir.join("other.db");
         let conn = rusqlite::Connection::open(&db).unwrap();
         conn.execute_batch("CREATE TABLE things (id TEXT); INSERT INTO things VALUES ('x');")
@@ -1020,7 +1210,7 @@ mod tests {
 
     #[test]
     fn zstd_blob_event_data_decompresses_and_emits() {
-        let dir = tmp_dir("sqlite-zstd-good");
+        let dir = scratch_dir("sqlite-zstd-good");
         let db = dir.join("sessions.db");
         build_sqlite_db(
             &db,
@@ -1050,7 +1240,7 @@ mod tests {
 
     #[test]
     fn malformed_zstd_blob_event_data_yields_row_diagnostic() {
-        let dir = tmp_dir("sqlite-zstd-bad");
+        let dir = scratch_dir("sqlite-zstd-bad");
         let db = dir.join("sessions.db");
         build_sqlite_db(
             &db,
@@ -1076,7 +1266,7 @@ mod tests {
 
     #[test]
     fn matching_application_id_with_wrong_schema_version_is_silently_ignored() {
-        let dir = tmp_dir("sqlite-wrong-version");
+        let dir = scratch_dir("sqlite-wrong-version");
         let db = dir.join("sessions.db");
         build_sqlite_db(
             &db,

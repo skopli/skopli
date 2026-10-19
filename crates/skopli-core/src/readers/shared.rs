@@ -6,16 +6,14 @@ use walkdir::WalkDir;
 
 use crate::types::UsageEvent;
 
-/// A warning surfaced while reading. Mirrors the text pushed through the TS
-/// `readerWarn` ambient sink; the caller decides how to relativize/present it.
+/// A warning surfaced while reading; the caller decides how to present it.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ReaderWarning {
     pub message: String,
 }
 
-/// Result of running a reader: the parsed events plus the paths/locations that
-/// were skipped, plus the warnings emitted (the TS side routes warnings through
-/// an ambient sink and separately collects `skipped`; we return both).
+/// Result of running a reader: the parsed events, the paths or locations that
+/// were skipped, and the warnings emitted.
 #[derive(Debug, Clone, Default)]
 pub struct ReaderResult {
     pub events: Vec<UsageEvent>,
@@ -24,13 +22,8 @@ pub struct ReaderResult {
 }
 
 /// Recursively list files under `dir` whose file name matches `predicate`,
-/// returned sorted. Mirrors `listFiles` in src/readers/shared.ts: a stack DFS
-/// that ignores unreadable directories and sorts the final paths.
-///
-/// The TS version sorts by the joined path string; we sort the same way,
-/// normalizing separators is NOT done here (TS keeps native separators and
-/// sorts them as-is). Paths are returned as strings using the platform
-/// separator, matching how `join` behaves in TS.
+/// sorted by the full path string with native separators. Unreadable
+/// directories are ignored.
 pub fn list_files(dir: &Path, predicate: impl Fn(&str) -> bool) -> Vec<String> {
     let mut out: Vec<String> = WalkDir::new(dir)
         .sort_by_file_name()
@@ -44,42 +37,60 @@ pub fn list_files(dir: &Path, predicate: impl Fn(&str) -> bool) -> Vec<String> {
     out
 }
 
-/// True when `path` is an existing directory. Mirrors `dirExists`.
+/// True when `path` is an existing directory.
 pub fn dir_exists(path: &Path) -> bool {
     fs::metadata(path).map(|m| m.is_dir()).unwrap_or(false)
 }
 
-/// True when `value` is a JSON object (not array, not null). Mirrors `isRecord`.
+/// True when `value` is a JSON object (not array, not null).
 pub fn is_record(value: &Value) -> bool {
     value.is_object()
 }
 
-/// Returns the finite number value, or `None`. Mirrors `finiteNumber`:
-/// only finite numbers pass; NaN/Infinity and non-numbers become `None`.
+/// The finite number value, or `None` for NaN, infinities and non-numbers.
 pub fn finite_number(value: &Value) -> Option<f64> {
     value.as_f64().filter(|n| n.is_finite())
 }
 
-/// Returns the string value, or `None`. Mirrors `asString`.
+/// The string value, or `None`.
 pub fn as_string(value: &Value) -> Option<String> {
     value.as_str().map(str::to_owned)
 }
 
-/// A finite number, else 0. Mirrors `asNumber` in src/readers/shared.ts.
+/// A JSON scalar as text: a string as is, a number or bool stringified, else
+/// empty. Used for row ids that a store may hold as any scalar type.
+pub fn scalar_text(value: Option<&Value>) -> String {
+    match value {
+        Some(Value::String(s)) => s.clone(),
+        Some(Value::Number(n)) => n.to_string(),
+        Some(Value::Bool(b)) => b.to_string(),
+        _ => String::new(),
+    }
+}
+
+/// A number as JSON text: integers without a fractional part, anything else in
+/// Rust's shortest round-trip form. Integral values at or beyond 2^63 saturate
+/// to `i64::MAX`; token counts and ledger ids stay far below that.
+pub fn number_text(n: f64) -> String {
+    if n.fract() == 0.0 && n.is_finite() {
+        format!("{}", n as i64)
+    } else {
+        format!("{n}")
+    }
+}
+
+/// A finite number, else 0.
 pub fn as_number(value: &Value) -> f64 {
     finite_number(value).unwrap_or(0.0)
 }
 
-/// Read + parse a JSON file. Mirrors `readJson`: returns `None` when the file is
-/// unreadable or the JSON is malformed (the TS version throws; callers wrap it
-/// in try/catch, so `None` is the Rust analogue of the thrown branch).
+/// Read and parse a JSON file; `None` when the file is unreadable or malformed.
 pub fn read_json(path: &str) -> Option<Value> {
     let content = fs::read_to_string(path).ok()?;
     serde_json::from_str::<Value>(&content).ok()
 }
 
-/// The epoch unit for [`epoch_to_iso_unit`]. Mirrors the `"ms" | "s" | "auto"`
-/// parameter of `epochToIso` in src/readers/shared.ts.
+/// The epoch unit for [`epoch_to_iso_unit`].
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum EpochUnit {
     /// The number is epoch milliseconds.
@@ -97,10 +108,9 @@ pub fn epoch_to_iso(value: &Value) -> Option<String> {
 }
 
 /// Parse a value as an epoch and format it as an ISO string, or `None`.
-/// Faithful port of `epochToIso` in src/readers/shared.ts:
-/// non-finite or `<= 0` -> `None`; the `unit` selects the seconds/millis scale
+/// Non-finite or `<= 0` -> `None`; the `unit` selects the seconds/millis scale
 /// (`Auto`: values `>= 1e12` are millis, smaller positive values are seconds).
-/// Out-of-range epochs (where V8's `toISOString` would throw) map to `None`.
+/// Epochs outside the ECMA-262 time value range map to `None`.
 pub fn epoch_to_iso_unit(value: &Value, unit: EpochUnit) -> Option<String> {
     let numeric = finite_number(value)?;
     if numeric <= 0.0 {
@@ -117,15 +127,13 @@ pub fn epoch_to_iso_unit(value: &Value, unit: EpochUnit) -> Option<String> {
             }
         }
     };
-    // `new Date(ms)` truncates toward zero to whole millis (Number -> time value).
     crate::time::to_iso_string(ms.trunc() as i64)
 }
 
 /// Resolve a timestamp that may arrive as an ISO/RFC-3339 string, a numeric
-/// string, or a number, to an ISO string. Faithful port of `parseTimestampToIso`
-/// in src/readers/shared.ts:
+/// string, or a number, to an ISO string:
 /// - a number -> `epoch_to_iso` (auto unit);
-/// - a numeric string (`^-?\d+(\.\d+)?$`) -> its `Number` value via auto epoch;
+/// - a numeric string (`^-?\d+(\.\d+)?$`) -> its numeric value via auto epoch;
 /// - any other string -> parsed as an ISO date-time (a bare datetime without a
 ///   timezone is read as UTC), else `None`;
 /// - a non-string, non-number, or empty/whitespace string -> `None`.
@@ -145,13 +153,11 @@ pub fn parse_timestamp_to_iso(value: &Value) -> Option<String> {
         }
         return epoch_to_iso(&Value::from(numeric));
     }
-    // `reparse_iso` treats a bare datetime (no offset) as UTC, matching the TS
-    // side's `${trimmed}Z` normalization before `Date.parse`.
     reparse_iso(trimmed)
 }
 
-/// True when `s` matches the TS regex `^-?\d+(\.\d+)?$` (an integer or decimal
-/// literal, optional leading minus).
+/// True when `s` is an integer or decimal literal with an optional leading
+/// minus (`^-?\d+(\.\d+)?$`).
 fn is_numeric_literal(s: &str) -> bool {
     let bytes = s.as_bytes();
     let mut i = 0;
@@ -178,25 +184,19 @@ fn is_numeric_literal(s: &str) -> bool {
     i == bytes.len()
 }
 
-/// Reproduce JS `Number.isNaN(Date.parse(s)) ? null : new Date(s).toISOString()`
-/// for the ISO-8601 Date Time String Format that ECMA-262 `Date.parse`
-/// recognizes (the only shapes skopli's readers pass through here). Returns
-/// `None` when the string is not a recognized date-time (JS `Date.parse` -> NaN).
-///
-/// Grammar handled (ECMA-262 Date Time String Format):
-///   `YYYY-MM-DD` (`T`HH:mm(:ss(.sss)?)?)? (Z | ±HH:mm)?
-/// A date-only string is UTC midnight; a date-time WITHOUT an offset is treated
-/// as UTC (matching V8 for the `YYYY-MM-DDTHH:mm...` form).
+/// Re-serialize an ECMA-262 Date Time String Format timestamp as
+/// `YYYY-MM-DDTHH:mm:ss.sssZ`, or `None` when [`date_parse_ms`] rejects it.
 pub fn reparse_iso(input: &str) -> Option<String> {
     let ms = date_parse_ms(input)?;
     crate::time::to_iso_string(ms)
 }
 
-/// Parse an ISO-8601 date-time string to epoch millis, matching ECMA-262
-/// `Date.parse` for the Date Time String Format. `None` == JS `NaN`.
+/// Parse an ECMA-262 Date Time String Format timestamp to epoch millis:
+/// `YYYY-MM-DD` (`T`HH:mm(:ss(.sss)?)?)? (Z | ±HH:mm)?
+/// A date-only string is UTC midnight and a date-time without an offset is UTC.
+/// Anything else is `None`.
 pub fn date_parse_ms(input: &str) -> Option<i64> {
     let s = input.as_bytes();
-    // Date: YYYY-MM-DD (year is exactly 4 digits in the simplified format).
     let digits = |from: usize, len: usize| -> Option<i64> {
         let slice = s.get(from..from + len)?;
         if !slice.iter().all(u8::is_ascii_digit) {
@@ -232,7 +232,6 @@ pub fn date_parse_ms(input: &str) -> Option<i64> {
             second = digits(17, 2)?;
             idx = 19;
             if s.len() > idx && s[idx] == b'.' {
-                // fractional seconds: at least one digit; JS reads up to millis.
                 let frac_start = idx + 1;
                 let mut frac_end = frac_start;
                 while frac_end < s.len() && s[frac_end].is_ascii_digit() {
@@ -241,14 +240,14 @@ pub fn date_parse_ms(input: &str) -> Option<i64> {
                 if frac_end == frac_start {
                     return None;
                 }
-                let mut frac = String::from("0.");
-                frac.push_str(std::str::from_utf8(&s[frac_start..frac_end]).ok()?);
-                let seconds_frac: f64 = frac.parse().ok()?;
-                milli = (seconds_frac * 1000.0).round() as i64;
+                milli = s[frac_start..frac_end]
+                    .iter()
+                    .chain(b"00")
+                    .take(3)
+                    .fold(0, |acc, b| acc * 10 + i64::from(b - b'0'));
                 idx = frac_end;
             }
         }
-        // Timezone suffix: Z or ±HH:mm (absent => UTC for this format).
         if s.len() > idx {
             match s[idx] {
                 b'Z' if s.len() == idx + 1 => {}
@@ -265,11 +264,7 @@ pub fn date_parse_ms(input: &str) -> Option<i64> {
             }
         }
     }
-    if !(0..=23).contains(&hour)
-        || !(0..=59).contains(&minute)
-        || !(0..=59).contains(&second)
-        || !(0..=999).contains(&milli)
-    {
+    if !(0..=23).contains(&hour) || !(0..=59).contains(&minute) || !(0..=59).contains(&second) {
         return None;
     }
     let days = days_from_civil(year, month as u32, day as u32);
@@ -290,8 +285,7 @@ fn days_from_civil(year: i64, month: u32, day: u32) -> i64 {
     era * 146_097 + doe - 719_468
 }
 
-/// The file's mtime as an ISO string, or the epoch when unavailable. Faithful
-/// port of `fileMtimeIso` in src/readers/shared.ts.
+/// The file's mtime as an ISO string, or the epoch when unavailable.
 pub fn file_mtime_iso(file: &str) -> String {
     let epoch_ms = fs::metadata(file)
         .and_then(|m| m.modified())
@@ -302,7 +296,7 @@ pub fn file_mtime_iso(file: &str) -> String {
     crate::time::to_iso_string(epoch_ms).unwrap_or_else(|| "1970-01-01T00:00:00.000Z".to_owned())
 }
 
-/// The last path component (file name), matching node `basename`.
+/// The last path component of a slash- or backslash-separated path.
 pub fn basename(path: &str) -> String {
     let normalized = path.replace('\\', "/");
     normalized
@@ -312,7 +306,7 @@ pub fn basename(path: &str) -> String {
         .to_owned()
 }
 
-/// The file name without its final extension, matching node `path.parse().name`.
+/// The file name without its final extension; a leading dot is not an extension.
 pub fn file_stem_name(path: &str) -> String {
     let name = basename(path);
     match name.rfind('.') {
@@ -321,30 +315,53 @@ pub fn file_stem_name(path: &str) -> String {
     }
 }
 
-/// The parent directory's name (node `basename(dirname(path))`).
-pub fn parent_dir_name(path: &str) -> String {
+/// The directory part of a slash- or backslash-separated path, without the
+/// trailing separator. Empty when the path has no directory part.
+pub fn dirname(path: &str) -> String {
     let normalized = path.replace('\\', "/");
-    let without_file = match normalized.rfind('/') {
-        Some(idx) => &normalized[..idx],
-        None => "",
-    };
-    without_file.rsplit('/').next().unwrap_or("").to_owned()
+    match normalized.rfind('/') {
+        Some(i) => normalized[..i].to_owned(),
+        None => String::new(),
+    }
+}
+
+/// A token cell the producer always writes. `None` (malformed) when absent,
+/// `null`, or not a non-negative finite number.
+pub fn required_cell(value: Option<&Value>) -> Option<u64> {
+    match value {
+        None | Some(Value::Null) => None,
+        Some(v) => finite_number(v).filter(|n| *n >= 0.0).map(|n| n as u64),
+    }
+}
+
+/// A token cell the producer may omit. Absent or `null` is `0`; a populated
+/// cell that is not a non-negative finite number is malformed (`None`).
+pub fn optional_cell(value: Option<&Value>) -> Option<u64> {
+    match value {
+        None | Some(Value::Null) => Some(0),
+        Some(v) => finite_number(v).filter(|n| *n >= 0.0).map(|n| n as u64),
+    }
+}
+
+/// The parent directory's name.
+pub fn parent_dir_name(path: &str) -> String {
+    basename(&dirname(path))
 }
 
 /// A dedup-key function for `scan_jsonl`: maps a parsed value to an optional
 /// key; `None` means "never dedup this value".
 pub type DedupKey<'a, T> = &'a dyn Fn(&T) -> Option<String>;
 
-/// Options for a JSONL scan across many files, mirroring `JsonlScanOptions`.
+/// Options for a JSONL scan across many files.
 pub struct ScanJsonl<'a, T> {
     pub files: &'a [String],
     pub parse: &'a mut dyn FnMut(&JsonlLine, &str) -> Option<T>,
     pub dedup_key: Option<DedupKey<'a, T>>,
 }
 
-/// Scan JSONL files, parsing each line and optionally deduping. Faithful port
-/// of `scanJsonl` in src/readers/shared.ts. Malformed lines / unreadable files
-/// are recorded through `read_jsonl_lines` into `skipped` + `warnings`.
+/// Scan JSONL files, parsing each line and optionally deduping. Malformed lines
+/// / unreadable files are recorded through `read_jsonl_lines` into `skipped` +
+/// `warnings`.
 pub fn scan_jsonl<T>(
     opts: ScanJsonl<'_, T>,
     skipped: &mut Vec<String>,
@@ -376,8 +393,7 @@ pub fn scan_jsonl<T>(
     values
 }
 
-/// Normalize a workspace path string. Faithful port of `normalizeWorkspace`
-/// in src/readers/shared.ts.
+/// Normalize a workspace path string.
 pub fn normalize_workspace(value: &Value) -> Option<String> {
     let raw = value.as_str()?;
     let forward = raw.trim().replace('\\', "/");
@@ -392,17 +408,14 @@ pub fn normalize_workspace(value: &Value) -> Option<String> {
     } else {
         ""
     };
-    // body = forward.slice(prefix.length).replace(/^\/+/, "").replace(/\/{2,}/g, "/")
     let after_prefix = &forward[prefix.len()..];
     let after_leading = after_prefix.trim_start_matches('/');
     let body = collapse_slashes(after_leading);
 
     let drive_only = is_drive_only(&body);
     let trimmed = if drive_only {
-        // body.replace(/\/$/, "")  -- strip a single trailing slash
         body.strip_suffix('/').unwrap_or(&body).to_owned()
     } else {
-        // body.replace(/\/+$/, "") -- strip all trailing slashes
         body.trim_end_matches('/').to_owned()
     };
     let path = if drive_only {
@@ -439,7 +452,7 @@ fn collapse_slashes(s: &str) -> String {
     out
 }
 
-/// Matches TS regex /^[a-zA-Z]:\/?$/ against `body`.
+/// True for a bare drive (`C:` or `C:/`).
 fn is_drive_only(body: &str) -> bool {
     let b = body.as_bytes();
     match b.len() {
@@ -449,7 +462,7 @@ fn is_drive_only(body: &str) -> bool {
     }
 }
 
-/// Matches TS regex /^[a-zA-Z]:/ against `body`.
+/// True when `body` starts with a drive letter and colon.
 fn is_drive_prefixed(body: &str) -> bool {
     let b = body.as_bytes();
     b.len() >= 2 && b[0].is_ascii_alphabetic() && b[1] == b':'
@@ -461,7 +474,7 @@ pub struct JsonlLine {
     pub value: Value,
 }
 
-/// Read a JSONL file into parsed lines. Faithful port of `readJsonlLines`:
+/// Read a JSONL file into parsed lines:
 /// - splits on "\n", trims each line, skips empty lines;
 /// - malformed JSON lines are warned + pushed to `skipped` as `file:index+1`;
 /// - an unreadable file warns + pushes the file path to `skipped`, returns None.
@@ -498,4 +511,45 @@ pub fn read_jsonl_lines(
         }
     }
     Some(out)
+}
+
+/// A fixed fake home for root-resolution tests.
+#[cfg(test)]
+pub(crate) fn test_home() -> std::path::PathBuf {
+    std::path::PathBuf::from("/home/u")
+}
+
+/// A fresh per-test scratch directory under the system temp dir.
+#[cfg(test)]
+pub(crate) fn scratch_dir(tag: &str) -> std::path::PathBuf {
+    let base = std::env::temp_dir().join(format!(
+        "skopli-{tag}-{}-{}",
+        std::process::id(),
+        std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_nanos()
+    ));
+    fs::create_dir_all(&base).unwrap();
+    base
+}
+
+#[cfg(test)]
+mod tests {
+    use super::reparse_iso;
+
+    #[test]
+    fn fractional_seconds_are_truncated_to_milliseconds() {
+        let cases = [
+            ("2026-10-18T18:30:27.9995Z", "2026-10-18T18:30:27.999Z"),
+            ("2026-10-18T18:30:27.1235Z", "2026-10-18T18:30:27.123Z"),
+            ("2026-10-18T18:30:27.123456789Z", "2026-10-18T18:30:27.123Z"),
+            ("2026-10-18T18:30:27.5Z", "2026-10-18T18:30:27.500Z"),
+            ("2026-10-18T18:30:27.12+01:00", "2026-10-18T17:30:27.120Z"),
+        ];
+        for (input, expected) in cases {
+            assert_eq!(reparse_iso(input).as_deref(), Some(expected), "{input}");
+        }
+        assert_eq!(reparse_iso("2026-10-18T18:30:27.Z"), None);
+    }
 }

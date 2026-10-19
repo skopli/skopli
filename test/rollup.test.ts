@@ -163,6 +163,26 @@ describe("rollup", () => {
     expect(rows[0]?.key).toBe("invalid-date");
   });
 
+  it("truncates fractional seconds to milliseconds like Date.parse", () => {
+    // .9995 must not round up to the next second, let alone to an invalid date.
+    const rows = rollup([event({ timestamp: "2026-08-01T23:59:59.9995Z" })], {
+      by: "day",
+      tz: "UTC",
+    });
+    expect(rows[0]?.key).toBe("2026-08-01");
+    const block = rollup(
+      [
+        event({ timestamp: "2026-08-01T10:29:59.9999Z" }),
+        event({ messageId: "m2", timestamp: "2026-08-01T11:00:00.000Z" }),
+      ],
+      { by: "block", tz: "UTC", blockMs: 1_800_000 },
+    );
+    expect(block.map((r) => [r.key, r.events])).toEqual([
+      ["2026-08-01T10:00:00.000Z", 1],
+      ["2026-08-01T11:00:00.000Z", 1],
+    ]);
+  });
+
   it("sums recorded cost only when an event carried one", () => {
     const withCost = rollup(
       [

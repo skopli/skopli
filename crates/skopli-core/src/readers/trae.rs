@@ -5,8 +5,8 @@ use serde_json::Value;
 
 use super::reader::{Reader, ReaderContext};
 use super::shared::{
-    ReaderResult, ReaderWarning, as_string, dir_exists, file_mtime_iso, file_stem_name,
-    finite_number, is_record, parse_timestamp_to_iso, read_json,
+    ReaderResult, ReaderWarning, as_string, dir_exists, file_mtime_iso, file_stem_name, is_record,
+    optional_cell, parse_timestamp_to_iso, read_json, required_cell,
 };
 use crate::types::{TokenCounts, UsageEvent};
 
@@ -41,29 +41,6 @@ const UNKNOWN_MODEL: &str = "trae-unknown";
 /// The trajectories root: `<cwd>/trajectories`.
 pub fn trae_trajectories_root(cwd: &Path) -> PathBuf {
     cwd.join("trajectories")
-}
-
-/// An optional token cell. The recorder writes `cache_creation_input_tokens`,
-/// `cache_read_input_tokens`, and `reasoning_tokens` as JSON `null` when the
-/// provider reports no usage, so absent or `null` is `0`; a populated cell
-/// that is not a non-negative finite number is invalid (`None`), which marks
-/// the whole interaction malformed. Mirrors the null-vs-populated-invalid
-/// split used by the cherrystudio reader.
-fn optional_cell(value: Option<&Value>) -> Option<u64> {
-    match value {
-        None | Some(Value::Null) => Some(0),
-        Some(v) => finite_number(v).filter(|n| *n >= 0.0).map(|n| n as u64),
-    }
-}
-
-/// A required token cell. The recorder always writes `input_tokens` and
-/// `output_tokens` as numbers (zero when the provider reports no usage), so an
-/// absent, `null`, or invalid cell marks the interaction malformed.
-fn required_cell(value: Option<&Value>) -> Option<u64> {
-    match value {
-        None | Some(Value::Null) => None,
-        Some(v) => finite_number(v).filter(|n| *n >= 0.0).map(|n| n as u64),
-    }
 }
 
 /// The outcome of parsing one interaction `response.usage` map.
@@ -290,20 +267,8 @@ pub fn read_trae(cwd: &Path) -> ReaderResult {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::readers::shared::scratch_dir;
     use std::fs;
-
-    fn tmp_dir(tag: &str) -> PathBuf {
-        let base = std::env::temp_dir().join(format!(
-            "skopli-trae-test-{tag}-{}-{}",
-            std::process::id(),
-            std::time::SystemTime::now()
-                .duration_since(std::time::UNIX_EPOCH)
-                .unwrap()
-                .as_nanos()
-        ));
-        fs::create_dir_all(&base).unwrap();
-        base
-    }
 
     fn write_trajectory(cwd: &Path, name: &str, body: &str) {
         let dir = cwd.join("trajectories");
@@ -325,7 +290,7 @@ mod tests {
 
     #[test]
     fn reads_llm_interactions_with_cache_splits_and_reasoning() {
-        let dir = tmp_dir("basic");
+        let dir = scratch_dir("basic");
         write_trajectory(
             &dir,
             "trajectory_20260801_100000.json",
@@ -350,7 +315,7 @@ mod tests {
 
     #[test]
     fn null_cache_fields_are_treated_as_zero() {
-        let dir = tmp_dir("nullcache");
+        let dir = scratch_dir("nullcache");
         write_trajectory(
             &dir,
             "trajectory_20260801_100000.json",
@@ -367,7 +332,7 @@ mod tests {
 
     #[test]
     fn zero_usage_interactions_are_dropped() {
-        let dir = tmp_dir("zero");
+        let dir = scratch_dir("zero");
         write_trajectory(
             &dir,
             "trajectory_20260801_100000.json",
@@ -379,14 +344,14 @@ mod tests {
 
     #[test]
     fn missing_trajectories_dir_yields_empty() {
-        let dir = tmp_dir("absent");
+        let dir = scratch_dir("absent");
         assert!(read_trae(&dir).events.is_empty());
         fs::remove_dir_all(&dir).ok();
     }
 
     #[test]
     fn malformed_interactions_are_skipped_with_diagnostics() {
-        let dir = tmp_dir("malformed-interaction");
+        let dir = scratch_dir("malformed-interaction");
         write_trajectory(
             &dir,
             "trajectory_20260801_100000.json",
@@ -409,7 +374,7 @@ mod tests {
 
     #[test]
     fn absent_or_null_required_cells_skip_the_interaction() {
-        let dir = tmp_dir("required-cells");
+        let dir = scratch_dir("required-cells");
         write_trajectory(
             &dir,
             "trajectory_20260803_100000.json",
@@ -445,7 +410,7 @@ mod tests {
 
     #[test]
     fn invalid_trajectory_files_get_file_level_diagnostics() {
-        let dir = tmp_dir("invalid-file");
+        let dir = scratch_dir("invalid-file");
         // non-array llm_interactions
         write_trajectory(
             &dir,
@@ -469,7 +434,7 @@ mod tests {
 
     #[test]
     fn discovery_excludes_nested_and_unmatched_json() {
-        let dir = tmp_dir("discovery");
+        let dir = scratch_dir("discovery");
         let trajectories = dir.join("trajectories");
         fs::create_dir_all(&trajectories).unwrap();
         // a valid, matched trajectory directly under trajectories/

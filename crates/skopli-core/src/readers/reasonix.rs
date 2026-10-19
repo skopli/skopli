@@ -5,8 +5,8 @@ use serde_json::Value;
 
 use super::reader::{Reader, ReaderContext};
 use super::shared::{
-    ReaderResult, ReaderWarning, as_string, date_parse_ms, dir_exists, file_stem_name,
-    finite_number, is_record, list_files, normalize_workspace, read_json,
+    ReaderResult, ReaderWarning, as_string, date_parse_ms, dir_exists, file_stem_name, is_record,
+    list_files, normalize_workspace, optional_cell, read_json, required_cell,
 };
 use crate::types::{TokenCounts, UsageEvent};
 
@@ -52,26 +52,6 @@ pub fn reasonix_home(override_dir: Option<&str>, appdata: Option<&str>, home: &P
         return PathBuf::from(v).join("reasonix");
     }
     home.join(".reasonix")
-}
-
-/// A required token cell (`promptTokens`/`completionTokens` are always written
-/// on a `status.cumulative`). The cell must be a non-negative finite number; an
-/// absent, `null`, or invalid cell marks the sidecar malformed.
-fn required_cell(value: Option<&Value>) -> Option<u64> {
-    match value {
-        None | Some(Value::Null) => None,
-        Some(v) => finite_number(v).filter(|n| *n >= 0.0).map(|n| n as u64),
-    }
-}
-
-/// An optional token cell (`cacheHitTokens`/`cacheMissTokens`/`reasoningTokens`).
-/// An absent or `null` cell is `0`; a populated cell that is not a non-negative
-/// finite number marks the sidecar malformed.
-fn optional_cell(value: Option<&Value>) -> Option<u64> {
-    match value {
-        None | Some(Value::Null) => Some(0),
-        Some(v) => finite_number(v).filter(|n| *n >= 0.0).map(|n| n as u64),
-    }
 }
 
 /// The outcome of parsing a `status.cumulative` usage map.
@@ -295,15 +275,15 @@ pub fn read_reasonix(home: &Path) -> ReaderResult {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::readers::shared::{scratch_dir, test_home};
     use std::fs;
-
-    fn home() -> PathBuf {
-        PathBuf::from("/home/u")
-    }
 
     #[test]
     fn default_home_resolves_dot_reasonix() {
-        assert_eq!(reasonix_home(None, None, &home()), home().join(".reasonix"));
+        assert_eq!(
+            reasonix_home(None, None, &test_home()),
+            test_home().join(".reasonix")
+        );
     }
 
     #[test]
@@ -312,7 +292,7 @@ mod tests {
             reasonix_home(
                 Some("/custom/rx"),
                 Some("C:\\Users\\u\\AppData\\Roaming"),
-                &home()
+                &test_home()
             ),
             PathBuf::from("/custom/rx")
         );
@@ -321,22 +301,9 @@ mod tests {
     #[test]
     fn appdata_selects_windows_home() {
         assert_eq!(
-            reasonix_home(None, Some("C:\\Users\\u\\AppData\\Roaming"), &home()),
+            reasonix_home(None, Some("C:\\Users\\u\\AppData\\Roaming"), &test_home()),
             PathBuf::from("C:\\Users\\u\\AppData\\Roaming").join("reasonix")
         );
-    }
-
-    fn tmp_dir(tag: &str) -> PathBuf {
-        let base = std::env::temp_dir().join(format!(
-            "skopli-reasonix-test-{tag}-{}-{}",
-            std::process::id(),
-            std::time::SystemTime::now()
-                .duration_since(std::time::UNIX_EPOCH)
-                .unwrap()
-                .as_nanos()
-        ));
-        fs::create_dir_all(&base).unwrap();
-        base
     }
 
     fn write_sidecar(dir: &Path, slug: &str, id: &str, body: &str) -> PathBuf {
@@ -349,7 +316,7 @@ mod tests {
 
     #[test]
     fn empty_home_yields_no_events_then_reads_after_sidecar_appears() {
-        let dir = tmp_dir("presence");
+        let dir = scratch_dir("presence");
         assert!(read_reasonix(&dir).events.is_empty());
         write_sidecar(
             &dir,
@@ -376,7 +343,7 @@ mod tests {
 
     #[test]
     fn absent_cache_split_yields_zero_input() {
-        let dir = tmp_dir("no-split");
+        let dir = scratch_dir("no-split");
         write_sidecar(
             &dir,
             "-p",
@@ -396,7 +363,7 @@ mod tests {
 
     #[test]
     fn estimated_sessions_are_included() {
-        let dir = tmp_dir("estimated");
+        let dir = scratch_dir("estimated");
         write_sidecar(
             &dir,
             "-p",
@@ -411,7 +378,7 @@ mod tests {
 
     #[test]
     fn reasoning_exceeding_completion_is_malformed() {
-        let dir = tmp_dir("reasoning-gt-completion");
+        let dir = scratch_dir("reasoning-gt-completion");
         let file = write_sidecar(
             &dir,
             "-p",
@@ -434,7 +401,7 @@ mod tests {
 
     #[test]
     fn latest_updated_at_wins_for_same_session_id() {
-        let dir = tmp_dir("dedup");
+        let dir = scratch_dir("dedup");
         write_sidecar(
             &dir,
             "-p",
@@ -458,7 +425,7 @@ mod tests {
         // `2026-08-03T09:00:00+02:00` (07:00:00Z) is chronologically EARLIER
         // than `2026-08-03T08:30:00Z`, yet its raw string sorts LATER as text.
         // The winner must be the later instant (the `Z` snapshot).
-        let dir = tmp_dir("dedup-offset");
+        let dir = scratch_dir("dedup-offset");
         write_sidecar(
             &dir,
             "-p",
@@ -486,7 +453,7 @@ mod tests {
 
     #[test]
     fn missing_or_malformed_updated_at_is_malformed() {
-        let dir = tmp_dir("bad-updated-at");
+        let dir = scratch_dir("bad-updated-at");
         let missing = write_sidecar(
             &dir,
             "-p",
@@ -520,7 +487,7 @@ mod tests {
 
     #[test]
     fn sidecar_without_status_yields_nothing() {
-        let dir = tmp_dir("no-status");
+        let dir = scratch_dir("no-status");
         write_sidecar(
             &dir,
             "-p",
@@ -535,7 +502,7 @@ mod tests {
 
     #[test]
     fn zero_token_total_is_dropped() {
-        let dir = tmp_dir("zero");
+        let dir = scratch_dir("zero");
         write_sidecar(
             &dir,
             "-p",
@@ -548,7 +515,7 @@ mod tests {
 
     #[test]
     fn missing_required_cell_is_malformed() {
-        let dir = tmp_dir("required");
+        let dir = scratch_dir("required");
         let file = write_sidecar(
             &dir,
             "-p",
@@ -568,7 +535,7 @@ mod tests {
 
     #[test]
     fn transcript_jsonl_is_not_read() {
-        let dir = tmp_dir("transcript");
+        let dir = scratch_dir("transcript");
         let sessions = dir.join("projects").join("-p").join("sessions");
         fs::create_dir_all(&sessions).unwrap();
         fs::write(

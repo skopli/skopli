@@ -434,6 +434,21 @@ describe("detectHarnesses deepseek roots", () => {
     }
   });
 
+  it("detects a versioned compressed event log", () => {
+    const home = makeHome();
+    const dsh = mkdtempSync(join(tmpdir(), "skopli-dsh-v4-"));
+    try {
+      const sessionDir = join(dsh, "sessions", "--proj--", "session-1");
+      mkdirSync(sessionDir, { recursive: true });
+      writeFileSync(join(sessionDir, "session.v4.jsonl.zstd"), "");
+      const resolver = createPathResolver({ home, env: { DSH_HOME: dsh } });
+      expect(detectHarnesses(resolver).supported).toContain("deepseek");
+    } finally {
+      rmSync(home, { recursive: true, force: true });
+      rmSync(dsh, { recursive: true, force: true });
+    }
+  });
+
   it("still detects the JSONL event-log backend", () => {
     const home = makeHome();
     const dsh = mkdtempSync(join(tmpdir(), "skopli-dsh-jsonl-"));
@@ -456,6 +471,52 @@ describe("detectHarnesses deepseek roots", () => {
 // $XDG_DATA_HOME or ~/.local/share). Detection is the observable surface for the
 // private path resolver, so each test creates one resolved store and asserts
 // kiro is detected there and nowhere by default.
+
+describe("detectHarnesses copilot roots", () => {
+  it("detects a session-state events log without an OTel export", () => {
+    const home = makeHome();
+    try {
+      const resolver = createPathResolver({ home, env: {} });
+      expect(detectHarnesses(resolver).supported).not.toContain("copilot");
+      const sessionDir = join(home, ".copilot", "session-state", "sess-1");
+      mkdirSync(sessionDir, { recursive: true });
+      writeFileSync(join(sessionDir, "events.jsonl"), "");
+      expect(detectHarnesses(resolver).supported).toContain("copilot");
+    } finally {
+      rmSync(home, { recursive: true, force: true });
+    }
+  });
+});
+
+describe("detectHarnesses kimchi roots", () => {
+  it("does not claim pi's session root", () => {
+    const home = makeHome();
+    try {
+      const piSessions = join(home, ".pi", "agent", "sessions", "--proj--");
+      mkdirSync(piSessions, { recursive: true });
+      writeFileSync(join(piSessions, "s.jsonl"), "");
+      const resolver = createPathResolver({ home, env: {} });
+      const supported = detectHarnesses(resolver).supported;
+      expect(supported).toContain("pi");
+      expect(supported).not.toContain("kimchi");
+    } finally {
+      rmSync(home, { recursive: true, force: true });
+    }
+  });
+
+  it("detects the harness session root under the kimchi config dir", () => {
+    const home = makeHome();
+    try {
+      const sessions = join(home, ".config", "kimchi", "harness", "sessions", "--proj--");
+      mkdirSync(sessions, { recursive: true });
+      writeFileSync(join(sessions, "s.jsonl"), "");
+      const resolver = createPathResolver({ home, env: {} });
+      expect(detectHarnesses(resolver).supported).toContain("kimchi");
+    } finally {
+      rmSync(home, { recursive: true, force: true });
+    }
+  });
+});
 
 describe("detectHarnesses kiro roots", () => {
   it("is absent when no store exists", () => {

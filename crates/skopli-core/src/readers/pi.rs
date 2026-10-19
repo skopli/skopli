@@ -82,9 +82,7 @@ impl Reader for GajaeReader {
 }
 
 /// The Kimchi Coding reader wired into the harness registry. Kimchi is built on
-/// `pi-coding-agent`, so it shares the pi JSONL logic; roots are the config-dir
-/// candidates (`~/.config/kimchi/agent/sessions`, env `KIMCHI_CONFIG_PATH`) and
-/// the pi agent default (`~/.pi/agent/sessions`).
+/// `pi-coding-agent`, so it shares the pi JSONL logic under its own agent dir.
 pub struct KimchiReader;
 
 impl Reader for KimchiReader {
@@ -93,12 +91,12 @@ impl Reader for KimchiReader {
     }
 
     fn read(&self, ctx: &ReaderContext) -> ReaderResult {
-        let roots = kimchi_sessions_roots(ctx.env("KIMCHI_CONFIG_PATH"), ctx.home());
+        let roots = kimchi_sessions_roots(ctx.env("KIMCHI_CODING_AGENT_DIR"), ctx.home());
         read_pi_roots(&roots, "kimchi")
     }
 }
 
-/// Resolve the pi sessions root. Faithful port of `piSessionsRoot`.
+/// Resolve the pi sessions root.
 pub fn pi_sessions_root(override_dir: Option<&str>, home: &Path) -> PathBuf {
     if let Some(v) = override_dir
         && !v.is_empty()
@@ -108,7 +106,7 @@ pub fn pi_sessions_root(override_dir: Option<&str>, home: &Path) -> PathBuf {
     home.join(".pi").join("agent").join("sessions")
 }
 
-/// Resolve the omp sessions root. Faithful port of `ompSessionsRoot`.
+/// Resolve the omp sessions root.
 pub fn omp_sessions_root(home: &Path) -> PathBuf {
     home.join(".omp").join("agent").join("sessions")
 }
@@ -159,23 +157,17 @@ pub fn gajae_sessions_roots(
     roots
 }
 
-/// Resolve the Kimchi Coding sessions roots. A config-dir override
-/// (`KIMCHI_CONFIG_PATH`) yields `<config>/agent/sessions`; otherwise the
-/// documented config-dir default (`~/.config/kimchi/agent/sessions`) and the pi
-/// agent default (`~/.pi/agent/sessions`).
-pub fn kimchi_sessions_roots(config_path: Option<&str>, home: &Path) -> Vec<PathBuf> {
-    if let Some(v) = config_path
-        && !v.is_empty()
-    {
-        return vec![PathBuf::from(v).join("agent").join("sessions")];
-    }
-    vec![
-        home.join(".config")
-            .join("kimchi")
-            .join("agent")
-            .join("sessions"),
-        home.join(".pi").join("agent").join("sessions"),
-    ]
+/// Resolve the Kimchi Coding sessions roots: `<agent dir>/sessions`, where the
+/// agent dir is `KIMCHI_CODING_AGENT_DIR` or `~/.config/kimchi/harness`. The
+/// variable is the value kimchi exports to its subprocesses; honouring it is a
+/// skopli override, not a kimchi relocation knob. `~/.pi/agent/sessions`
+/// belongs to pi and is never read here.
+pub fn kimchi_sessions_roots(agent_dir: Option<&str>, home: &Path) -> Vec<PathBuf> {
+    let agent_dir = match agent_dir.filter(|v| !v.is_empty()) {
+        Some(v) => PathBuf::from(v),
+        None => home.join(".config/kimchi/harness"),
+    };
+    vec![agent_dir.join("sessions")]
 }
 
 /// Read pi-family usage events from several sessions roots into one result,
@@ -202,7 +194,7 @@ pub fn read_pi_roots(roots: &[PathBuf], harness: &str) -> ReaderResult {
     }
 }
 
-/// Read pi/omp usage events from a sessions root. Faithful port of `readPiRoot`.
+/// Read pi/omp usage events from a sessions root.
 pub fn read_pi_root(root: &Path, harness: &str) -> ReaderResult {
     let mut events: Vec<UsageEvent> = Vec::new();
     let mut skipped: Vec<String> = Vec::new();
@@ -224,7 +216,7 @@ pub fn read_pi_root(root: &Path, harness: &str) -> ReaderResult {
 }
 
 /// Read pi-family usage events from `root` into the shared accumulators,
-/// deduplicating by message id via `seen`. Faithful port of `readPiRoot`'s body.
+/// deduplicating by message id via `seen`.
 fn read_pi_root_into(
     root: &Path,
     harness: &str,
@@ -341,21 +333,32 @@ fn read_pi_root_into(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::readers::shared::{scratch_dir, test_home};
     use std::fs;
 
-    fn home() -> PathBuf {
-        PathBuf::from("/home/u")
+    #[test]
+    fn kimchi_default_root_is_its_own_harness_dir_not_pi() {
+        let roots = kimchi_sessions_roots(None, &test_home());
+        assert_eq!(
+            roots,
+            vec![test_home().join(".config/kimchi/harness/sessions")]
+        );
+        assert!(!roots.contains(&pi_sessions_root(None, &test_home())));
+        assert_eq!(
+            kimchi_sessions_roots(Some("/custom/agent"), &test_home()),
+            vec![PathBuf::from("/custom/agent/sessions")]
+        );
     }
 
     #[test]
     fn gajae_coding_agent_dir_appends_sessions() {
-        let roots = gajae_sessions_roots(Some("/custom/agent"), None, None, &home());
+        let roots = gajae_sessions_roots(Some("/custom/agent"), None, None, &test_home());
         assert_eq!(roots, vec![PathBuf::from("/custom/agent").join("sessions")]);
     }
 
     #[test]
     fn gajae_config_dir_appends_agent_sessions() {
-        let roots = gajae_sessions_roots(None, Some("/custom/gjc"), None, &home());
+        let roots = gajae_sessions_roots(None, Some("/custom/gjc"), None, &test_home());
         assert_eq!(
             roots,
             vec![PathBuf::from("/custom/gjc").join("agent").join("sessions")]
@@ -364,17 +367,17 @@ mod tests {
 
     #[test]
     fn gajae_coding_agent_dir_wins_over_config_dir() {
-        let roots = gajae_sessions_roots(Some("/agent"), Some("/gjc"), None, &home());
+        let roots = gajae_sessions_roots(Some("/agent"), Some("/gjc"), None, &test_home());
         assert_eq!(roots, vec![PathBuf::from("/agent").join("sessions")]);
     }
 
     #[test]
     fn gajae_default_home_and_xdg_state() {
-        let roots = gajae_sessions_roots(None, None, Some("/xdg/state"), &home());
+        let roots = gajae_sessions_roots(None, None, Some("/xdg/state"), &test_home());
         assert_eq!(
             roots,
             vec![
-                home().join(".gjc").join("agent").join("sessions"),
+                test_home().join(".gjc").join("agent").join("sessions"),
                 PathBuf::from("/xdg/state")
                     .join("gjc")
                     .join("agent")
@@ -385,33 +388,20 @@ mod tests {
 
     #[test]
     fn gajae_default_home_only_without_xdg() {
-        let roots = gajae_sessions_roots(None, None, None, &home());
+        let roots = gajae_sessions_roots(None, None, None, &test_home());
         assert_eq!(
             roots,
-            vec![home().join(".gjc").join("agent").join("sessions")]
+            vec![test_home().join(".gjc").join("agent").join("sessions")]
         );
     }
 
     #[test]
     fn gajae_empty_overrides_fall_through_to_default() {
-        let roots = gajae_sessions_roots(Some(""), Some(""), Some(""), &home());
+        let roots = gajae_sessions_roots(Some(""), Some(""), Some(""), &test_home());
         assert_eq!(
             roots,
-            vec![home().join(".gjc").join("agent").join("sessions")]
+            vec![test_home().join(".gjc").join("agent").join("sessions")]
         );
-    }
-
-    fn tmp_dir(tag: &str) -> PathBuf {
-        let base = std::env::temp_dir().join(format!(
-            "skopli-pi-test-{tag}-{}-{}",
-            std::process::id(),
-            std::time::SystemTime::now()
-                .duration_since(std::time::UNIX_EPOCH)
-                .unwrap()
-                .as_nanos()
-        ));
-        fs::create_dir_all(&base).unwrap();
-        base
     }
 
     fn write_session(dir: &Path, file: &str, session_id: &str, message_id: &str) {
@@ -428,7 +418,7 @@ mod tests {
 
     #[test]
     fn dedup_mirrored_session_across_roots_and_keeps_distinct_session() {
-        let base = tmp_dir("dedup");
+        let base = scratch_dir("dedup");
         let home_root = base.join("home");
         let xdg_root = base.join("xdg");
         let home_sessions = home_root.join(".gjc").join("agent").join("sessions");

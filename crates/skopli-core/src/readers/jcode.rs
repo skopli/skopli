@@ -244,46 +244,33 @@ fn journal_path(snapshot: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::readers::shared::{scratch_dir, test_home};
     use std::fs;
-
-    fn home() -> PathBuf {
-        PathBuf::from("/home/u")
-    }
 
     #[test]
     fn default_home_resolves_dot_jcode() {
-        assert_eq!(jcode_home(None, &home()), home().join(".jcode"));
+        assert_eq!(jcode_home(None, &test_home()), test_home().join(".jcode"));
     }
 
     #[test]
     fn jcode_home_override_wins() {
         assert_eq!(
-            jcode_home(Some("/custom/jcode"), &home()),
+            jcode_home(Some("/custom/jcode"), &test_home()),
             PathBuf::from("/custom/jcode")
         );
     }
 
     #[test]
     fn empty_override_falls_through_to_default() {
-        assert_eq!(jcode_home(Some(""), &home()), home().join(".jcode"));
-    }
-
-    fn tmp_dir(tag: &str) -> PathBuf {
-        let base = std::env::temp_dir().join(format!(
-            "skopli-jcode-test-{tag}-{}-{}",
-            std::process::id(),
-            std::time::SystemTime::now()
-                .duration_since(std::time::UNIX_EPOCH)
-                .unwrap()
-                .as_nanos()
-        ));
-        fs::create_dir_all(&base).unwrap();
-        base
+        assert_eq!(
+            jcode_home(Some(""), &test_home()),
+            test_home().join(".jcode")
+        );
     }
 
     #[test]
     fn empty_home_yields_no_events_then_reads_after_sessions_appear() {
-        let dir = tmp_dir("presence");
+        let dir = scratch_dir("presence");
         let home = dir.join(".jcode");
         // Absence: the sessions dir does not exist yet.
         assert!(read_jcode(&home).events.is_empty());
@@ -303,7 +290,7 @@ mod tests {
 
     #[test]
     fn journal_supersedes_snapshot_aggregates() {
-        let dir = tmp_dir("journal");
+        let dir = scratch_dir("journal");
         let sessions = dir.join("sessions");
         fs::create_dir_all(&sessions).unwrap();
         fs::write(
@@ -326,7 +313,7 @@ mod tests {
 
     #[test]
     fn sidecars_are_ignored() {
-        let dir = tmp_dir("sidecars");
+        let dir = scratch_dir("sidecars");
         let sessions = dir.join("sessions");
         fs::create_dir_all(&sessions).unwrap();
         fs::write(
