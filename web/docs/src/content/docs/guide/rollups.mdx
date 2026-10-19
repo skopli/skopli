@@ -139,7 +139,9 @@ Events without one fall under the `(unknown)` sentinel rather than disappearing.
 **block** groups into fixed billing windows.
 `blockMs` sets the width.
 A missing or non-positive value uses the default of five hours (18,000,000 ms).
-Block starts are floored to the hour in `tz`.
+A block opens at the first event's instant floored in `tz`, and holds every event before `start + blockMs`; the next event opens a new block.
+The floor is to the hour for a width of an hour or more, and to the width itself, measured from the start of the local hour, for a shorter width.
+Two blocks therefore never share a key.
 
 ## Counting
 

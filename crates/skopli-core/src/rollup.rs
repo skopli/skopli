@@ -6,7 +6,10 @@
 //! bundled tzdb, so every platform agrees; an unknown zone falls back to UTC
 //! and an unparseable timestamp lands in the `invalid-date` row. Block rollups
 //! are session windows: events sorted by instant, a block opening at the first
-//! event's hour floor in the zone and spanning the width.
+//! event's instant floored to the width grain in the zone and spanning the
+//! width. The grain is the width itself below one hour and the hour otherwise,
+//! so a block never starts mid-hour unless the width is shorter than an hour,
+//! and two blocks never share a key.
 
 use jiff::tz::TimeZone;
 use serde::Serialize;
@@ -49,7 +52,7 @@ pub const DEFAULT_BLOCK_MS: i64 = 18_000_000;
 #[derive(Debug, Clone)]
 pub struct RollupOptions {
     pub by: RollupBy,
-    /// IANA zone for day keys and block hour floors. `None` is the system zone,
+    /// IANA zone for day keys and block starts. `None` is the system zone,
     /// an unknown name falls back to UTC.
     pub tz: Option<String>,
     /// Billing-block width in milliseconds; `None` or a non-positive value uses
@@ -188,10 +191,12 @@ fn within_hour(ms: i64, tz: Option<&str>) -> i64 {
     local.unwrap_or_else(|| ms.rem_euclid(HOUR_MS))
 }
 
-/// The start of the block an event at `ms` opens: the instant floored to its
-/// hour, `within_hour` milliseconds earlier.
-pub fn block_start(ms: i64, within_hour: i64) -> i64 {
-    ms - within_hour
+/// The start of the block an event at `ms` opens: the instant floored to the
+/// width grain, measured from the start of its wall-clock hour (`within_hour`
+/// milliseconds earlier). The grain is `width` below one hour and the hour
+/// otherwise, so consecutive blocks always have distinct, ascending starts.
+pub fn block_start(ms: i64, within_hour: i64, width: i64) -> i64 {
+    ms - within_hour % width.min(HOUR_MS)
 }
 
 /// The first instant past a block: `start + width`, saturating so an extreme
@@ -221,7 +226,7 @@ fn block_rollup(events: &[UsageEvent], options: &RollupOptions) -> Vec<Rollup> {
                 (out.last().is_none_or(|r| r.key != INVALID_DATE)).then(|| INVALID_DATE.to_owned())
             }
             Some(ms) if end.is_none_or(|end| ms >= end) => {
-                let start = block_start(ms, within_hour(ms, tz));
+                let start = block_start(ms, within_hour(ms, tz), width);
                 end = Some(block_end(start, width));
                 Some(to_iso_string(start).unwrap_or_else(|| INVALID_DATE.to_owned()))
             }
@@ -526,6 +531,24 @@ mod tests {
         assert_eq!(
             keys(&out),
             ["2026-01-01T09:00:00.000Z", "2026-01-01T10:00:00.000Z"]
+        );
+    }
+
+    #[test]
+    fn block_sub_hour_width_gives_each_block_its_own_key() {
+        let events = [
+            event("m", "2026-03-01T22:10:00.000Z"),
+            event("m", "2026-03-01T22:40:00.000Z"),
+        ];
+        let half_hour = block_rollup_utc(&events, Some(30 * 60_000));
+        assert_eq!(
+            keys(&half_hour),
+            ["2026-03-01T22:00:00.000Z", "2026-03-01T22:30:00.000Z"]
+        );
+        let forty_minutes = block_rollup_utc(&events, Some(40 * 60_000));
+        assert_eq!(
+            keys(&forty_minutes),
+            ["2026-03-01T22:00:00.000Z", "2026-03-01T22:40:00.000Z"]
         );
     }
 

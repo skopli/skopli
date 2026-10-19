@@ -7,7 +7,7 @@ export const DEFAULT_BLOCK_MS = 18_000_000;
 
 export type RollupOptions = {
   by: RollupBy;
-  // IANA timezone for day bucketing and block-start hour flooring; defaults to
+  // IANA timezone for day bucketing and block-start flooring; defaults to
   // the system timezone
   tz?: string;
   // billing-block width in milliseconds (by === "block" only); a missing or
@@ -218,10 +218,12 @@ function withinHour(ms: number, tz: string | undefined): number {
   }
 }
 
-// The start of the block an event at ms opens: the instant floored to its
-// hour. Mirrors block_start in rollup.rs.
-function blockStart(ms: number, withinHourMs: number): number {
-  return ms - withinHourMs;
+// The start of the block an event at ms opens: the instant floored to the width
+// grain, measured from the start of its wall-clock hour. The grain is the width
+// below one hour and the hour otherwise, so consecutive blocks always have
+// distinct, ascending starts. Mirrors block_start in rollup.rs.
+function blockStart(ms: number, withinHourMs: number, width: number): number {
+  return ms - (withinHourMs % Math.min(width, HOUR_MS));
 }
 
 // The first instant past a block. Mirrors block_end in rollup.rs.
@@ -254,7 +256,7 @@ function blockRollup(events: UsageEvent[], options: RollupOptions): Rollup[] {
     if (ms === undefined) {
       if (current?.key !== "invalid-date") current = emptyRollup("invalid-date");
     } else if (current === undefined || end === undefined || ms >= end) {
-      const start = blockStart(ms, withinHour(ms, options.tz));
+      const start = blockStart(ms, withinHour(ms, options.tz), width);
       end = blockEnd(start, width);
       current = emptyRollup(new Date(start).toISOString());
     }
