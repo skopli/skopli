@@ -43,14 +43,16 @@ type ReadUsageOptions struct {
 	// Until is an exclusive upper bound (a YYYY-MM-DD date or an ISO timestamp).
 	Until string `json:"until,omitempty"`
 	// TZ is the IANA timezone for date-only bound resolution and day bucketing
-	// (empty defaults to UTC, the hermetic default).
+	// (empty is the system timezone).
 	TZ string `json:"tz,omitempty"`
 	// Subagents set to "exclude" drops subagent events.
 	Subagents string `json:"subagents,omitempty"`
 }
 
-// RollupOptions selects the rollup dimension and (for day/block) the timezone.
-// BlockMs sets the billing-block width for ByBlock (0 uses DefaultBlockMs).
+// RollupOptions selects the rollup dimension, the IANA timezone for day keys
+// and block starts (empty is the system timezone), and the billing-block width
+// for ByBlock (0 uses DefaultBlockMs). A block start floors to the local hour
+// for widths of an hour or more and to the width itself below an hour.
 type RollupOptions struct {
 	By      RollupBy `json:"by"`
 	TZ      string   `json:"tz,omitempty"`

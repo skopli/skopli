@@ -1,10 +1,5 @@
 import Foundation
 
-// Option value types, encoded to the JSON option shapes the C ABI consumes.
-// `home`/`env` are the {home, env} path-resolution seam, travelling as plain
-// data in the options JSON. Mirrors the Go SDK's Options / ReadUsageOptions /
-// RollupOptions split (sdks/go/skopli/skopli.go).
-
 /// The `{home, env}` path-resolution seam shared by `detectHarnesses` and
 /// `readUsage`. All fields optional; the default means "process defaults". When
 /// overriding, `env` must be the FULL environment (the native side does not read
@@ -31,8 +26,8 @@ public struct ReadUsageOptions: Codable, Sendable, Equatable {
     public var since: String?
     /// Exclusive upper bound (a `YYYY-MM-DD` date or an ISO timestamp).
     public var until: String?
-    /// IANA timezone for date-only bound resolution and day bucketing (nil
-    /// defaults to UTC, the hermetic default).
+    /// IANA timezone for date-only bound resolution and day bucketing (nil is
+    /// the system timezone).
     public var tz: String?
     /// Set to "exclude" to drop subagent events.
     public var subagents: String?
@@ -56,9 +51,10 @@ public struct ReadUsageOptions: Codable, Sendable, Equatable {
     }
 }
 
-/// Selects the rollup dimension, the timezone (for `day`/`block` hour flooring),
-/// and the billing-block width (for `block`). Matches the capi
-/// `{by, tz?, blockMs?}` rollup/price-events options.
+/// Selects the rollup dimension, the timezone for `day` keys and `block` starts
+/// (nil is the system timezone), and the billing-block width for `block`. A block
+/// start floors to the local hour for widths of an hour or more and to the width
+/// itself below an hour. Matches the capi `{by, tz?, blockMs?}` options.
 public struct RollupOptions: Codable, Sendable, Equatable {
     /// The default billing-block width (five hours) for `.block`.
     public static let defaultBlockMs: Int64 = 18_000_000
