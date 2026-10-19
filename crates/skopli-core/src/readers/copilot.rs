@@ -293,12 +293,14 @@ pub fn read_copilot_otel(root: &Path) -> ReaderResult {
     skipped.extend(inner_skipped);
     warnings.extend(inner_warnings);
 
-    // Source-priority selection + same-source max merge.
+    // Source-priority selection + same-source max merge. Only a candidate that
+    // names its model can stand in for the others in its trace.
     let suppressed: Vec<bool> = values
         .iter()
         .map(|candidate| {
             values.iter().any(|other| {
                 other.source < candidate.source
+                    && other.model.is_some()
                     && (other.trace_id == candidate.trace_id
                         || (candidate.response_id.is_some()
                             && other.response_id == candidate.response_id))
@@ -323,6 +325,7 @@ pub fn read_copilot_otel(root: &Path) -> ReaderResult {
                     selected[idx] = candidate;
                 } else if candidate.source == selected[idx].source {
                     let prior = &mut selected[idx];
+                    prior.model = prior.model.take().or(candidate.model);
                     prior.inclusive_input = prior.inclusive_input.max(candidate.inclusive_input);
                     prior.event.tokens.output =
                         prior.event.tokens.output.max(candidate.event.tokens.output);
@@ -602,6 +605,30 @@ mod tests {
         assert!(result.skipped.is_empty(), "{:?}", result.skipped);
         assert_eq!(result.events.len(), 1);
         assert_eq!(result.events[0].message_id, "t1:s1");
+        assert_eq!(result.events[0].model, "qwen");
+    }
+
+    #[test]
+    fn model_less_chat_span_does_not_hide_the_log_record_that_names_the_model() {
+        let home = scratch_dir("copilot-otel-model-less-chat");
+        let chat = OTEL_SPAN.replace(r#""gen_ai.request.model":"qwen","#, "");
+        let log = r#"{"traceId":"t1","spanId":"s9","timestamp":"2026-10-18T18:30:01.000Z","body":"GenAI inference: chat","attributes":{"event.name":"gen_ai.client.inference.operation.details","gen_ai.conversation.id":"sess-1","gen_ai.response.model":"qwen","gen_ai.usage.input_tokens":11473,"gen_ai.usage.output_tokens":19}}"#;
+        write(&home, ".copilot/otel", &format!("{chat}\n{log}\n"));
+        let result = read(&home);
+        assert_eq!(result.events.len(), 1, "{:?}", result.events);
+        assert_eq!(result.events[0].message_id, "t1:s9");
+        assert_eq!(result.events[0].model, "qwen");
+        assert_eq!(result.skipped.len(), 1, "{:?}", result.skipped);
+    }
+
+    #[test]
+    fn same_span_exported_twice_takes_the_model_from_either_copy() {
+        let home = scratch_dir("copilot-otel-model-merge");
+        let first = OTEL_SPAN.replace(r#""gen_ai.request.model":"qwen","#, "");
+        write(&home, ".copilot/otel", &format!("{first}\n{OTEL_SPAN}\n"));
+        let result = read(&home);
+        assert!(result.skipped.is_empty(), "{:?}", result.skipped);
+        assert_eq!(result.events.len(), 1);
         assert_eq!(result.events[0].model, "qwen");
     }
 
