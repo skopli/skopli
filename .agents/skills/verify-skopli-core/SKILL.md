@@ -150,8 +150,8 @@ A bump that moves any other counter, moves the derived counter the wrong way, or
 The text overwrite may keep or drop the record, but a drop must raise a diagnostic.
 Three literal tables in the test keep the check honest:
 
-- `IGNORED_BY_DESIGN` names the live cells a reader reads around on purpose, each with the reason from the reader's own documentation (amp per-message usage behind a ledger, the claude 5m split, the one negative claude 1h split that the reader clamps to zero, the deepseek chunk sample, the fx snapshot totals, prime child usage, the reasonix prompt total).
-  A row matches on `path=value`, so the clamp row matches only the negative cell and the positive 1h cells are checked.
+- `IGNORED_BY_DESIGN` names the live cells a reader reads around on purpose, each with the reason from the reader's own documentation (amp per-message usage behind a ledger, the claude 5m split, the one negative claude 1h split that the reader drops as absent, the deepseek chunk sample, the fx snapshot totals, prime child usage, the reasonix prompt total).
+  A row matches on `path=value`, so the negative-split row matches only the negative cell and the positive 1h cells are checked.
   An entry that matches no cell fails the check, so the list cannot outlive the corpus.
 - `KNOWN_SILENT_DROPS` names the findings the check makes in the product today (below).
   An entry that stops reproducing fails the check, so the list cannot outlive its fix.

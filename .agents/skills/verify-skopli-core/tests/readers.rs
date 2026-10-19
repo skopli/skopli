@@ -142,7 +142,7 @@ const IGNORED_BY_DESIGN: &[(&str, &str, &str)] = &[
     (
         "claude",
         "cache_creation.ephemeral_1h_input_tokens=-",
-        "a negative 1h write is clamped to zero, so the record stays at zero after the bump",
+        "a negative 1h split is dropped as absent, so the record stays at zero after the bump",
     ),
     (
         "deepseek",
