@@ -13,8 +13,10 @@
 
 use serde_json::Value;
 use skopli_core::pricing::parse::{parse_litellm, parse_models_dev, parse_openrouter};
-use skopli_core::pricing::types::{ModelPrice, PriceMap, PricingCatalog};
+use skopli_core::pricing::types::{PriceMap, PricingCatalog};
 use skopli_core::pricing::{Pricing, PricingMode};
+
+use crate::parse::parse_price;
 
 /// Parse the `create_pricing` options into a [`Pricing`] instance, or an error
 /// message (turned into a `CatalogError` by the facade).
@@ -55,8 +57,7 @@ pub fn parse_pricing_parts(
                 .get("model")
                 .and_then(Value::as_str)
                 .ok_or_else(|| "each override needs a \"model\"".to_owned())?;
-            let price = parse_override_price(entry)?;
-            prices.insert(model.to_owned(), price);
+            prices.insert(model.to_owned(), parse_price(entry)?);
         }
         override_index = Some(catalogs.len());
         catalogs.push(PricingCatalog {
@@ -113,7 +114,7 @@ fn parse_catalog(entry: &Value) -> Result<PricingCatalog, String> {
             })?;
         let mut map = PriceMap::new();
         for (model, price_value) in prices_obj {
-            map.insert(model.clone(), parse_model_price(price_value)?);
+            map.insert(model.clone(), parse_price(price_value)?);
         }
         map
     };
@@ -125,23 +126,46 @@ fn parse_catalog(entry: &Value) -> Result<PricingCatalog, String> {
     })
 }
 
-/// Parse a `ModelPrice` from a wire object (the override/catalog price shape:
-/// `{input, output, cacheRead?, cacheWrite?, cacheWrite1h?}`).
-fn parse_model_price(value: &Value) -> Result<ModelPrice, String> {
-    let obj = value
-        .as_object()
-        .ok_or_else(|| "a price must be an object".to_owned())?;
-    let num = |k: &str| obj.get(k).and_then(Value::as_f64);
-    let input = num("input").ok_or_else(|| "a price needs a numeric \"input\"".to_owned())?;
-    let output = num("output").ok_or_else(|| "a price needs a numeric \"output\"".to_owned())?;
-    let mut price = ModelPrice::flat(input, output);
-    price.cache_read = num("cacheRead");
-    price.cache_write = num("cacheWrite");
-    price.cache_write1h = num("cacheWrite1h");
-    Ok(price)
-}
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde_json::json;
+    use skopli_core::pricing::types::{ModelPrice, PriceLookup, TierMode};
 
-/// Parse an override entry's price (the entry minus its `model` field).
-fn parse_override_price(value: &Value) -> Result<ModelPrice, String> {
-    parse_model_price(value)
+    fn hit(pricing: &Pricing, model: &str) -> Option<ModelPrice> {
+        match pricing.lookup_model(model) {
+            PriceLookup::Hit(hit) => Some(hit.price),
+            PriceLookup::Miss(_) => None,
+        }
+    }
+
+    fn tiered_price() -> Value {
+        json!({
+            "input": 1.0,
+            "output": 2.0,
+            "tiers": [{ "threshold": 200000, "input": 2.0, "output": 4.0 }],
+            "tierMode": "whole-request"
+        })
+    }
+
+    #[test]
+    fn catalog_prices_keep_tiers_and_tier_mode() {
+        let opts = json!({
+            "catalogs": [{ "source": "litellm", "prices": { "m": tiered_price() } }]
+        });
+        let pricing = pricing_from_options(&opts).expect("pricing builds");
+        let price = hit(&pricing, "m").expect("hit");
+        assert_eq!(price.tiers.as_ref().map(Vec::len), Some(1));
+        assert_eq!(price.tier_mode, Some(TierMode::WholeRequest));
+    }
+
+    #[test]
+    fn overrides_keep_tiers() {
+        let mut entry = tiered_price();
+        entry["model"] = json!("m");
+        let opts = json!({ "overrides": [entry] });
+        let pricing = pricing_from_options(&opts).expect("pricing builds");
+        let price = hit(&pricing, "m").expect("hit");
+        assert_eq!(price.tiers.as_ref().map(Vec::len), Some(1));
+    }
 }
