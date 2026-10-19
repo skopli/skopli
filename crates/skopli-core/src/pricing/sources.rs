@@ -188,7 +188,11 @@ fn cache_name(name: &str) -> String {
 
 /// Load and validate the cache file for `name`, computing staleness against
 /// `ttl_ms` and `now_ms`. Returns `None` when absent/unparseable/malformed.
-/// Faithful port of `loadCached`.
+/// Port of `loadCached`. `fetchedAt` is read with `date_parse_ms`, so any
+/// ECMA-262 Date Time String Format stamp is accepted (date-only, no seconds,
+/// space separator, offsetless as UTC), wider than the 24-character
+/// `toISOString` form `store_cached` writes; the TypeScript twin reads an
+/// offsetless stamp as local time through `Date.parse`.
 fn load_cached(cache_dir: &Path, name: &str, ttl_ms: u64, now: u64) -> Option<Cached> {
     let path = cache_dir.join(cache_name(name));
     let raw = std::fs::read_to_string(&path).ok()?;
