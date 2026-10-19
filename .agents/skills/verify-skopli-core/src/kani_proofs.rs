@@ -91,9 +91,12 @@ fn any_within_hour() -> i64 {
 /// The block start never exceeds the event, lies less than one grain before it,
 /// never leaves the local hour, equals the hour start for a width of an hour or
 /// more, and the event falls inside `[start, end)`. Neither kernel panics for
-/// any in-range instant and positive width.
+/// any in-range instant and positive width. This does not prove that the start
+/// sits on a grain boundary; every formulation of that alignment has exceeded
+/// the ten-minute budget (see SKILL.md), so it is enumerated by the exhaustive
+/// harness and the golden cases instead.
 #[kani::proof]
-fn block_start_floors_to_the_grain_and_contains_the_event() {
+fn block_start_is_within_one_grain_before_the_event() {
     let ms = any_instant();
     let width = any_width();
     let within = any_within_hour();
@@ -107,6 +110,33 @@ fn block_start_floors_to_the_grain_and_contains_the_event() {
     assert!(ms < end);
     if width >= HOUR_MS {
         assert_eq!(start, hour_start);
+    }
+}
+
+/// Widths for which the start is proved to sit on a grain boundary: the widths
+/// the golden corpus and the exhaustive harness use, both one-millisecond edges
+/// of the sub-hour range, and the hour itself. A constant divisor keeps the
+/// alignment remainder cheap; a symbolic one does not finish (see SKILL.md).
+const PINNED_WIDTHS: [i64; 7] = [
+    1,
+    1_800_000,
+    2_400_000,
+    HOUR_MS - 1,
+    HOUR_MS,
+    5_400_000,
+    18_000_000,
+];
+
+/// For each pinned width, the start is a whole number of grains past the local
+/// hour start, for every in-range instant and every offset into the hour.
+#[kani::proof]
+#[kani::unwind(8)]
+fn block_start_is_aligned_to_the_grain_for_the_pinned_widths() {
+    for width in PINNED_WIDTHS {
+        let ms = any_instant();
+        let within = any_within_hour();
+        let start = block_start(ms, within, width);
+        assert_eq!((start - (ms - within)) % width.min(HOUR_MS), 0);
     }
 }
 

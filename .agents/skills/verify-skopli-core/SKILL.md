@@ -94,15 +94,33 @@ timeout 600 cargo kani --manifest-path .agents/skills/verify-skopli-core/Cargo.t
 | Harness                                                     | Proves                                                                                                                                                                                      | Inputs                                                                                 |
 | ----------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
 | `add_tokens_saturates_and_keeps_the_split_under_the_writes` | every counter is the saturating sum, the 1h split is clamped to its own event's writes first, and a row whose split was within its writes stays so                                          | any two `TokenCounts`                                                                  |
-| `block_start_floors_to_the_grain_and_contains_the_event`    | the start is at most the event, less than one grain before it, inside the local hour, equal to the hour start at a width of an hour or more, and the event lies in `[start, end)`; no panic | any instant in V8's range, any positive width, any `[0, HOUR_MS)` offset into the hour |
+| `block_start_is_within_one_grain_before_the_event`          | the start is at most the event, less than one grain before it, inside the local hour, equal to the hour start at a width of an hour or more, and the event lies in `[start, end)`; no panic | any instant in V8's range, any positive width, any `[0, HOUR_MS)` offset into the hour |
+| `block_start_is_aligned_to_the_grain_for_the_pinned_widths` | the start is a whole number of grains past the local hour start                                                                                                                             | any instant in V8's range, any offset into the hour, each width in `PINNED_WIDTHS`     |
 | `later_block_starts_strictly_after_the_open_one`            | an event at or past the open block's end opens a block with a strictly greater start, so block keys are distinct and ascending                                                              | two such instants, one width, two offsets                                              |
 
 The offset into the hour is left free in `[0, HOUR_MS)` rather than derived from UTC, so the block proofs hold for every zone's wall clock.
-Per function: `add_tokens`, `block_start` and `block_end` are proved by Kani for all inputs under the assumptions in the table; `rollup`, `rollup_key`, `day_key`, `within_hour` and `to_iso_string` are enumerated by the harness over its domain, not proved.
-No loops are involved, so no unwind bound is set.
-Last run: Kani 0.68.0 with CBMC 6.11.0 and CaDiCaL 3.0.0, each harness verified in about one second of solver time, with no unsupported construct.
-An earlier draft of the second harness also asserted `(start - hour_start) % grain == 0`; the second symbolic 64-bit remainder did not finish in ten minutes, and `ms - start < grain` states the same floor without it.
-The third harness fails against the former hour-floor rule, which was checked by running it once with that rule restored.
+`PINNED_WIDTHS` is one millisecond, thirty minutes, forty minutes, one millisecond under the hour, the hour, ninety minutes and five hours: the widths the golden corpus and the exhaustive harness use plus the edges of the sub-hour range.
+
+Per function:
+
+- `add_tokens`: proved by Kani for any two inputs.
+- `block_end`: proved by Kani (no panic, event inside `[start, end)`) for any in-range instant and positive width.
+- `block_start`, containment and bound (`hour_start <= start <= ms`, `ms - start < grain`, hour start at a width of an hour or more): proved by Kani for any in-range instant, any positive width and any offset into the hour.
+- `block_start`, distinct ascending keys (`next_start > start` when the next event is at or past the open block's end): proved by Kani for the same inputs.
+- `block_start`, alignment of the start to a grain boundary (`(start - hour_start) % grain == 0`): proved by Kani only for the seven pinned widths; for a symbolic width it is enumerated, by the exhaustive harness (the thirty-minute width over the `:30` and `:59:59.999` instants, where an unfloored start has a different key) and by the golden cases `sub-hour-width-floors-to-the-width`, `forty-minute-width-floors-from-the-hour` and `forty-minute-width-key-inside-previous-window`.
+  The containment and bound harness alone does not establish alignment: a mutant that returns the instant itself below one hour passes it and the ascending-keys harness, and fails the pinned-widths harness (`1 of 149 failed`, 0.6 s), the exhaustive harness (3,994 of 107,100 cases) and the golden conformance tests.
+- `rollup`, `rollup_key`, `day_key`, `within_hour`, `to_iso_string`: enumerated by the exhaustive harness over its domain, not proved.
+
+Symbolic-width alignment was attempted four ways, each with `timeout 600`; all four ended at the 600 s wall clock (`exit 124`) with CBMC still in `Running propositional reduction` after the SAT instance was built, so the limit is the solver, not an unsupported construct:
+
+- `(start - hour_start) % grain == 0` as an `i64` remainder: 22,721 variables, 102,430 clauses.
+- the same remainder narrowed to `u32` (sound, since `0 <= start - hour_start < HOUR_MS`): 16,666 variables, 67,910 clauses.
+- a quotient witness `k` with `k * grain <= within < (k + 1) * grain`, asserting `start == hour_start + k * grain`: 66,007 variables, 341,451 clauses.
+- same cell, same start: for any `ms2` in `[start, ms]`, `block_start(ms2, within - (ms - ms2), width) == start`: 24,484 variables, 106,241 clauses.
+
+Settings: no stubs, default solver (CaDiCaL), no unwind bound except `#[kani::unwind(8)]` on the pinned-widths harness for its seven-iteration loop.
+Last run: Kani 0.68.0 with CBMC 6.11.0 and CaDiCaL 3.0.0; the three single-shot harnesses verify in about one second of solver time each (231, 70 and 64 checks) and the pinned-widths harness in about twenty-two seconds (154 checks).
+The ascending-keys harness fails against the former hour-floor rule, which was checked by running it once with that rule restored.
 
 The formatting of a start into its key is `to_iso_string`, which allocates and is outside the kernels; it is pinned by the core's tests against literal V8 output and by the exhaustive check above.
 
