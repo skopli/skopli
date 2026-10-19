@@ -172,7 +172,7 @@ function dateParseMs(input: string): number | undefined {
         // UTC
       } else if (c === "+" || c === "-") {
         const sign = c === "-" ? -1 : 1;
-        if (input.length < idx + 6 || input[idx + 3] !== ":") return undefined;
+        if (input.length !== idx + 6 || input[idx + 3] !== ":") return undefined;
         const oh = isDigits(idx + 1, 2);
         const om = isDigits(idx + 4, 2);
         if (oh === undefined || om === undefined) return undefined;

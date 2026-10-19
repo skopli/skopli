@@ -163,6 +163,14 @@ describe("rollup", () => {
     expect(rows[0]?.key).toBe("invalid-date");
   });
 
+  it("rejects characters after the offset the same way Date.parse does", () => {
+    const rows = rollup([event({ timestamp: "2026-08-01T10:00:00+00:00garbage" })], {
+      by: "block",
+      tz: "UTC",
+    });
+    expect(rows.map((r) => r.key)).toEqual(["invalid-date"]);
+  });
+
   it("truncates fractional seconds to milliseconds like Date.parse", () => {
     // .9995 must not round up to the next second, let alone to an invalid date.
     const rows = rollup([event({ timestamp: "2026-08-01T23:59:59.9995Z" })], {

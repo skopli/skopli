@@ -95,7 +95,7 @@ pub fn date_parse_ms(input: &str) -> Option<i64> {
         match s.get(idx) {
             None => {}
             Some(b'Z') if s.len() == idx + 1 => {}
-            Some(sign @ (b'+' | b'-')) if s.len() >= idx + 6 && s[idx + 3] == b':' => {
+            Some(sign @ (b'+' | b'-')) if s.len() == idx + 6 && s[idx + 3] == b':' => {
                 let magnitude = digits(idx + 1, 2)? * 60 + digits(idx + 4, 2)?;
                 offset_min = if *sign == b'-' { -magnitude } else { magnitude };
             }
@@ -193,6 +193,8 @@ mod tests {
             "2026-01-01T24:00",
             "2026-01-01T00:00:00.Z",
             "2026-01-01T00:00:00+0100",
+            "2026-01-01T00:00:00+00:00garbage",
+            "2026-01-01T00:00:00.000+05:30xyz",
             "2026-01-01T00:00:00ZZ",
             "2026-01-01X00:00",
         ] {

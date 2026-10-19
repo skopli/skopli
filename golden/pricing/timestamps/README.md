@@ -48,6 +48,9 @@ input tolerance.
   midnight `Z`, so it maps to the same epoch as `integral-ms`.
 - `garbage`: a string that is not a timestamp is rejected (`null`), invalidating
   the cache entry instead of crashing.
+- `trailing-characters-after-offset`: a well-formed stamp followed by extra
+  characters (`+00:00garbage`) is rejected (`null`); a parser must consume the
+  whole string, so a corrupt stamp can never pass as fresh.
 
 ## The write cases
 
