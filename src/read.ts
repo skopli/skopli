@@ -1,6 +1,6 @@
 import { createDiagnostics } from "./diagnostics.ts";
 import { detectHarnesses, type Detection } from "./detect.ts";
-import { native } from "./native.ts";
+import { fromWire, native } from "./native.ts";
 import {
   createPathResolver,
   effectiveCwd,
@@ -139,12 +139,7 @@ async function gatherHarness(
     env,
     cwd: effectiveCwd(options),
   });
-  const raw = await native().readHarness(harness, optionsJson);
-  return JSON.parse(raw) as {
-    events: UsageEvent[];
-    diagnostics: Diagnostic[];
-    skipped: string[];
-  };
+  return fromWire(await native().readHarness(harness, optionsJson));
 }
 
 export async function readUsage(options: ReadUsageOptions = {}): Promise<ReadUsageResult> {

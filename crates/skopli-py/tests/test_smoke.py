@@ -765,3 +765,19 @@ def test_lookup_model_hit_and_miss() -> None:
     miss = pricing.lookup_model("totally-unknown-model-9000")
     assert isinstance(miss, PriceMiss)
     assert not miss.priced
+
+
+def test_create_pricing_sends_camel_case_builtin_sources(monkeypatch, tmp_path) -> None:
+    sent: list[dict] = []
+    native = skopli._skopli.Pricing
+
+    def recording(opts_json: str):
+        sent.append(json.loads(opts_json))
+        return native(opts_json)
+
+    monkeypatch.setattr(skopli._skopli, "Pricing", recording)
+    source, payload = _builtin_source(_lifecycle("request.json"))
+    skopli.create_pricing(sources=[source], cache_dir=str(tmp_path), fetch=_RecordingFetch(payload))
+
+    assert [opts["builtinSources"] for opts in sent] == [False, False]
+    assert not any("builtin_sources" in opts for opts in sent)

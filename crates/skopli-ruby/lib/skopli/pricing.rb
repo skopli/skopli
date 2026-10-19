@@ -147,13 +147,13 @@ module Skopli
 
     # Count parsed prices in a single raw catalog entry via the core parser.
     # Builds a throwaway native pricing handle whose options contain exactly this
-    # one raw catalog (wire grammar, `builtin_sources: false`, mode `calculate`),
+    # one raw catalog (wire grammar, `builtinSources: false`, mode `calculate`),
     # reads the catalog's `models` count, and lets the handle be GC-freed. Any
     # error from the probe build means the payload is unusable (zero). This
     # matches the TS "zero parsed prices is unusable" rule without
     # reimplementing a source parser in Ruby.
     def probe_prices(entry)
-      opts = { "mode" => "calculate", "builtin_sources" => false, "catalogs" => [entry] }
+      opts = { "mode" => "calculate", "builtinSources" => false, "catalogs" => [entry] }
       infos = begin
         native = NativePricing.new(JSON.generate(opts))
         JSON.parse(native.catalogs)
@@ -253,7 +253,7 @@ module Skopli
         loaded << catalog unless catalog.nil?
       end
       opts["catalogs"] = loaded unless loaded.empty?
-      opts["builtin_sources"] = false
+      opts["builtinSources"] = false
       native = Errors.translate { NativePricing.new(JSON.generate(opts)) }
       # only clear the one-shot refresh once the load COMPLETED
       @pending_refresh = false

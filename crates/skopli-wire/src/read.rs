@@ -1,8 +1,11 @@
-//! The multi-reader `read_usage` envelope and harness detection shared by the
-//! direct-core bindings that own the whole read+filter loop (`skopli-py`,
-//! `skopli-ruby`). `skopli-node` instead exposes a per-harness raw
-//! gather (`read_harness`) and runs the filter loop in its TS facade, so it does
-//! NOT use this module.
+//! The read envelopes: the multi-reader `read_usage` envelope and harness
+//! detection used by the bindings that own the whole read+filter loop
+//! (`skopli-py`, `skopli-ruby`, `skopli-capi`), and the per-harness raw gather
+//! (`read_harness`) used by `skopli-node`, whose TS facade runs the filter loop.
+//! The two envelopes differ on purpose: `read_usage` keys `skipped` by harness
+//! (`{harness: string[]}`) because it loops over every reader, while
+//! `read_harness` returns a bare `string[]` and leaves keying to the facade.
+//! Every diagnostic and event on the wire is serialized here, once.
 //!
 //! Seam split: `{home, env}` + since/until/tz travel as
 //! data in the options JSON; a date-only bound resolves to midnight of that day
@@ -16,7 +19,8 @@
 
 use serde_json::{Value, json};
 use skopli_core::readers::reader::ReaderContext;
-use skopli_core::readers::registered_readers;
+use skopli_core::readers::shared::ReaderWarning;
+use skopli_core::readers::{registered_reader, registered_readers};
 use skopli_core::types::UsageEvent;
 
 /// Options accepted by `read_usage`, parsed from the options JSON.
@@ -150,13 +154,7 @@ pub fn read_usage(options: &ReadOptions) -> Value {
         }
         let result = reader.read(&options.ctx);
 
-        for warning in &result.warnings {
-            diagnostics.push(json!({
-                "severity": "warning",
-                "message": warning.message.trim_end_matches('\n'),
-                "harness": harness,
-            }));
-        }
+        diagnostics.extend(result.warnings.iter().map(|w| warning_json(harness, w)));
         if !result.skipped.is_empty() {
             skipped.insert(harness.to_owned(), json!(result.skipped));
         }
@@ -164,15 +162,12 @@ pub fn read_usage(options: &ReadOptions) -> Value {
         for event in result.events {
             match skopli_core::readers::shared::date_parse_ms(&event.timestamp) {
                 None => {
-                    diagnostics.push(json!({
-                        "severity": "warning",
-                        "message": format!(
-                            "dropping event {} with unusable timestamp {}",
-                            event.message_id,
-                            serde_json::to_string(&event.timestamp).unwrap_or_default()
-                        ),
-                        "harness": harness,
-                    }));
+                    let message = format!(
+                        "dropping event {} with unusable timestamp {}",
+                        event.message_id,
+                        serde_json::to_string(&event.timestamp).unwrap_or_default()
+                    );
+                    diagnostics.push(diagnostic_json(harness, &message));
                     continue;
                 }
                 Some(at) => {
@@ -195,15 +190,65 @@ pub fn read_usage(options: &ReadOptions) -> Value {
         }
     }
 
-    let events_json: Vec<Value> = events
-        .iter()
-        .map(|e| serde_json::to_value(e).expect("serialize event"))
-        .collect();
-
     json!({
-        "events": events_json,
+        "events": events_json(&events),
         "diagnostics": diagnostics,
         "skipped": Value::Object(skipped),
+    })
+}
+
+/// Gather ONE harness's raw usage: its events (unfiltered), its warnings as
+/// diagnostics, and its skipped paths, as `{events, diagnostics, skipped}` where
+/// `skipped` is a `string[]` (the facade keys it by harness). An unknown harness
+/// yields an all-empty envelope so the facade can route it elsewhere.
+pub fn read_harness(harness: &str, opts: &Value) -> Value {
+    let Some(reader) = registered_reader(harness) else {
+        return json!({ "events": [], "diagnostics": [], "skipped": [] });
+    };
+    let result = reader.read(&crate::parse::context_from_options(opts));
+    let harness = reader.harness_id();
+    let diagnostics: Vec<Value> = result
+        .warnings
+        .iter()
+        .map(|w| warning_json(harness, w))
+        .collect();
+    json!({
+        "events": events_json(&result.events),
+        "diagnostics": diagnostics,
+        "skipped": result.skipped,
+    })
+}
+
+/// The harness ids the core has a registered reader for.
+pub fn supported_harnesses() -> Vec<String> {
+    registered_readers()
+        .iter()
+        .map(|r| r.harness_id().to_owned())
+        .collect()
+}
+
+fn events_json(events: &[UsageEvent]) -> Vec<Value> {
+    events
+        .iter()
+        .map(|e| serde_json::to_value(e).expect("serialize event"))
+        .collect()
+}
+
+/// A reader warning as a wire `Diagnostic`. Readers end their messages with one
+/// newline for the ambient warn sink; the wire strips exactly that one.
+fn warning_json(harness: &str, warning: &ReaderWarning) -> Value {
+    let message = warning
+        .message
+        .strip_suffix('\n')
+        .unwrap_or(&warning.message);
+    diagnostic_json(harness, message)
+}
+
+fn diagnostic_json(harness: &str, message: &str) -> Value {
+    json!({
+        "severity": "warning",
+        "message": message,
+        "harness": harness,
     })
 }
 

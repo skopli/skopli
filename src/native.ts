@@ -50,6 +50,13 @@ function loadAddon(): NativeAddon {
   }
 }
 
+// The one place the facade trusts the addon's JSON: the addon serializes the
+// wire shapes the facade's types mirror, so every result crosses through this
+// single typed parse instead of a cast at each call site.
+export function fromWire<T>(json: string): T {
+  return JSON.parse(json) as T;
+}
+
 let cached: NativeAddon | null = null;
 
 // Lazy so importing a facade module for a type alone never forces the addon to

@@ -1,6 +1,6 @@
 import { homedir } from "node:os";
 import { join } from "node:path";
-import { native } from "../native.ts";
+import { fromWire, native } from "../native.ts";
 import type { Rollup, RollupBy } from "../rollup.ts";
 import type { TokenCounts, UsageEvent } from "../types.ts";
 import { liteLlmSource, modelsDevSource, openRouterSource } from "./sources.ts";
@@ -311,14 +311,14 @@ export function createPricing(options: CreatePricingOptions = {}): Pricing {
 
   const lookupModel = async (model: string): Promise<PriceLookup> => {
     const engine = await buildEngine();
-    return JSON.parse(await engine.lookupModel(model)) as PriceLookup;
+    return fromWire<PriceLookup>(await engine.lookupModel(model));
   };
 
   return {
     lookupModel,
     async catalogs(): Promise<CatalogInfo[]> {
       const engine = await buildEngine();
-      return JSON.parse(await engine.catalogs()) as CatalogInfo[];
+      return fromWire<CatalogInfo[]>(await engine.catalogs());
     },
     async priceTokens(model, tokens) {
       const lookup = await lookupModel(model);
@@ -327,17 +327,14 @@ export function createPricing(options: CreatePricingOptions = {}): Pricing {
     },
     async priceRollups(rollups) {
       const engine = await buildEngine();
-      return JSON.parse(await engine.priceRollups(JSON.stringify(rollups))) as PricedRollup[];
+      return fromWire<PricedRollup[]>(await engine.priceRollups(JSON.stringify(rollups)));
     },
     async priceEvents(events, options) {
       const engine = await buildEngine();
-      const optionsJson =
-        options.tz === undefined
-          ? JSON.stringify({ by: options.by })
-          : JSON.stringify({ by: options.by, tz: options.tz });
-      return JSON.parse(
+      const optionsJson = JSON.stringify({ by: options.by, tz: options.tz });
+      return fromWire<PricedEventGroup[]>(
         await engine.priceEvents(JSON.stringify(events), optionsJson),
-      ) as PricedEventGroup[];
+      );
     },
   };
 }
