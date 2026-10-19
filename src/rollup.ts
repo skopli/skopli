@@ -208,7 +208,6 @@ function withinHour(ms: number, tz: string | undefined): number {
   try {
     const format = new Intl.DateTimeFormat("en-US", {
       ...(tz !== undefined ? { timeZone: tz } : {}),
-      hour12: false,
       minute: "2-digit",
       second: "2-digit",
     });
