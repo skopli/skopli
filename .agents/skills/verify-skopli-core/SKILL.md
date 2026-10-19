@@ -20,7 +20,7 @@ cargo test --release --manifest-path .agents/skills/verify-skopli-core/Cargo.tom
 
 The tool is `cargo test` on the toolchain pinned by `rust-toolchain.toml` (Rust 1.89.0).
 Node 24 is required because one test runs `src/rollup.ts` and one runs `src/detect.ts` directly through Node's TypeScript support.
-The run takes under a minute after the first build: the rollup check about eight seconds, the reader checks about two, the detection checks about four.
+The run takes under a minute after the first build: the rollup check about eight seconds, the reader checks about two, the detection checks about five.
 The Rust core and the wire crate are path dependencies, so the check always runs against the working tree.
 The crate has its own `Cargo.lock`, seeded from the root `Cargo.lock` so the harness builds the core against the same `jiff` and bundled tzdb that ship; when the root lock changes, copy it over this one and let `cargo` prune it on the next run.
 
@@ -206,15 +206,17 @@ The `codebuddy` reader shares the claude parser, so both claude breaks also fail
 Three tests live in `tests/detect.rs`; the marker table and the two detector bridges live in `src/detect.rs`, and `ts-detect.mjs` runs `detectHarnesses` from `src/detect.ts` over a batch of homes in one Node process.
 The Rust side is `skopli_wire::read::detect`, the entry the facades call, which marks a harness supported when its reader yields an event.
 
-`layouts_detect_as_the_marker_table_says` enumerates home layouts over the 69 markers in `MARKERS`, each a directory or file `src/detect.ts` probes under the home with an empty environment and the home as working directory, tagged with the harness it speaks for or with the unsupported product it names.
-The layouts are the empty home, every single marker, every pair of markers and all markers at once: 2,417 homes.
+`layouts_detect_as_the_marker_table_says` enumerates home layouts over the 80 markers in `MARKERS`, each a directory or file `src/detect.ts` probes under the home with an empty environment and the home as working directory, tagged with the harness it speaks for or with the unsupported product it names.
+Every root the detector spells relative to the home is a row, whichever operating system it serves: the VS Code `globalStorage` task root of each extension under `.config/Code`, `Library/Application Support/Code`, `.vscode-server/data` and `AppData/Roaming/Code`, the kiro database under `.kiro`, `.local/share/amazon-q` and `Library/Application Support/amazon-q`, and the Windows `AppData` roots of Cursor and Crush next to their Linux ones.
+The layouts are the empty home, every single marker, every pair of markers and all markers at once: 3,242 homes.
 The TypeScript detector is run twice over all of them and must return the same answer (a pure function of the layout), and each answer must be exactly the harnesses and products the present markers speak for.
 The single-marker layouts establish that no two harnesses claim the same marker; `pi` (`.pi/agent/sessions`) and `kimchi` (`.config/kimchi/harness/sessions`) are distinct markers, which pins the decision that kimchi does not claim pi's session root.
 Marker files are one empty line, so a reader opening one meets a real, empty record stream.
 The Rust detector runs over the same homes and must claim no harness from any of them, since an empty marker holds no record; so on every enumerated layout the Rust verdict is a subset of the TypeScript one.
 
 `rust_and_typescript_agree_on_golden_homes` copies every golden case to the default root its reader resolves with no environment override (`DEFAULT_ROOTS`, read off each reader's root resolver), one home per case plus one home holding all of them, and requires both detectors to report exactly that case's harness alone and exactly the set of all harnesses together.
-This is the agreement check between the two detectors: the TypeScript probe sees a marker where the Rust reader yields an event, for every harness, and neither sees anything else.
+Each home whose Linux root has a sibling on another operating system (`SIBLING_ROOTS`: the three other VS Code `globalStorage` roots, the macOS roots of CherryStudio, CommandCode, goose, kiro and Zed, the Block goose root and the Linux amazon-q root of kiro) is copied again with the tree moved to that sibling, 16 more homes over 62 in total, and must detect the same way; a sibling no golden home holds fails the check so the list cannot drift.
+This is the agreement check between the two detectors: the TypeScript probe sees a marker where the Rust reader yields an event, for every harness and every root, and neither sees anything else.
 
 `recorded_homes_probe_every_harness_that_yields_events` replays recorded homes read-only when `SKOPLI_VERIFY_HOMES` names a directory of `<harness>/<endpoint>/` homes.
 Both detectors run on each; every harness the Rust pass yields events for must also be probed by TypeScript, and the per-home table (TypeScript verdict, Rust verdict, event count per harness, unsupported products) is printed and written to `SKOPLI_VERIFY_HOMES_OUT` when set.
@@ -230,9 +232,9 @@ SKOPLI_VERIFY_HOMES=<recordings dir> SKOPLI_VERIFY_HOMES_OUT=<table.md> \
 - Markers present or absent, never partially valid: a present marker is an empty directory or a one-line file.
 - At most two markers per layout plus the all-markers layout; three-marker layouts are not enumerated because detection is a disjunction over independent probes, and the pair layouts already catch a probe that depends on another marker.
 - Empty environment and the home as working directory; the environment overrides and workspace-relative roots `src/detect.ts` also probes are not enumerated.
-- Default roots on Linux and macOS as `src/detect.ts` spells them.
+- Every default root `src/detect.ts` spells relative to the home, on Linux, macOS, VS Code Server and Windows alike.
 
-Not covered: environment overrides, roots under a working directory other than the home (the `trajectories` marker is probed under the working directory, which the bare home also is), Windows roots, markers whose contents must parse for TypeScript to claim them, and a Rust claim on the marker layouts (its verdict needs a readable record, which an empty marker is not, so the layouts only establish that Rust claims nothing there; the golden-homes check covers the positive agreement).
+Not covered: environment overrides (so the `APPDATA` and `LOCALAPPDATA` roots and the `XDG_*` roots are not probed), roots under a working directory other than the home (the `trajectories` marker is probed under the working directory, which the bare home also is), markers whose contents must parse for TypeScript to claim them, and a Rust claim on the marker layouts (its verdict needs a readable record, which an empty marker is not, so the layouts only establish that Rust claims nothing there; the golden-homes check, with its relocated siblings, covers the positive agreement).
 
 ### Assumptions
 
@@ -242,8 +244,10 @@ Not covered: environment overrides, roots under a working directory other than t
 
 ### Broken variants
 
-Changing the gemini probe in `src/detect.ts` from `tmp` to `sessions` fails both checks: `70 of 2417 layouts disagree with the marker table` and `gemini/basic: typescript [], rust ["gemini"]`.
+Changing the gemini probe in `src/detect.ts` from `tmp` to `sessions` fails both checks: `70 of 2417 layouts disagree with the marker table` and `gemini/basic: typescript [], rust ["gemini"]` (run when the table had 69 markers).
 Making `skopli_wire::read::detect` mark a harness supported when its reader raised a warning, not only when it yielded an event, fails the layout check: `820 of 2417 layouts disagree with the marker table`, starting with `[".local/share/opencode/opencode.db"]: rust claims ["opencode"] from empty markers`.
+Changing the macOS VS Code root in `src/detect.ts` from `Application Support/Code` to `Application Support/Other` fails the layout check: `227 of 3242 layouts disagree with the marker table`, starting with the three single-marker macOS task roots of roo, cline and kilocode expected and not detected.
+The same change to the macOS root in `crates/skopli-core/src/readers/vscode_ext.rs` fails the golden-homes check on the three relocated homes: `cline/ext-basic at Library/Application Support/Code/User/globalStorage: typescript ["cline"], rust [], want ["cline"]`, and the same for kilocode and roo.
 Each variant was applied to the working tree, run, and reverted.
 
 ## When the verified code changes on purpose
@@ -253,7 +257,7 @@ Each variant was applied to the working tree, run, and reverted.
 - A reader fixes a silent drop: remove its `KNOWN_SILENT_DROPS` row; the check fails until you do.
 - A reader reads a new token cell name: add the name to `TokenClass::of`; until then the cell is not a token cell and is not checked.
 - A reader starts deriving a counter from a new class, or a golden case gains a reachable token cell for a reader in `NO_MAPPING_COVERAGE`: update `TokenClass::derived` or remove the reader from the list; the check fails until you do.
-- A new or moved probe in `src/detect.ts`: add or edit its `MARKERS` row with the harness it speaks for; a new unsupported product also needs a name in `unsupported_name`.
+- A new or moved probe in `src/detect.ts`: add or edit its `MARKERS` row with the harness it speaks for; a new unsupported product also needs a name in `unsupported_name`; a new root for data a golden home already holds at another root also needs a `SIBLING_ROOTS` pair.
 - A change to the pi and kimchi ownership: both markers are rows in `MARKERS`, so the shared root would fail the single-marker layouts until the table says who owns it.
 - A new rollup dimension: add it to the `by` list in `cases()` and a matching arm to `expected_key`.
 - A new counter on `TokenCounts` or `Rollup`: add it to `Pattern`, `event()`, the `pairs` table in `check_conservation` and the parity JSON if it is optional.

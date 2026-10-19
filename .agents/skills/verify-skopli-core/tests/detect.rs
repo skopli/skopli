@@ -78,9 +78,9 @@ fn layouts_detect_as_the_marker_table_says() {
 
 fn unsupported_name(path: &str) -> String {
     match path {
-        ".cursor" => "Cursor",
+        ".cursor" | "AppData/Roaming/Cursor" => "Cursor",
         ".aider.chat.history.md" => "aider",
-        ".local/share/crush/projects.json" => "Crush",
+        ".local/share/crush/projects.json" | "AppData/Local/crush/projects.json" => "Crush",
         ".config/gitlab/duo" => "GitLab Duo CLI",
         other => panic!("no product name for {other}"),
     }
@@ -89,42 +89,42 @@ fn unsupported_name(path: &str) -> String {
 
 /// Every golden case placed at its default root, with no environment: the
 /// TypeScript probe and the Rust reader pass each claim exactly that harness,
-/// alone and with every other case present in the same home.
+/// alone, with its Linux root relocated to each sibling root the detectors
+/// probe for another operating system, and with every other case present in
+/// the same home.
 #[test]
 fn rust_and_typescript_agree_on_golden_homes() {
     let cases = golden_cases();
     let scratch = Scratch::new("golden-homes");
     let all = scratch.0.join("all");
     fs::create_dir_all(&all).unwrap();
-    let mut homes = Vec::new();
+    let mut expected: Vec<(String, Vec<String>, Home)> = Vec::new();
+    let mut relocated = vec![0; SIBLING_ROOTS.len()];
     for case in &cases {
         let home = scratch.0.join(case.id().replace('/', "-"));
         fs::create_dir_all(&home).unwrap();
         seed_default_root(case, &home);
         seed_default_root(case, &all);
-        homes.push(Home::bare(&home));
-    }
-    homes.push(Home::bare(&all));
-    let ts = ts_detect(&homes);
-    let mut failures = Vec::new();
-    for (i, case) in cases.iter().enumerate() {
-        let rust = rust_detect(&homes[i]);
         let want = vec![case.harness.clone()];
-        if ts[i].supported != want || rust.supported != want {
-            failures.push(format!(
-                "{}: typescript {:?}, rust {:?}",
-                case.id(),
-                ts[i].supported,
-                rust.supported
+        for (i, (from, to)) in SIBLING_ROOTS.iter().enumerate() {
+            if !home.join(from).exists() {
+                continue;
+            }
+            let sibling = scratch
+                .0
+                .join(format!("{}-{i}", case.id().replace('/', "-")));
+            relocate(&home, &sibling, from, to);
+            expected.push((
+                format!("{} at {to}", case.id()),
+                want.clone(),
+                Home::bare(&sibling),
             ));
+            relocated[i] += 1;
         }
-        if !ts[i].unsupported.is_empty() {
-            failures.push(format!(
-                "{}: unsupported {:?}",
-                case.id(),
-                ts[i].unsupported
-            ));
-        }
+        expected.push((case.id(), want, Home::bare(&home)));
+    }
+    for (i, n) in relocated.iter().enumerate() {
+        assert!(*n > 0, "no golden home holds {:?}", SIBLING_ROOTS[i]);
     }
     let every: Vec<String> = cases
         .iter()
@@ -132,15 +132,27 @@ fn rust_and_typescript_agree_on_golden_homes() {
         .collect::<BTreeSet<_>>()
         .into_iter()
         .collect();
-    let rust_all = rust_detect(homes.last().unwrap());
-    if ts.last().unwrap().supported != every || rust_all.supported != every {
-        failures.push(format!(
-            "all cases in one home: typescript {:?}, rust {:?}, want {every:?}",
-            ts.last().unwrap().supported,
-            rust_all.supported
-        ));
+    expected.push(("all cases in one home".to_owned(), every, Home::bare(&all)));
+    let ts = ts_detect(expected.iter().map(|(_, _, h)| h));
+    let mut failures = Vec::new();
+    for ((label, want, home), ts) in expected.iter().zip(&ts) {
+        let rust = rust_detect(home);
+        if ts.supported != *want || rust.supported != *want {
+            failures.push(format!(
+                "{label}: typescript {:?}, rust {:?}, want {want:?}",
+                ts.supported, rust.supported
+            ));
+        }
+        if !ts.unsupported.is_empty() {
+            failures.push(format!("{label}: unsupported {:?}", ts.unsupported));
+        }
     }
     assert!(failures.is_empty(), "{}", failures.join("\n"));
+    eprintln!(
+        "{} golden homes, {} of them with a root relocated to a sibling, claim exactly their harness in both detectors",
+        expected.len(),
+        relocated.iter().sum::<usize>()
+    );
 }
 
 /// Recorded homes, when `SKOPLI_VERIFY_HOMES` names a directory of

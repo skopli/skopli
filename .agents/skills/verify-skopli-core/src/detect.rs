@@ -126,16 +126,48 @@ pub const MARKERS: &[Marker] = &[
     ),
     dir(
         "roo",
+        "Library/Application Support/Code/User/globalStorage/rooveterinaryinc.roo-cline/tasks",
+    ),
+    dir(
+        "roo",
         ".vscode-server/data/User/globalStorage/rooveterinaryinc.roo-cline/tasks",
+    ),
+    dir(
+        "roo",
+        "AppData/Roaming/Code/User/globalStorage/rooveterinaryinc.roo-cline/tasks",
     ),
     dir(
         "cline",
         ".config/Code/User/globalStorage/saoudrizwan.claude-dev/tasks",
     ),
+    dir(
+        "cline",
+        "Library/Application Support/Code/User/globalStorage/saoudrizwan.claude-dev/tasks",
+    ),
+    dir(
+        "cline",
+        ".vscode-server/data/User/globalStorage/saoudrizwan.claude-dev/tasks",
+    ),
+    dir(
+        "cline",
+        "AppData/Roaming/Code/User/globalStorage/saoudrizwan.claude-dev/tasks",
+    ),
     dir("cline", ".cline/data/sessions"),
     dir(
         "kilocode",
         ".config/Code/User/globalStorage/kilocode.kilo-code/tasks",
+    ),
+    dir(
+        "kilocode",
+        "Library/Application Support/Code/User/globalStorage/kilocode.kilo-code/tasks",
+    ),
+    dir(
+        "kilocode",
+        ".vscode-server/data/User/globalStorage/kilocode.kilo-code/tasks",
+    ),
+    dir(
+        "kilocode",
+        "AppData/Roaming/Code/User/globalStorage/kilocode.kilo-code/tasks",
     ),
     dir("opencodereview", ".opencodereview/sessions"),
     dir("trae", "trajectories"),
@@ -145,10 +177,13 @@ pub const MARKERS: &[Marker] = &[
     file("reasonix", ".reasonix/projects/p1/s1.acp.json"),
     file("kiro", ".kiro/data.sqlite3"),
     file("kiro", ".local/share/amazon-q/data.sqlite3"),
+    file("kiro", "Library/Application Support/amazon-q/data.sqlite3"),
     file("fx", ".fx/sessions/s1/usage-v2.json"),
     unsupported(Kind::Dir, ".cursor"),
+    unsupported(Kind::Dir, "AppData/Roaming/Cursor"),
     unsupported(Kind::File, ".aider.chat.history.md"),
     unsupported(Kind::File, ".local/share/crush/projects.json"),
+    unsupported(Kind::File, "AppData/Local/crush/projects.json"),
     unsupported(Kind::Dir, ".config/gitlab/duo"),
 ];
 
@@ -216,7 +251,7 @@ impl Home {
 }
 
 /// The TypeScript detector, one node process for the whole batch.
-pub fn ts_detect(homes: &[Home]) -> Vec<Detection> {
+pub fn ts_detect<'a>(homes: impl IntoIterator<Item = &'a Home>) -> Vec<Detection> {
     let script = Path::new(env!("CARGO_MANIFEST_DIR")).join("ts-detect.mjs");
     let mut child = Command::new("node")
         .arg(&script)
@@ -224,7 +259,7 @@ pub fn ts_detect(homes: &[Home]) -> Vec<Detection> {
         .stdout(Stdio::piped())
         .spawn()
         .expect("node 24 or newer on PATH");
-    let input: Vec<Value> = homes.iter().map(Home::opts).collect();
+    let input: Vec<Value> = homes.into_iter().map(Home::opts).collect();
     child
         .stdin
         .take()
@@ -292,6 +327,57 @@ pub const DEFAULT_ROOTS: &[(&str, &str, &str)] = &[
     ("ZCODE_DATA_DIR", "", ".zcode"),
     ("ZED_DATA_DIR", "", ".local/share/zed"),
 ];
+
+/// Sibling roots both detectors probe for the same data on another operating
+/// system: the Linux default a golden home is seeded at, and the macOS,
+/// VS Code Server or Windows path the same tree is found at instead.
+pub const SIBLING_ROOTS: &[(&str, &str)] = &[
+    (
+        ".config/Code/User/globalStorage",
+        "Library/Application Support/Code/User/globalStorage",
+    ),
+    (
+        ".config/Code/User/globalStorage",
+        ".vscode-server/data/User/globalStorage",
+    ),
+    (
+        ".config/Code/User/globalStorage",
+        "AppData/Roaming/Code/User/globalStorage",
+    ),
+    (
+        ".config/CherryStudio/Data/cherrystudio.sqlite",
+        "Library/Application Support/CherryStudio/Data/cherrystudio.sqlite",
+    ),
+    (
+        ".local/share/commandcode",
+        "Library/Application Support/CommandCode",
+    ),
+    (
+        ".local/share/goose/sessions/sessions.db",
+        "Library/Application Support/goose/sessions/sessions.db",
+    ),
+    (
+        ".local/share/goose/sessions/sessions.db",
+        ".local/share/Block/goose/sessions/sessions.db",
+    ),
+    (".kiro/data.sqlite3", ".local/share/amazon-q/data.sqlite3"),
+    (
+        ".kiro/data.sqlite3",
+        "Library/Application Support/amazon-q/data.sqlite3",
+    ),
+    (
+        ".local/share/zed/threads/threads.db",
+        "Library/Application Support/Zed/threads/threads.db",
+    ),
+];
+
+/// Copy `home` to `into` with the tree at `from` moved to `to`.
+pub fn relocate(home: &Path, into: &Path, from: &str, to: &str) {
+    copy_tree(home, into);
+    let target = into.join(to);
+    fs::create_dir_all(target.parent().unwrap()).unwrap();
+    fs::rename(into.join(from), target).unwrap();
+}
 
 /// Copy a golden case into `home` where its default root would find it, with
 /// no environment override. Cases whose manifest sets `home` or `cwd` to the
