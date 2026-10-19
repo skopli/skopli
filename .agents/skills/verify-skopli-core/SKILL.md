@@ -142,11 +142,11 @@ A reader may return an event whose timestamp no longer parses; when it does, the
 - Every file, JSON or not, replaced by the empty file, its first byte, its first half, all but its last byte, a lone `{`, and five bytes of binary.
 
 `token_cells_reach_their_own_event_field` is the mapping check.
-A token cell is a leaf whose name says which counter it is (`input`/`prompt`/`cachemiss`, `output`/`completion`/`candidates`, `cache`, `reason`/`thought`); a leaf named `tokens` takes its parent's name (`input.tokens`), and cells whose path says `total`, `cost` or `price` are derived and skipped.
+A token cell is a leaf whose name says which counter it is (`input`/`prompt`/`cachemiss`, `output`/`completion`/`candidates`, `cache` split into a write when the path says `write` or `creat` and into the 1h write when the leaf says `1h`, otherwise a read, `reason`/`thought`); a leaf named `tokens` takes its parent's name (`input.tokens`), and cells whose path says `total`, `cost` or `price` are derived and skipped.
 A cell is live when removing its record (the deepest array element on its path, or the whole document) changes the events; inert cells are skipped and counted.
 For each live cell the check bumps the cell by one, keeping any sibling `total` consistent so a reader that reads the total to decide whether the input includes cached tokens keeps its reading, and overwrites the cell with text.
-The bump must move exactly one of the class's own counters (`input`; `output`; one of `cacheRead`, `cacheWrite`, `cacheWrite1h`; `reasoning`) by exactly one, may also move the one counter readers derive by subtracting that class (`input` for a cache cell, since `prompt` includes cached tokens; `output` for a reasoning cell, since `completion` includes reasoning) by exactly minus one, and may move nothing else; or it must turn the record into a diagnostic.
-A bump that moves any other counter, moves the derived counter the wrong way, or moves no own counter is a dimension swap; one that moves an own counter by anything but one is a scaling; one that moves nothing and raises nothing is an ignored cell.
+The bump must move the class's own counter (`input`, `output`, `cacheRead`, `cacheWrite`, `cacheWrite1h` or `reasoning`, one class per counter) by exactly one, may also move the one counter readers derive by subtracting that class (`input` for a cache cell, since `prompt` includes cached tokens; `output` for a reasoning cell, since `completion` includes reasoning) by exactly minus one, and may move nothing else; or it must turn the record into a diagnostic.
+A bump that moves any other counter, moves the derived counter the wrong way, or leaves the own counter unmoved is a dimension swap; one that moves the own counter by anything but one is a scaling; one that moves nothing and raises nothing is an ignored cell.
 The text overwrite may keep or drop the record, but a drop must raise a diagnostic.
 Three literal tables in the test keep the check honest:
 
@@ -172,7 +172,7 @@ Not covered: the token mapping of the nine readers in `NO_MAPPING_COVERAGE` (`ch
 ### Assumptions
 
 - The golden corpus is a faithful sample of each harness's record grammar; a cell shape absent from it is not exercised.
-- A cell name tells its class.
+- A cell name tells its class, including which side of the cache it is on: a bare `cache`, `cached` or `cacheInputTokens` is a read in every reader of the corpus.
   A harness that names an input counter `output` would be flagged as a swap, and the fix would be an `IGNORED_BY_DESIGN` entry with the harness's documentation as the reason.
 - The wire read is the only path the facades take to the readers, so a diagnostic there counts as reported.
 
@@ -195,6 +195,7 @@ The check was shown to catch each of these deliberate breaks, applied one at a t
 | --------------------------------------------------------------------------------- | ------------------- | ------------------------------------------------------------------- |
 | swap `input` and `output` in the claude token struct                              | `readers/claude.rs` | mapping: `dimension swap in claude/basic (22 runs)`, 28 of 630 runs |
 | swap `input` and `cache_read` in the claude token struct                          | `readers/claude.rs` | mapping: `dimension swap in claude/basic (21 runs)`, 26 of 630 runs |
+| swap `cache_read` and `cache_write` in the claude token struct                    | `readers/claude.rs` | mapping: `dimension swap in claude/basic (20 runs)`, 24 of 630 runs |
 | report a gemini record with unreadable tokens as well-formed (`malformed: false`) | `readers/gemini.rs` | mapping: `silent drop in gemini/basic (9 runs)`                     |
 | `unwrap()` the codex `input_tokens` cell instead of reading it as a number        | `readers/codex.rs`  | totality: `panic in codex/archived (14 runs)`, 147 of 15,905 runs   |
 

@@ -305,7 +305,10 @@ pub fn record_of(leaf: &[String]) -> &[String] {
 pub fn bump(value: &mut Value, leaf: &[String], class: TokenClass) {
     let n = integer_cell(get_mut(value, leaf)).unwrap();
     *get_mut(value, leaf) = Value::from(n + 1);
-    if class == TokenClass::Cache {
+    if matches!(
+        class,
+        TokenClass::CacheRead | TokenClass::CacheWrite | TokenClass::CacheWrite1h
+    ) {
         return;
     }
     let (_, parent) = leaf.split_last().unwrap();
@@ -387,7 +390,9 @@ pub fn damaged(bytes: &[u8]) -> Vec<(&'static str, Vec<u8>)> {
 pub enum TokenClass {
     Input,
     Output,
-    Cache,
+    CacheRead,
+    CacheWrite,
+    CacheWrite1h,
     Reasoning,
 }
 
@@ -409,7 +414,13 @@ impl TokenClass {
         } else if last.contains("cachemiss") {
             Some(Self::Input)
         } else if p.contains("cache") {
-            Some(Self::Cache)
+            Some(if last.contains("1h") {
+                Self::CacheWrite1h
+            } else if p.contains("write") || p.contains("creat") {
+                Self::CacheWrite
+            } else {
+                Self::CacheRead
+            })
         } else if last.contains("input") || last.contains("prompt") {
             Some(Self::Input)
         } else if last.contains("output")
@@ -422,14 +433,16 @@ impl TokenClass {
         }
     }
 
-    /// The event counters a cell of this class speaks for; a bump must move
-    /// exactly one of them by `+1`.
-    pub fn own(self) -> &'static [&'static str] {
+    /// The event counter a cell of this class speaks for; a bump must move it
+    /// by `+1`.
+    pub fn own(self) -> &'static str {
         match self {
-            Self::Input => &["input"],
-            Self::Output => &["output"],
-            Self::Cache => &["cacheRead", "cacheWrite", "cacheWrite1h"],
-            Self::Reasoning => &["reasoning"],
+            Self::Input => "input",
+            Self::Output => "output",
+            Self::CacheRead => "cacheRead",
+            Self::CacheWrite => "cacheWrite",
+            Self::CacheWrite1h => "cacheWrite1h",
+            Self::Reasoning => "reasoning",
         }
     }
 
@@ -437,7 +450,7 @@ impl TokenClass {
     /// minus cached, completion minus reasoning); a bump may move it by `-1`.
     pub fn derived(self) -> Option<&'static str> {
         match self {
-            Self::Cache => Some("input"),
+            Self::CacheRead | Self::CacheWrite | Self::CacheWrite1h => Some("input"),
             Self::Reasoning => Some("output"),
             Self::Input | Self::Output => None,
         }
@@ -493,9 +506,9 @@ impl Outcome {
 /// A failed verdict: the failure class and the counterexample.
 pub type Fault = (&'static str, String);
 
-/// The verdict for one token cell bumped by `+1`: exactly one of the class's
-/// own counters moves by `+1`, at most its derived counter moves by `-1`, or
-/// the record becomes a diagnostic.
+/// The verdict for one token cell bumped by `+1`: the class's own counter
+/// moves by `+1`, at most its derived counter moves by `-1`, or the record
+/// becomes a diagnostic.
 pub fn judge_bump(class: TokenClass, base: &Outcome, bumped: &Outcome) -> Result<(), Fault> {
     if bumped.events < base.events {
         return if bumped.diagnostics > base.diagnostics {
@@ -523,11 +536,9 @@ pub fn judge_bump(class: TokenClass, base: &Outcome, bumped: &Outcome) -> Result
             ))
         };
     }
-    let mut own = 0;
+    let own = class.own();
     for &(name, delta) in &moved {
-        let is_own = class.own().contains(&name);
-        own += usize::from(is_own);
-        let want = if is_own {
+        let want = if name == own {
             1
         } else if class.derived() == Some(name) {
             -1
@@ -536,15 +547,19 @@ pub fn judge_bump(class: TokenClass, base: &Outcome, bumped: &Outcome) -> Result
         };
         if delta != want {
             return Err((
-                if is_own { "scaled" } else { "dimension swap" },
+                if name == own {
+                    "scaled"
+                } else {
+                    "dimension swap"
+                },
                 format!("a {class:?} cell bumped by 1 moved {name} by {delta}; moved {moved:?}"),
             ));
         }
     }
-    if own != 1 {
+    if moved.iter().all(|&(name, _)| name != own) {
         return Err((
             "dimension swap",
-            format!("a {class:?} cell moved {own} of its own counters; moved {moved:?}"),
+            format!("a {class:?} cell bumped by 1 left {own} unmoved; moved {moved:?}"),
         ));
     }
     Ok(())
