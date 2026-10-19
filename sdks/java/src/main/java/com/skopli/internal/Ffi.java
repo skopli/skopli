@@ -102,8 +102,8 @@ public final class Ffi {
 
     /** Count the prices the core parser extracts from one raw source payload by
      * building a throwaway native handle holding exactly that catalog. Returns 0
-     * when the build fails or the payload parses to no prices, so the facade never
-     * reimplements a source parser. */
+     * when the build fails or the payload parses to no prices. The count comes
+     * from the core parser, so the facade never reimplements one. */
     public static long probeModelCount(String source, String format, Object payload) {
         Map<String, Object> catalog = new LinkedHashMap<>();
         catalog.put("source", source);
