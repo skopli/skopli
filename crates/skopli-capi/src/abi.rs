@@ -90,10 +90,54 @@ thread_local! {
     static LAST_ERROR: RefCell<Option<CString>> = const { RefCell::new(None) };
 }
 
+/// A failed entry point: the status to return and the detail to record. Built
+/// at the point of failure, recorded once by [`entry`].
+pub(crate) struct AgError {
+    pub(crate) status: AgStatus,
+    pub(crate) message: String,
+}
+
+impl AgError {
+    pub(crate) fn invalid(message: impl Into<String>) -> Self {
+        Self::new(AgStatus::InvalidArgument, message)
+    }
+
+    pub(crate) fn catalog(message: impl Into<String>) -> Self {
+        Self::new(AgStatus::Catalog, message)
+    }
+
+    pub(crate) fn internal(message: impl Into<String>) -> Self {
+        Self::new(AgStatus::Internal, message)
+    }
+
+    fn new(status: AgStatus, message: impl Into<String>) -> Self {
+        Self {
+            status,
+            message: message.into(),
+        }
+    }
+}
+
+/// The one error path of every fallible entry point: clear the stale message,
+/// run `body` under [`guard`], and on failure record its detail and return its
+/// status. `Ok(())` is [`AgStatus::Ok`].
+pub(crate) fn entry(body: impl FnOnce() -> Result<(), AgError>) -> AgStatus {
+    guard(|| {
+        clear_last_error();
+        match body() {
+            Ok(()) => AgStatus::Ok,
+            Err(e) => {
+                set_last_error(e.message);
+                e.status
+            }
+        }
+    })
+}
+
 /// Record `message` as this thread's last error detail (see
 /// [`ag_last_error_message`]). Interior NULs are stripped so the C string is
 /// always well-formed.
-pub(crate) fn set_last_error(message: impl Into<String>) {
+fn set_last_error(message: impl Into<String>) {
     let raw = message.into().replace('\0', " ");
     let c = CString::new(raw).unwrap_or_else(|_| CString::new("error").unwrap());
     LAST_ERROR.with(|slot| *slot.borrow_mut() = Some(c));
@@ -101,7 +145,7 @@ pub(crate) fn set_last_error(message: impl Into<String>) {
 
 /// Clear this thread's last error detail (called at the top of each fallible fn
 /// so a stale message from a previous call cannot leak into a later success).
-pub(crate) fn clear_last_error() {
+fn clear_last_error() {
     LAST_ERROR.with(|slot| *slot.borrow_mut() = None);
 }
 

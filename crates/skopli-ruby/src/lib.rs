@@ -24,14 +24,10 @@
 
 mod gvl;
 mod modules;
-mod parse;
-mod pipeline;
-mod pricing_opts;
-mod wire;
-
 use magnus::value::Lazy;
 use magnus::{Error, ExceptionClass, RClass, RModule, Ruby, function, method, prelude::*};
 use serde_json::Value;
+use skopli_wire::{parse, pipeline, pricing_opts, read, wire};
 
 use modules::{ErrKind, RubyResultExt, flatten_fallible, flatten_infallible};
 
@@ -106,7 +102,7 @@ fn default_cache_dir(ruby: &Ruby) -> Result<String, Error> {
 fn detect_harnesses(ruby: &Ruby, options_json: String) -> Result<String, Error> {
     flatten_fallible(gvl::without_gvl(move || {
         let value = parse_json(&options_json)?;
-        to_json(&pipeline::detect(&value))
+        to_json(&read::detect(&value))
     }))
     .into_ruby_err(ruby)
 }
@@ -117,8 +113,8 @@ fn detect_harnesses(ruby: &Ruby, options_json: String) -> Result<String, Error> 
 fn read_usage(ruby: &Ruby, options_json: String) -> Result<String, Error> {
     flatten_fallible(gvl::without_gvl(move || {
         let value = parse_json(&options_json)?;
-        let options = pipeline::parse_read_options(&value).map_err(DomainError::invalid)?;
-        to_json(&pipeline::read_usage(&options))
+        let options = read::parse_read_options(&value).map_err(DomainError::invalid)?;
+        to_json(&read::read_usage(&options))
     }))
     .into_ruby_err(ruby)
 }

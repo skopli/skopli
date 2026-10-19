@@ -17,9 +17,8 @@ This gem is crate-local: the same directory is both a Cargo crate
 ```
 crates/skopli-ruby/
   Cargo.toml            # cdylib crate `skopli` (magnus + rb-sys)
-  src/                  # Rust: lib.rs (magnus binding) + gvl/modules/parse/
-                        #       pipeline/pricing_opts/wire (JSON boundary, shared
-                        #       with skopli-py)
+  src/                  # Rust: lib.rs (magnus binding) + gvl/modules; the JSON
+                        #       boundary is the shared skopli-wire crate
   skopli.gemspec    # crate-local gemspec
   Rakefile              # rake compile (rb_sys/extensiontask) + rake test
   ext/skopli/extconf.rb  # rb-sys create_rust_makefile

@@ -22,9 +22,7 @@
 
 mod abi;
 mod json;
-mod pipeline;
 mod pricing_opts;
-mod wire;
 
 use std::ffi::{CString, c_char};
 
@@ -42,7 +40,8 @@ pub use abi::{AgBuf, AgStatus, ag_buf_free, ag_last_error_message, ag_string_fre
 #[doc(hidden)]
 pub use pricing_opts::{SourceUrls, pricing_from_options_with_urls};
 
-use abi::{clear_last_error, guard, guard_value, set_last_error};
+use abi::{AgError, entry, guard, guard_value};
+use skopli_wire::{parse, pipeline, read, wire};
 
 /// The ABI version. Bump on any breaking change to the exported symbols or their
 /// contracts. Additive JSON keys do NOT bump this.
@@ -80,7 +79,7 @@ pub extern "C" fn ag_version() -> *const c_char {
 // and re-exported above (fns 4-6).
 
 // ---------------------------------------------------------------------------
-// Pipeline (9)
+// Pipeline (11)
 // ---------------------------------------------------------------------------
 
 /// Detect which registered harnesses have readable data reachable from the
@@ -96,9 +95,9 @@ pub unsafe extern "C" fn ag_detect_harnesses(
     opts_len: usize,
     out: *mut AgBuf,
 ) -> AgStatus {
-    with_out(out, opts_json, opts_len, |opts| {
-        let value = pipeline::detect(&opts);
-        Ok(value)
+    entry(|| {
+        let opts = unsafe { json::read_json_opt(opts_json, opts_len) }?;
+        write_json(out, read::detect(&opts))
     })
 }
 
@@ -115,21 +114,10 @@ pub unsafe extern "C" fn ag_read_usage(
     opts_len: usize,
     out: *mut AgBuf,
 ) -> AgStatus {
-    guard(|| {
-        clear_last_error();
-        let opts = match unsafe { json::read_json_opt(opts_json, opts_len) } {
-            Ok(v) => v,
-            Err(s) => return s,
-        };
-        let options = match pipeline::parse_read_options(&opts) {
-            Ok(o) => o,
-            Err(msg) => {
-                set_last_error(msg);
-                return AgStatus::InvalidArgument;
-            }
-        };
-        let value = pipeline::read_usage(&options);
-        write_json(out, value)
+    entry(|| {
+        let opts = unsafe { json::read_json_opt(opts_json, opts_len) }?;
+        let options = read::parse_read_options(&opts).map_err(AgError::invalid)?;
+        write_json(out, read::read_usage(&options))
     })
 }
 
@@ -147,23 +135,11 @@ pub unsafe extern "C" fn ag_rollup(
     opts_len: usize,
     out: *mut AgBuf,
 ) -> AgStatus {
-    guard(|| {
-        clear_last_error();
-        let events = match unsafe { read_events(events_json, events_len) } {
-            Ok(e) => e,
-            Err(s) => return s,
-        };
-        let opts = match unsafe { json::read_json_opt(opts_json, opts_len) } {
-            Ok(v) => v,
-            Err(s) => return s,
-        };
-        match pipeline::rollup_events(&events, &opts) {
-            Ok(value) => write_json(out, value),
-            Err(msg) => {
-                set_last_error(msg);
-                AgStatus::InvalidArgument
-            }
-        }
+    entry(|| {
+        let events = unsafe { read_events(events_json, events_len) }?;
+        let opts = unsafe { json::read_json_opt(opts_json, opts_len) }?;
+        let value = pipeline::rollup_events(&events, &opts).map_err(AgError::invalid)?;
+        write_json(out, value)
     })
 }
 
@@ -181,38 +157,14 @@ pub unsafe extern "C" fn ag_cost_usd(
     price_len: usize,
     out: *mut f64,
 ) -> AgStatus {
-    guard(|| {
-        clear_last_error();
-        if out.is_null() {
-            set_last_error("out pointer is null");
-            return AgStatus::InvalidArgument;
-        }
-        let tokens_v = match unsafe { json::read_json_opt(tokens_json, tokens_len) } {
-            Ok(v) => v,
-            Err(s) => return s,
-        };
-        let price_v = match unsafe { json::read_json_opt(price_json, price_len) } {
-            Ok(v) => v,
-            Err(s) => return s,
-        };
-        let tokens: skopli_core::types::TokenCounts =
-            match skopli_wire::parse::parse_tokens(&tokens_v) {
-                Ok(t) => t,
-                Err(msg) => {
-                    set_last_error(msg);
-                    return AgStatus::InvalidArgument;
-                }
-            };
-        let price = match skopli_wire::parse::parse_price(&price_v) {
-            Ok(p) => p,
-            Err(msg) => {
-                set_last_error(msg);
-                return AgStatus::InvalidArgument;
-            }
-        };
-        let usd = skopli_core::pricing::cost_usd(&tokens, &price);
-        unsafe { *out = usd };
-        AgStatus::Ok
+    entry(|| {
+        let out = non_null(out)?;
+        let tokens_v = unsafe { json::read_json_opt(tokens_json, tokens_len) }?;
+        let price_v = unsafe { json::read_json_opt(price_json, price_len) }?;
+        let tokens = parse::parse_tokens(&tokens_v).map_err(AgError::invalid)?;
+        let price = parse::parse_price(&price_v).map_err(AgError::invalid)?;
+        unsafe { *out = skopli_core::pricing::cost_usd(&tokens, &price) };
+        Ok(())
     })
 }
 
@@ -223,22 +175,12 @@ pub unsafe extern "C" fn ag_cost_usd(
 /// `out` is a valid writable `*mut *mut c_char`.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn ag_default_cache_dir(out: *mut *mut c_char) -> AgStatus {
-    guard(|| {
-        clear_last_error();
-        if out.is_null() {
-            set_last_error("out pointer is null");
-            return AgStatus::InvalidArgument;
-        }
-        let dir = skopli_wire::parse::default_cache_dir();
-        let c = match CString::new(dir) {
-            Ok(c) => c,
-            Err(e) => {
-                set_last_error(format!("cache dir contains interior NUL: {e}"));
-                return AgStatus::Internal;
-            }
-        };
-        unsafe { *out = c.into_raw() };
-        AgStatus::Ok
+    entry(|| {
+        let out = non_null(out)?;
+        let dir = CString::new(parse::default_cache_dir())
+            .map_err(|e| AgError::internal(format!("cache dir contains interior NUL: {e}")))?;
+        unsafe { *out = dir.into_raw() };
+        Ok(())
     })
 }
 
@@ -264,27 +206,12 @@ pub unsafe extern "C" fn ag_pricing_new(
     opts_len: usize,
     out: *mut *mut AgPricing,
 ) -> AgStatus {
-    guard(|| {
-        clear_last_error();
-        if out.is_null() {
-            set_last_error("out pointer is null");
-            return AgStatus::InvalidArgument;
-        }
-        let opts = match unsafe { json::read_json_opt(opts_json, opts_len) } {
-            Ok(v) => v,
-            Err(s) => return s,
-        };
-        match pricing_opts::pricing_from_options(&opts) {
-            Ok(pricing) => {
-                let handle = Box::into_raw(Box::new(AgPricing { inner: pricing }));
-                unsafe { *out = handle };
-                AgStatus::Ok
-            }
-            Err(msg) => {
-                set_last_error(msg);
-                AgStatus::Catalog
-            }
-        }
+    entry(|| {
+        let out = non_null(out)?;
+        let opts = unsafe { json::read_json_opt(opts_json, opts_len) }?;
+        let pricing = pricing_opts::pricing_from_options(&opts).map_err(AgError::catalog)?;
+        unsafe { *out = Box::into_raw(Box::new(AgPricing { inner: pricing })) };
+        Ok(())
     })
 }
 
@@ -318,27 +245,12 @@ pub unsafe extern "C" fn ag_pricing_price_events(
     opts_len: usize,
     out: *mut AgBuf,
 ) -> AgStatus {
-    guard(|| {
-        clear_last_error();
-        let Some(handle) = (unsafe { pricing.as_ref() }) else {
-            set_last_error("pricing handle is null");
-            return AgStatus::InvalidArgument;
-        };
-        let events = match unsafe { read_events(events_json, events_len) } {
-            Ok(e) => e,
-            Err(s) => return s,
-        };
-        let opts = match unsafe { json::read_json_opt(opts_json, opts_len) } {
-            Ok(v) => v,
-            Err(s) => return s,
-        };
-        match pipeline::price_events(&handle.inner, &events, &opts) {
-            Ok(value) => write_json(out, value),
-            Err(msg) => {
-                set_last_error(msg);
-                AgStatus::Catalog
-            }
-        }
+    entry(|| {
+        let handle = unsafe { pricing_handle(pricing) }?;
+        let events = unsafe { read_events(events_json, events_len) }?;
+        let opts = unsafe { json::read_json_opt(opts_json, opts_len) }?;
+        let value = pipeline::price_events(handle, &events, &opts).map_err(AgError::catalog)?;
+        write_json(out, value)
     })
 }
 
@@ -357,30 +269,15 @@ pub unsafe extern "C" fn ag_pricing_lookup_model(
     model_len: usize,
     out: *mut AgBuf,
 ) -> AgStatus {
-    guard(|| {
-        clear_last_error();
-        let Some(handle) = (unsafe { pricing.as_ref() }) else {
-            set_last_error("pricing handle is null");
-            return AgStatus::InvalidArgument;
-        };
+    entry(|| {
+        let handle = unsafe { pricing_handle(pricing) }?;
         if model.is_null() || model_len == 0 {
-            set_last_error("model name buffer is null or empty");
-            return AgStatus::InvalidArgument;
+            return Err(AgError::invalid("model name buffer is null or empty"));
         }
         let bytes = unsafe { std::slice::from_raw_parts(model as *const u8, model_len) };
-        let name = match std::str::from_utf8(bytes) {
-            Ok(s) if !s.is_empty() => s,
-            Ok(_) => {
-                set_last_error("model name buffer is null or empty");
-                return AgStatus::InvalidArgument;
-            }
-            Err(e) => {
-                set_last_error(format!("model name is not valid UTF-8: {e}"));
-                return AgStatus::InvalidArgument;
-            }
-        };
-        let lookup = handle.inner.lookup_model(name);
-        write_json(out, skopli_wire::wire::price_lookup_json(&lookup))
+        let name = std::str::from_utf8(bytes)
+            .map_err(|e| AgError::invalid(format!("model name is not valid UTF-8: {e}")))?;
+        write_json(out, wire::price_lookup_json(&handle.lookup_model(name)))
     })
 }
 
@@ -400,23 +297,11 @@ pub unsafe extern "C" fn ag_pricing_price_rollups(
     rollups_len: usize,
     out: *mut AgBuf,
 ) -> AgStatus {
-    guard(|| {
-        clear_last_error();
-        let Some(handle) = (unsafe { pricing.as_ref() }) else {
-            set_last_error("pricing handle is null");
-            return AgStatus::InvalidArgument;
-        };
-        let rollups = match unsafe { json::read_json_opt(rollups_json, rollups_len) } {
-            Ok(v) => v,
-            Err(s) => return s,
-        };
-        match skopli_wire::pipeline::price_rollups(&handle.inner, &rollups) {
-            Ok(value) => write_json(out, value),
-            Err(msg) => {
-                set_last_error(msg);
-                AgStatus::Catalog
-            }
-        }
+    entry(|| {
+        let handle = unsafe { pricing_handle(pricing) }?;
+        let rollups = unsafe { json::read_json_opt(rollups_json, rollups_len) }?;
+        let value = pipeline::price_rollups(handle, &rollups).map_err(AgError::catalog)?;
+        write_json(out, value)
     })
 }
 
@@ -430,15 +315,13 @@ pub unsafe extern "C" fn ag_pricing_catalog_info(
     pricing: *const AgPricing,
     out: *mut AgBuf,
 ) -> AgStatus {
-    guard(|| {
-        clear_last_error();
-        let Some(handle) = (unsafe { pricing.as_ref() }) else {
-            set_last_error("pricing handle is null");
-            return AgStatus::InvalidArgument;
-        };
-        let infos = handle.inner.catalog_infos();
-        let value = Value::Array(infos.iter().map(wire::catalog_info_json).collect());
-        write_json(out, value)
+    entry(|| {
+        let handle = unsafe { pricing_handle(pricing) }?;
+        let infos = handle.catalog_infos();
+        write_json(
+            out,
+            Value::Array(infos.iter().map(wire::catalog_info_json).collect()),
+        )
     })
 }
 
@@ -457,53 +340,39 @@ pub struct AgPricing {
 // Internal helpers (not part of the ABI)
 // ---------------------------------------------------------------------------
 
-/// Run `body` producing a JSON value for a `(opts_json, out)` fallible fn,
-/// clearing the error, parsing options, and writing the result buffer.
-fn with_out(
-    out: *mut AgBuf,
-    opts_json: *const c_char,
-    opts_len: usize,
-    body: impl FnOnce(Value) -> Result<Value, AgStatus>,
-) -> AgStatus {
-    guard(|| {
-        clear_last_error();
-        let opts = match unsafe { json::read_json_opt(opts_json, opts_len) } {
-            Ok(v) => v,
-            Err(s) => return s,
-        };
-        match body(opts) {
-            Ok(value) => write_json(out, value),
-            Err(status) => status,
-        }
-    })
-}
-
-/// Serialize `value` to compact JSON and move it into `*out` as an owned
-/// `AgBuf`. `InvalidArgument` when `out` is null.
-fn write_json(out: *mut AgBuf, value: Value) -> AgStatus {
-    if out.is_null() {
-        set_last_error("out pointer is null");
-        return AgStatus::InvalidArgument;
-    }
-    let text = match serde_json::to_string(&value) {
-        Ok(t) => t,
-        Err(e) => {
-            set_last_error(format!("failed to serialize result: {e}"));
-            return AgStatus::Internal;
-        }
-    };
+/// Write `value` as a JSON buffer to `*out` (the shared success path of every
+/// `AgBuf`-returning function).
+fn write_json(out: *mut AgBuf, value: Value) -> Result<(), AgError> {
+    let out = non_null(out)?;
+    let text = serde_json::to_string(&value)
+        .map_err(|e| AgError::internal(format!("failed to serialize result: {e}")))?;
     unsafe { *out = AgBuf::from_string(text) };
-    AgStatus::Ok
+    Ok(())
 }
 
-/// Read and parse a `UsageEvent[]` from a JSON buffer. A null/empty buffer is an
-/// empty slice. Parsing itself is shared with the other bindings via
-/// [`skopli_wire::parse::parse_events`]; only the FFI buffer read and the
-/// error-channel mapping are capi-specific.
-unsafe fn read_events(ptr: *const c_char, len: usize) -> Result<Vec<UsageEvent>, AgStatus> {
+fn non_null<T>(out: *mut T) -> Result<*mut T, AgError> {
+    if out.is_null() {
+        return Err(AgError::invalid("out pointer is null"));
+    }
+    Ok(out)
+}
+
+/// Borrow the core engine behind an `AgPricing` handle.
+///
+/// # Safety
+/// `pricing` is null or a handle from `ag_pricing_new` not yet freed.
+unsafe fn pricing_handle<'a>(pricing: *const AgPricing) -> Result<&'a Pricing, AgError> {
+    match unsafe { pricing.as_ref() } {
+        Some(handle) => Ok(&handle.inner),
+        None => Err(AgError::invalid("pricing handle is null")),
+    }
+}
+
+/// Read a nullable JSON buffer holding a `UsageEvent[]`.
+///
+/// # Safety
+/// See [`json::read_json_opt`].
+unsafe fn read_events(ptr: *const c_char, len: usize) -> Result<Vec<UsageEvent>, AgError> {
     let value = unsafe { json::read_json_opt(ptr, len) }?;
-    skopli_wire::parse::parse_events(&value).map_err(|msg| {
-        set_last_error(msg);
-        AgStatus::InvalidArgument
-    })
+    parse::parse_events(&value).map_err(AgError::invalid)
 }

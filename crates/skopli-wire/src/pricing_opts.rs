@@ -1,13 +1,14 @@
-//! Build a core [`Pricing`] instance from the `create_pricing` options JSON,
-//! shared by the direct-core bindings whose facade owns network fetching and the
-//! on-disk cache (`skopli-py`, `skopli-ruby`). `skopli-capi` and
-//! `skopli-node` carry their own option shapes (the capi one has an FFI
-//! layer; node lacks the `overrides` path), so they do NOT use this module.
+//! Build a core [`Pricing`] instance from the `create_pricing` options JSON.
+//! This is the one option grammar every direct-core binding speaks
+//! (`skopli-node`, `skopli-py`, `skopli-ruby`); `skopli-capi` builds on
+//! [`parse_pricing_parts`] and appends its net-gated built-in catalogs.
 //!
 //! Seam split: a caller supplies pricing either as programmatic
-//! `overrides` or as pre-fetched `catalogs` (each a source name + optional
+//! `overrides`, as pre-fetched `catalogs` (each a source name + optional
 //! fetchedAt + a prices map already in the core catalog grammar, OR a raw source
-//! payload plus its `format`). `builtin_sources`/`offline`/`max_cache_age_ms`
+//! payload plus its `format`), or as both. A facade that already loaded its
+//! override map as one of the `catalogs` (the TS facade does) names it with
+//! `overrideIndex` instead. `builtinSources`/`offline`/`maxCacheAgeMs`
 //! steer facade-side fetching, so they are accepted-and-ignored keys here (this
 //! crate never fetches).
 
@@ -25,11 +26,16 @@ pub fn pricing_from_options(opts: &Value) -> Result<Pricing, String> {
     Ok(Pricing::new(catalogs, override_index, mode))
 }
 
-/// Parse the shared `create_pricing` options into the raw parts of a [`Pricing`]
-/// — the priority-ordered catalog list, the override catalog index (if any), and
-/// the mode — WITHOUT constructing the instance. Bindings whose seam adds extra
+/// Parse the shared `create_pricing` options into the raw parts of a [`Pricing`]:
+/// the priority-ordered catalog list, the override catalog index (if any), and
+/// the mode, WITHOUT constructing the instance. Bindings whose seam adds extra
 /// catalogs before construction (the C ABI appends built-in sources at the
 /// lowest priority) build on this; [`pricing_from_options`] is the plain path.
+///
+/// The override catalog is the `overrides` list when given; otherwise
+/// `overrideIndex` names one of the `catalogs` (an out-of-range index means no
+/// override catalog). The override catalog does NOT skip zero-cost placeholders:
+/// an explicit $0 override is intentional.
 pub fn parse_pricing_parts(
     opts: &Value,
 ) -> Result<(Vec<PricingCatalog>, Option<usize>, PricingMode), String> {
@@ -72,6 +78,14 @@ pub fn parse_pricing_parts(
         for entry in list {
             catalogs.push(parse_catalog(entry)?);
         }
+    }
+
+    if override_index.is_none() {
+        override_index = opts
+            .get("overrideIndex")
+            .and_then(Value::as_u64)
+            .map(|i| i as usize)
+            .filter(|&i| i < catalogs.len());
     }
 
     Ok((catalogs, override_index, mode))
@@ -167,5 +181,29 @@ mod tests {
         let pricing = pricing_from_options(&opts).expect("pricing builds");
         let price = hit(&pricing, "m").expect("hit");
         assert_eq!(price.tiers.as_ref().map(Vec::len), Some(1));
+    }
+
+    #[test]
+    fn override_index_selects_the_override_catalog() {
+        let opts = json!({
+            "overrideIndex": 0,
+            "catalogs": [
+                { "source": "override", "fetchedAt": null, "prices": { "free": { "input": 0, "output": 0 } } },
+                { "source": "market", "prices": { "free": { "input": 1, "output": 1 } } }
+            ]
+        });
+        let pricing = pricing_from_options(&opts).expect("pricing builds");
+        let price = hit(&pricing, "free").expect("hit");
+        assert_eq!(price.input, 0.0);
+    }
+
+    #[test]
+    fn out_of_range_override_index_is_ignored() {
+        let opts = json!({
+            "overrideIndex": 5,
+            "catalogs": [{ "source": "market", "prices": { "free": { "input": 0, "output": 0 } } }]
+        });
+        let pricing = pricing_from_options(&opts).expect("pricing builds");
+        assert!(hit(&pricing, "free").is_none());
     }
 }
