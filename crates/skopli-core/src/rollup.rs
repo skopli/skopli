@@ -191,14 +191,14 @@ fn within_hour(ms: i64, tz: Option<&str>) -> i64 {
 }
 
 /// The start of the block an event at `ms` opens: the instant floored to the
-/// width grain, measured from the start of its wall-clock hour (`within_hour`
-/// milliseconds earlier). The grain is `width` below one hour and the hour
-/// otherwise, so consecutive blocks always have distinct, ascending starts.
-/// Because the grain restarts at each hour, a sub-hour width that does not
-/// divide the hour can start a block inside the previous block's
+/// width grain, measured from the start of its wall-clock hour (`within`
+/// milliseconds earlier, see `within_hour`). The grain is `width` below one
+/// hour and the hour otherwise, so consecutive blocks always have distinct,
+/// ascending starts. Because the grain restarts at each hour, a sub-hour width
+/// that does not divide the hour can start a block inside the previous block's
 /// `[start, start + width)`; the earlier block keeps the events in that span.
-pub fn block_start(ms: i64, within_hour: i64, width: i64) -> i64 {
-    ms - within_hour % width.min(HOUR_MS)
+pub fn block_start(ms: i64, within: i64, width: i64) -> i64 {
+    ms - within % width.min(HOUR_MS)
 }
 
 /// The first instant past a block: `start + width`, saturating so an extreme
