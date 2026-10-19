@@ -10,8 +10,9 @@ export type RollupOptions = {
   // IANA timezone for day bucketing and block-start flooring; defaults to
   // the system timezone
   tz?: string;
-  // billing-block width in milliseconds (by === "block" only); a missing or
-  // non-positive value uses DEFAULT_BLOCK_MS
+  // billing-block width in whole milliseconds (by === "block" only); a
+  // missing, fractional or non-positive value uses DEFAULT_BLOCK_MS, the same
+  // rule the wire applies when it reads blockMs as an i64
   blockMs?: number;
 };
 
@@ -242,7 +243,7 @@ function blockEnd(start: number, width: number): number {
 // Mirrors block_rollup in rollup.rs.
 function blockRollup(events: UsageEvent[], options: RollupOptions): Rollup[] {
   const width =
-    options.blockMs !== undefined && Number.isFinite(options.blockMs) && options.blockMs > 0
+    options.blockMs !== undefined && Number.isInteger(options.blockMs) && options.blockMs > 0
       ? options.blockMs
       : DEFAULT_BLOCK_MS;
 
