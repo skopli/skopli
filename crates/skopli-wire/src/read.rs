@@ -235,8 +235,7 @@ fn events_json(events: &[UsageEvent]) -> Vec<Value> {
 }
 
 /// A reader warning as a wire `Diagnostic`. Readers end their messages with one
-/// newline for the ambient warn sink; the wire strips exactly that one, matching
-/// the TS `text.replace(/\n$/, "")`.
+/// newline for the ambient warn sink; the wire strips exactly that one.
 fn warning_json(harness: &str, warning: &ReaderWarning) -> Value {
     let message = warning
         .message
