@@ -258,13 +258,16 @@ function blockRollup(events: UsageEvent[], options: RollupOptions): Rollup[] {
   let end: number | undefined;
   for (const { event, ms } of ordered) {
     if (ms === undefined) {
-      if (current?.key !== "invalid-date") current = emptyRollup("invalid-date");
+      if (current?.key !== "invalid-date") {
+        current = emptyRollup("invalid-date");
+        out.push(current);
+      }
     } else if (current === undefined || end === undefined || ms >= end) {
       const start = blockStart(ms, withinHour(ms, options.tz), width);
       end = blockEnd(start, width);
       current = emptyRollup(new Date(start).toISOString());
+      out.push(current);
     }
-    if (out.at(-1) !== current) out.push(current);
     accumulate(current, event);
   }
   return out;
