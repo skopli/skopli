@@ -466,38 +466,50 @@ pub const COUNTERS: [&str; 6] = [
     "reasoning",
 ];
 
-/// Per-counter totals over the events, in `COUNTERS` order.
-pub fn totals(events: &[UsageEvent]) -> [i128; 6] {
-    let mut t = [0i128; 6];
-    for e in events {
-        let k = &e.tokens;
-        for (slot, v) in t.iter_mut().zip([
-            k.input,
-            k.output,
-            k.cache_read,
-            k.cache_write,
-            k.cache_write1h.unwrap_or(0),
-            k.reasoning,
-        ]) {
-            *slot += i128::from(v);
-        }
-    }
-    t
+/// One event's counters in `COUNTERS` order.
+pub fn counters(e: &UsageEvent) -> [i128; 6] {
+    let k = &e.tokens;
+    [
+        k.input,
+        k.output,
+        k.cache_read,
+        k.cache_write,
+        k.cache_write1h.unwrap_or(0),
+        k.reasoning,
+    ]
+    .map(i128::from)
 }
 
-/// The event-level view the two mapping checks compare: counters, event
-/// count and diagnostic count.
+/// The identity a reader emits for one event: timestamp, session, message
+/// and model. Readers that walk hash maps emit in no fixed order, so the
+/// mapping checks sort by this instead of trusting emission order.
+pub type Identity = (String, String, String, String);
+
+/// The event-level view the two mapping checks compare: every event's
+/// identity and counters, sorted by identity, and the diagnostic count.
 pub struct Outcome {
-    pub totals: [i128; 6],
-    pub events: usize,
+    pub events: Vec<(Identity, [i128; 6])>,
     pub diagnostics: usize,
 }
 
 impl Outcome {
     pub fn of(r: &ReaderResult) -> Self {
+        let mut events: Vec<_> = r
+            .events
+            .iter()
+            .map(|e| {
+                let id = (
+                    e.timestamp.clone(),
+                    e.session_id.clone(),
+                    e.message_id.clone(),
+                    e.model.clone(),
+                );
+                (id, counters(e))
+            })
+            .collect();
+        events.sort();
         Outcome {
-            totals: totals(&r.events),
-            events: r.events.len(),
+            events,
             diagnostics: diagnostics(r),
         }
     }
@@ -506,11 +518,11 @@ impl Outcome {
 /// A failed verdict: the failure class and the counterexample.
 pub type Fault = (&'static str, String);
 
-/// The verdict for one token cell bumped by `+1`: the class's own counter
-/// moves by `+1`, at most its derived counter moves by `-1`, or the record
-/// becomes a diagnostic.
+/// The verdict for one token cell bumped by `+1`: exactly one event changes
+/// and keeps its identity, its class's own counter moves by `+1`, at most its
+/// derived counter moves by `-1`, or the record becomes a diagnostic.
 pub fn judge_bump(class: TokenClass, base: &Outcome, bumped: &Outcome) -> Result<(), Fault> {
-    if bumped.events < base.events {
+    if bumped.events.len() < base.events.len() {
         return if bumped.diagnostics > base.diagnostics {
             Ok(())
         } else {
@@ -520,11 +532,34 @@ pub fn judge_bump(class: TokenClass, base: &Outcome, bumped: &Outcome) -> Result
             ))
         };
     }
+    // The bump may change one event's counters in place or surface one event
+    // the reader dropped as all-zero; any other difference is misattribution.
+    let (b, a) = (&base.events, &bumped.events);
+    let prefix = b.iter().zip(a).take_while(|(x, y)| x == y).count();
+    let suffix = b[prefix..]
+        .iter()
+        .rev()
+        .zip(a[prefix..].iter().rev())
+        .take_while(|(x, y)| x == y)
+        .count();
+    let (before, after) = (&b[prefix..b.len() - suffix], &a[prefix..a.len() - suffix]);
+    let same_record = match (before, after) {
+        ([], [_]) | ([], []) => true,
+        ([(x, _)], [(y, _)]) => x == y,
+        _ => false,
+    };
+    if !same_record {
+        return Err((
+            "cross-event attribution",
+            format!("one cell bumped by 1 turned {before:?} into {after:?}"),
+        ));
+    }
     let moved: Vec<(&str, i128)> = COUNTERS
         .iter()
-        .zip(base.totals.iter().zip(&bumped.totals))
-        .filter(|(_, (a, b))| a != b)
-        .map(|(name, (a, b))| (*name, b - a))
+        .zip(before.first().map_or(&[0; 6], |(_, c)| c))
+        .zip(after.first().map_or(&[0; 6], |(_, c)| c))
+        .filter(|((_, a), b)| a != b)
+        .map(|((name, a), b)| (*name, b - a))
         .collect();
     if moved.is_empty() {
         return if bumped.diagnostics > base.diagnostics {
@@ -568,7 +603,7 @@ pub fn judge_bump(class: TokenClass, base: &Outcome, bumped: &Outcome) -> Result
 /// The verdict for a token cell overwritten with text: the record is kept or
 /// becomes a diagnostic, never silently lost.
 pub fn judge_corruption(base: &Outcome, corrupted: &Outcome) -> Result<(), Fault> {
-    if corrupted.events < base.events && corrupted.diagnostics <= base.diagnostics {
+    if corrupted.events.len() < base.events.len() && corrupted.diagnostics <= base.diagnostics {
         return Err((
             "silent drop",
             "a corrupted token cell lost the record without a diagnostic".to_owned(),
