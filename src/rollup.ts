@@ -79,7 +79,12 @@ function emptyRollup(key: string): Rollup {
   };
 }
 
-// Add one event's counters to a running sum. Each event's cacheWrite1h is
+// Add one event's counters to a running sum. Counters are JavaScript numbers,
+// so a sum past Number.MAX_SAFE_INTEGER (2^53 - 1) keeps growing but loses
+// integer precision, rounding to the nearest representable double, and a sum
+// past Number.MAX_VALUE becomes Infinity; it never wraps. The Rust core
+// saturates its u64 counters at 2^64 - 1 instead. Both rules keep a total
+// monotone, and they agree everywhere below 2^53. Each event's cacheWrite1h is
 // clamped to its own cacheWrite first, so one malformed event cannot rebill
 // other events' writes at the 1h rate. Mirrors add_tokens in rollup.rs.
 function addTokens(sum: TokenCounts, event: TokenCounts): void {

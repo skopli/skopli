@@ -70,8 +70,9 @@ impl RollupOptions {
     }
 }
 
-/// One aggregated row. `cost_usd` is omitted, never `null`, when no event in
-/// the row carried a finite cost.
+/// One aggregated row. Counters saturate at `u64::MAX` rather than wrapping.
+/// `cost_usd` is omitted, never `null`, when no event in the row carried a
+/// finite cost.
 #[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct Rollup {
     pub key: String,
@@ -99,26 +100,29 @@ impl Rollup {
 
     fn add(&mut self, event: &UsageEvent) {
         add_tokens(&mut self.tokens, &event.tokens);
-        self.events += 1;
-        self.turns += u64::from(event.turn);
-        self.calls += event.calls.unwrap_or(1);
+        self.events = self.events.saturating_add(1);
+        self.turns = self.turns.saturating_add(u64::from(event.turn));
+        self.calls = self.calls.saturating_add(event.calls.unwrap_or(1));
         if let Some(cost) = event.cost_usd.filter(|c| c.is_finite()) {
             self.cost_usd = Some(self.cost_usd.unwrap_or(0.0) + cost);
         }
     }
 }
 
-/// Add one event's counters to a running sum. Each event's `cache_write1h` is
-/// clamped to its own `cache_write` first, so one malformed event cannot rebill
-/// other events' writes at the 1h rate.
+/// Add one event's counters to a running sum. Every counter saturates at
+/// `u64::MAX` instead of wrapping, so a corrupt source can pin a total at the
+/// ceiling but never shrink it. Each event's `cache_write1h` is clamped to its
+/// own `cache_write` first, so one malformed event cannot rebill other events'
+/// writes at the 1h rate.
 pub fn add_tokens(sum: &mut TokenCounts, event: &TokenCounts) {
-    sum.input += event.input;
-    sum.output += event.output;
-    sum.cache_read += event.cache_read;
-    sum.cache_write += event.cache_write;
-    sum.reasoning += event.reasoning;
+    sum.input = sum.input.saturating_add(event.input);
+    sum.output = sum.output.saturating_add(event.output);
+    sum.cache_read = sum.cache_read.saturating_add(event.cache_read);
+    sum.cache_write = sum.cache_write.saturating_add(event.cache_write);
+    sum.reasoning = sum.reasoning.saturating_add(event.reasoning);
     if let Some(write1h) = event.cache_write1h {
-        sum.cache_write1h = Some(sum.cache_write1h.unwrap_or(0) + write1h.min(event.cache_write));
+        let clamped = write1h.min(event.cache_write);
+        sum.cache_write1h = Some(sum.cache_write1h.unwrap_or(0).saturating_add(clamped));
     }
 }
 
@@ -428,6 +432,24 @@ mod tests {
         let out = rollup(&[e1, e2], &RollupOptions::new(RollupBy::Model));
         assert_eq!(out[0].tokens.cache_write, 13);
         assert_eq!(out[0].tokens.cache_write1h, Some(8));
+    }
+
+    #[test]
+    fn counters_saturate_instead_of_wrapping() {
+        let mut e1 = event("m", "2026-01-01T00:00:00.000Z");
+        e1.tokens.input = u64::MAX;
+        e1.tokens.cache_write = u64::MAX;
+        e1.tokens.cache_write1h = Some(u64::MAX);
+        e1.calls = Some(u64::MAX);
+        let mut e2 = event("m", "2026-01-01T00:00:00.000Z");
+        e2.tokens.cache_write1h = Some(10);
+        e2.calls = Some(1);
+        let out = rollup(&[e1, e2], &RollupOptions::new(RollupBy::Model));
+        assert_eq!(out[0].tokens.input, u64::MAX);
+        assert_eq!(out[0].tokens.cache_write, u64::MAX);
+        assert_eq!(out[0].tokens.cache_write1h, Some(u64::MAX));
+        assert_eq!(out[0].calls, u64::MAX);
+        assert_eq!(out[0].tokens.output, 4);
     }
 
     #[test]
