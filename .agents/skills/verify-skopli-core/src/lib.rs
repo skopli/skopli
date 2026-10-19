@@ -7,8 +7,10 @@
 use skopli_core::rollup::{Rollup, RollupBy, RollupOptions};
 use skopli_core::types::{TokenCounts, UsageEvent};
 
+pub mod detect;
 #[cfg(kani)]
 mod kani_proofs;
+pub mod readers;
 
 pub const MAX_EVENTS: usize = 3;
 pub const KEYS: [&str; 3] = ["b", "a", "c"];

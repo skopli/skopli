@@ -1,13 +1,14 @@
 ---
 name: verify-skopli-core
-description: Bounded exhaustive check of the Rust rollup core in crates/skopli-core/src/rollup.rs against its documented promises and the TypeScript facade. Use before calling a change to rollup.rs, src/rollup.ts, the shared timestamp parser or the ISO formatter done, and whenever a reviewer asks whether a rollup can lose, invent or misfile a token.
+description: Bounded exhaustive checks of the Rust core in crates/skopli-core - the rollup against its documented promises and the TypeScript facade, every reader against damaged and shifted input, and harness detection against an enumerated marker table in both Rust and TypeScript. Use before calling a change to rollup.rs, src/rollup.ts, a reader, the detector in src/detect.ts or skopli-wire detect done, and whenever a reviewer asks whether a rollup can misfile a token, a reader can crash or drop a record silently, or a harness can go undetected.
 ---
 
 # Verify Skopli core
 
 `rollup()` is the one function every Skopli number passes through: the CLI, the wire format and all nine facades hand it a list of usage events and print what comes back.
 If it drops an event, counts a token twice, lets a cache split exceed its parent counter, or files an event in the wrong row, every report built on Skopli is wrong and nothing downstream can tell.
-This skill checks that it does none of those things, for every input in a small finite domain, and that the TypeScript twin in `src/rollup.ts` returns the same rows.
+The events come from forty readers in `crates/skopli-core/src/readers/`, each parsing a harness's own session files, and the harnesses come from two detectors that must agree on which homes hold which harness.
+This skill checks the rollup for every input in a small finite domain and parity with the TypeScript twin in `src/rollup.ts`, every reader against every single-cell and byte-level damage of its golden input, and both detectors against every layout of zero, one or two markers.
 
 ## Run
 
@@ -18,12 +19,15 @@ cargo test --release --manifest-path .agents/skills/verify-skopli-core/Cargo.tom
 ```
 
 The tool is `cargo test` on the toolchain pinned by `rust-toolchain.toml` (Rust 1.89.0).
-Node 24 is required because one test runs `src/rollup.ts` directly through Node's TypeScript support.
-The run takes under a minute after the first build and about ten seconds of that is the check itself.
-The Rust core is a path dependency, so the check always runs against the working tree.
+Node 24 is required because one test runs `src/rollup.ts` and one runs `src/detect.ts` directly through Node's TypeScript support.
+The run takes under a minute after the first build: the rollup check about eight seconds, the reader checks about two, the detection checks about four.
+The Rust core and the wire crate are path dependencies, so the check always runs against the working tree.
 The crate has its own `Cargo.lock`, seeded from the root `Cargo.lock` so the harness builds the core against the same `jiff` and bundled tzdb that ship; when the root lock changes, copy it over this one and let `cargo` prune it on the next run.
 
-## What is checked
+To see the run counts each check prints, add `-- --nocapture`.
+To run one target, add `--test rollup`, `--test readers` or `--test detect`.
+
+## Rollup
 
 Three tests live in `tests/rollup.rs`; the domain and the properties live in `src/lib.rs`.
 
@@ -124,8 +128,123 @@ The ascending-keys harness fails against the former hour-floor rule, which was c
 
 The formatting of a start into its key is `to_iso_string`, which allocates and is outside the kernels; it is pinned by the core's tests against literal V8 output and by the exhaustive check above.
 
+## Readers
+
+Three tests live in `tests/readers.rs`; the mutation and judgement helpers live in `src/readers.rs`.
+The domain is the golden corpus: every `golden/<harness>/<case>/` with an `input-manifest.json`, forty-five cases over all forty registered readers, copied into a scratch home and read through the real `Reader::read` with the context the manifest describes, exactly as `crates/skopli-core/tests/conformance.rs` builds it.
+Nothing in the expectations comes from the reader under test: the token classes come from the cell names in the harness's own files, the event counts from `expected-events.json`, the timestamp grammar from the shared parser.
+
+`readers_never_panic_on_damaged_input` is the totality check.
+For every file of every case it writes every variant below, runs the reader, and fails on a panic.
+A reader may return an event whose timestamp no longer parses; when it does, the check runs the wire read the facades call (`skopli_wire::read::read_usage`) on the same home and requires that exactly those events are dropped, each with an `unusable timestamp` diagnostic, so the facades never see one.
+
+- Every JSON leaf of every `.json`, `.jsonl` and `.ndjson` document, in turn, replaced by `null`, `""`, `"x"`, `-1`, `1e300`, `2^64`, `true`, `{}`, `[]`, and removed.
+- Every file, JSON or not, replaced by the empty file, its first byte, its first half, all but its last byte, a lone `{`, and five bytes of binary.
+
+`token_cells_reach_their_own_event_field` is the mapping check.
+A token cell is a leaf whose name says which counter it is (`input`/`prompt`, `output`/`completion`/`candidates`, `cache`, `reason`/`thought`); cells whose path says `total`, `cost` or `price` are derived and skipped.
+A cell is live when removing its record (the deepest array element on its path, or the whole document) changes the events; inert cells are skipped and counted.
+For each live cell the check bumps the cell by one, keeping any sibling `total` consistent so a reader that reads the total to decide whether the input includes cached tokens keeps its reading, and overwrites the cell with text.
+The bump must move only counters that class may speak for (its own, plus the ones readers derive from it: `prompt` minus cached, `completion` minus reasoning, the 1h split clamped under the writes), each by exactly one, or turn the record into a diagnostic.
+A bump that moves another counter is a dimension swap; one that moves a counter by more than one is a scaling; one that moves nothing and raises nothing is an ignored cell.
+The text overwrite may keep or drop the record, but a drop must raise a diagnostic.
+Two literal tables in the test keep the check honest:
+
+- `IGNORED_BY_DESIGN` names the live cells a reader reads around on purpose, each with the reason from the reader's own documentation (amp per-message usage behind a ledger, the claude 5m and clamped 1h splits, the deepseek chunk sample, the fx snapshot totals, prime child usage, the reasonix prompt total).
+  An entry that matches no cell fails the check, so the list cannot outlive the corpus.
+- `KNOWN_SILENT_DROPS` names the findings the check makes in the product today (below).
+  An entry that stops reproducing fails the check, so the list cannot outlive its fix.
+
+`readers_are_deterministic_and_timestamps_round_trip` reads each case twice and requires identical events, skipped and warnings; the event count must be the golden one; every timestamp must parse, format back through `to_iso_string` and parse to the same instant; every cost must be finite.
+
+### Bounds
+
+- One mutation per run: a single cell replaced or a single file damaged, never two at once.
+- 15,905 damaged inputs across the forty-five cases, 92 of which leave the reader with an unusable timestamp that the wire read drops.
+- 616 live token cell mutations, 91 inert cells skipped, 11 ignored-by-design entries exercised, 4 known silent drops reproduced.
+- Files the readers open through other means (SQLite databases, zstd streams) get only the byte-level damage, since they hold no JSON leaves to shift.
+
+Not covered: two faults in one record, faults in file names or directory structure, records the golden case does not contain, readers' handling of a cell type they never see in the corpus, and the exact diagnostic text.
+
+### Assumptions
+
+- The golden corpus is a faithful sample of each harness's record grammar; a cell shape absent from it is not exercised.
+- A cell name tells its class.
+  A harness that names an input counter `output` would be flagged as a swap, and the fix would be an `IGNORED_BY_DESIGN` entry with the harness's documentation as the reason.
+- The wire read is the only path the facades take to the readers, so a diagnostic there counts as reported.
+
+### Findings
+
+The check finds four silent drops in the product today, pinned in `KNOWN_SILENT_DROPS` and left for the reader owners to fix:
+
+| Reader | Record                         | Mutation                                           | Behaviour                                |
+| ------ | ------------------------------ | -------------------------------------------------- | ---------------------------------------- |
+| amp    | a `usageLedger.events[]` entry | `tokens.input` or `tokens.output` set to text      | the entry is skipped with no diagnostic  |
+| grok   | a unified log `ctx` record     | `prompt_tokens` or `completion_tokens` set to text | the record is skipped with no diagnostic |
+
+Every other live cell in the corpus either keeps its record or loses it with a diagnostic under the same mutation.
+
+### Broken variants
+
+The check was shown to catch each of these deliberate breaks, applied one at a time to the working tree and reverted after the run:
+
+| Break                                                                             | Where               | Caught by                                                           |
+| --------------------------------------------------------------------------------- | ------------------- | ------------------------------------------------------------------- |
+| swap `input` and `output` in the claude token struct                              | `readers/claude.rs` | mapping: `dimension swap in claude/basic (22 runs)`, 28 of 616 runs |
+| report a gemini record with unreadable tokens as well-formed (`malformed: false`) | `readers/gemini.rs` | mapping: `silent drop in gemini/basic (9 runs)`                     |
+| `unwrap()` the codex `input_tokens` cell instead of reading it as a number        | `readers/codex.rs`  | totality: `panic in codex/archived (14 runs)`, 147 of 15,905 runs   |
+
+## Detection
+
+Three tests live in `tests/detect.rs`; the marker table and the two detector bridges live in `src/detect.rs`, and `ts-detect.mjs` runs `detectHarnesses` from `src/detect.ts` over a batch of homes in one Node process.
+The Rust side is `skopli_wire::read::detect`, the entry the facades call, which marks a harness supported when its reader yields an event.
+
+`layouts_detect_as_the_marker_table_says` enumerates home layouts over the 69 markers in `MARKERS`, each a directory or file `src/detect.ts` probes under the home with an empty environment and the home as working directory, tagged with the harness it speaks for or with the unsupported product it names.
+The layouts are the empty home, every single marker, every pair of markers and all markers at once: 2,417 homes.
+The TypeScript detector is run twice over all of them and must return the same answer (a pure function of the layout), and each answer must be exactly the harnesses and products the present markers speak for.
+The single-marker layouts establish that no two harnesses claim the same marker; `pi` (`.pi/agent/sessions`) and `kimchi` (`.config/kimchi/harness/sessions`) are distinct markers, which pins the decision that kimchi does not claim pi's session root.
+Marker files are one empty line, so a reader opening one meets a real, empty record stream.
+
+`rust_and_typescript_agree_on_golden_homes` copies every golden case to the default root its reader resolves with no environment override (`DEFAULT_ROOTS`, read off each reader's root resolver), one home per case plus one home holding all of them, and requires both detectors to report exactly that case's harness alone and exactly the set of all harnesses together.
+This is the agreement check between the two detectors: the TypeScript probe sees a marker where the Rust reader yields an event, for every harness, and neither sees anything else.
+
+`recorded_homes_probe_every_harness_that_yields_events` replays recorded homes read-only when `SKOPLI_VERIFY_HOMES` names a directory of `<harness>/<endpoint>/` homes.
+Both detectors run on each; every harness the Rust pass yields events for must also be probed by TypeScript, and the per-home table (TypeScript verdict, Rust verdict, event count per harness, unsupported products) is printed and written to `SKOPLI_VERIFY_HOMES_OUT` when set.
+The check is skipped with a note when the variable is unset, so the default run needs no recordings.
+
+```sh
+SKOPLI_VERIFY_HOMES=<recordings dir> SKOPLI_VERIFY_HOMES_OUT=<table.md> \
+  cargo test --release --manifest-path .agents/skills/verify-skopli-core/Cargo.toml --test detect -- --nocapture
+```
+
+### Bounds
+
+- Markers present or absent, never partially valid: a present marker is an empty directory or a one-line file.
+- At most two markers per layout plus the all-markers layout; three-marker layouts are not enumerated because detection is a disjunction over independent probes, and the pair layouts already catch a probe that depends on another marker.
+- Empty environment and the home as working directory; the environment overrides and workspace-relative roots `src/detect.ts` also probes are not enumerated.
+- Default roots on Linux and macOS as `src/detect.ts` spells them.
+
+Not covered: environment overrides, roots under a working directory other than the home (the `trajectories` marker is probed under the working directory, which the bare home also is), Windows roots, markers whose contents must parse for TypeScript to claim them, and the Rust detector over the marker layouts (its verdict needs a readable record, which an empty marker is not; the golden-homes check covers it instead).
+
+### Assumptions
+
+- `MARKERS` is a faithful reading of `src/detect.ts` for a bare home.
+  A probe added to `src/detect.ts` without a row here passes the enumeration unnoticed, so the table must change in the same commit.
+- The recordings a replay uses were produced by the harness itself; a home the Rust pass yields no events for is a reader finding or an unproductive recording, and the table says which by listing the TypeScript verdict alongside.
+
+### Broken variant
+
+Changing the gemini probe in `src/detect.ts` from `tmp` to `sessions` fails both checks: `70 of 2417 layouts disagree with the marker table` and `gemini/basic: typescript [], rust ["gemini"]`.
+The variant was applied to the working tree, run, and reverted.
+
 ## When the verified code changes on purpose
 
+- A new reader: add its golden case; it is picked up by every reader check and, if it has a default root, add the root to `DEFAULT_ROOTS` and its probe to `MARKERS`.
+- A reader starts reading a cell it ignored: remove its `IGNORED_BY_DESIGN` row; the check fails until you do.
+- A reader fixes a silent drop: remove its `KNOWN_SILENT_DROPS` row; the check fails until you do.
+- A reader reads a new token cell name: add the name to `TokenClass::of`; until then the cell is not a token cell and is not checked.
+- A new or moved probe in `src/detect.ts`: add or edit its `MARKERS` row with the harness it speaks for; a new unsupported product also needs a name in `unsupported_name`.
+- A change to the pi and kimchi ownership: both markers are rows in `MARKERS`, so the shared root would fail the single-marker layouts until the table says who owns it.
 - A new rollup dimension: add it to the `by` list in `cases()` and a matching arm to `expected_key`.
 - A new counter on `TokenCounts` or `Rollup`: add it to `Pattern`, `event()`, the `pairs` table in `check_conservation` and the parity JSON if it is optional.
 - A change to the block rule or the default width: update `block_spec` and `golden/rollup-block/README.md` in the same change, in that order of authority.
@@ -138,5 +257,6 @@ Keep the domain small enough that a run stays under a minute; widen a single dim
 
 ## Limits
 
-The exhaustive check covers every input in the stated domain and says nothing about inputs outside it; only the Kani harnesses in `src/kani_proofs.rs` speak for all inputs, and only for the kernels they name.
-It does not check the readers, pricing, the wire format or any facade other than TypeScript.
+The exhaustive checks cover every input in their stated domains and say nothing about inputs outside them; only the Kani harnesses in `src/kani_proofs.rs` speak for all inputs, and only for the kernels they name.
+The reader checks reach only the record shapes the golden corpus holds, and the detection checks only the bare-home probes.
+Nothing here checks pricing, the wire format beyond `read_usage` and `detect`, or any facade other than TypeScript.

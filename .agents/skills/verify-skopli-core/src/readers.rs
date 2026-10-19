@@ -1,0 +1,525 @@
+//! Bounded mutation check of the readers in `crates/skopli-core/src/readers/`.
+//! Every golden case is copied to a scratch home, each JSON leaf is replaced by
+//! each adversarial value and each file is cut at fixed points, and the real
+//! reader is run through `Reader::read` on the result. Expectations come from
+//! the golden corpus and from the cell names, never from the crate under test.
+
+use std::fs;
+use std::panic::{AssertUnwindSafe, catch_unwind};
+use std::path::{Path, PathBuf};
+
+use serde_json::Value;
+use skopli_core::readers::reader::ReaderContext;
+use skopli_core::readers::registered_reader;
+use skopli_core::readers::shared::ReaderResult;
+use skopli_core::types::UsageEvent;
+
+pub fn repo_root() -> PathBuf {
+    Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("../../..")
+        .canonicalize()
+        .expect("skill lives three levels under the repository root")
+}
+
+/// One `golden/<harness>/<case>/` directory with an `input-manifest.json`.
+pub struct Case {
+    pub harness: String,
+    pub name: String,
+    pub dir: PathBuf,
+    pub manifest: Value,
+}
+
+impl Case {
+    pub fn id(&self) -> String {
+        format!("{}/{}", self.harness, self.name)
+    }
+
+    pub fn expected_events(&self) -> Vec<Value> {
+        let text = fs::read_to_string(self.dir.join("expected-events.json")).unwrap();
+        serde_json::from_str::<Value>(&text).unwrap()["events"]
+            .as_array()
+            .unwrap()
+            .clone()
+    }
+}
+
+pub fn golden_cases() -> Vec<Case> {
+    let mut cases = Vec::new();
+    for harness in sorted_dirs(&repo_root().join("golden")) {
+        for dir in sorted_dirs(&harness) {
+            let Ok(text) = fs::read_to_string(dir.join("input-manifest.json")) else {
+                continue;
+            };
+            let manifest: Value = serde_json::from_str(&text).unwrap();
+            cases.push(Case {
+                harness: manifest["harness"].as_str().unwrap().to_owned(),
+                name: manifest["case"].as_str().unwrap().to_owned(),
+                dir,
+                manifest,
+            });
+        }
+    }
+    cases
+}
+
+pub fn sorted_dirs(dir: &Path) -> Vec<PathBuf> {
+    let mut out: Vec<PathBuf> = fs::read_dir(dir)
+        .map(|entries| {
+            entries
+                .filter_map(Result::ok)
+                .map(|e| e.path())
+                .filter(|p| p.is_dir())
+                .collect()
+        })
+        .unwrap_or_default();
+    out.sort();
+    out
+}
+
+/// A fresh scratch directory under the system temp dir, removed on drop.
+pub struct Scratch(pub PathBuf);
+
+impl Scratch {
+    pub fn new(tag: &str) -> Self {
+        static SEQ: std::sync::atomic::AtomicUsize = std::sync::atomic::AtomicUsize::new(0);
+        let n = SEQ.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+        let dir =
+            std::env::temp_dir().join(format!("verify-skopli-{tag}-{}-{n}", std::process::id()));
+        fs::create_dir_all(&dir).unwrap();
+        Scratch(dir)
+    }
+}
+
+impl Drop for Scratch {
+    fn drop(&mut self) {
+        let _ = fs::remove_dir_all(&self.0);
+    }
+}
+
+pub fn copy_tree(from: &Path, to: &Path) {
+    fs::create_dir_all(to).unwrap();
+    for entry in fs::read_dir(from).unwrap().filter_map(Result::ok) {
+        let target = to.join(entry.file_name());
+        if entry.path().is_dir() {
+            copy_tree(&entry.path(), &target);
+        } else {
+            fs::copy(entry.path(), target).unwrap();
+        }
+    }
+}
+
+/// A case copied under a scratch directory: the copy, the reader context the
+/// manifest describes and the same context as wire read options.
+pub struct Seed {
+    pub input: PathBuf,
+    pub ctx: ReaderContext,
+    pub opts: Value,
+}
+
+/// Copy the case under `scratch`. `env` values of `.` are the input copy,
+/// other relative values are joined onto it, `home` and `cwd` of `.` are the
+/// copy, and an absent home is a path that does not exist so no default root
+/// resolves.
+pub fn seed(case: &Case, scratch: &Path) -> Seed {
+    let input = scratch.join("input");
+    copy_tree(&case.dir.join("input"), &input);
+    let resolve = |v: &str| -> String {
+        let p = if v == "." {
+            input.clone()
+        } else if Path::new(v).is_absolute() {
+            PathBuf::from(v)
+        } else {
+            input.join(v)
+        };
+        p.to_string_lossy().into_owned()
+    };
+    let home = case.manifest["home"]
+        .as_str()
+        .map(resolve)
+        .unwrap_or_else(|| scratch.join("no-home").to_string_lossy().into_owned());
+    let mut env = serde_json::Map::new();
+    let mut ctx = ReaderContext::new(&home);
+    for (name, value) in case.manifest["env"].as_object().into_iter().flatten() {
+        let resolved = resolve(value.as_str().unwrap());
+        ctx = ctx.with_env(name, &resolved);
+        env.insert(name.clone(), Value::from(resolved));
+    }
+    let cwd = case.manifest["cwd"].as_str().map(resolve);
+    if let Some(cwd) = &cwd {
+        ctx = ctx.with_cwd(cwd);
+    }
+    let opts = serde_json::json!({
+        "home": home,
+        "env": env,
+        "cwd": cwd.unwrap_or_default(),
+        "harnesses": [case.harness],
+    });
+    Seed { input, ctx, opts }
+}
+
+/// The wire read the facades call, on the same home: events kept and the
+/// diagnostics raised.
+pub fn wire_read(opts: &Value) -> (usize, Vec<String>) {
+    let options = skopli_wire::read::parse_read_options(opts).unwrap();
+    let out = skopli_wire::read::read_usage(&options);
+    let diagnostics = out["diagnostics"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|d| d["message"].as_str().unwrap_or_default().to_owned())
+        .collect();
+    (out["events"].as_array().unwrap().len(), diagnostics)
+}
+
+/// Run the registered reader; `Err` carries the panic message.
+pub fn read(harness: &str, ctx: &ReaderContext) -> Result<ReaderResult, String> {
+    let reader = registered_reader(harness).expect("every golden harness has a reader");
+    catch_unwind(AssertUnwindSafe(|| reader.read(ctx))).map_err(|p| {
+        p.downcast_ref::<String>()
+            .cloned()
+            .or_else(|| p.downcast_ref::<&str>().map(|s| (*s).to_owned()))
+            .unwrap_or_else(|| "non-string panic payload".to_owned())
+    })
+}
+
+pub fn diagnostics(r: &ReaderResult) -> usize {
+    r.skipped.len() + r.warnings.len()
+}
+
+/// Every file under `dir`, sorted, as paths relative to it.
+pub fn files_under(dir: &Path) -> Vec<PathBuf> {
+    let mut out = Vec::new();
+    let mut stack = vec![dir.to_path_buf()];
+    while let Some(d) = stack.pop() {
+        for entry in fs::read_dir(&d).unwrap().filter_map(Result::ok) {
+            let p = entry.path();
+            if p.is_dir() {
+                stack.push(p);
+            } else {
+                out.push(p.strip_prefix(dir).unwrap().to_path_buf());
+            }
+        }
+    }
+    out.sort();
+    out
+}
+
+/// A JSON document inside a file: the whole file for `.json`, one line for
+/// `.jsonl`. `line` is the 0-based line index, `None` for a whole file.
+pub struct Doc {
+    pub line: Option<usize>,
+    pub value: Value,
+}
+
+pub fn docs(path: &Path) -> Vec<Doc> {
+    let Ok(text) = fs::read_to_string(path) else {
+        return Vec::new();
+    };
+    match path.extension().and_then(|e| e.to_str()) {
+        Some("json") => serde_json::from_str(&text)
+            .map(|value| vec![Doc { line: None, value }])
+            .unwrap_or_default(),
+        Some("jsonl" | "ndjson") => text
+            .split('\n')
+            .enumerate()
+            .filter_map(|(i, l)| {
+                serde_json::from_str(l.trim()).ok().map(|value| Doc {
+                    line: Some(i),
+                    value,
+                })
+            })
+            .collect(),
+        _ => Vec::new(),
+    }
+}
+
+/// Write `doc` back into `path`, replacing only its own line in a JSONL file.
+pub fn write_doc(path: &Path, original: &str, doc: &Doc) {
+    let text = match doc.line {
+        None => serde_json::to_string(&doc.value).unwrap(),
+        Some(i) => {
+            let mut lines: Vec<String> = original.split('\n').map(str::to_owned).collect();
+            lines[i] = serde_json::to_string(&doc.value).unwrap();
+            lines.join("\n")
+        }
+    };
+    fs::write(path, text).unwrap();
+}
+
+/// Remove `doc` from its file: its own line in a JSONL file, the whole file
+/// otherwise.
+pub fn delete_doc(path: &Path, original: &str, doc: &Doc) {
+    match doc.line {
+        None => fs::remove_file(path).unwrap(),
+        Some(i) => {
+            let lines: Vec<&str> = original
+                .split('\n')
+                .enumerate()
+                .filter(|(j, _)| *j != i)
+                .map(|(_, l)| l)
+                .collect();
+            fs::write(path, lines.join("\n")).unwrap();
+        }
+    }
+}
+
+/// Every leaf path in `value`, as a list of object keys and array indexes.
+pub fn leaves(value: &Value) -> Vec<Vec<String>> {
+    fn walk(v: &Value, prefix: &mut Vec<String>, out: &mut Vec<Vec<String>>) {
+        match v {
+            Value::Object(m) if !m.is_empty() => {
+                for (k, child) in m {
+                    prefix.push(k.clone());
+                    walk(child, prefix, out);
+                    prefix.pop();
+                }
+            }
+            Value::Array(a) if !a.is_empty() => {
+                for (i, child) in a.iter().enumerate() {
+                    prefix.push(i.to_string());
+                    walk(child, prefix, out);
+                    prefix.pop();
+                }
+            }
+            _ => out.push(prefix.clone()),
+        }
+    }
+    let mut out = Vec::new();
+    walk(value, &mut Vec::new(), &mut out);
+    out
+}
+
+/// The record a leaf belongs to: the deepest array element on its path, or
+/// the whole document when the path crosses no array.
+pub fn record_of(leaf: &[String]) -> &[String] {
+    let end = leaf
+        .iter()
+        .rposition(|k| k.parse::<usize>().is_ok())
+        .map_or(0, |i| i + 1);
+    &leaf[..end]
+}
+
+/// Bump the cell at `leaf` by one and keep a sibling `total` cell consistent
+/// when the class is part of a total. The gemini reader reads the total to
+/// decide whether the input includes the cached tokens, so a bump that breaks
+/// the total would flip that reading instead of testing the mapping.
+pub fn bump(value: &mut Value, leaf: &[String], class: TokenClass) {
+    let n = integer_cell(get_mut(value, leaf)).unwrap();
+    *get_mut(value, leaf) = Value::from(n + 1);
+    if class == TokenClass::Cache {
+        return;
+    }
+    let (_, parent) = leaf.split_last().unwrap();
+    if let Value::Object(m) = get_mut(value, parent) {
+        for (_, v) in m
+            .iter_mut()
+            .filter(|(k, _)| k.to_ascii_lowercase().contains("total"))
+        {
+            if let Some(t) = integer_cell(v) {
+                *v = Value::from(t + 1);
+            }
+        }
+    }
+}
+
+pub fn get_mut<'a>(value: &'a mut Value, path: &[String]) -> &'a mut Value {
+    path.iter().fold(value, |v, k| match v {
+        Value::Array(a) => &mut a[k.parse::<usize>().unwrap()],
+        Value::Object(m) => m.get_mut(k).unwrap(),
+        _ => unreachable!("leaf paths only descend through containers"),
+    })
+}
+
+pub fn remove(value: &mut Value, path: &[String]) {
+    let (last, parent) = path.split_last().unwrap();
+    match get_mut(value, parent) {
+        Value::Array(a) => {
+            a.remove(last.parse().unwrap());
+        }
+        Value::Object(m) => {
+            m.remove(last);
+        }
+        _ => unreachable!(),
+    }
+}
+
+/// Values a producer could never legitimately write into a cell, plus the
+/// cell's removal (`None`).
+pub fn adversarial_values() -> Vec<(&'static str, Option<Value>)> {
+    vec![
+        ("null", Some(Value::Null)),
+        ("empty string", Some(Value::from(""))),
+        ("text", Some(Value::from("x"))),
+        ("negative", Some(Value::from(-1))),
+        ("huge", Some(Value::from(1e300))),
+        ("past u64", Some(Value::from(18_446_744_073_709_551_616.0))),
+        ("bool", Some(Value::Bool(true))),
+        ("object", Some(serde_json::json!({}))),
+        ("array", Some(serde_json::json!([]))),
+        ("removed", None),
+    ]
+}
+
+/// Byte-level damage applied to every file, JSON or not.
+pub fn damaged(bytes: &[u8]) -> Vec<(&'static str, Vec<u8>)> {
+    vec![
+        ("empty", Vec::new()),
+        ("first byte", bytes[..bytes.len().min(1)].to_vec()),
+        ("first half", bytes[..bytes.len() / 2].to_vec()),
+        (
+            "last byte cut",
+            bytes[..bytes.len().saturating_sub(1)].to_vec(),
+        ),
+        ("open brace", b"{".to_vec()),
+        ("binary", vec![0, 0xff, 0xfe, b'{', b'"']),
+    ]
+}
+
+/// The counter a token cell name speaks for, read from the cell path alone.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum TokenClass {
+    Input,
+    Output,
+    Cache,
+    Reasoning,
+}
+
+impl TokenClass {
+    /// `None` for cells that are not token counters or are derived totals.
+    pub fn of(path: &[String]) -> Option<Self> {
+        let p = path.join(".").to_ascii_lowercase();
+        let last = path
+            .last()
+            .map(|s| s.to_ascii_lowercase())
+            .unwrap_or_default();
+        if p.contains("total") || last.contains("cost") || last.contains("price") {
+            return None;
+        }
+        if last.contains("reason") || last.contains("thought") {
+            Some(Self::Reasoning)
+        } else if p.contains("cache") {
+            Some(Self::Cache)
+        } else if last.contains("input") || last.contains("prompt") {
+            Some(Self::Input)
+        } else if last.contains("output")
+            || last.contains("completion")
+            || last.contains("candidates")
+        {
+            Some(Self::Output)
+        } else {
+            None
+        }
+    }
+
+    /// The event counters a cell of this class may move: its own, plus the
+    /// ones readers derive from it (prompt minus cached, completion minus
+    /// reasoning, the 1h split clamped under the writes).
+    pub fn may_move(self) -> &'static [&'static str] {
+        match self {
+            Self::Input => &["input", "cacheRead", "cacheWrite"],
+            Self::Output => &["output", "reasoning"],
+            Self::Cache => &["cacheRead", "cacheWrite", "cacheWrite1h", "input"],
+            Self::Reasoning => &["reasoning", "output"],
+        }
+    }
+}
+
+pub const COUNTERS: [&str; 6] = [
+    "input",
+    "output",
+    "cacheRead",
+    "cacheWrite",
+    "cacheWrite1h",
+    "reasoning",
+];
+
+/// Per-counter totals over the events, in `COUNTERS` order.
+pub fn totals(events: &[UsageEvent]) -> [i128; 6] {
+    let mut t = [0i128; 6];
+    for e in events {
+        let k = &e.tokens;
+        for (slot, v) in t.iter_mut().zip([
+            k.input,
+            k.output,
+            k.cache_read,
+            k.cache_write,
+            k.cache_write1h.unwrap_or(0),
+            k.reasoning,
+        ]) {
+            *slot += i128::from(v);
+        }
+    }
+    t
+}
+
+/// The event-level view the two mapping checks compare: counters, event
+/// count and diagnostic count.
+pub struct Outcome {
+    pub totals: [i128; 6],
+    pub events: usize,
+    pub diagnostics: usize,
+}
+
+impl Outcome {
+    pub fn of(r: &ReaderResult) -> Self {
+        Outcome {
+            totals: totals(&r.events),
+            events: r.events.len(),
+            diagnostics: diagnostics(r),
+        }
+    }
+}
+
+/// The verdict for one token cell bumped by `+1`: the counters that moved and
+/// whether the record survived or became a diagnostic.
+pub fn judge_bump(class: TokenClass, base: &Outcome, bumped: &Outcome) -> Result<(), String> {
+    if bumped.events < base.events {
+        return if bumped.diagnostics > base.diagnostics {
+            Ok(())
+        } else {
+            Err("silent drop: the bumped record vanished without a diagnostic".to_owned())
+        };
+    }
+    let moved: Vec<(&str, i128)> = COUNTERS
+        .iter()
+        .zip(base.totals.iter().zip(&bumped.totals))
+        .filter(|(_, (a, b))| a != b)
+        .map(|(name, (a, b))| (*name, b - a))
+        .collect();
+    if moved.is_empty() {
+        return if bumped.diagnostics > base.diagnostics {
+            Ok(())
+        } else {
+            Err("ignored cell: the bump moved no counter and raised no diagnostic".to_owned())
+        };
+    }
+    for (name, delta) in &moved {
+        if !class.may_move().contains(name) {
+            return Err(format!(
+                "dimension swap: a {class:?} cell moved {name} by {delta}; moved {moved:?}"
+            ));
+        }
+        if delta.abs() != 1 {
+            return Err(format!(
+                "scaled: a {class:?} cell bumped by 1 moved {name} by {delta}; moved {moved:?}"
+            ));
+        }
+    }
+    Ok(())
+}
+
+/// The verdict for a token cell overwritten with text: the record is kept or
+/// becomes a diagnostic, never silently lost.
+pub fn judge_corruption(base: &Outcome, corrupted: &Outcome) -> Result<(), String> {
+    if corrupted.events < base.events && corrupted.diagnostics <= base.diagnostics {
+        return Err(
+            "silent drop: a corrupted token cell lost the record without a diagnostic".to_owned(),
+        );
+    }
+    Ok(())
+}
+
+pub fn integer_cell(v: &Value) -> Option<i64> {
+    v.as_i64()
+        .or_else(|| v.as_f64().filter(|f| f.fract() == 0.0).map(|f| f as i64))
+}

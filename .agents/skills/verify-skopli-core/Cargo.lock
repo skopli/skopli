@@ -367,6 +367,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "skopli-wire"
+version = "0.1.0"
+dependencies = [
+ "jiff",
+ "serde_json",
+ "skopli-core",
+]
+
+[[package]]
 name = "smallvec"
 version = "1.15.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -450,6 +459,7 @@ version = "0.0.0"
 dependencies = [
  "serde_json",
  "skopli-core",
+ "skopli-wire",
 ]
 
 [[package]]
