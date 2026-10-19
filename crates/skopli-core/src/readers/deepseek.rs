@@ -1,4 +1,5 @@
-use std::collections::{HashMap, HashSet};
+use std::cmp::Reverse;
+use std::collections::{BTreeMap, HashSet};
 use std::io::Read;
 use std::path::{Path, PathBuf};
 
@@ -179,21 +180,21 @@ fn session_log_generation(name: &str) -> Option<u32> {
     digits.parse().ok()
 }
 
-/// The session logs under `home`, keeping only the highest generation in each
-/// session directory. Migration writes the current generation beside its
-/// predecessors and never removes them, so the lower generations in a directory
-/// are earlier copies of the same session.
-fn session_logs(home: &Path) -> Vec<String> {
-    let files = list_files(home, |name| session_log_generation(name).is_some());
-    let generation = |file: &str| session_log_generation(&basename(file)).unwrap_or(0);
-    let mut latest: HashMap<String, u32> = HashMap::new();
-    for file in &files {
-        let entry = latest.entry(dirname(file)).or_insert(0);
-        *entry = (*entry).max(generation(file));
+/// The session logs under `home` grouped by session directory, highest
+/// generation first. Migration writes the current generation beside its
+/// predecessors and never removes them, so the logs in one directory are
+/// copies of the same session and the reader takes the newest it can read.
+fn session_logs(home: &Path) -> Vec<Vec<String>> {
+    let mut by_session: BTreeMap<String, Vec<String>> = BTreeMap::new();
+    for file in list_files(home, |name| session_log_generation(name).is_some()) {
+        by_session.entry(dirname(&file)).or_default().push(file);
     }
-    files
-        .into_iter()
-        .filter(|file| generation(file) == latest[&dirname(file)])
+    by_session
+        .into_values()
+        .map(|mut logs| {
+            logs.sort_by_key(|file| Reverse(session_log_generation(&basename(file))));
+            logs
+        })
         .collect()
 }
 
@@ -242,21 +243,28 @@ fn decode_zstd_frames(bytes: &[u8]) -> (Vec<u8>, bool) {
     (out, false)
 }
 
-/// Read one session log (already decompressed to text) into usage events.
+/// Read one session from the first of its `logs` that can be read into usage
+/// events; each unreadable log before it is a file-level malformed diagnostic.
 /// Each emitted event's logical `session_id:seq` identity is inserted into
 /// `seen` so the SQLite lane can skip a duplicate of the same event.
 fn read_session(
-    file: &str,
+    logs: &[String],
     skipped: &mut Vec<String>,
     warnings: &mut Vec<ReaderWarning>,
     seen: &mut HashSet<String>,
 ) -> Vec<UsageEvent> {
     let mut events: Vec<UsageEvent> = Vec::new();
-    let Some(LogText { text, truncated }) = read_log_text(file) else {
-        warnings.push(ReaderWarning {
-            message: format!("skipping malformed {HARNESS} file {file}\n"),
-        });
-        skipped.push(file.to_owned());
+    let readable = logs.iter().find_map(|file| match read_log_text(file) {
+        Some(log) => Some((file, log)),
+        None => {
+            warnings.push(ReaderWarning {
+                message: format!("skipping malformed {HARNESS} file {file}\n"),
+            });
+            skipped.push(file.clone());
+            None
+        }
+    });
+    let Some((file, LogText { text, truncated })) = readable else {
         return events;
     };
     if truncated {
@@ -616,8 +624,8 @@ pub fn read_deepseek(home: &Path) -> ReaderResult {
         };
     }
 
-    for file in &session_logs(home) {
-        events.extend(read_session(file, &mut skipped, &mut warnings, &mut seen));
+    for logs in session_logs(home) {
+        events.extend(read_session(&logs, &mut skipped, &mut warnings, &mut seen));
     }
 
     let databases = list_files(home, |name| {
@@ -863,6 +871,36 @@ mod tests {
         assert_eq!(result.events.len(), 1);
         assert!(result.events[0].message_id.contains("session.v4.jsonl"));
         assert_eq!(result.events[0].tokens.input, 10);
+        fs::remove_dir_all(&dir).ok();
+    }
+
+    #[test]
+    fn an_unreadable_newest_generation_falls_back_to_the_newest_readable_one() {
+        let dir = scratch_dir("generation-fallback");
+        let session_dir = dir.join("--proj--").join("session-1");
+        fs::create_dir_all(&session_dir).unwrap();
+        let header = r#"{"type":"session","id":"session-1","createdAt":1792348454740}"#;
+        let message = r#"{"type":"assistant/message","seq":14,"time":1792348551216,"data":{"message":{"source":{"model":"qwen"}},"usage":{"inputTokens":10,"outputTokens":1}}}"#;
+        fs::write(
+            session_dir.join("session.jsonl"),
+            format!("{header}\n{message}\n"),
+        )
+        .unwrap();
+        let broken = session_dir.join("session.v4.jsonl.zstd");
+        fs::write(&broken, [0x28, 0xB5, 0x2F, 0xFD, 0x20, 0x40, 0x00]).unwrap();
+        let result = read_deepseek(&dir);
+        assert_eq!(result.events.len(), 1, "{:?}", result.events);
+        assert!(result.events[0].message_id.contains("session.jsonl:"));
+        assert_eq!(result.skipped, vec![broken.to_string_lossy().into_owned()]);
+        assert_eq!(
+            result.warnings,
+            vec![ReaderWarning {
+                message: format!(
+                    "skipping malformed deepseek file {}\n",
+                    broken.to_string_lossy()
+                ),
+            }]
+        );
         fs::remove_dir_all(&dir).ok();
     }
 
