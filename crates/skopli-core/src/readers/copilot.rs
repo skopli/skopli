@@ -16,7 +16,9 @@ use crate::types::{TokenCounts, UsageEvent};
 /// (`~/.copilot/session-state/<id>/events.jsonl`, one `session.usage_record`
 /// per model request) and the opt-in OTel file exporter. Session state owns
 /// every session it records; OTel events are kept only for sessions the
-/// session state does not know, so a request is never counted twice.
+/// session state does not know, so a request is never counted twice. An OTel
+/// record that names no session cannot be shown to be unknown to it, so while
+/// session state records usage such a record is dropped with a diagnostic.
 pub struct CopilotReader;
 
 impl Reader for CopilotReader {
@@ -31,16 +33,11 @@ impl Reader for CopilotReader {
             .iter()
             .map(|e| e.session_id.as_str())
             .collect();
-        let otel = read_copilot_otel(&copilot_otel_root(
-            ctx.env("COPILOT_OTEL_FILE_EXPORTER_PATH"),
-            ctx.home(),
-        ));
-        let mut otel_events: Vec<UsageEvent> = otel
-            .events
-            .into_iter()
-            .filter(|e| !owned.contains(e.session_id.as_str()))
-            .collect();
-        result.events.append(&mut otel_events);
+        let otel = read_otel(
+            &copilot_otel_root(ctx.env("COPILOT_OTEL_FILE_EXPORTER_PATH"), ctx.home()),
+            (!owned.is_empty()).then_some(&owned),
+        );
+        result.events.extend(otel.events);
         result.skipped.extend(otel.skipped);
         result.warnings.extend(otel.warnings);
         result
@@ -241,10 +238,13 @@ fn epoch_ms(value: &Value) -> Option<i64> {
 
 /// A parsed OTel usage candidate before source-priority selection. `model` is
 /// `None` for aggregate spans (`invoke_agent`) that carry usage but no model;
-/// they are only reported when no chat span claims their trace.
+/// they are only reported when no chat span claims their trace. `names_session`
+/// is false when the event's session id is a fallback (interaction, response or
+/// trace id) rather than a session attribute.
 struct Candidate {
     event: UsageEvent,
     model: Option<String>,
+    names_session: bool,
     location: String,
     source: i32,
     trace_id: String,
@@ -261,6 +261,13 @@ fn malformed(location: &str, skipped: &mut Vec<String>, warnings: &mut Vec<Reade
 
 /// Read all copilot usage events from the given root.
 pub fn read_copilot_otel(root: &Path) -> ReaderResult {
+    read_otel(root, None)
+}
+
+/// Read the OTel usage events under `root`. `owned` is the set of sessions the
+/// session state records when it records any: their events are already
+/// counted, and an event naming no session is dropped with a diagnostic.
+fn read_otel(root: &Path, owned: Option<&HashSet<&str>>) -> ReaderResult {
     let mut skipped: Vec<String> = Vec::new();
     let mut warnings: Vec<ReaderWarning> = Vec::new();
 
@@ -354,12 +361,25 @@ pub fn read_copilot_otel(root: &Path) -> ReaderResult {
 
     let mut events: Vec<UsageEvent> = Vec::new();
     for candidate in selected {
-        match candidate.model {
-            Some(model) => events.push(UsageEvent {
+        let Some(model) = candidate.model else {
+            malformed(&candidate.location, &mut skipped, &mut warnings);
+            continue;
+        };
+        match owned {
+            Some(owned) if owned.contains(candidate.event.session_id.as_str()) => {}
+            Some(_) if !candidate.names_session => {
+                skipped.push(candidate.location.clone());
+                warnings.push(ReaderWarning {
+                    message: format!(
+                        "skipping copilot OTel usage record {} that names no session while session state records usage\n",
+                        candidate.location
+                    ),
+                });
+            }
+            _ => events.push(UsageEvent {
                 model,
                 ..candidate.event
             }),
-            None => malformed(&candidate.location, &mut skipped, &mut warnings),
         }
     }
     ReaderResult {
@@ -463,16 +483,19 @@ fn parse_candidate(
     )
     .unwrap_or(0.0);
 
-    let session_id = attribute_string(
+    let session = attribute_string(
         attributes,
-        &[
-            "gen_ai.conversation.id",
-            "copilot_chat.session_id",
-            "github.copilot.interaction_id",
-            "gen_ai.response.id",
-        ],
-    )
-    .unwrap_or_else(|| trace_id.clone());
+        &["gen_ai.conversation.id", "copilot_chat.session_id"],
+    );
+    let names_session = session.is_some();
+    let session_id = session
+        .or_else(|| {
+            attribute_string(
+                attributes,
+                &["github.copilot.interaction_id", "gen_ai.response.id"],
+            )
+        })
+        .unwrap_or_else(|| trace_id.clone());
 
     let event = UsageEvent {
         harness: "copilot".to_owned(),
@@ -498,6 +521,7 @@ fn parse_candidate(
     Some(Candidate {
         event,
         model,
+        names_session,
         location,
         source,
         trace_id,
@@ -573,6 +597,33 @@ mod tests {
             .map(|e| (e.session_id.as_str(), e.message_id.as_str()))
             .collect();
         assert_eq!(ids, vec![("sess-1", "sess-1:rec-2"), ("sess-2", "t2:s1")]);
+    }
+
+    #[test]
+    fn otel_span_naming_no_session_is_dropped_while_session_state_records_usage() {
+        let span = OTEL_SPAN.replace(r#""gen_ai.conversation.id":"sess-1","#, "");
+        let home = scratch_dir("copilot-otel-no-session-alone");
+        write(&home, ".copilot/otel/a.jsonl", &format!("{span}\n"));
+        let alone = read(&home);
+        assert_eq!(alone.events.len(), 1);
+        assert_eq!(alone.events[0].session_id, "t1");
+
+        let home = scratch_dir("copilot-otel-no-session-beside-state");
+        write(
+            &home,
+            ".copilot/session-state/sess-1/events.jsonl",
+            &format!("{SESSION_START}\n{USAGE_RECORD}\n"),
+        );
+        write(&home, ".copilot/otel/a.jsonl", &format!("{span}\n"));
+        let otel_file = home.join(".copilot/otel/a.jsonl");
+        let result = read(&home);
+        assert_eq!(result.events.len(), 1, "{:?}", result.events);
+        assert_eq!(result.events[0].message_id, "sess-1:rec-2");
+        assert_eq!(
+            result.skipped,
+            vec![format!("{}:1", otel_file.to_string_lossy())]
+        );
+        assert_eq!(result.warnings.len(), 1, "{:?}", result.warnings);
     }
 
     #[test]
