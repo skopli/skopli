@@ -187,8 +187,6 @@ public final class Pricing implements AutoCloseable {
         }
     }
 
-    // -- lifecycle (all under lock) --------------------------------------
-
     private void ensureOpen() {
         if (closed) {
             throw new IllegalStateException("Pricing handle is closed");
