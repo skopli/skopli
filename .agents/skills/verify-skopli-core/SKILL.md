@@ -30,7 +30,7 @@ Three tests live in `tests/rollup.rs`; the domain and the properties live in `sr
 `rollup_keeps_its_promises_on_every_case` enumerates every sequence of zero to three events over the domain below and every rollup dimension, calls the real `rollup()`, and checks three promises:
 
 1. Conservation.
-   Every token counter, the clamped `cacheWrite1h`, `events`, `turns`, `calls` (absent means one) and finite `costUsd` sum to exactly the same value over the rows as over the input, and no row has `cacheWrite1h` above its `cacheWrite`.
+   Every token counter, the clamped `cacheWrite1h`, `events`, `turns`, `calls` (absent means one) and finite `costUsd` sum to exactly the same value over the rows as over the input below `u64::MAX` (past it the rows sit at the ceiling, see the saturating rule below), and no row has `cacheWrite1h` above its `cacheWrite`.
 2. Keyed rows.
    For `model`, `session`, `harness`, `workspace` and `day`, the row keys are the distinct expected keys of the input in ascending byte order, and each row holds exactly the events with its key: conservation from item 1 is re-run per row over those events alone, `cacheWrite1h` is present on a row exactly when one of its events carried it, and `costUsd` exactly when one of its events carried a finite cost.
    The expected key is the event's own field for the four named dimensions and a literal calendar table in `INSTANTS` for `day`, so nothing in the expectation comes from the crate under test.
