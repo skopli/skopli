@@ -130,7 +130,7 @@ The formatting of a start into its key is `to_iso_string`, which allocates and i
 
 ## Readers
 
-Three tests live in `tests/readers.rs`; the mutation and judgement helpers live in `src/readers.rs`.
+Four tests live in `tests/readers.rs`; the mutation and judgement helpers live in `src/readers.rs`.
 The domain is the golden corpus: every `golden/<harness>/<case>/` with an `input-manifest.json`, forty-five cases over all forty registered readers, copied into a scratch home and read through the real `Reader::read` with the context the manifest describes, exactly as `crates/skopli-core/tests/conformance.rs` builds it.
 Nothing in the expectations comes from the reader under test: the token classes come from the cell names in the harness's own files, the event counts from `expected-events.json`, the timestamp grammar from the shared parser.
 
@@ -146,9 +146,11 @@ A token cell is a leaf whose name says which counter it is (`input`/`prompt`/`ca
 A cell is live when removing its record (the deepest array element on its path, or the whole document) changes the events; inert cells are skipped and counted.
 For each live cell the check bumps the cell by one, keeping any sibling `total` consistent so a reader that reads the total to decide whether the input includes cached tokens keeps its reading, and overwrites the cell with text.
 The check compares events one by one, not their sums: `Outcome` holds every event's identity (timestamp, session, message and model, the fields the reader emits) with its counters, sorted by identity because readers that walk hash maps emit in no fixed order.
-The bump must change exactly one event, which keeps its identity, or surface exactly one event the reader had dropped as all-zero; a bump that changes two events, or moves a record to a new identity, is a cross-event attribution.
-Within that event the bump must move the class's own counter (`input`, `output`, `cacheRead`, `cacheWrite`, `cacheWrite1h` or `reasoning`, one class per counter) by exactly one, may also move the one counter readers derive by subtracting that class (`input` for a cache cell, since `prompt` includes cached tokens; `output` for a reasoning cell, since `completion` includes reasoning) by exactly minus one, and may move nothing else; or it must turn the record into a diagnostic.
+The bump must change exactly one event, which keeps its identity, surface exactly one event the reader had dropped as all-zero, or remove exactly one event while raising a diagnostic; every other event must be byte-identical before and after.
+A bump that changes two events, moves a record to a new identity, or takes a second event away with the one it turns into a diagnostic is a cross-event attribution; one that removes an event without a diagnostic is a silent drop.
+Within the one changed event the bump must move the class's own counter (`input`, `output`, `cacheRead`, `cacheWrite`, `cacheWrite1h` or `reasoning`, one class per counter) by exactly one, may also move the one counter readers derive by subtracting that class (`input` for a cache cell, since `prompt` includes cached tokens; `output` for a reasoning cell, since `completion` includes reasoning) by exactly minus one, and may move nothing else.
 A bump that moves any other counter, moves the derived counter the wrong way, or leaves the own counter unmoved is a dimension swap; one that moves the own counter by anything but one is a scaling; one that moves nothing and raises nothing is an ignored cell.
+`a_diagnostic_excuses_one_vanished_event_only` pins the judge itself on literal outcomes: one vanished event with a diagnostic passes, the same without a diagnostic is a silent drop, and two vanished events or one vanished plus one altered event behind a single diagnostic are cross-event attributions.
 The text overwrite may keep or drop the record, but a drop must raise a diagnostic.
 Three literal tables in the test keep the check honest:
 

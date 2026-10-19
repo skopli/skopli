@@ -520,20 +520,10 @@ pub type Fault = (&'static str, String);
 
 /// The verdict for one token cell bumped by `+1`: exactly one event changes
 /// and keeps its identity, its class's own counter moves by `+1`, at most its
-/// derived counter moves by `-1`, or the record becomes a diagnostic.
+/// derived counter moves by `-1`; or exactly one event vanishes into a
+/// diagnostic while every other event stays byte-identical. The one event
+/// may also be one the reader had dropped as all-zero and now surfaces.
 pub fn judge_bump(class: TokenClass, base: &Outcome, bumped: &Outcome) -> Result<(), Fault> {
-    if bumped.events.len() < base.events.len() {
-        return if bumped.diagnostics > base.diagnostics {
-            Ok(())
-        } else {
-            Err((
-                "silent drop",
-                "the bumped record vanished without a diagnostic".to_owned(),
-            ))
-        };
-    }
-    // The bump may change one event's counters in place or surface one event
-    // the reader dropped as all-zero; any other difference is misattribution.
     let (b, a) = (&base.events, &bumped.events);
     let prefix = b.iter().zip(a).take_while(|(x, y)| x == y).count();
     let suffix = b[prefix..]
@@ -544,6 +534,16 @@ pub fn judge_bump(class: TokenClass, base: &Outcome, bumped: &Outcome) -> Result
         .count();
     let (before, after) = (&b[prefix..b.len() - suffix], &a[prefix..a.len() - suffix]);
     let same_record = match (before, after) {
+        ([_], []) => {
+            return if bumped.diagnostics > base.diagnostics {
+                Ok(())
+            } else {
+                Err((
+                    "silent drop",
+                    "the bumped record vanished without a diagnostic".to_owned(),
+                ))
+            };
+        }
         ([], [_]) | ([], []) => true,
         ([(x, _)], [(y, _)]) => x == y,
         _ => false,

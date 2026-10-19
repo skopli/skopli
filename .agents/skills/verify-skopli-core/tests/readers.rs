@@ -347,6 +347,39 @@ fn token_cells_reach_their_own_event_field() {
     report("mapping", failures, runs);
 }
 
+/// A diagnostic excuses exactly one vanished event and nothing else: a bump
+/// that takes a neighbour with the rejected record, or alters one, is still a
+/// cross-event attribution.
+#[test]
+fn a_diagnostic_excuses_one_vanished_event_only() {
+    let event = |n: u8, input: i128| {
+        let id = format!("e{n}");
+        (
+            (id.clone(), id.clone(), id.clone(), id),
+            [input, 0, 0, 0, 0, 0],
+        )
+    };
+    let outcome = |events: &[(Identity, [i128; 6])], diagnostics| Outcome {
+        events: events.to_vec(),
+        diagnostics,
+    };
+    let base = outcome(&[event(1, 1), event(2, 1), event(3, 1)], 0);
+    let kind = |bumped: &Outcome| judge_bump(TokenClass::Input, &base, bumped).map_err(|f| f.0);
+    assert_eq!(kind(&outcome(&[event(1, 1), event(3, 1)], 1)), Ok(()));
+    assert_eq!(
+        kind(&outcome(&[event(1, 1), event(3, 1)], 0)),
+        Err("silent drop")
+    );
+    assert_eq!(
+        kind(&outcome(&[event(1, 1)], 1)),
+        Err("cross-event attribution")
+    );
+    assert_eq!(
+        kind(&outcome(&[event(1, 1), event(3, 2)], 1)),
+        Err("cross-event attribution")
+    );
+}
+
 /// Two reads of the same home are identical, the event count is the golden
 /// one, and every emitted timestamp is a real instant that survives a parse
 /// and format round trip.
