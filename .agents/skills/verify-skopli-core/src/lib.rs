@@ -430,11 +430,13 @@ pub fn check_keyed(
 /// by instant, open a block at the first event floored to the block grain (the
 /// width below one hour, the UTC hour otherwise), keep events while
 /// `ms < start + width`, and send unparseable instants to one trailing
-/// `invalid-date` row. A start on the hour takes its key from the literal table;
-/// a sub-hour start is the literal hour plus whole grains, formatted by the
-/// core's V8-pinned formatter. Returns each row's key with its member events.
+/// `invalid-date` row. A key is the literal hour from the table with the whole
+/// grains past it written into the minute, second and millisecond fields, so
+/// no key text comes from the crate under test. Returns each row's key with
+/// its member events.
 pub fn block_spec(events: &[UsageEvent], width: Option<i64>) -> Vec<(String, Vec<&UsageEvent>)> {
     let width = width.filter(|w| *w > 0).unwrap_or(DEFAULT_BLOCK_MS);
+    let grain = width.min(HOUR_MS);
     let mut parsed: Vec<(i64, &Instant, &UsageEvent)> = events
         .iter()
         .filter_map(|e| {
@@ -447,14 +449,15 @@ pub fn block_spec(events: &[UsageEvent], width: Option<i64>) -> Vec<(String, Vec
     let mut end: Option<i64> = None;
     for (ms, i, e) in parsed {
         if end.is_none_or(|end| ms >= end) {
-            let grains_past_hour = ms.rem_euclid(HOUR_MS) / width.min(HOUR_MS);
-            let start = ms - ms.rem_euclid(HOUR_MS) + grains_past_hour * width.min(HOUR_MS);
-            end = Some(start.saturating_add(width));
-            let key = if grains_past_hour == 0 {
-                i.hour.to_owned()
-            } else {
-                skopli_core::time::to_iso_string(start).expect("in range")
-            };
+            let past_hour = ms.rem_euclid(HOUR_MS) / grain * grain;
+            end = Some((ms - ms.rem_euclid(HOUR_MS) + past_hour).saturating_add(width));
+            let key = format!(
+                "{}{:02}:{:02}.{:03}Z",
+                &i.hour[..14],
+                past_hour / 60_000,
+                past_hour % 60_000 / 1000,
+                past_hour % 1000
+            );
             rows.push((key, Vec::new()));
         }
         rows.last_mut().expect("open block").1.push(e);

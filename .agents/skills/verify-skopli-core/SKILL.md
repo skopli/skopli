@@ -40,7 +40,7 @@ Three tests live in `tests/rollup.rs`; the domain and the properties live in `sr
    For `block`, the row keys equal an executable spec written from `golden/rollup-block/README.md`: sort by instant, open a block at the first event floored to the block grain (the width below one hour, the hour otherwise), keep events while `ms < start + width`, send unparseable instants to one trailing `invalid-date` row, fall back to `18000000` ms for a missing or non-positive width.
    The spec also names each block's member events, and every row gets the same per-row conservation and presence checks as a keyed row, so an event filed in the wrong block fails even when the counts per block come out right.
    The spec takes each instant's epoch milliseconds and hour-floor key from the same literal table, so a parser or formatter regression in the core shows up as a spec mismatch.
-   A sub-hour start is the literal hour plus whole grains, formatted through the core's V8-pinned formatter, which the core's own tests check against literal V8 output.
+   A sub-hour start is the literal hour with the whole grains past it written into the minute, second and millisecond fields by the spec itself, so no key text comes from the crate under test.
    Block keys must also be strictly ascending.
    The README promises only ascending order; the distinct-key promise comes from the `Rollup` type, which has no identity other than `key`, so a consumer that keys rows by it merges or overwrites two rows with the same key.
 
