@@ -162,6 +162,7 @@ describe("proxy", () => {
   const cafe = Buffer.from(
     `data: ${JSON.stringify({ choices: [{ delta: { content: "caf\u00e9" } }] })}\n\n`,
   );
+  const blob = Buffer.from([0xff, 0x00, 0xfe]);
   const split = (res: ServerResponse, bytes: Buffer, cut: number) => {
     res.write(bytes.subarray(0, cut));
     setTimeout(() => res.end(bytes.subarray(cut)), 10);
@@ -178,6 +179,11 @@ describe("proxy", () => {
       if (req.url === "/v1/models") {
         res.writeHead(200, { "content-type": "application/json" });
         res.end('{"data":[]}');
+        return;
+      }
+      if (req.url === "/v1/blob") {
+        res.writeHead(200, { "content-type": "application/octet-stream" });
+        res.end(blob);
         return;
       }
       res.writeHead(200, { "content-type": "text/event-stream" });
@@ -240,6 +246,12 @@ describe("proxy", () => {
       aborted: false,
       usage: null,
     });
+  });
+
+  it("forwards an unrouted body that is not UTF-8 byte for byte", async () => {
+    const res = await fetch(`${await ready}/v1/blob`);
+    expect(res.headers.get("content-type")).toBe("application/octet-stream");
+    expect(Buffer.from(await res.arrayBuffer())).toEqual(blob);
   });
 
   it("forwards responses untouched and still logs their usage", async () => {

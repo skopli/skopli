@@ -180,13 +180,11 @@ export const createGateway = (upstream: URL, { log, quiet, json }: GatewayOption
       progress(response.status);
     };
     if (!stream) {
-      const out = rewriteBody(route, await response.text(), cacheControl);
-      res.writeHead(response.status, {
-        ...headers,
-        "content-length": String(Buffer.byteLength(out)),
-      });
+      const raw = Buffer.from(await response.arrayBuffer());
+      const out = route ? Buffer.from(rewriteBody(route, raw.toString("utf8"), cacheControl)) : raw;
+      res.writeHead(response.status, { ...headers, "content-length": String(out.length) });
       res.end(out);
-      record(usageOf(parse(out)));
+      record(route ? usageOf(parse(out.toString("utf8"))) : undefined);
       return;
     }
     res.writeHead(response.status, headers);
