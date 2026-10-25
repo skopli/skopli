@@ -45,10 +45,13 @@ pub fn claude_roots(config_dir: Option<&str>, home: &Path) -> Vec<PathBuf> {
 }
 
 /// The row kind: Claude Code writes it as `type`; CodeBuddy writes
-/// `type: "message"` and keeps the role in a top-level `role`.
+/// `type: "message"` and keeps the role in a top-level `role`, and writes a
+/// tool-call step as `type: "function_call"`, an assistant row with that
+/// request's usage and no `role`.
 fn row_role(line: &Value) -> Option<&str> {
     match line.get("type").and_then(Value::as_str) {
         Some("message") => line.get("role").and_then(Value::as_str),
+        Some("function_call") => Some("assistant"),
         other => other,
     }
 }
