@@ -1,5 +1,5 @@
 import { spawnSync } from "node:child_process";
-import { existsSync, mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { describe, expect, it } from "vitest";
@@ -47,5 +47,35 @@ describe("script command lines", () => {
     expect(lengths).toEqual([...lengths].sort((a, b) => b - a));
     expect(plan.files).toEqual(["golden/promote-dry-run/case/input/store/user-x-y/s.json"]);
     expect(existsSync(join(root, "golden", "promote-dry-run"))).toBe(false);
+  });
+
+  it("promote keeps the existing case when a store is missing or a file fails redaction", () => {
+    const home = mkdtempSync(join(tmpdir(), "promote-keep-"));
+    mkdirSync(join(home, "store"));
+    writeFileSync(join(home, "store", "s.json"), '{"user":"ubuntu"}');
+    const existing = join(root, "golden", "promote-keep", "case", "input", "old.json");
+    mkdirSync(join(existing, ".."), { recursive: true });
+    writeFileSync(existing, "{}");
+    try {
+      const missing = run("promote.mjs", home, "promote-keep/case", "--store", "nope");
+      expect(missing.status).toBe(2);
+      expect(missing.stderr).toContain("nope");
+      expect(existsSync(existing)).toBe(true);
+      const leak = run(
+        "promote.mjs",
+        home,
+        "promote-keep/case",
+        "--store",
+        "store",
+        "--redact",
+        "ubuntu=ubuntu2",
+      );
+      expect(leak.status).toBe(1);
+      expect(leak.stderr).toContain("redaction source still present");
+      expect(existsSync(existing)).toBe(true);
+      expect(existsSync(join(root, ".verify", "promote", "promote-keep", "case"))).toBe(false);
+    } finally {
+      rmSync(join(root, "golden", "promote-keep"), { recursive: true, force: true });
+    }
   });
 });

@@ -5,6 +5,8 @@
 // dash-joined (`-home-user`) and percent-encoded (`%2Fhome%2Fuser`) forms so project-slug
 // directory names stay consistent with the paths inside the files; longer sources apply first
 // so a short rule (`ubuntu=user`) cannot consume the path a longer rule names.
+// The case is built under .verify/promote/ and swapped into golden/ only once every check has
+// passed, so a bad argument or a failed check leaves the existing case untouched.
 // After copying, every written file is checked: no redaction source may survive in its bytes
 // (zstd files are checked decompressed), git must not ignore it, and a non-text file must carry
 // an explicit binary attribute so checkin never applies eol conversion to it. Any hit exits 1.
@@ -14,9 +16,11 @@
 import { spawnSync } from "node:child_process";
 import {
   copyFileSync,
+  existsSync,
   mkdirSync,
   readFileSync,
   readdirSync,
+  renameSync,
   rmSync,
   statSync,
   writeFileSync,
@@ -32,8 +36,9 @@ const help = `usage: promote.mjs <capture-home> <harness>/<case> --store <rel>..
 
 Copies the named stores of a harness capture into golden/<harness>/<case>/input/
 with the redaction rules applied to file names and contents, regenerates the
-expected files through replay.mjs and writes the case README. The case directory
-is removed and rewritten on every run.
+expected files through replay.mjs and writes the case README. The case is built
+under .verify/promote/ and replaces the existing case directory only once every
+check has passed.
 
   --store <rel>         path under <capture-home> to copy (repeatable, required)
   --redact <from>=<to>  text to replace; also applied dash-joined and percent-
@@ -50,7 +55,7 @@ is removed and rewritten on every run.
   --help                this text
 
 exit codes: 0 ok, 1 a written file failed the redaction, ignore or attribute
-check (the case is removed again), 2 usage error
+check (the existing case is left untouched), 2 usage error
 
 examples:
   promote.mjs /tmp/cap/home omp/openai-chat --store .omp/agent/sessions \\
@@ -71,9 +76,15 @@ const stores = many("--store");
 if (!captureHome || !caseId?.includes("/") || stores.length === 0) {
   usage("promote: <capture-home>, <harness>/<case> and at least one --store are required");
 }
+const missing = stores.filter((rel) => !existsSync(join(captureHome, rel)));
+if (missing.length) {
+  usage(`promote: store not found under ${captureHome}: ${missing.join(", ")}`);
+}
 const [harness, name] = caseId.split("/");
 const dir = join(root, "golden", harness, name);
-const input = join(dir, "input");
+const stage = join(root, ".verify", "promote", harness, name);
+const input = join(stage, "input");
+const placed = (p) => join(relative(root, dir), relative(stage, p));
 
 const pair = (s) => {
   const i = s.indexOf("=");
@@ -159,7 +170,7 @@ const copyTree = (from, to) => {
     return;
   }
   if (/\.db-(wal|shm)$|\.sqlite3?-(wal|shm)$/.test(from)) return;
-  planned.push(relative(root, to));
+  planned.push(placed(to));
   if (dryRun) return;
   const buf = readFileSync(from);
   mkdirSync(join(to, ".."), { recursive: true });
@@ -181,11 +192,10 @@ const git = (args, input) => {
 const fail = (what, items) => {
   if (items.length === 0) return;
   console.error(`promote: ${what}:\n  ${items.join("\n  ")}`);
-  rmSync(dir, { recursive: true, force: true });
   process.exit(1);
 };
 const verifyWritten = () => {
-  const written = files(input).map((p) => [relative(root, p), readFileSync(p)]);
+  const written = files(input).map((p) => [placed(p), readFileSync(p)]);
   fail(
     "redaction source still present (extend --redact or drop the store)",
     written.flatMap(([p, buf]) => {
@@ -210,9 +220,12 @@ const verifyWritten = () => {
   );
 };
 
-if (!dryRun) rmSync(dir, { recursive: true, force: true });
+if (!dryRun) {
+  rmSync(stage, { recursive: true, force: true });
+  process.on("exit", () => rmSync(stage, { recursive: true, force: true }));
+}
 for (const rel of stores) {
-  log(`promote: ${rel} -> ${relative(root, join(input, redact(rel)))}`);
+  log(`promote: ${rel} -> ${placed(join(input, redact(rel)))}`);
   copyTree(join(captureHome, rel), join(input, redact(rel)));
 }
 if (dryRun) {
@@ -232,9 +245,9 @@ const manifest = {
   options: { harnesses: [harness], tz: "UTC" },
   rollups: ["model", "day", "harness"],
 };
-writeFileSync(join(dir, "input-manifest.json"), `${JSON.stringify(manifest, null, 2)}\n`);
+writeFileSync(join(stage, "input-manifest.json"), `${JSON.stringify(manifest, null, 2)}\n`);
 
-const { events, by, result, relativize } = await replayCase(caseId);
+const { events, by, result, relativize } = await replayCase(caseId, stage);
 // Same normalisation the Rust conformance replay applies: paths relative to input/, sorted,
 // one warning-severity diagnostic per reader warning, skipped grouped by harness only when non-empty.
 const diagnostics = result.diagnostics
@@ -244,11 +257,11 @@ const diagnostics = result.diagnostics
 const skippedPaths = Object.values(result.skipped).flat().map(relativize).sort();
 const skipped = skippedPaths.length ? { [harness]: skippedPaths } : {};
 writeFileSync(
-  join(dir, "expected-events.json"),
+  join(stage, "expected-events.json"),
   `${JSON.stringify({ schema_version: 1, events, diagnostics, skipped }, null, 2)}\n`,
 );
 writeFileSync(
-  join(dir, "expected-rollup.json"),
+  join(stage, "expected-rollup.json"),
   `${JSON.stringify({ schema_version: 1, by }, null, 2)}\n`,
 );
 
@@ -276,7 +289,10 @@ const readme = [
   ...many("--note").map((n) => `- ${n}`),
   "",
 ];
-writeFileSync(join(dir, "README.md"), readme.join("\n"));
+writeFileSync(join(stage, "README.md"), readme.join("\n"));
+rmSync(dir, { recursive: true, force: true });
+mkdirSync(join(dir, ".."), { recursive: true });
+renameSync(stage, dir);
 log(`promote: wrote ${relative(root, dir)} (${planned.length} input files)`);
 console.log(
   JSON.stringify({

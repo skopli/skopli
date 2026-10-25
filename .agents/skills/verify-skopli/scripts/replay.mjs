@@ -13,9 +13,8 @@ export const canonical = (v) =>
       : x,
   );
 
-export const replayCase = async (caseId) => {
+export const replayCase = async (caseId, dir = join(root, "golden", caseId)) => {
   const { readUsage, rollup } = await import(join(root, "dist/index.js"));
-  const dir = join(root, "golden", caseId);
   const input = join(dir, "input");
   const manifest = JSON.parse(readFileSync(join(dir, "input-manifest.json"), "utf8"));
 
