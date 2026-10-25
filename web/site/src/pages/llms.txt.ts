@@ -8,7 +8,7 @@ const body = [
   "",
   `> ${description}`,
   "",
-  "Reading and rollups run offline against local files. Pricing is a separate step that matches model names to a catalog and leaves unknown models as `priced: false` instead of guessing.",
+  "Reading and rollups run offline against local files. Pricing is a separate step that fetches market catalogs by default, caches them for an hour, keeps pricing from that cache when the network is gone, and leaves unknown models as `priced: false` instead of guessing.",
   "",
   "## Links",
   "",
