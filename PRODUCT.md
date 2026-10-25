@@ -34,7 +34,7 @@ Skopli's position is that combination: breadth across 40 harnesses and 9 languag
   Users can adopt any subset.
 - Same API shape across languages.
   The seven handle-based facades (TypeScript, Python, Ruby, Java, C#, Go, Swift) expose the whole Price operation surface (`createPricing`, `lookupModel`, `priceRollups`, `priceEvents`, `catalogs`) and run the same built-in fetch and cache lifecycle.
-  The constructor options are shared but not identical: the six non-TypeScript facades accept explicit pre-fetched `catalogs`, while TypeScript covers the same need through custom `sources` and an injectable `fetch`.
+  The constructor options are shared but not identical: all seven take `sources` and `fetch`, and the six non-TypeScript facades also accept explicit pre-fetched `catalogs`.
   Rust (`skopli-core`) exposes the pricing primitives directly, and the C `libskopli`/`libskopli-full` prices against injected catalogs.
   The language choice is the reader's most important docs preference and must persist.
 
@@ -43,7 +43,7 @@ Skopli's position is that combination: breadth across 40 harnesses and 9 languag
 - Explicit misses are the differentiator: when a model cannot be matched to a price, Skopli reports a miss (`priced: false` with the attempted keys) rather than guessing.
   Misses are first-class content, never hidden.
 - Full pricing parity across facades: every facade exposes the same Price operation surface, and no facade ships a reduced set of operations.
-  The one option difference is that TypeScript takes market getters through `sources` and `fetch` where the other facades take pre-fetched `catalogs`.
+  The one option difference is that the non-TypeScript facades also accept pre-fetched `catalogs`.
   The C library is network-free by default (it opens no socket); each facade fetches in its own host language and hands pre-fetched catalogs to the core, so the results match everywhere.
   Built-in fetching in the C library is a build feature (`net`), not a missing one.
 - Numbers are the product: token counts, dollar totals, model names, tier boundaries.

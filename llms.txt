@@ -1,6 +1,6 @@
 # Skopli
 
-SDK that reads AI coding-agent usage (tokens, sessions, turns, calls) from local harness state, aggregates it, and prices it against market catalogs (OpenRouter, LiteLLM, models.dev). One Rust core behind TypeScript, Python, Rust, Ruby, Java, C#, Go, Swift, and C facades. The signatures below are the TypeScript ones (ESM only, Node >= 24). The seven handle-based facades (TypeScript, Python, Ruby, Java, C#, Go, Swift) expose the same operations; the six non-TypeScript ones take pre-fetched `catalogs` where TypeScript takes `sources` and `fetch`. Rust exposes the core primitives directly, and the C library prices against catalogs you pass in. No accounts, no telemetry, no CLI.
+SDK that reads AI coding-agent usage (tokens, sessions, turns, calls) from local harness state, aggregates it, and prices it against market catalogs (OpenRouter, LiteLLM, models.dev). One Rust core behind TypeScript, Python, Rust, Ruby, Java, C#, Go, Swift, and C facades. The signatures below are the TypeScript ones (ESM only, Node >= 24). The seven handle-based facades (TypeScript, Python, Ruby, Java, C#, Go, Swift) expose the same operations and all take `sources` and `fetch`; the six non-TypeScript ones also accept pre-fetched `catalogs`. Rust exposes the core primitives directly, and the C library prices against catalogs you pass in (the `net` build feature adds built-in fetching). No accounts, no telemetry, no CLI.
 
 ## Layers
 
