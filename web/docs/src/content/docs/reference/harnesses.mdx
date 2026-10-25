@@ -21,7 +21,8 @@ Display names follow each project's own branding.
 - **Claude Code** reports the 5m/1h cache-write split, which populates `tokens.cacheWrite1h`, and records `costUSD`, which populates `costUsd`.
 - **OpenCode** supplies `workspace`, `title` and, when non-zero, `costUsd`.
 - **Hermes Agent** reports a per-row `message_count`, which populates `calls`.
-- **OpenCode, ZCode, Devin CLI and Cline** keep both a SQLite store and a legacy JSONL mirror. The SQLite store is authoritative and the mirror is not double-counted.
+- **OpenCode, ZCode, Devin CLI and Cline** keep both a SQLite store and a legacy JSONL mirror.
+  The SQLite store is authoritative and the mirror is not double-counted.
 
 ## Subagent markers
 

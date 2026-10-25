@@ -60,7 +60,8 @@ One Rust core applies the same rules behind every facade: TypeScript, Python, Ru
 
 <!-- generated: install-table -->
 
-No release has shipped yet, and no registry has a usable package. Each line below installs from the repository.
+No release has shipped yet, and no registry has a usable package.
+Each line below installs from the repository.
 
 | Language   | Install now (from the repository)                                                                                                                                                                                                           | Notes                                                                                                                                             | After the first release                                                                                               |
 | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
@@ -135,7 +136,7 @@ for (const row of priced) {
 
 <!-- generated: harness-table -->
 
-40 harnesses are supported.
+40 supported.
 The id is what you pass in `readUsage({ harnesses: [...] })`.
 
 | Harness                                                                                        | id            |     | Harness                                                                                            | id               |
@@ -158,7 +159,7 @@ The id is what you pass in `readUsage({ harnesses: [...] })`.
 | <img src="assets/logos/grok.svg" height="16" alt="" align="absmiddle" /> Grok Build            | `grok`        |     | Trae Agent                                                                                         | `trae`           |
 | Auggie CLI                                                                                     | `augment`     |     | DeepSeek Harness                                                                                   | `deepseek`       |
 | Codebuff                                                                                       | `codebuff`    |     | Reasonix                                                                                           | `reasonix`       |
-| CodeBuddy Code                                                                                 | `codebuddy`   |     | Kiro CLI                                                                                           | `kiro`           |
+| CodeBuddy Code                                                                                 | `codebuddy`   |     | Kiro CLI (estimated)                                                                               | `kiro`           |
 | jcode                                                                                          | `jcode`       |     | fx                                                                                                 | `fx`             |
 
 <!-- /generated -->

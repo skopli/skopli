@@ -2,7 +2,7 @@
 import { Code } from "astro:components";
 import Icon from "@skopli/ui/components/Icon.astro";
 import Quickstart from "@skopli/ui/components/Quickstart.astro";
-import { harnesses } from "@skopli/ui/harnesses";
+import { harnesses, label } from "@skopli/ui/harnesses";
 import { codeThemes, langs } from "@skopli/ui/langs";
 import { project } from "@skopli/ui/project";
 import { command, published, quickstarts, releaseNote } from "@skopli/ui/quickstart";
@@ -190,7 +190,7 @@ const outputNarrow = `[
         <li>
           <span class="harnesses__name">
             <Icon name={h.icon} />
-            {h.name}
+            {label(h)}
           </span>
           <code>{h.id}</code>
         </li>

@@ -1,6 +1,6 @@
-export type HarnessInfo = { id: string; name: string; icon?: string };
+export type HarnessInfo = { id: string; name: string; icon?: string; estimated: boolean };
 
-const rows: [string, string, string?][] = [
+const rows: [id: string, name: string, icon?: string, tokens?: "estimated"][] = [
   ["claude", "Claude Code", "claude"],
   ["codex", "Codex CLI", "codex"],
   ["gemini", "Gemini CLI", "gemini"],
@@ -39,8 +39,15 @@ const rows: [string, string, string?][] = [
   ["trae", "Trae Agent", "trae"],
   ["deepseek", "DeepSeek Harness", "deepseek"],
   ["reasonix", "Reasonix"],
-  ["kiro", "Kiro CLI", "kiro"],
+  ["kiro", "Kiro CLI", "kiro", "estimated"],
   ["fx", "fx"],
 ];
 
-export const harnesses: HarnessInfo[] = rows.map(([id, name, icon]) => ({ id, name, icon }));
+export const harnesses: HarnessInfo[] = rows.map(([id, name, icon, tokens]) => ({
+  id,
+  name,
+  icon,
+  estimated: tokens === "estimated",
+}));
+
+export const label = (h: HarnessInfo): string => (h.estimated ? `${h.name} (estimated)` : h.name);

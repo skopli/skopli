@@ -1,7 +1,7 @@
 import { spawnSync } from "node:child_process";
 import { existsSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { harnesses } from "../web/ui/src/harnesses.ts";
+import { harnesses, label } from "../web/ui/src/harnesses.ts";
 import { langs } from "../web/ui/src/langs.ts";
 import { command, published, quickstarts, releaseNote } from "../web/ui/src/quickstart.ts";
 
@@ -79,7 +79,7 @@ const harnessTable = () => {
       h.icon && existsSync(logo)
         ? `<img src="${logo}" height="16" alt="" align="absmiddle" /> `
         : "";
-    return [`${img}${h.name}`, `\`${h.id}\``];
+    return [`${img}${label(h)}`, `\`${h.id}\``];
   };
   const half = Math.ceil(harnesses.length / 2);
   const rows = harnesses.slice(0, half).map((h, i) => {
