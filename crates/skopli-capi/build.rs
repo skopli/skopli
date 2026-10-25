@@ -10,9 +10,13 @@ use std::path::{Path, PathBuf};
 
 fn main() {
     let crate_dir = PathBuf::from(env::var("CARGO_MANIFEST_DIR").expect("CARGO_MANIFEST_DIR"));
-    println!("cargo:rerun-if-changed=src/lib.rs");
-    println!("cargo:rerun-if-changed=src/abi.rs");
+    println!("cargo:rerun-if-changed=src");
     println!("cargo:rerun-if-changed=cbindgen.toml");
+    println!("cargo:rerun-if-changed=include/skopli.h");
+    println!(
+        "cargo:rerun-if-changed={}",
+        csharp_out(&crate_dir).display()
+    );
     println!("cargo:rerun-if-env-changed=SKOPLI_GEN_HEADER");
     println!("cargo:rerun-if-env-changed=SKOPLI_GEN_CSHARP");
 
