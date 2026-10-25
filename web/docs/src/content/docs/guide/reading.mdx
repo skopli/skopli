@@ -199,7 +199,8 @@ type UsageEvent = {
 Token buckets are disjoint.
 Where a harness reports reasoning inside its output count (Codex, Grok, ZCode) the reader subtracts it so `output + reasoning` reconstructs the raw figure.
 Codex cache writes arrive as a subset of input and are moved into `cacheWrite` the same way.
-Copilot's OTel export does not say whether `output_tokens` includes reasoning, so the reader leaves it alone and treats the two as disjoint.
+GitHub Copilot CLI is read from its session-state logs first; records from its optional OTel export are kept only for sessions those logs do not know.
+The OTel conventions do not say whether `output_tokens` includes reasoning, so for those records the reader treats the two as disjoint and subtracts nothing.
 
 `costUsd` is present only when the harness recorded a cost itself: Claude Code's `costUSD` and OpenCode's non-zero `cost`.
 `workspace` and `title` come from OpenCode's session directory and title and Claude Code's `cwd`.

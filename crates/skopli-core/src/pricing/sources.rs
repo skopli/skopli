@@ -117,7 +117,7 @@ impl BuiltinOptions {
     }
 }
 
-/// How to obtain a source payload — the fetch indirection that keeps the cache
+/// How to obtain a source payload, the fetch indirection that keeps the cache
 /// logic hermetically testable. Production uses [`Fetcher::Network`]; tests use
 /// [`Fetcher::Base`] with a local directory as the "server".
 enum Fetcher<'a> {
