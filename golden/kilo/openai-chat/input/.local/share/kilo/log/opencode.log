@@ -1,0 +1,104 @@
+timestamp=2026-10-25T11:13:10.538Z level=INFO run=41e9861a message=loading path=/home/user/.config/kilo/config.json
+timestamp=2026-10-25T11:13:10.544Z level=INFO run=41e9861a message=loading path=/home/user/.config/kilo/kilo.json
+timestamp=2026-10-25T11:13:10.565Z level=INFO run=41e9861a message=loading path=/home/user/.config/kilo/kilo.jsonc
+timestamp=2026-10-25T11:13:10.654Z level=INFO run=41e9861a message=loading path=/home/user/.config/kilo/opencode.json
+timestamp=2026-10-25T11:13:10.655Z level=INFO run=41e9861a message=loading path=/home/user/.config/kilo/opencode.jsonc
+timestamp=2026-10-25T11:13:10.683Z level=INFO run=41e9861a message="creating instance" directory=/home/user/project
+timestamp=2026-10-25T11:13:10.683Z level=INFO run=41e9861a message=fromDirectory directory=/home/user/project
+timestamp=2026-10-25T11:13:10.751Z level=INFO run=41e9861a message=loading path=/home/user/.config/kilo/kilo.json
+timestamp=2026-10-25T11:13:10.931Z level=INFO run=41e9861a message="running migration" index=0
+timestamp=2026-10-25T11:13:10.941Z level=INFO run=41e9861a message="running migration" index=1
+timestamp=2026-10-25T11:13:10.952Z level=INFO run=41e9861a message="all LSPs are disabled"
+timestamp=2026-10-25T11:13:10.953Z level=INFO run=41e9861a message="all formatters are disabled"
+timestamp=2026-10-25T11:13:10.953Z level=INFO run=41e9861a message=init
+timestamp=2026-10-25T11:13:11.195Z level=INFO run=41e9861a message=created id=ses_e8d3c49e4ffe2xQlermW1CfvNN slug=stellar-falcon version=7.8.12 projectID=3275b18cfacef348b95dbf5b9ac76d21dfa5d4ec directory=/home/user/project path="" workspaceID=undefined parentID=undefined title="New session - 2026-10-25T11:13:11.195Z" agent=undefined model=undefined metadata=undefined permission="[{\"permission\":\"question\",\"pattern\":\"*\",\"action\":\"deny\"},{\"permission\":\"suggest\",\"pattern\":\"*\",\"action\":\"deny\"},{\"permission\":\"plan_enter\",\"pattern\":\"*\",\"action\":\"deny\"},{\"permission\":\"plan_exit\",\"pattern\":\"*\",\"action\":\"deny\"}]" cost=0 tokens.input=0 tokens.output=0 tokens.reasoning=0 tokens.cache.read=0 tokens.cache.write=0 time.created=1792926791195 time.updated=1792926791195
+timestamp=2026-10-25T11:13:13.660Z level=INFO run=41e9861a message="event connected"
+timestamp=2026-10-25T11:13:14.857Z level=INFO run=41e9861a message="watcher backend" directory=/home/user/project platform=linux backend=inotify
+timestamp=2026-10-25T11:13:14.881Z level=INFO run=41e9861a message="project copy refresh started" projectID=3275b18cfacef348b95dbf5b9ac76d21dfa5d4ec
+timestamp=2026-10-25T11:13:15.360Z level=INFO run=41e9861a message="project copy refresh done" projectID=3275b18cfacef348b95dbf5b9ac76d21dfa5d4ec updated=[] removed=[]
+timestamp=2026-10-25T11:13:15.374Z level=INFO run=41e9861a message="booting location services" directory=/home/user/project workspaceID=undefined
+timestamp=2026-10-25T11:13:15.465Z level=INFO run=41e9861a message=loop session.id=ses_e8d3c49e4ffe2xQlermW1CfvNN step=0
+timestamp=2026-10-25T11:13:16.457Z level=INFO run=41e9861a message=initialized
+timestamp=2026-10-25T11:13:16.579Z level=INFO run=41e9861a message=tracking hash=55605eb1b3ce31f44909f247c6e91c4ccf679a8d cwd=/home/user/project git=/home/user/.local/share/kilo/snapshot/3275b18cfacef348b95dbf5b9ac76d21dfa5d4ec/1924f7bd250006f43bd667dfbbbb7fef117bf6e8
+timestamp=2026-10-25T11:13:16.748Z level=INFO run=41e9861a message="shell tool using shell" shell=/bin/bash
+timestamp=2026-10-25T11:13:16.787Z level=INFO run=41e9861a message=init count=1
+timestamp=2026-10-25T11:13:16.821Z level=INFO run=41e9861a message=process session.id=ses_e8d3c49e4ffe2xQlermW1CfvNN messageID=msg_172c3ca18001tGlSUMB5IiM3u2
+timestamp=2026-10-25T11:13:16.835Z level=INFO run=41e9861a message=stream providerID=llama modelID=qwen session.id=ses_e8d3c49e4ffe2xQlermW1CfvNN small=false agent=code mode=primary
+timestamp=2026-10-25T11:13:16.848Z level=INFO run=41e9861a message="llm runtime selected" llm.runtime=ai-sdk llm.provider=llama llm.model=qwen
+timestamp=2026-10-25T11:14:11.099Z level=INFO run=41e9861a message=cleanup prune=7.days
+timestamp=2026-10-25T11:18:16.876Z level=ERROR run=41e9861a message="stream error" providerID=llama modelID=qwen session.id=ses_e8d3c49e4ffe2xQlermW1CfvNN small=false agent=code mode=primary error.error="TimeoutError: The operation timed out."
+timestamp=2026-10-25T11:18:21.922Z level=INFO run=41e9861a message=stream providerID=llama modelID=qwen session.id=ses_e8d3c49e4ffe2xQlermW1CfvNN small=false agent=code mode=primary
+timestamp=2026-10-25T11:18:21.932Z level=INFO run=41e9861a message="llm runtime selected" llm.runtime=ai-sdk llm.provider=llama llm.model=qwen
+timestamp=2026-10-25T11:23:01.740Z level=INFO run=e31881ac message=loading path=/home/user/.config/kilo/config.json
+timestamp=2026-10-25T11:23:01.740Z level=INFO run=e31881ac message=loading path=/home/user/.config/kilo/kilo.json
+timestamp=2026-10-25T11:23:01.750Z level=INFO run=e31881ac message=loading path=/home/user/.config/kilo/kilo.jsonc
+timestamp=2026-10-25T11:23:01.750Z level=INFO run=e31881ac message=loading path=/home/user/.config/kilo/opencode.json
+timestamp=2026-10-25T11:23:01.752Z level=INFO run=e31881ac message=loading path=/home/user/.config/kilo/opencode.jsonc
+timestamp=2026-10-25T11:23:01.757Z level=INFO run=e31881ac message="creating instance" directory=/home/user/project
+timestamp=2026-10-25T11:23:01.757Z level=INFO run=e31881ac message=fromDirectory directory=/home/user/project
+timestamp=2026-10-25T11:23:01.801Z level=INFO run=e31881ac message=loading path=/home/user/.config/kilo/kilo.json
+timestamp=2026-10-25T11:23:01.987Z level=INFO run=e31881ac message="all LSPs are disabled"
+timestamp=2026-10-25T11:23:01.994Z level=INFO run=e31881ac message="all formatters are disabled"
+timestamp=2026-10-25T11:23:01.994Z level=INFO run=e31881ac message=init
+timestamp=2026-10-25T11:23:04.174Z level=INFO run=e31881ac message="event connected"
+timestamp=2026-10-25T11:23:04.282Z level=INFO run=e31881ac message="watcher backend" directory=/home/user/project platform=linux backend=inotify
+timestamp=2026-10-25T11:23:04.288Z level=INFO run=e31881ac message="project copy refresh started" projectID=3275b18cfacef348b95dbf5b9ac76d21dfa5d4ec
+timestamp=2026-10-25T11:23:04.552Z level=INFO run=e31881ac message="project copy refresh done" projectID=3275b18cfacef348b95dbf5b9ac76d21dfa5d4ec updated=[] removed=[]
+timestamp=2026-10-25T11:23:04.558Z level=INFO run=e31881ac message="booting location services" directory=/home/user/project workspaceID=undefined
+timestamp=2026-10-25T11:23:04.632Z level=INFO run=e31881ac message=loop session.id=ses_e8d3c49e4ffe2xQlermW1CfvNN step=0
+timestamp=2026-10-25T11:23:05.749Z level=INFO run=e31881ac message=tracking hash=55605eb1b3ce31f44909f247c6e91c4ccf679a8d cwd=/home/user/project git=/home/user/.local/share/kilo/snapshot/3275b18cfacef348b95dbf5b9ac76d21dfa5d4ec/1924f7bd250006f43bd667dfbbbb7fef117bf6e8
+timestamp=2026-10-25T11:23:05.774Z level=INFO run=e31881ac message="shell tool using shell" shell=/bin/bash
+timestamp=2026-10-25T11:23:05.798Z level=INFO run=e31881ac message=init count=1
+timestamp=2026-10-25T11:23:05.837Z level=INFO run=e31881ac message=process session.id=ses_e8d3c49e4ffe2xQlermW1CfvNN messageID=msg_172ccc853001vQE7orauN37URf
+timestamp=2026-10-25T11:23:05.841Z level=INFO run=e31881ac message=stream providerID=llama modelID=qwen session.id=ses_e8d3c49e4ffe2xQlermW1CfvNN small=false agent=code mode=primary
+timestamp=2026-10-25T11:23:05.847Z level=INFO run=e31881ac message="llm runtime selected" llm.runtime=ai-sdk llm.provider=llama llm.model=qwen
+timestamp=2026-10-25T11:24:02.072Z level=INFO run=e31881ac message=cleanup prune=7.days
+timestamp=2026-10-25T11:30:47.991Z level=INFO run=91b7ebbb message=loading path=/home/user/.config/kilo/config.json
+timestamp=2026-10-25T11:30:47.992Z level=INFO run=91b7ebbb message=loading path=/home/user/.config/kilo/kilo.json
+timestamp=2026-10-25T11:30:47.996Z level=INFO run=91b7ebbb message=loading path=/home/user/.config/kilo/kilo.jsonc
+timestamp=2026-10-25T11:30:47.996Z level=INFO run=91b7ebbb message=loading path=/home/user/.config/kilo/opencode.json
+timestamp=2026-10-25T11:30:47.998Z level=INFO run=91b7ebbb message=loading path=/home/user/.config/kilo/opencode.jsonc
+timestamp=2026-10-25T11:30:48.003Z level=INFO run=91b7ebbb message="creating instance" directory=/home/user/project
+timestamp=2026-10-25T11:30:48.003Z level=INFO run=91b7ebbb message=fromDirectory directory=/home/user/project
+timestamp=2026-10-25T11:30:48.079Z level=INFO run=91b7ebbb message=loading path=/home/user/.config/kilo/kilo.json
+timestamp=2026-10-25T11:30:48.209Z level=INFO run=91b7ebbb message="all formatters are disabled"
+timestamp=2026-10-25T11:30:48.209Z level=INFO run=91b7ebbb message=init
+timestamp=2026-10-25T11:30:48.209Z level=INFO run=91b7ebbb message="all LSPs are disabled"
+timestamp=2026-10-25T11:30:50.493Z level=INFO run=91b7ebbb message="event connected"
+timestamp=2026-10-25T11:30:50.687Z level=INFO run=91b7ebbb message="watcher backend" directory=/home/user/project platform=linux backend=inotify
+timestamp=2026-10-25T11:30:50.705Z level=INFO run=91b7ebbb message="project copy refresh started" projectID=3275b18cfacef348b95dbf5b9ac76d21dfa5d4ec
+timestamp=2026-10-25T11:30:51.120Z level=INFO run=91b7ebbb message="project copy refresh done" projectID=3275b18cfacef348b95dbf5b9ac76d21dfa5d4ec updated=[] removed=[]
+timestamp=2026-10-25T11:30:51.141Z level=INFO run=91b7ebbb message="booting location services" directory=/home/user/project workspaceID=undefined
+timestamp=2026-10-25T11:30:51.200Z level=INFO run=91b7ebbb message=loop session.id=ses_e8d3c49e4ffe2xQlermW1CfvNN step=0
+timestamp=2026-10-25T11:30:52.029Z level=INFO run=91b7ebbb message=tracking hash=55605eb1b3ce31f44909f247c6e91c4ccf679a8d cwd=/home/user/project git=/home/user/.local/share/kilo/snapshot/3275b18cfacef348b95dbf5b9ac76d21dfa5d4ec/1924f7bd250006f43bd667dfbbbb7fef117bf6e8
+timestamp=2026-10-25T11:30:52.075Z level=INFO run=91b7ebbb message="shell tool using shell" shell=/bin/bash
+timestamp=2026-10-25T11:30:52.105Z level=INFO run=91b7ebbb message=init count=1
+timestamp=2026-10-25T11:30:52.136Z level=INFO run=91b7ebbb message=process session.id=ses_e8d3c49e4ffe2xQlermW1CfvNN messageID=msg_172d3e5c8001YKAkbM1hV77AbX
+timestamp=2026-10-25T11:30:52.140Z level=INFO run=91b7ebbb message=stream providerID=llama modelID=qwen session.id=ses_e8d3c49e4ffe2xQlermW1CfvNN small=false agent=code mode=primary
+timestamp=2026-10-25T11:30:52.177Z level=INFO run=91b7ebbb message="llm runtime selected" llm.runtime=ai-sdk llm.provider=llama llm.model=qwen
+timestamp=2026-10-25T11:31:48.285Z level=INFO run=91b7ebbb message=cleanup prune=7.days
+timestamp=2026-10-25T11:34:34.124Z level=INFO run=1207fc62 message=loading path=/home/user/.config/kilo/config.json
+timestamp=2026-10-25T11:34:34.125Z level=INFO run=1207fc62 message=loading path=/home/user/.config/kilo/kilo.json
+timestamp=2026-10-25T11:34:34.129Z level=INFO run=1207fc62 message=loading path=/home/user/.config/kilo/kilo.jsonc
+timestamp=2026-10-25T11:34:34.129Z level=INFO run=1207fc62 message=loading path=/home/user/.config/kilo/opencode.json
+timestamp=2026-10-25T11:34:34.129Z level=INFO run=1207fc62 message=loading path=/home/user/.config/kilo/opencode.jsonc
+timestamp=2026-10-25T11:34:34.134Z level=INFO run=1207fc62 message="creating instance" directory=/home/user/project
+timestamp=2026-10-25T11:34:34.134Z level=INFO run=1207fc62 message=fromDirectory directory=/home/user/project
+timestamp=2026-10-25T11:34:34.214Z level=INFO run=1207fc62 message=loading path=/home/user/.config/kilo/kilo.json
+timestamp=2026-10-25T11:34:34.346Z level=INFO run=1207fc62 message="all LSPs are disabled"
+timestamp=2026-10-25T11:34:34.346Z level=INFO run=1207fc62 message="all formatters are disabled"
+timestamp=2026-10-25T11:34:34.346Z level=INFO run=1207fc62 message=init
+timestamp=2026-10-25T11:34:36.866Z level=INFO run=1207fc62 message="event connected"
+timestamp=2026-10-25T11:34:37.091Z level=INFO run=1207fc62 message="watcher backend" directory=/home/user/project platform=linux backend=inotify
+timestamp=2026-10-25T11:34:37.101Z level=INFO run=1207fc62 message="project copy refresh started" projectID=3275b18cfacef348b95dbf5b9ac76d21dfa5d4ec
+timestamp=2026-10-25T11:34:37.465Z level=INFO run=1207fc62 message="project copy refresh done" projectID=3275b18cfacef348b95dbf5b9ac76d21dfa5d4ec updated=[] removed=[]
+timestamp=2026-10-25T11:34:37.476Z level=INFO run=1207fc62 message="booting location services" directory=/home/user/project workspaceID=undefined
+timestamp=2026-10-25T11:34:37.594Z level=INFO run=1207fc62 message=loop session.id=ses_e8d3c49e4ffe2xQlermW1CfvNN step=0
+timestamp=2026-10-25T11:34:38.416Z level=INFO run=1207fc62 message=tracking hash=55605eb1b3ce31f44909f247c6e91c4ccf679a8d cwd=/home/user/project git=/home/user/.local/share/kilo/snapshot/3275b18cfacef348b95dbf5b9ac76d21dfa5d4ec/1924f7bd250006f43bd667dfbbbb7fef117bf6e8
+timestamp=2026-10-25T11:34:38.470Z level=INFO run=1207fc62 message="shell tool using shell" shell=/bin/bash
+timestamp=2026-10-25T11:34:38.494Z level=INFO run=1207fc62 message=init count=1
+timestamp=2026-10-25T11:34:38.526Z level=INFO run=1207fc62 message=process session.id=ses_e8d3c49e4ffe2xQlermW1CfvNN messageID=msg_172d75a17001BanTfOGFsX674h
+timestamp=2026-10-25T11:34:38.531Z level=INFO run=1207fc62 message=stream providerID=llama modelID=qwen session.id=ses_e8d3c49e4ffe2xQlermW1CfvNN small=false agent=code mode=primary
+timestamp=2026-10-25T11:34:38.537Z level=INFO run=1207fc62 message="llm runtime selected" llm.runtime=ai-sdk llm.provider=llama llm.model=qwen
+timestamp=2026-10-25T11:35:34.408Z level=INFO run=1207fc62 message=cleanup prune=7.days
+timestamp=2026-10-25T11:38:15.554Z level=INFO run=1207fc62 message=tracking hash=55605eb1b3ce31f44909f247c6e91c4ccf679a8d cwd=/home/user/project git=/home/user/.local/share/kilo/snapshot/3275b18cfacef348b95dbf5b9ac76d21dfa5d4ec/1924f7bd250006f43bd667dfbbbb7fef117bf6e8

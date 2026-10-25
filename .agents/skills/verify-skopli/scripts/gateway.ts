@@ -34,6 +34,17 @@ export const rewriteMessageUsage = (usage: Json, cacheControl: boolean): Json =>
   };
 };
 
+/** Anthropic marks cacheable prefixes with `cache_control` on system, tool and content blocks. */
+export const carriesCacheControl = (body: Json | undefined): boolean => {
+  const blocks = (v: unknown): Json[] =>
+    Array.isArray(v) ? v.map(obj).filter((b): b is Json => b !== undefined) : [];
+  const marked = (b: Json) => "cache_control" in b;
+  return (
+    [...blocks(body?.system), ...blocks(body?.tools)].some(marked) ||
+    blocks(body?.messages).some((m) => blocks(m.content).some(marked))
+  );
+};
+
 export const rewriteBody = (route: Route, text: string, cacheControl: boolean): string => {
   const body = parse(text);
   const usage = obj(body?.usage);
@@ -119,9 +130,7 @@ export type GatewayOptions = { log?: string | undefined; quiet?: boolean; json?:
 
 export const createGateway = (upstream: URL, { log, quiet, json }: GatewayOptions = {}): Server =>
   createServer(async (req, res) => {
-    const chunks: Buffer[] = [];
-    for await (const chunk of req) chunks.push(chunk as Buffer);
-    const body = Buffer.concat(chunks);
+    const body = Buffer.concat(await req.toArray());
     const url = upstreamUrl(req.url ?? "/", upstream);
     // Progress goes to stderr; `json` makes each line machine-readable.
     const progress = (status: number, error?: string) => {
@@ -144,7 +153,7 @@ export const createGateway = (upstream: URL, { log, quiet, json }: GatewayOption
       return;
     }
     const route = routeOf(req.url ?? "/");
-    const cacheControl = body.includes('"cache_control"');
+    const cacheControl = route === "messages" && carriesCacheControl(parse(body.toString("utf8")));
     const headers = forwardable(response.headers);
     const stream = response.headers.get("content-type")?.startsWith("text/event-stream") ?? false;
     let aborted = false;

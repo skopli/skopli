@@ -7,7 +7,8 @@ Real capture of a multi-turn session, promoted from the harness home directory w
 - Server: llama-server b11720, 4 slots, prompt cache on.
 - Model: qwen2.5-1.5b-instruct-q4_k_m (served as "qwen").
 - Cache numbers: server-reported prompt_tokens_details.cached_tokens from the gateway (timings.cache_n).
-- Store paths: `.local/share/kilo`.
+- Store paths: `.local/share/kilo/kilo.db`, `.local/share/kilo/storage`, `.local/share/kilo/log`.
 - Redaction: user name, home directory, project path, host name and placeholder API keys replaced; path slugs renamed to match; SQLite text columns rewritten in place and the database checkpointed and vacuumed.
 - Events 4, sessions 1, diagnostics 0, skipped 0.
 - Totals: input 260, output 294, cache read 63193, cache write 0, reasoning 0.
+- The harness's `snapshot/` object store and `telemetry-id` are left out: the reader does not consume them and they carry machine identifiers.

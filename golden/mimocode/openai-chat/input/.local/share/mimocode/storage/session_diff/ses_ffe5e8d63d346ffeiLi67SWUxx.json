@@ -1,0 +1,58 @@
+[
+  {
+    "file": ".gjc/_session-01a17298-547f-74b3-8717-63132128c2f8/runtime/runtime-state.json",
+    "patch": "Index: .gjc/_session-01a17298-547f-74b3-8717-63132128c2f8/runtime/runtime-state.json\n===================================================================\n--- .gjc/_session-01a17298-547f-74b3-8717-63132128c2f8/runtime/runtime-state.json\t\n+++ .gjc/_session-01a17298-547f-74b3-8717-63132128c2f8/runtime/runtime-state.json\t\n@@ -1,1 +1,1 @@\n-{\"schema_version\":1,\"session_id\":\"01a17298-547f-74b3-8717-63132128c2f8\",\"state\":\"running\",\"ready_for_input\":false,\"updated_at\":\"2026-10-25T10:25:50.859Z\",\"current_turn_id\":null,\"last_turn_id\":null,\"live\":true,\"reason\":null,\"source\":\"agent_session_event\",\"event\":\"turn_start\",\"cwd\":\"/home/user/project\",\"workdir\":\"/home/user/project\",\"branch\":null,\"session_file\":\"/home/user/scratch/gajae/openai-chat/home/.gjc/agent/sessions/v2-nqgtqgnu5g5pc7sbxakyf7rexfkxhlxdyyjwzhww22ff2zf3kf2a/2026-10-25T10-25-48-159Z_01a17298-547f-74b3-8717-63132128c2f8.jsonl\"}\n+{\"schema_version\":1,\"session_id\":\"01a17298-547f-74b3-8717-63132128c2f8\",\"state\":\"running\",\"ready_for_input\":false,\"updated_at\":\"2026-10-25T10:32:08.492Z\",\"current_turn_id\":null,\"last_turn_id\":null,\"live\":true,\"reason\":null,\"source\":\"agent_session_event\",\"event\":\"turn_start\",\"cwd\":\"/home/user/project\",\"workdir\":\"/home/user/project\",\"branch\":null,\"session_file\":\"/home/user/scratch/gajae/openai-chat/home/.gjc/agent/sessions/v2-nqgtqgnu5g5pc7sbxakyf7rexfkxhlxdyyjwzhww22ff2zf3kf2a/2026-10-25T10-25-48-159Z_01a17298-547f-74b3-8717-63132128c2f8.jsonl\"}\n",
+    "additions": 1,
+    "deletions": 1,
+    "status": "modified"
+  },
+  {
+    "file": ".gjc/_session-01a17298-547f-74b3-8717-63132128c2f8/runtime/runtime-state.json.lock",
+    "patch": "Index: .gjc/_session-01a17298-547f-74b3-8717-63132128c2f8/runtime/runtime-state.json.lock\n===================================================================\n--- .gjc/_session-01a17298-547f-74b3-8717-63132128c2f8/runtime/runtime-state.json.lock\t\n+++ .gjc/_session-01a17298-547f-74b3-8717-63132128c2f8/runtime/runtime-state.json.lock\t\n@@ -1,1 +1,1 @@\n-{\"pid\":1,\"start_time\":\"unknown\",\"token\":\"d2c5f8f9-95d0-4fb5-bb73-69d359e0f814\",\"owner_host_id\":\"788bb1c55ac8becbeb54b4f8eaf2b7e3983ec69797c1151ca64dc3bfd33cdf5d\",\"released\":true}                           \n\\ No newline at end of file\n+{\"pid\":1,\"start_time\":\"unknown\",\"token\":\"5aacce65-f053-4e41-a6d1-881fbcbb5085\",\"owner_host_id\":\"788bb1c55ac8becbeb54b4f8eaf2b7e3983ec69797c1151ca64dc3bfd33cdf5d\",\"released\":true}                           \n\\ No newline at end of file\n",
+    "additions": 1,
+    "deletions": 1,
+    "status": "modified"
+  },
+  {
+    "file": ".gjc/_session-01a17298-547f-74b3-8717-63132128c2f8/runtime/runtime-state.json.lock.transition.owner",
+    "patch": "Index: .gjc/_session-01a17298-547f-74b3-8717-63132128c2f8/runtime/runtime-state.json.lock.transition.owner\n===================================================================\n--- .gjc/_session-01a17298-547f-74b3-8717-63132128c2f8/runtime/runtime-state.json.lock.transition.owner\t\n+++ .gjc/_session-01a17298-547f-74b3-8717-63132128c2f8/runtime/runtime-state.json.lock.transition.owner\t\n@@ -1,1 +1,1 @@\n-{\"pid\":1,\"start_time\":\"unknown\",\"token\":\"2d92bc74-e198-4092-b401-2ea8dab45273\",\"owner_host_id\":\"788bb1c55ac8becbeb54b4f8eaf2b7e3983ec69797c1151ca64dc3bfd33cdf5d\",\"released\":true}                           \n\\ No newline at end of file\n+{\"pid\":1,\"start_time\":\"unknown\",\"token\":\"33ec95c1-b5e7-416d-9b86-21a626d3f734\",\"owner_host_id\":\"788bb1c55ac8becbeb54b4f8eaf2b7e3983ec69797c1151ca64dc3bfd33cdf5d\",\"released\":true}                           \n\\ No newline at end of file\n",
+    "additions": 1,
+    "deletions": 1,
+    "status": "modified"
+  },
+  {
+    "file": ".gjc/_session-01a17298-547f-74b3-8717-63132128c2f8/token-logs/token-log.jsonl",
+    "patch": "Index: .gjc/_session-01a17298-547f-74b3-8717-63132128c2f8/token-logs/token-log.jsonl\n===================================================================\n--- .gjc/_session-01a17298-547f-74b3-8717-63132128c2f8/token-logs/token-log.jsonl\t\n+++ .gjc/_session-01a17298-547f-74b3-8717-63132128c2f8/token-logs/token-log.jsonl\t\n@@ -0,0 +1,1 @@\n+{\"subagentId\":\"root\",\"agent\":\"main\",\"turn\":1,\"at\":\"2026-10-25T10:32:04.548Z\",\"input\":12027,\"output\":28,\"cacheRead\":3,\"cacheWrite\":0,\"totalTokens\":12058,\"model\":\"qwen\"}\n",
+    "additions": 1,
+    "deletions": 0,
+    "status": "added"
+  },
+  {
+    "file": ".gjc/_session-01a1729f-4b43-7310-b32f-aca132160a6a/runtime/runtime-state.json",
+    "patch": "Index: .gjc/_session-01a1729f-4b43-7310-b32f-aca132160a6a/runtime/runtime-state.json\n===================================================================\n--- .gjc/_session-01a1729f-4b43-7310-b32f-aca132160a6a/runtime/runtime-state.json\t\n+++ .gjc/_session-01a1729f-4b43-7310-b32f-aca132160a6a/runtime/runtime-state.json\t\n@@ -0,0 +1,1 @@\n+{\"schema_version\":1,\"session_id\":\"01a1729f-4b43-7310-b32f-aca132160a6a\",\"state\":\"running\",\"ready_for_input\":false,\"updated_at\":\"2026-10-25T10:40:28.901Z\",\"current_turn_id\":null,\"last_turn_id\":null,\"live\":true,\"reason\":null,\"source\":\"agent_session_event\",\"event\":\"turn_start\",\"cwd\":\"/home/user/project\",\"workdir\":\"/home/user/project\",\"branch\":null,\"session_file\":\"/home/user/scratch/gajae/openai-responses/home/.gjc/agent/sessions/v2-nqgtqgnu5g5pc7sbxakyf7rexfkxhlxdyyjwzhww22ff2zf3kf2a/2026-10-25T10-33-24-547Z_01a1729f-4b43-7310-b32f-aca132160a6a.jsonl\",\"activity\":{\"seq\":2,\"last_activity_at\":\"2026-10-25T10:38:15.554Z\",\"tool\":\"read\",\"phase\":\"finished\",\"outcome\":\"success\",\"elapsed_ms\":646,\"active_tool_count\":0,\"active_tools\":[],\"in_flight\":[]}}\n",
+    "additions": 1,
+    "deletions": 0,
+    "status": "added"
+  },
+  {
+    "file": ".gjc/_session-01a1729f-4b43-7310-b32f-aca132160a6a/runtime/runtime-state.json.lock",
+    "patch": "Index: .gjc/_session-01a1729f-4b43-7310-b32f-aca132160a6a/runtime/runtime-state.json.lock\n===================================================================\n--- .gjc/_session-01a1729f-4b43-7310-b32f-aca132160a6a/runtime/runtime-state.json.lock\t\n+++ .gjc/_session-01a1729f-4b43-7310-b32f-aca132160a6a/runtime/runtime-state.json.lock\t\n@@ -0,0 +1,1 @@\n+{\"pid\":1,\"start_time\":\"unknown\",\"token\":\"be591d18-db47-4f57-8485-d6794bd5dba3\",\"owner_host_id\":\"82604fab96369cf4479d8a43d2cb9146dd74f90b916a33e9b02967588987d929\",\"released\":true}                           \n\\ No newline at end of file\n",
+    "additions": 1,
+    "deletions": 0,
+    "status": "added"
+  },
+  {
+    "file": ".gjc/_session-01a1729f-4b43-7310-b32f-aca132160a6a/runtime/runtime-state.json.lock.transition.owner",
+    "patch": "Index: .gjc/_session-01a1729f-4b43-7310-b32f-aca132160a6a/runtime/runtime-state.json.lock.transition.owner\n===================================================================\n--- .gjc/_session-01a1729f-4b43-7310-b32f-aca132160a6a/runtime/runtime-state.json.lock.transition.owner\t\n+++ .gjc/_session-01a1729f-4b43-7310-b32f-aca132160a6a/runtime/runtime-state.json.lock.transition.owner\t\n@@ -0,0 +1,1 @@\n+{\"pid\":1,\"start_time\":\"unknown\",\"token\":\"aa7c8896-5fdf-4c76-a87e-3b46ca776ef4\",\"owner_host_id\":\"82604fab96369cf4479d8a43d2cb9146dd74f90b916a33e9b02967588987d929\",\"released\":true}                           \n\\ No newline at end of file\n",
+    "additions": 1,
+    "deletions": 0,
+    "status": "added"
+  },
+  {
+    "file": ".gjc/_session-01a1729f-4b43-7310-b32f-aca132160a6a/token-logs/token-log.jsonl",
+    "patch": "Index: .gjc/_session-01a1729f-4b43-7310-b32f-aca132160a6a/token-logs/token-log.jsonl\n===================================================================\n--- .gjc/_session-01a1729f-4b43-7310-b32f-aca132160a6a/token-logs/token-log.jsonl\t\n+++ .gjc/_session-01a1729f-4b43-7310-b32f-aca132160a6a/token-logs/token-log.jsonl\t\n@@ -0,0 +1,1 @@\n+{\"subagentId\":\"root\",\"agent\":\"main\",\"turn\":1,\"at\":\"2026-10-25T10:38:14.892Z\",\"input\":5706,\"output\":37,\"cacheRead\":6334,\"cacheWrite\":0,\"totalTokens\":12077,\"model\":\"qwen\"}\n",
+    "additions": 1,
+    "deletions": 0,
+    "status": "added"
+  }
+]

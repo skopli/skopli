@@ -5,6 +5,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, describe, expect, it } from "vitest";
 import {
+  carriesCacheControl,
   createGateway,
   rewriteBody,
   rewriteChat,
@@ -69,6 +70,18 @@ describe("messages", () => {
       JSON.parse(rewriteBody("messages", JSON.stringify({ usage: message }), true)).usage
         .input_tokens,
     ).toBe(0);
+  });
+
+  it("reads cache_control from system, tool and content blocks, not from prose", () => {
+    const block = { type: "text", text: "x", cache_control: { type: "ephemeral" } };
+    expect(carriesCacheControl({ system: [block] })).toBe(true);
+    expect(carriesCacheControl({ tools: [{ name: "t", cache_control: {} }] })).toBe(true);
+    expect(carriesCacheControl({ messages: [{ role: "user", content: [block] }] })).toBe(true);
+    const prose = { type: "text", text: 'set "cache_control": {"type": "ephemeral"} on it' };
+    expect(carriesCacheControl({ system: "plain", messages: [{ content: [prose] }] })).toBe(false);
+    const toolUse = { type: "tool_use", input: { cache_control: { type: "ephemeral" } } };
+    expect(carriesCacheControl({ messages: [{ content: [toolUse] }] })).toBe(false);
+    expect(carriesCacheControl(undefined)).toBe(false);
   });
 
   it("rewrites message_start and makes message_delta usage cumulative", () => {
@@ -211,6 +224,30 @@ describe("proxy", () => {
     const res = await fetch(`${await ready}/messages`, { method: "POST", body: "{}" });
     expect(res.status).toBe(200);
     expect((await res.text()).includes("message_start")).toBe(true);
+  });
+  it("does not book cache creation when cache_control only appears inside a tool input", async () => {
+    const input = { url: "/api", cache_control: { max_age: 60 } };
+    const res = await fetch(`${await ready}/v1/messages?tool`, {
+      method: "POST",
+      body: JSON.stringify({
+        messages: [
+          { role: "assistant", content: [{ type: "tool_use", name: "write", input }] },
+          { role: "user", content: [{ type: "tool_result", content: "ok" }] },
+        ],
+      }),
+    });
+    const [start] = (await res.text()).split("\n").filter((l) => l.startsWith("data: "));
+    expect(JSON.parse(start!.slice(6)).message.usage).toMatchObject({
+      input_tokens: 20,
+      cache_creation_input_tokens: 0,
+    });
+    expect(
+      logged()
+        .filter((l) => l.path === "/v1/messages")
+        .at(-1),
+    ).toMatchObject({
+      cacheControl: false,
+    });
   });
   it("retries a refused upstream connection before answering 502", async () => {
     const late = createServer((_req, res) => res.end("{}"));

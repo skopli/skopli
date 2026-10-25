@@ -11,9 +11,13 @@
 // SQLite databases (WAL checkpointed first, then VACUUMed). Each rule also applies in its
 // dash-joined (`-home-user`) and percent-encoded (`%2Fhome%2Fuser`) forms so project-slug
 // directory names stay consistent with the paths inside the files.
+// After copying, every written file is checked: no redaction source may survive in its bytes
+// (zstd files are checked decompressed), git must not ignore it, and a non-text file must carry
+// an explicit binary attribute so checkin never applies eol conversion to it. Any hit exits 1.
 // The manifest points `home` at input/ (or the named env var at <rel>), expected-events.json
 // and expected-rollup.json come from the repository's own readers through replay.mjs, and
 // README.md records provenance. Prints the resulting totals as JSON on stdout.
+import { spawnSync } from "node:child_process";
 import {
   copyFileSync,
   mkdirSync,
@@ -24,7 +28,7 @@ import {
   writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { join, relative } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import { zstdCompressSync, zstdDecompressSync } from "node:zlib";
 import { replayCase, root } from "./replay.mjs";
@@ -47,15 +51,22 @@ const pair = (s) => {
   return [s.slice(0, i), s.slice(i + 1)];
 };
 const dashed = (p) => p.replace(/^\/+/, "").replaceAll("/", "-");
-const rules = many("--redact")
-  .map(pair)
-  .flatMap(([from, to]) => [
-    [from, to],
-    [dashed(from), dashed(to)],
-    [encodeURIComponent(from), encodeURIComponent(to)],
-  ]);
+const rules = [
+  ...new Map(
+    many("--redact")
+      .map(pair)
+      .flatMap(([from, to]) => [
+        [from, to],
+        [dashed(from), dashed(to)],
+        [encodeURIComponent(from), encodeURIComponent(to)],
+      ])
+      .map((rule) => [rule[0], rule]),
+  ).values(),
+];
 const redact = (s) => rules.reduce((acc, [from, to]) => acc.replaceAll(from, to), s);
-const isText = (buf) => !buf.subarray(0, 8192).includes(0);
+// Same first-8000-bytes NUL heuristic git uses to tell text from binary.
+const isText = (buf) => !buf.subarray(0, 8000).includes(0);
+const isZstd = (path) => /\.zstd?$/.test(path);
 const isSqlite = (buf) => buf.subarray(0, 15).toString("latin1") === "SQLite format 3";
 
 const redactSqlite = (src, dst) => {
@@ -100,7 +111,6 @@ const redactSqlite = (src, dst) => {
 };
 const quote = (s) => `'${s.replaceAll("'", "''")}'`;
 
-// Append-only logs hold one zstd frame per flush; the one-shot API stops after the first frame.
 const zstdFrames = (buf) => {
   const parts = [];
   for (let rest = buf; rest.length;) {
@@ -108,7 +118,7 @@ const zstdFrames = (buf) => {
     parts.push(buffer);
     rest = rest.subarray(engine.bytesWritten);
   }
-  return Buffer.concat(parts).toString("utf8");
+  return Buffer.concat(parts);
 };
 
 const copyTree = (from, to) => {
@@ -122,15 +132,55 @@ const copyTree = (from, to) => {
   const buf = readFileSync(from);
   mkdirSync(join(to, ".."), { recursive: true });
   if (isSqlite(buf)) return redactSqlite(from, to);
-  if (from.endsWith(".zstd") || from.endsWith(".zst")) {
-    return writeFileSync(to, zstdCompressSync(Buffer.from(redact(zstdFrames(buf)))));
+  if (isZstd(from)) {
+    return writeFileSync(to, zstdCompressSync(redact(zstdFrames(buf).toString("utf8"))));
   }
   if (isText(buf)) return writeFileSync(to, redact(buf.toString("utf8")));
   writeFileSync(to, buf);
 };
 
+const files = (p) =>
+  statSync(p).isDirectory() ? readdirSync(p).flatMap((e) => files(join(p, e))) : [p];
+const git = (args, input) => {
+  const run = spawnSync("git", args, { cwd: root, input, encoding: "utf8" });
+  if (run.status === null || run.status > 1) throw new Error(`git ${args[0]}: ${run.stderr}`);
+  return run.stdout;
+};
+const fail = (what, items) => {
+  if (items.length === 0) return;
+  console.error(`promote: ${what}:\n  ${items.join("\n  ")}`);
+  rmSync(dir, { recursive: true, force: true });
+  process.exit(1);
+};
+const verifyWritten = () => {
+  const written = files(input).map((p) => [relative(root, p), readFileSync(p)]);
+  fail(
+    "redaction source still present (extend --redact or drop the store)",
+    written.flatMap(([p, buf]) => {
+      const bytes = isZstd(p) ? zstdFrames(buf) : buf;
+      return rules.filter(([from]) => bytes.includes(from)).map(([from]) => `${p}: ${from}`);
+    }),
+  );
+  const paths = written.map(([p]) => p);
+  fail(
+    "written files are ignored by .gitignore (narrow the pattern)",
+    git(["check-ignore", "--no-index", "--stdin"], `${paths.join("\n")}\n`)
+      .split("\n")
+      .filter(Boolean),
+  );
+  const binary = written.filter(([, buf]) => !isText(buf)).map(([p]) => p);
+  const attr = binary.length
+    ? git(["check-attr", "text", "-z", "--stdin"], `${binary.join("\0")}\0`).split("\0")
+    : [];
+  fail(
+    "binary files without a `binary` attribute (add their pattern to .gitattributes)",
+    binary.filter((_, i) => attr[i * 3 + 2] !== "unset"),
+  );
+};
+
 rmSync(dir, { recursive: true, force: true });
 for (const rel of stores) copyTree(join(captureHome, rel), join(input, redact(rel)));
+verifyWritten();
 
 const env = many("--env").map(pair);
 const manifest = {
