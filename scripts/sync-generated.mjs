@@ -1,5 +1,5 @@
 import { spawnSync } from "node:child_process";
-import { existsSync, readFileSync, statSync, writeFileSync } from "node:fs";
+import { existsSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { harnesses } from "../web/ui/src/harnesses.ts";
 import { langs } from "../web/ui/src/langs.ts";
@@ -98,28 +98,22 @@ const targets = [
 ];
 
 const stale = [];
-for (const [file, render] of targets) {
-  const current = read(file);
-  const next = render(current);
-  if (next === current) continue;
-  if (check) stale.push(file);
-  else writeFileSync(file, next);
-}
-
 const cargoGenerated = [
   "crates/skopli-capi/include/skopli.h",
   "sdks/csharp/Skopli/Native/NativeMethods.g.cs",
 ];
-const before = cargoGenerated.map(read);
+const snapshot = (file) => (existsSync(file) ? read(file) : null);
+const before = cargoGenerated.map(snapshot);
 const cargo = spawnSync("cargo", ["build", "--quiet", "-p", "skopli-capi"], {
   stdio: "inherit",
   env: { ...process.env, SKOPLI_GEN_HEADER: "1", SKOPLI_GEN_CSHARP: "1" },
 });
 cargoGenerated.forEach((file, i) => {
-  if (read(file) === before[i]) return;
+  if (snapshot(file) === before[i]) return;
   if (check) {
     stale.push(file);
-    writeFileSync(file, before[i]);
+    if (before[i] === null) rmSync(file);
+    else writeFileSync(file, before[i]);
   }
 });
 if (cargo.status !== 0) {
@@ -129,6 +123,14 @@ if (cargo.status !== 0) {
       : "cargo build -p skopli-capi failed",
   );
   process.exit(1);
+}
+
+for (const [file, render] of targets) {
+  const current = read(file);
+  const next = render(current);
+  if (next === current) continue;
+  if (check) stale.push(file);
+  else writeFileSync(file, next);
 }
 
 if (stale.length) {
