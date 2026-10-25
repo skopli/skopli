@@ -48,6 +48,20 @@ describe("cache timestamp boundary read (shared gold)", () => {
   }
 });
 
+// Stamps the host Date.parse accepts but the shared grammar rejects. A cache
+// written by another facade is only readable here through the one grammar.
+describe("cache timestamp read rejects host-only stamps", () => {
+  for (const stamp of ["2026-08-01T00:00:00+0000", "Sat, 01 Aug 2026 00:00:00 GMT"]) {
+    it(stamp, () => {
+      expect(Date.parse(stamp)).toBe(1785542400000);
+      const dir = mkdtempSync(join(tmpdir(), "skopli-ts-host-"));
+      const name = "pricing-openrouter.json";
+      writeStamp(dir, name, stamp);
+      expect(loadCached(dir, name, 0, 1785542400000)).toBeNull();
+    });
+  }
+});
+
 describe("cache timestamp boundary write (shared gold)", () => {
   for (const ms of cases.write) {
     it(`writes integral-ms for ${ms}`, () => {
