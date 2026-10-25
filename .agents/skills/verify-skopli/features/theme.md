@@ -45,11 +45,16 @@ node .agents/skills/verify-skopli/scripts/browser.mjs --out .verify/evidence/<ru
   eval "localStorage.getItem('skopli-theme')"
 ```
 
-- **First paint.** Steps 1 to 5 load a docs page and read the theme before touching anything. The theme is `"dark"`, the stored value is `null`, and the saved body `skopli_guide_reading` carries the `localStorage.getItem("skopli-theme")` script inside `<head>`.
-- **Toggle to light.** Steps 6 to 10 click the header toggle. The page turns light, the stored value is `"light"`, and the label is now `Switch to dark theme`.
-- **Persist across reload.** Steps 11 to 14 reload. The page is still light and the label still reads `Switch to dark theme`.
-- **Persist across pages.** Steps 15 to 17 follow the sidebar link to `Rollups`. The pathname is `"/skopli/guide/rollups/"`, which proves the navigation happened, and the next page is light too.
-- **Back to dark.** Steps 18 to 20 toggle again. The theme is `"dark"` and so is the stored value.
+- **First paint.** Steps 1 to 5 load a docs page and read the theme before touching anything.
+  The theme is `"dark"`, the stored value is `null`, and the saved body `skopli_guide_reading` carries the `localStorage.getItem("skopli-theme")` script inside `<head>`.
+- **Toggle to light.** Steps 6 to 10 click the header toggle.
+  The page turns light, the stored value is `"light"`, and the label is now `Switch to dark theme`.
+- **Persist across reload.** Steps 11 to 14 reload.
+  The page is still light and the label still reads `Switch to dark theme`.
+- **Persist across pages.** Steps 15 to 17 follow the sidebar link to `Rollups`.
+  The pathname is `"/skopli/guide/rollups/"`, which proves the navigation happened, and the next page is light too.
+- **Back to dark.** Steps 18 to 20 toggle again.
+  The theme is `"dark"` and so is the stored value.
 - **Marketing site.** Run a second invocation for the other origin.
 
 ```sh
@@ -67,7 +72,11 @@ node .agents/skills/verify-skopli/scripts/browser.mjs --out .verify/evidence/<ru
 
 ## Gotchas
 
-- The two sites are separate origins with separate storage. A light docs site does not make the marketing site light; prove each on its own.
-- The toggle's accessible name changes with the theme. `Switch to light theme` only exists while the page is dark; clicking the wrong name times out after 30 seconds.
-- The theme lives on `<html data-theme>`, and `body` has a transparent background. Read the attribute or the computed colors of `document.documentElement`, not `body`.
-- Full-page screenshots are tall. The header with the toggle is at the top; that is where the theme is easiest to read.
+- The two sites are separate origins with separate storage.
+  A light docs site does not make the marketing site light; prove each on its own.
+- The toggle's accessible name changes with the theme.
+  `Switch to light theme` only exists while the page is dark; clicking the wrong name times out after 30 seconds.
+- The theme lives on `<html data-theme>`, and `body` has a transparent background.
+  Read the attribute or the computed colors of `document.documentElement`, not `body`.
+- Full-page screenshots are tall.
+  The header with the toggle is at the top; that is where the theme is easiest to read.

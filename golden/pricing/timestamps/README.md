@@ -1,12 +1,9 @@
 # Cache timestamp boundary conformance fixtures
 
-Shared gold for the cache `fetchedAt` wire contract: one ISO-8601 stamp string
-read and written by seven different date libraries. A stamp written by one
-facade can be read by any other (or by a human editing the shared cache file),
-so the READ side must tolerate every shape the contract admits and agree, to the
-millisecond, on the epoch it maps to. The WRITE side is narrower: every facade
-emits an integral-millisecond, `Z`-suffixed, 24-character stamp. This fixture
-pins both so any consumer that drifts fails against shared gold.
+Shared gold for the cache `fetchedAt` wire contract: one ISO-8601 stamp string read and written by seven different date libraries.
+A stamp written by one facade can be read by any other (or by a human editing the shared cache file), so the READ side must tolerate every shape the contract admits and agree, to the millisecond, on the epoch it maps to.
+The WRITE side is narrower: every facade emits an integral-millisecond, `Z`-suffixed, 24-character stamp.
+This fixture pins both so any consumer that drifts fails against shared gold.
 
 ## `cases.json`
 
@@ -18,20 +15,15 @@ Each entry maps a stamp string to the epoch it must parse to:
 
 - `name`: a stable case identifier.
 - `stamp`: the `fetchedAt` string as it appears in a cache file.
-- `epochMs`: the expected result. An integer number of milliseconds since the
-  Unix epoch when the stamp is valid, or `null` when the stamp is malformed. A
-  consumer parses `stamp` through its cache-read path; a valid stamp yields
-  `epochMs`, a `null` case is rejected (treated as a stale or missing cache, not
-  a crash).
+- `epochMs`: the expected result.
+  An integer number of milliseconds since the Unix epoch when the stamp is valid, or `null` when the stamp is malformed.
+  A consumer parses `stamp` through its cache-read path; a valid stamp yields `epochMs`, a `null` case is rejected (treated as a stale or missing cache, not a crash).
 
 ### `write`
 
-An array of epoch-millisecond integers. A consumer formats each through its
-cache-write path and asserts the result is a 24-character, `Z`-suffixed,
-integral-millisecond stamp of the form `YYYY-MM-DDTHH:MM:SS.mmmZ` that reads
-back to the same epoch. Facades only ever write stamps they generated
-themselves, so the write contract is integral-ms shape rather than adversarial
-input tolerance.
+An array of epoch-millisecond integers.
+A consumer formats each through its cache-write path and asserts the result is a 24-character, `Z`-suffixed, integral-millisecond stamp of the form `YYYY-MM-DDTHH:MM:SS.mmmZ` that reads back to the same epoch.
+Facades only ever write stamps they generated themselves, so the write contract is integral-ms shape rather than adversarial input tolerance.
 
 ## The read cases
 

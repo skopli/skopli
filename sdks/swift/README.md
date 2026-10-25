@@ -1,19 +1,13 @@
 # skopli (Swift SDK)
 
-Idiomatic Swift bindings for skopli, riding the C ABI (`skopli-capi`)
-through a hand-written SwiftPM wrapper over the generated C header (NOT UniFFI).
-`Codable` models in/out, `throws` for errors (`SkopliError`), camelCase
-throughout, `enum Harness: String`, sync functions plus `async` conveniences via
-`withCheckedThrowingContinuation`. A `Pricing` `final class` frees the native
-handle in `deinit`.
+Idiomatic Swift bindings for skopli, riding the C ABI (`skopli-capi`) through a hand-written SwiftPM wrapper over the generated C header (NOT UniFFI).
+`Codable` models in/out, `throws` for errors (`SkopliError`), camelCase throughout, `enum Harness: String`, sync functions plus `async` conveniences via `withCheckedThrowingContinuation`.
+A `Pricing` `final class` frees the native handle in `deinit`.
 
 ## Status: structure-complete, verified in CI
 
-The Swift toolchain is not installed on the authoring host, so `swift build` /
-`swift test` are **verified in CI on a macOS runner** (see below). The package is
-delivered structure-complete: every C function signature was cross-checked
-character-by-character against the generated header, and every JSON key mirrors
-the sibling Go/Java/C# facades exactly.
+The Swift toolchain is not installed on the authoring host, so `swift build` / `swift test` are **verified in CI on a macOS runner** (see below).
+The package is delivered structure-complete: every C function signature was cross-checked character-by-character against the generated header, and every JSON key mirrors the sibling Go/Java/C# facades exactly.
 
 ## Layout
 
@@ -33,16 +27,13 @@ The module map references the committed header directly from the capi crate:
 header "../../../../crates/skopli-capi/include/skopli.h"
 ```
 
-so the Swift build always sees the current cbindgen output. The header IS the
-binding - there is no generated intermediate to regenerate or zero-diff-check
-(unlike the Java jextract / C# csbindgen SDKs).
+so the Swift build always sees the current cbindgen output.
+The header IS the binding - there is no generated intermediate to regenerate or zero-diff-check (unlike the Java jextract / C# csbindgen SDKs).
 
 ## Building the native library
 
-The Swift package's `CSkopli` target names the C module but does **not**
-itself link the native library (the artifact is built out-of-tree by the capi
-crate). Build the cdylib for the runner's arch from the workspace
-root:
+The Swift package's `CSkopli` target names the C module but does **not** itself link the native library (the artifact is built out-of-tree by the capi crate).
+Build the cdylib for the runner's arch from the workspace root:
 
 ```sh
 cargo build -p skopli-capi --release
@@ -68,13 +59,10 @@ DYLD_LIBRARY_PATH=../../target/release swift test \
   -Xlinker -lskopli
 ```
 
-`-Xlinker -L<dir> -Xlinker -lskopli` points the linker at the built
-`libskopli.dylib`; `DYLD_LIBRARY_PATH` lets the dynamic loader find it at
-run time. On Linux use `LD_LIBRARY_PATH`.
+`-Xlinker -L<dir> -Xlinker -lskopli` points the linker at the built `libskopli.dylib`; `DYLD_LIBRARY_PATH` lets the dynamic loader find it at run time.
+On Linux use `LD_LIBRARY_PATH`.
 
-On Windows the Swift toolchain needs `SDKROOT` set and the linker pointed at the
-MSVC import lib (`skopli.dll.lib`, not the `.dll`), with the DLL directory on
-`PATH` at run time:
+On Windows the Swift toolchain needs `SDKROOT` set and the linker pointed at the MSVC import lib (`skopli.dll.lib`, not the `.dll`), with the DLL directory on `PATH` at run time:
 
 ```sh
 export SDKROOT="$(swiftc -print-target-info | grep -o '"sdkPath": *"[^"]*"' | cut -d'"' -f4)"
@@ -86,26 +74,18 @@ PATH="../../target/release:$PATH" swift test \
   -Xlinker skopli.dll.lib
 ```
 
-To avoid the runtime library search entirely, link the **static** archive
-instead (`libskopli.a`); the symbols are baked into the test binary and no
-`DYLD_LIBRARY_PATH` is needed:
+To avoid the runtime library search entirely, link the **static** archive instead (`libskopli.a`); the symbols are baked into the test binary and no `DYLD_LIBRARY_PATH` is needed:
 
 ```sh
 swift test -Xlinker -L../../target/release -Xlinker -lskopli \
   -Xlinker -force_load -Xlinker ../../target/release/libskopli.a
 ```
 
-The smoke test drives read -> rollup -> price against the committed golden case
-(`golden/claude/basic`, `golden/pricing/catalogs`) with structural parity vs the
-shared conformance gold (the same data the Rust capi and the Go/Java/C# smokes
-assert against), plus the flat gpt-5 cost (0.00625), a thrown `.invalidArgument`
-(bad `since`), a thrown `.catalog` (unknown catalog format), and the `Pricing`
-`deinit`/`close()` free path.
+The smoke test drives read -> rollup -> price against the committed golden case (`golden/claude/basic`, `golden/pricing/catalogs`) with structural parity vs the shared conformance gold (the same data the Rust capi and the Go/Java/C# smokes assert against), plus the flat gpt-5 cost (0.00625), a thrown `.invalidArgument` (bad `since`), a thrown `.catalog` (unknown catalog format), and the `Pricing` `deinit`/`close()` free path.
 
 ## Use from your package
 
-Add the package by path from a clone of this repository, then link the cdylib
-built in that clone:
+Add the package by path from a clone of this repository, then link the cdylib built in that clone:
 
 ```swift
 .package(path: "../skopli/sdks/swift")
@@ -115,8 +95,7 @@ built in that clone:
 swift build -Xlinker -L../skopli/target/release -Xlinker -lskopli
 ```
 
-At run time the cdylib directory must be on the loader path
-(`DYLD_LIBRARY_PATH` on macOS, `LD_LIBRARY_PATH` on Linux).
+At run time the cdylib directory must be on the loader path (`DYLD_LIBRARY_PATH` on macOS, `LD_LIBRARY_PATH` on Linux).
 
 ## Usage
 
@@ -151,29 +130,16 @@ let result2 = try await Skopli.readUsage(
 
 ## Pricing surface
 
-The facade exposes the full pricing surface, at parity with every other Skopli
-facade: `lookupModel`, `priceRollups`, `priceEvents`, and `catalogs` on the
-`Pricing` class, plus the complete `PricingOptions` set (`sources`, `overrides`,
-`mode`, `cacheDir`, `offline`, `ttlMs`, `refresh`, and a `fetch` seam). The
-built-in source lifecycle runs facade-side in Swift: built-in sources are on by
-default (OpenRouter, then LiteLLM, then models.dev), each cached to disk under
-`cacheDir` (defaulting to the shared platform cache dir), served from cache
-within the TTL, refreshed on `refresh`, and served stale when offline or when a
-fetch fails.
+The facade exposes the full pricing surface, at parity with every other Skopli facade: `lookupModel`, `priceRollups`, `priceEvents`, and `catalogs` on the `Pricing` class, plus the complete `PricingOptions` set (`sources`, `overrides`, `mode`, `cacheDir`, `offline`, `ttlMs`, `refresh`, and a `fetch` seam).
+The built-in source lifecycle runs facade-side in Swift: built-in sources are on by default (OpenRouter, then LiteLLM, then models.dev), each cached to disk under `cacheDir` (defaulting to the shared platform cache dir), served from cache within the TTL, refreshed on `refresh`, and served stale when offline or when a fetch fails.
 
 ## Pricing sources (facade seam)
 
-The default `libskopli` performs no network I/O (it opens no socket) and has no
-callback surface. Fetching and caching live entirely in Swift: implement
-`PricingSource` and pass a `fetch: (URL) throws -> Data` closure in
-`PricingOptions`; `createPricing` runs each `load` in Swift and hands the
-resulting catalog JSON down to the core with `builtinSources: false`. No callback
-crosses the FFI.
+The default `libskopli` performs no network I/O (it opens no socket) and has no callback surface.
+Fetching and caching live entirely in Swift: implement `PricingSource` and pass a `fetch: (URL) throws -> Data` closure in `PricingOptions`; `createPricing` runs each `load` in Swift and hands the resulting catalog JSON down to the core with `builtinSources: false`.
+No callback crosses the FFI.
 
 ## Errors
 
-`SkopliError` maps 1:1 from the ABI `AgStatus` codes: `.invalidArgument` (1),
-`.catalog` (2), `.internalError` (3), each carrying the thread-local
-`ag_last_error_message` detail. The core never throws for malformed _data_ (that
-surfaces in `diagnostics`/`skipped`); errors mean a programmer mistake or an
-I/O-fatal/internal condition.
+`SkopliError` maps 1:1 from the ABI `AgStatus` codes: `.invalidArgument` (1), `.catalog` (2), `.internalError` (3), each carrying the thread-local `ag_last_error_message` detail.
+The core never throws for malformed _data_ (that surfaces in `diagnostics`/`skipped`); errors mean a programmer mistake or an I/O-fatal/internal condition.

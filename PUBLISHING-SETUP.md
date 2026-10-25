@@ -1,23 +1,17 @@
 # Publishing operations
 
-This guide records the external account configuration and credential maintenance
-that cannot be inferred from the repository. It contains no secret values and is
-safe to keep under version control.
+This guide records the external account configuration and credential maintenance that cannot be inferred from the repository.
+It contains no secret values and is safe to keep under version control.
 
-This repository is currently LOCAL-ONLY. Every publish job in
-`.github/workflows/release.yml` is gated on the repo variable
-`PUBLISH_ENABLED == 'true'` and on a per-registry secret that does not exist, so
-nothing can publish until a real repository is deliberately configured. The
-GitHub release is always created as a draft; a human publishes it.
+This repository is currently LOCAL-ONLY.
+Every publish job in `.github/workflows/release.yml` is gated on the repo variable `PUBLISH_ENABLED == 'true'` and on a per-registry secret that does not exist, so nothing can publish until a real repository is deliberately configured.
+The GitHub release is always created as a draft; a human publishes it.
 
-The permanent home is a GitHub organization (`github.com/skopli`, falling back
-to `skopli-dev`), created before the first release. The Go module path and
-every OIDC trusted-publisher configuration bake in the owner/repo identity, so
-the owner must be frozen first. Replace `skopli/skopli` below if the slug
-differs. A free npm organization `skopli` is also created to reserve the
-`@skopli/` scope defensively; published packages stay unscoped. The canonical
-domain is **skopli.com** (skopli.dev held as a backup/redirect), which fixes
-the Maven namespace as `com.skopli`.
+The permanent home is a GitHub organization (`github.com/skopli`, falling back to `skopli-dev`), created before the first release.
+The Go module path and every OIDC trusted-publisher configuration bake in the owner/repo identity, so the owner must be frozen first.
+Replace `skopli/skopli` below if the slug differs.
+A free npm organization `skopli` is also created to reserve the `@skopli/` scope defensively; published packages stay unscoped.
+The canonical domain is **skopli.com** (skopli.dev held as a backup/redirect), which fixes the Maven namespace as `com.skopli`.
 
 ## Current channels
 
@@ -36,31 +30,19 @@ the Maven namespace as `com.skopli`.
 
 ## Trusted publishing (OIDC)
 
-npm, PyPI, crates.io, RubyGems, and NuGet all support GitHub Actions OIDC
-trusted publishing as of 2026-08: the workflow exchanges its short-lived OIDC
-identity for a single-use publish credential, so no long-lived token is stored.
-Each requires `id-token: write` on the publish job and a trusted-publisher
-configuration on the registry naming this owner, repository, and workflow
-filename (`release.yml`). Maven Central is the one channel that cannot use OIDC.
+npm, PyPI, crates.io, RubyGems, and NuGet all support GitHub Actions OIDC trusted publishing as of 2026-08: the workflow exchanges its short-lived OIDC identity for a single-use publish credential, so no long-lived token is stored.
+Each requires `id-token: write` on the publish job and a trusted-publisher configuration on the registry naming this owner, repository, and workflow filename (`release.yml`).
+Maven Central is the one channel that cannot use OIDC.
 
-All five gated publish jobs in `release.yml` are OIDC-native: `id-token: write`
-plus the registry's official exchange (npm CLI >= 11.5.1, `pypa/gh-action-pypi-publish`,
-`rust-lang/crates-io-auth-action`, `rubygems/configure-rubygems-credentials`,
-`NuGet/login`). No classic registry token is referenced anywhere; the only
-remaining stored secrets are Maven Central's (which has no OIDC).
+All five gated publish jobs in `release.yml` are OIDC-native: `id-token: write` plus the registry's official exchange (npm CLI >= 11.5.1, `pypa/gh-action-pypi-publish`, `rust-lang/crates-io-auth-action`, `rubygems/configure-rubygems-credentials`, `NuGet/login`).
+No classic registry token is referenced anywhere; the only remaining stored secrets are Maven Central's (which has no OIDC).
 
 ### npm
 
-The main package is the unscoped `skopli`; napi-rs manages the
-`skopli-<platform>` prebuild packages as `optionalDependencies` (unscoped, so
-trusted publishing must be configured for every one of them).
+The main package is the unscoped `skopli`; napi-rs manages the `skopli-<platform>` prebuild packages as `optionalDependencies` (unscoped, so trusted publishing must be configured for every one of them).
 
-npm trusted publishing requires the package to already exist, so bootstrap each
-package **locally, before the first release**, using the central bootstrap
-script. It publishes a `0.0.0` placeholder under the `bootstrap` dist-tag from
-your own logged-in npm session, configures the trusted publisher, locks
-publishing to 2FA, and verifies the result - no `NPM_TOKEN` is ever stored in
-the repository:
+npm trusted publishing requires the package to already exist, so bootstrap each package **locally, before the first release**, using the central bootstrap script.
+It publishes a `0.0.0` placeholder under the `bootstrap` dist-tag from your own logged-in npm session, configures the trusted publisher, locks publishing to 2FA, and verifies the result - no `NPM_TOKEN` is ever stored in the repository:
 
 ```sh
 gh api repos/jishnuteegala/.github/contents/scripts/npm-oidc-bootstrap.sh --jq .content | base64 -d > npm-oidc-bootstrap.sh
@@ -72,8 +54,8 @@ bash npm-oidc-bootstrap.sh all --repo skopli/skopli --workflow release.yml \
   skopli-win32-x64-msvc skopli-win32-arm64-msvc
 ```
 
-The `publish` and `lock` phases prompt for web-based EOTP, so run them
-interactively. An agent may run the `trust` and `verify` phases without an OTP.
+The `publish` and `lock` phases prompt for web-based EOTP, so run them interactively.
+An agent may run the `trust` and `verify` phases without an OTP.
 Keep the platform list in sync with the shipped prebuild matrix.
 
 The bootstrap configures one npm trusted publisher per package:
@@ -86,17 +68,15 @@ The bootstrap configures one npm trusted publisher per package:
 | Environment          | Leave empty   |
 | Allowed actions      | `npm publish` |
 
-Publish with `npm publish --provenance --access public` and `id-token: write`;
-the package pages should show the "Built and signed on GitHub Actions"
-provenance badge. After configuring, lock token publishing:
+Publish with `npm publish --provenance --access public` and `id-token: write`; the package pages should show the "Built and signed on GitHub Actions" provenance badge.
+After configuring, lock token publishing:
 
 ```sh
 npm access set mfa=publish skopli
 ```
 
-With the bootstrap done there is no interim token: delete the `NPM_TOKEN`
-references from the publish job when converting it to OIDC, and never create
-one. Verify provenance after every release:
+With the bootstrap done there is no interim token: delete the `NPM_TOKEN` references from the publish job when converting it to OIDC, and never create one.
+Verify provenance after every release:
 
 ```sh
 version=0.1.0
@@ -107,11 +87,8 @@ npm view "skopli@$version" --json dist.attestations \
 
 ### PyPI
 
-Replace the `MATURIN_PYPI_TOKEN` upload with
-`pypa/gh-action-pypi-publish@release/v1` + `id-token: write`, or keep maturin
-upload with a project-scoped API token. Configure a "pending" trusted publisher
-on pypi.org before the first release (pending publishers allow the very first
-upload):
+Replace the `MATURIN_PYPI_TOKEN` upload with `pypa/gh-action-pypi-publish@release/v1` + `id-token: write`, or keep maturin upload with a project-scoped API token.
+Configure a "pending" trusted publisher on pypi.org before the first release (pending publishers allow the very first upload):
 
 | Field             | Value         |
 | ----------------- | ------------- |
@@ -123,21 +100,12 @@ upload):
 
 ### crates.io
 
-The `publish-crates` job publishes `skopli-core`, then `skopli-wire`, then
-`skopli-capi`, in dependency order. The three manifests allow publishing and
-share the workspace version; the `skopli-node`, `skopli-py`, `skopli-ruby`
-binding crates stay `publish = false`. The job checks that the tag matches the
-crate version, skips any crate already on crates.io, and runs
-`cargo publish -p <crate>`; cargo waits for each crate to reach the index
-before verifying the next.
+The `publish-crates` job publishes `skopli-core`, then `skopli-wire`, then `skopli-capi`, in dependency order.
+The three manifests allow publishing and share the workspace version; the `skopli-node`, `skopli-py`, `skopli-ruby` binding crates stay `publish = false`.
+The job checks that the tag matches the crate version, skips any crate already on crates.io, and runs `cargo publish -p <crate>`; cargo waits for each crate to reach the index before verifying the next.
 
-crates.io only lets a crate that already exists get a trusted publisher, so
-the first version of each crate is published by hand with the interim token
-below: `cargo publish -p skopli-core`, then `-p skopli-wire`, then
-`-p skopli-capi`. Then add the trusted publisher (owner `skopli`, repository
-`skopli`, workflow `release.yml`) on each of the three crates, revoke the
-token, and let the job mint its own with `rust-lang/crates-io-auth-action` +
-`id-token: write` from the next release on.
+crates.io only lets a crate that already exists get a trusted publisher, so the first version of each crate is published by hand with the interim token below: `cargo publish -p skopli-core`, then `-p skopli-wire`, then `-p skopli-capi`.
+Then add the trusted publisher (owner `skopli`, repository `skopli`, workflow `release.yml`) on each of the three crates, revoke the token, and let the job mint its own with `rust-lang/crates-io-auth-action` + `id-token: write` from the next release on.
 
 Interim token path: a crates.io token created at
 <https://crates.io/settings/tokens/new> with:
@@ -153,28 +121,23 @@ Do not grant `change-owners`, `yank`, or `trusted-publishing`.
 
 ### RubyGems
 
-The gem is `skopli` (built from `crates/skopli-ruby`, rb-sys/magnus). Replace
-`gem push` + `RUBYGEMS_API_KEY` with `rubygems/release-gem@v1` +
-`id-token: write`. RubyGems trusted publishing supports a "pending" publisher
-for a gem name that has never been pushed - configure it before the first
-release with owner `skopli`, repository `skopli`, workflow `release.yml`.
+The gem is `skopli` (built from `crates/skopli-ruby`, rb-sys/magnus).
+Replace `gem push` + `RUBYGEMS_API_KEY` with `rubygems/release-gem@v1` + `id-token: write`.
+RubyGems trusted publishing supports a "pending" publisher for a gem name that has never been pushed - configure it before the first release with owner `skopli`, repository `skopli`, workflow `release.yml`.
 
-Decide before v1: source gem (compiles on `gem install`, current setup) vs
-precompiled native gems (rb-sys cross-gem matrix, multiplies the build matrix).
+Decide before v1: source gem (compiles on `gem install`, current setup) vs precompiled native gems (rb-sys cross-gem matrix, multiplies the build matrix).
 
 ### NuGet
 
-The package is `Skopli` (`sdks/csharp/Skopli`). Replace the `NUGET_API_KEY`
-push with `NuGet/login@v1` (OIDC → one-hour temporary API key) followed by
-`dotnet nuget push`. Configure the trusted-publishing policy on nuget.org for
-owner `skopli`, repository `skopli`, workflow `release.yml`. A successful push
-still goes through nuget.org validation before listing.
+The package is `Skopli` (`sdks/csharp/Skopli`).
+Replace the `NUGET_API_KEY` push with `NuGet/login@v1` (OIDC → one-hour temporary API key) followed by `dotnet nuget push`.
+Configure the trusted-publishing policy on nuget.org for owner `skopli`, repository `skopli`, workflow `release.yml`.
+A successful push still goes through nuget.org validation before listing.
 
 ### Maven Central
 
-The only channel that requires stored secrets, and the only one with no publish
-job yet (the workflow builds `java-jar` but does not publish it). Before the
-first Java release:
+The only channel that requires stored secrets, and the only one with no publish job yet (the workflow builds `java-jar` but does not publish it).
+Before the first Java release:
 
 1. Register on <https://central.sonatype.com> and claim the `com.skopli`
    namespace by DNS TXT verification of skopli.com.
@@ -197,26 +160,19 @@ Isolate all four secrets in a protected `release` GitHub Actions environment.
 
 ### C ABI
 
-The C/C++ surface (`skopli-capi`: cdylib + staticlib + cbindgen `skopli.h`) has
-no package registry. It is distributed as GitHub release assets: the
-`capi-artifacts` matrix builds six targets and `scripts/stage-capi.sh` packs
-each into `skopli-capi-<version>-<target>.tar.gz` (`.zip` for Windows) with
-`skopli.h`, the shared library and the static library inside, so the assets
-keep distinct names on the release. `cargo publish` of `skopli-capi` gives
-source-level consumers `cargo`/build-from-source access.
-Optional later channels if demand appears - vcpkg or Conan submissions, and
-Homebrew/system packages - each a separate manifest repo and credential; do not
-set these up before a user asks.
+The C/C++ surface (`skopli-capi`: cdylib + staticlib + cbindgen `skopli.h`) has no package registry.
+It is distributed as GitHub release assets: the `capi-artifacts` matrix builds six targets and `scripts/stage-capi.sh` packs each into `skopli-capi-<version>-<target>.tar.gz` (`.zip` for Windows) with `skopli.h`, the shared library and the static library inside, so the assets keep distinct names on the release.
+`cargo publish` of `skopli-capi` gives source-level consumers `cargo`/build-from-source access.
+Optional later channels if demand appears - vcpkg or Conan submissions, and Homebrew/system packages - each a separate manifest repo and credential; do not set these up before a user asks.
 
 ### Go modules
 
-There is no publish step: `go install github.com/skopli/skopli/sdks/go@vX.Y.Z`
-resolves straight from the git tag. Requirements:
+There is no publish step: `go install github.com/skopli/skopli/sdks/go@vX.Y.Z` resolves straight from the git tag.
+Requirements:
 
 - Tags must be exact `vX.Y.Z` semver.
-- The module path is permanent; a later owner change is a breaking module-path
-  migration with no redirect. This is why the org must exist before the first
-  tagged release.
+- The module path is permanent; a later owner change is a breaking module-path migration with no redirect.
+  This is why the org must exist before the first tagged release.
 - A major version ≥ 2 forces a `/v2` module-path suffix.
 
 Add a post-release smoke job that runs `go build` against the fresh tag.
@@ -224,13 +180,13 @@ Add a post-release smoke job that runs `go build` against the fresh tag.
 ### Swift Package Manager
 
 No registry: consumers add the repo URL and pin the tag in `Package.swift`.
-Nothing to configure beyond pushing the tag. Add a post-release smoke job that
-runs `swift build` against the fresh tag.
+Nothing to configure beyond pushing the tag.
+Add a post-release smoke job that runs `swift build` against the fresh tag.
 
 ## Setting secrets
 
-Only needed for channels not yet migrated to OIDC. Let `gh` prompt so values do
-not enter shell history:
+Only needed for channels not yet migrated to OIDC.
+Let `gh` prompt so values do not enter shell history:
 
 ```sh
 gh secret set PYPI_TOKEN --repo skopli/skopli
@@ -242,16 +198,14 @@ gh secret set MAVEN_CENTRAL_PASSWORD --repo skopli/skopli
 gh secret set MAVEN_GPG_PASSPHRASE --repo skopli/skopli
 ```
 
-Enable publishing only by setting the repo variable after every gate above is
-satisfied:
+Enable publishing only by setting the repo variable after every gate above is satisfied:
 
 ```sh
 gh variable set PUBLISH_ENABLED --repo skopli/skopli --body true
 ```
 
 List secret names and update times with `gh secret list --repo skopli/skopli`.
-GitHub never reveals stored secret values; a recent update time proves only
-that a value was stored, not that it is valid.
+GitHub never reveals stored secret values; a recent update time proves only that a value was stored, not that it is valid.
 
 ## Monitoring
 
@@ -272,13 +226,13 @@ After every release:
 8. Confirm `go install github.com/skopli/skopli/...@vX.Y.Z` and a
    `swift build` against the tag both succeed.
 
-Use **Actions -> Release -> Run workflow** with `dry_run: true` to rebuild all
-artifacts without touching any release. It must never create a new version.
+Use **Actions -> Release -> Run workflow** with `dry_run: true` to rebuild all artifacts without touching any release.
+It must never create a new version.
 
 ## Rotation and incident response
 
-Review credentials quarterly and after maintainer, repository, or account
-changes. Also monitor provider expiry emails and failed publishing jobs.
+Review credentials quarterly and after maintainer, repository, or account changes.
+Also monitor provider expiry emails and failed publishing jobs.
 
 | Credential                                           | Normal maintenance                                     | Rotation procedure                                                                                                                                                                                                     |
 | ---------------------------------------------------- | ------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -287,10 +241,8 @@ changes. Also monitor provider expiry emails and failed publishing jobs.
 | `MAVEN_CENTRAL_USERNAME` / `MAVEN_CENTRAL_PASSWORD`  | Check portal account and namespace quarterly           | Regenerate the portal token, update both secrets, prove on the next deployment.                                                                                                                                        |
 | `MAVEN_GPG_PRIVATE_KEY` / `MAVEN_GPG_PASSPHRASE`     | Check key expiry (2y) and keyserver presence quarterly | Generate a new keypair before expiry, publish the public key, update secrets, sign the next release with it.                                                                                                           |
 
-If a credential may be exposed, revoke or remove it at the provider first,
-rotate it, inspect workflow and provider audit logs, and rerun only after the
-new credential is installed. Deleting a GitHub secret alone does not revoke the
-credential at its provider.
+If a credential may be exposed, revoke or remove it at the provider first, rotate it, inspect workflow and provider audit logs, and rerun only after the new credential is installed.
+Deleting a GitHub secret alone does not revoke the credential at its provider.
 
 ## Repository controls
 

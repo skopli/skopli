@@ -45,7 +45,7 @@ The `net` cargo feature adds built-in catalog fetching for C consumers.
 
 The local gate has two parts.
 The Rust format, lint, and test commands come first.
-`pnpm run check` runs oxlint, the prose rules in [`scripts/check-prose.mjs`](https://github.com/skopli/skopli/blob/main/scripts/check-prose.mjs) (no em dash in any tracked text; captured harness input under [`golden/`](https://github.com/skopli/skopli/tree/main/golden/) is exempt), oxfmt, tsc over the facade and both sites, vitest, and the generated-file check.
+`pnpm run check` runs oxlint, the prose rules in [`scripts/check-prose.mjs`](https://github.com/skopli/skopli/blob/main/scripts/check-prose.mjs) (no em dash in any tracked text and one sentence per line in Markdown paragraphs; captured harness input under [`golden/`](https://github.com/skopli/skopli/tree/main/golden/) and third-party notices are exempt), oxfmt, tsc over the facade and both sites, vitest, and the generated-file check.
 
 ```sh
 cargo fmt --all -- --check
@@ -106,7 +106,8 @@ Built-in catalogs live in [`crates/skopli-core/src/pricing/sources.rs`](https://
 
 ## Pull requests
 
-- Branch from `main`. Every change lands through a pull request.
+- Branch from `main`.
+  Every change lands through a pull request.
 - The PR title is a Conventional Commit (`feat(web): ...`, `fix(core): ...`) and the PR carries one independently releasable change.
 - CI must be green, including the generated-file check above.
 - Docs and marketing copy state only what the code does: no benchmarks, adoption numbers, or testimonials.

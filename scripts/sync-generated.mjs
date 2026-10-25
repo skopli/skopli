@@ -87,7 +87,8 @@ const harnessTable = () => {
     return [...cell(h), "", ...(right ? cell(right) : ["", ""])];
   });
   return [
-    `${harnesses.length} supported. The id is what you pass in \`readUsage({ harnesses: [...] })\`.`,
+    `${harnesses.length} supported.`,
+    "The id is what you pass in `readUsage({ harnesses: [...] })`.",
     "",
     table(["Harness", "id", "", "Harness", "id"], rows),
   ].join("\n");
