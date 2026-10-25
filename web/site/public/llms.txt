@@ -6,6 +6,7 @@ Reading and rollups run offline against local files. Pricing is a separate step 
 
 ## Links
 
+- [This page as Markdown](https://skopli.com/llms-full.txt): the marketing site in one file.
 - [Documentation](https://docs.skopli.com/skopli/): guides and reference. Every page has a Markdown twin (swap the trailing `/` for `.md`).
 - [llms.txt](https://docs.skopli.com/skopli/llms.txt): index of the documentation pages.
 - [llms-full.txt](https://docs.skopli.com/skopli/llms-full.txt): the whole documentation in one file.

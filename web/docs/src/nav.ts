@@ -44,3 +44,4 @@ export const BASE = "/skopli";
 export const pagePath = (slug: string): string =>
   slug === "index" ? `${BASE}/` : `${BASE}/${slug}/`;
 export const mdPath = (slug: string): string => `${BASE}/${slug}.md`;
+export const ogPath = (slug: string): string => `${BASE}/og/${slug}.png`;

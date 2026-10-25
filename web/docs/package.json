@@ -12,7 +12,8 @@
     "@astrojs/mdx": "8.0.2",
     "@astrojs/sitemap": "3.7.4",
     "@skopli/ui": "workspace:*",
-    "astro": "7.3.5"
+    "astro": "7.3.5",
+    "sharp": "0.35.5"
   },
   "devDependencies": {
     "pagefind": "1.5.2"
