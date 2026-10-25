@@ -2,6 +2,8 @@ golden/** text eol=lf
 # Harness stores that are not text (SQLite databases, zstd-compressed logs) must not get
 # eol conversion from the golden/** rule above or the files corrupt.
 *.db binary
+*.sqlite binary
+*.sqlite3 binary
 *.zst binary
 *.zstd binary
 # csbindgen writes LF; pin it so the zero-diff regeneration check is stable
