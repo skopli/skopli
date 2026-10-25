@@ -120,17 +120,18 @@ const contributingPage = () => {
 };
 
 const readme = (t) => {
-  const missing = [...t.matchAll(/src="(assets\/logos\/[^"]+)"/g)]
+  const next = replaceBetween(
+    replaceBetween(t, "install-table", installTable()),
+    "harness-table",
+    harnessTable(),
+  );
+  const missing = [...next.matchAll(/src="(assets\/logos\/[^"]+)"/g)]
     .map((m) => m[1])
     .filter((logo) => !existsSync(logo));
   if (missing.length) {
     throw new Error(`README.md points at missing logos: ${missing.join(", ")}`);
   }
-  return replaceBetween(
-    replaceBetween(t, "install-table", installTable()),
-    "harness-table",
-    harnessTable(),
-  );
+  return next;
 };
 
 const targets = [
