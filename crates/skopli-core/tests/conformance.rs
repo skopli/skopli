@@ -21,6 +21,8 @@
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 
+use serde::Deserialize;
+use serde::de::IgnoredAny;
 use serde_json::{Value, json};
 use skopli_core::readers::reader::{Reader, ReaderContext};
 use skopli_core::readers::shared::{ReaderResult, ReaderWarning};
@@ -199,28 +201,50 @@ fn build_rollup_envelope(result: &ReaderResult, dimensions: &[String]) -> Value 
     })
 }
 
-/// The rollup dimensions a case exercises, read from its
-/// `input-manifest.json` `rollups` array; defaults to
-/// `["model", "day", "harness"]` when absent.
-fn rollup_dimensions(dir: &Path) -> Vec<String> {
-    std::fs::read_to_string(dir.join("input-manifest.json"))
-        .ok()
-        .and_then(|text| serde_json::from_str::<Value>(&text).ok())
-        .and_then(|m| {
-            m.get("rollups").and_then(Value::as_array).map(|arr| {
-                arr.iter()
-                    .filter_map(|v| v.as_str().map(str::to_owned))
-                    .collect::<Vec<_>>()
-            })
-        })
-        .unwrap_or_else(|| vec!["model".to_owned(), "day".to_owned(), "harness".to_owned()])
-}
-
 /// A discovered golden case: `golden/<harness>/<case>/`.
 struct GoldenCase {
     harness: String,
     case: String,
     dir: PathBuf,
+}
+
+/// `input-manifest.json`: the home, cwd and env wiring plus the rollup lanes a
+/// case exercises. Every field the exporter writes is named here so a typo or
+/// an unknown key fails the case instead of silently falling back to defaults.
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct Manifest {
+    schema_version: u32,
+    harness: String,
+    case: String,
+    #[serde(default)]
+    env: BTreeMap<String, String>,
+    home: Option<String>,
+    cwd: Option<String>,
+    #[serde(rename = "options")]
+    _options: IgnoredAny,
+    rollups: Option<Vec<String>>,
+}
+
+fn manifest_for(case: &GoldenCase) -> Manifest {
+    let path = case.dir.join("input-manifest.json");
+    let text = std::fs::read_to_string(&path).unwrap_or_else(|e| panic!("{}: {e}", path.display()));
+    let manifest: Manifest =
+        serde_json::from_str(&text).unwrap_or_else(|e| panic!("{}: {e}", path.display()));
+    assert_eq!(
+        manifest.schema_version,
+        1,
+        "{}: schema_version",
+        path.display()
+    );
+    assert_eq!(
+        manifest.harness,
+        case.harness,
+        "{}: harness",
+        path.display()
+    );
+    assert_eq!(manifest.case, case.case, "{}: case", path.display());
+    manifest
 }
 
 fn subdirs(dir: &Path) -> Vec<(String, PathBuf)> {
@@ -255,71 +279,38 @@ fn discover_cases() -> Vec<GoldenCase> {
     cases
 }
 
-/// Resolve the env-override `ReaderContext` for a case from its
-/// `input-manifest.json`. `env` values equal to `"."` resolve to the case
-/// `input/` dir (the exporter's convention for a data root inside `input/`);
-/// the home is set to a nonexistent path so default roots never resolve.
-fn context_for(dir: &Path) -> ReaderContext {
+/// Resolve the `ReaderContext` for a case with the same two rules as the TS
+/// sweep: `home` and `cwd` are `"."` (the case `input/` dir) or taken verbatim;
+/// an `env` value is joined onto `input/` unless absolute. Without `home` the
+/// home is a nonexistent path so default roots never resolve; without `cwd` the
+/// context carries none and project-local readers yield nothing.
+fn context_for(dir: &Path, manifest: &Manifest) -> ReaderContext {
     let input_dir = dir.join("input");
-    let manifest_path = dir.join("input-manifest.json");
-    let manifest: Option<Value> = std::fs::read_to_string(&manifest_path)
-        .ok()
-        .and_then(|text| serde_json::from_str::<Value>(&text).ok());
-
-    // The manifest `home` field ("." -> the case `input/` dir) sets the home
-    // directory a home-based reader (e.g. omp) resolves from; absent -> a
-    // nonexistent path so default roots never resolve.
-    let home = manifest
-        .as_ref()
-        .and_then(|m| m.get("home"))
-        .and_then(Value::as_str)
-        .map(|v| {
-            if v == "." {
-                input_dir.clone()
-            } else {
-                PathBuf::from(v)
-            }
-        })
-        .unwrap_or_else(|| PathBuf::from("/nonexistent"));
-
-    let mut ctx = ReaderContext::new(home);
-    if let Some(env) = manifest
-        .as_ref()
-        .and_then(|m| m.get("env"))
-        .and_then(Value::as_object)
-    {
-        for (name, value) in env {
-            if let Some(v) = value.as_str() {
-                // The exporter resolves every env value with `resolve(inputDir,
-                // rel)` (scripts/export-golden.ts): `.` -> the case `input/`
-                // dir, any other relative path -> joined onto `input/`, and an
-                // absolute path passes through unchanged.
-                let candidate = Path::new(v);
-                let resolved = if candidate.is_absolute() {
-                    v.to_owned()
-                } else if v == "." {
-                    input_dir.to_string_lossy().into_owned()
-                } else {
-                    input_dir.join(v).to_string_lossy().into_owned()
-                };
-                ctx = ctx.with_env(name.clone(), resolved);
-            }
-        }
-    }
-    // The manifest `cwd` field ("." -> the case `input/` dir) sets the working
-    // directory a project-local reader (e.g. trae) resolves from; absent -> the
-    // context carries no cwd and such readers yield nothing.
-    if let Some(cwd) = manifest
-        .as_ref()
-        .and_then(|m| m.get("cwd"))
-        .and_then(Value::as_str)
-    {
-        let resolved = if cwd == "." {
+    let at = |v: &str| {
+        if v == "." {
             input_dir.clone()
         } else {
-            PathBuf::from(cwd)
-        };
-        ctx = ctx.with_cwd(resolved);
+            PathBuf::from(v)
+        }
+    };
+    let place = |v: &str| {
+        if v == "." || Path::new(v).is_absolute() {
+            at(v)
+        } else {
+            input_dir.join(v)
+        }
+    };
+    let home = manifest
+        .home
+        .as_deref()
+        .map(at)
+        .unwrap_or_else(|| PathBuf::from("/nonexistent"));
+    let mut ctx = ReaderContext::new(home);
+    for (name, value) in &manifest.env {
+        ctx = ctx.with_env(name.clone(), place(value).to_string_lossy().into_owned());
+    }
+    if let Some(cwd) = &manifest.cwd {
+        ctx = ctx.with_cwd(at(cwd));
     }
     ctx
 }
@@ -395,8 +386,8 @@ fn conformance() {
         )
         .expect("parse expected-events.json");
 
-        let ctx = context_for(&case.dir);
-        let result = reader.read(&ctx);
+        let manifest = manifest_for(case);
+        let result = reader.read(&context_for(&case.dir, &manifest));
         let actual = build_envelope(&result, &input_dir, &case.harness);
 
         match structural_eq(&actual, &expected, "") {
@@ -418,7 +409,9 @@ fn conformance() {
                 &std::fs::read_to_string(&rollup_path).expect("read expected-rollup.json"),
             )
             .expect("parse expected-rollup.json");
-            let dimensions = rollup_dimensions(&case.dir);
+            let dimensions = manifest.rollups.clone().unwrap_or_else(|| {
+                vec!["model".to_owned(), "day".to_owned(), "harness".to_owned()]
+            });
             let actual_rollup = build_rollup_envelope(&result, &dimensions);
             match structural_eq(&actual_rollup, &expected_rollup, "") {
                 Ok(()) => {
