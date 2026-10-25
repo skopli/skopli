@@ -1,12 +1,5 @@
 #!/usr/bin/env node
 // Promote a redacted harness capture into golden/<harness>/<case>/ and generate its expected files.
-//
-//   promote.mjs <capture-home> <harness>/<case> --store <rel>... [--redact <from>=<to>]...
-//               [--env NAME=<rel>] [--gateway <text>] [--server <text>] [--model <text>]
-//               [--cache server-reported|gateway-derived] [--note <text>]...
-//
-// <capture-home> is the harness home directory the capture wrote into (kept outside the repo).
-// Every --store path is copied under input/ with path components and file contents redacted.
 // Redaction rules apply to text files, to zstd-compressed text, and to every text column of
 // SQLite databases (WAL checkpointed first, then VACUUMed). Each rule also applies in its
 // dash-joined (`-home-user`) and percent-encoded (`%2Fhome%2Fuser`) forms so project-slug
@@ -31,16 +24,51 @@ import { tmpdir } from "node:os";
 import { join, relative } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import { zstdCompressSync, zstdDecompressSync } from "node:zlib";
+import { parseArgs } from "./cli.mjs";
 import { replayCase, root } from "./replay.mjs";
 
-const argv = process.argv.slice(2);
-const [captureHome, caseId] = argv;
-const many = (flag) => argv.flatMap((a, i) => (a === flag && argv[i + 1] ? [argv[i + 1]] : []));
-const one = (flag, fallback) => many(flag)[0] ?? fallback;
+const help = `usage: promote.mjs <capture-home> <harness>/<case> --store <rel>... [options]
+
+Copies the named stores of a harness capture into golden/<harness>/<case>/input/
+with the redaction rules applied to file names and contents, regenerates the
+expected files through replay.mjs and writes the case README. The case directory
+is removed and rewritten on every run.
+
+  --store <rel>         path under <capture-home> to copy (repeatable, required)
+  --redact <from>=<to>  text to replace; also applied dash-joined and percent-
+                        encoded (repeatable)
+  --env NAME=<rel>      point the manifest env var at input/<rel> instead of home
+  --gateway <text>      README: gateway description
+  --server <text>       README: server description
+  --model <text>        README: model description
+  --cache <text>        README: cache source (default server-reported)
+  --note <text>         README: extra bullet (repeatable)
+  --dry-run             print the resolved rules and the files that would be
+                        written as JSON and exit without touching golden/
+  --quiet               no progress lines on stderr
+  --help                this text
+
+exit codes: 0 ok, 1 a written file failed the redaction, ignore or attribute
+check (the case is removed again), 2 usage error
+
+examples:
+  promote.mjs /tmp/cap/home omp/openai-chat --store .omp/agent/sessions \\
+    --redact /tmp/cap/home=/home/user --redact "$(hostname)=host" --cache server-reported
+  promote.mjs /tmp/cap/home jcode/anthropic-messages --store .jcode/sessions --dry-run`;
+const { positional, many, one, dryRun, log, usage } = parseArgs(help, [
+  "--store",
+  "--redact",
+  "--env",
+  "--gateway",
+  "--server",
+  "--model",
+  "--cache",
+  "--note",
+]);
+const [captureHome, caseId] = positional;
 const stores = many("--store");
 if (!captureHome || !caseId?.includes("/") || stores.length === 0) {
-  console.error("usage: promote.mjs <capture-home> <harness>/<case> --store <rel>... [options]");
-  process.exit(2);
+  usage("promote: <capture-home>, <harness>/<case> and at least one --store are required");
 }
 const [harness, name] = caseId.split("/");
 const dir = join(root, "golden", harness, name);
@@ -121,14 +149,17 @@ const zstdFrames = (buf) => {
   return Buffer.concat(parts);
 };
 
+const planned = [];
 const copyTree = (from, to) => {
   const stat = statSync(from);
   if (stat.isDirectory()) {
-    mkdirSync(to, { recursive: true });
+    if (!dryRun) mkdirSync(to, { recursive: true });
     for (const entry of readdirSync(from)) copyTree(join(from, entry), join(to, redact(entry)));
     return;
   }
   if (/\.db-(wal|shm)$|\.sqlite3?-(wal|shm)$/.test(from)) return;
+  planned.push(relative(root, to));
+  if (dryRun) return;
   const buf = readFileSync(from);
   mkdirSync(join(to, ".."), { recursive: true });
   if (isSqlite(buf)) return redactSqlite(from, to);
@@ -178,8 +209,17 @@ const verifyWritten = () => {
   );
 };
 
-rmSync(dir, { recursive: true, force: true });
-for (const rel of stores) copyTree(join(captureHome, rel), join(input, redact(rel)));
+if (!dryRun) rmSync(dir, { recursive: true, force: true });
+for (const rel of stores) {
+  log(`promote: ${rel} -> ${relative(root, join(input, redact(rel)))}`);
+  copyTree(join(captureHome, rel), join(input, redact(rel)));
+}
+if (dryRun) {
+  console.log(
+    JSON.stringify({ case: caseId, dir: relative(root, dir), rules, files: planned }, null, 2),
+  );
+  process.exit(0);
+}
 verifyWritten();
 
 const env = many("--env").map(pair);
@@ -194,9 +234,9 @@ const manifest = {
 writeFileSync(join(dir, "input-manifest.json"), `${JSON.stringify(manifest, null, 2)}\n`);
 
 const { events, by, result } = await replayCase(caseId);
+const relativize = (s) => s.replaceAll(input, "").replace(/(^|\s)\/+/g, "$1");
 // Same normalisation the Rust conformance replay applies: paths relative to input/, sorted,
 // one warning-severity diagnostic per reader warning, skipped grouped by harness only when non-empty.
-const relativize = (s) => s.replaceAll(input, "").replace(/(^|\s)\/+/g, "$1");
 const diagnostics = result.diagnostics
   .map((d) => relativize(d.message.replace(/\n$/, "")))
   .sort()
@@ -237,6 +277,7 @@ const readme = [
   "",
 ];
 writeFileSync(join(dir, "README.md"), readme.join("\n"));
+log(`promote: wrote ${relative(root, dir)} (${planned.length} input files)`);
 console.log(
   JSON.stringify({
     case: caseId,
