@@ -256,8 +256,8 @@ jobs:
       # bootstrap publish of skopli and every skopli-<platform> package is in PUBLISHING-SETUP.md.
       - name: npm >= 11.5.1 for OIDC trusted publishing
         run: |
-          npx --yes semver --range ">=11.5.1" "$(npm --version)" >/dev/null \
-            || npm install -g npm@latest
+          have="$(npm --version)"
+          [ "$(printf '%s\n' 11.5.1 "$have" | sort -V | head -n1)" = 11.5.1 ] || npm install -g npm@latest
       - name: napi prepublish + publish (GATED, OIDC)
         run: |
           pnpm exec napi prepublish -t npm
