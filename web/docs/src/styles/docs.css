@@ -145,10 +145,9 @@
 }
 
 .actions {
+  position: relative;
   margin-top: var(--space-5);
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-2);
+  display: inline-flex;
   font-size: var(--text-sm);
 }
 .actions__btn {
@@ -161,54 +160,63 @@
   border-radius: var(--radius);
   background: transparent;
   color: var(--ink-2);
-  text-decoration: none;
   cursor: pointer;
-  list-style: none;
 }
-.actions__btn:hover {
+.actions__btn:hover,
+.actions__menu [role="menuitem"]:hover,
+.actions__menu [role="menuitem"]:focus-visible {
   color: var(--ink);
   background: var(--paper-2);
 }
+.actions__copy {
+  border-radius: var(--radius) 0 0 var(--radius);
+}
+.actions__label {
+  min-width: 6em;
+  text-align: left;
+}
+.actions__more {
+  width: var(--tap);
+  padding: 0;
+  justify-content: center;
+  border-left: 0;
+  border-radius: 0 var(--radius) var(--radius) 0;
+}
+.actions__more[aria-expanded="true"] svg {
+  transform: rotate(180deg);
+}
 .actions__menu {
-  position: relative;
-}
-.actions__menu summary::-webkit-details-marker {
-  display: none;
-}
-.actions__menu summary::after {
-  content: "";
-  margin-left: var(--space-2);
-  width: 0.4em;
-  height: 0.4em;
-  border-right: 1.5px solid currentColor;
-  border-bottom: 1.5px solid currentColor;
-  transform: translateY(-25%) rotate(45deg);
-}
-.actions__menu ul {
   position: absolute;
-  top: calc(100% + 4px);
+  top: calc(100% + var(--space-1));
   left: 0;
   z-index: 5;
-  min-width: 12rem;
-  list-style: none;
+  min-width: 14rem;
+  margin: 0;
   padding: var(--space-1);
-  border: 1px solid var(--rule);
+  list-style: none;
+  border: 1px solid var(--rule-strong);
   border-radius: var(--radius);
   background: var(--paper);
 }
-.actions__menu li a {
+.actions__menu [role="separator"] {
+  margin: var(--space-1) 0;
+  border-top: 1px solid var(--rule);
+}
+.actions__menu [role="menuitem"] {
   display: flex;
   align-items: center;
   gap: var(--space-2);
+  width: 100%;
   min-height: var(--tap);
   padding: 0 var(--space-3);
+  border: 0;
   border-radius: var(--radius);
+  background: transparent;
   color: var(--ink-2);
+  font: inherit;
+  text-align: left;
   text-decoration: none;
-}
-.actions__menu li a:hover {
-  color: var(--ink);
-  background: var(--paper-2);
+  cursor: pointer;
 }
 
 .prose {
@@ -427,9 +435,6 @@
     padding: 0;
   }
   .search:not([data-open]) {
-    display: none;
-  }
-  .actions__btn--md {
     display: none;
   }
   .docs__shell {
