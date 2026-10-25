@@ -121,8 +121,6 @@ internal static unsafe class Interop
         return TakeBuf(buf);
     }
 
-    // -----------------------------------------------------------------------
-
     private delegate AgStatus JsonCall(byte* json, nuint len, AgBuf* @out);
 
     private static string CallJson(string? optsJson, string op, JsonCall call)
