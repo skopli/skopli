@@ -15,7 +15,9 @@ Display names follow each project's own branding.
 - **Kiro CLI** stores no token counts, so its events carry estimated tokens.
 - **Reasonix** logs one event per session and **fx** one event per model per session, so `turns` and per-message detail are not available for them.
 - **Codex CLI, Grok Build and ZCode** report reasoning inside output. The reader subtracts it so the buckets stay disjoint.
-- **GitHub Copilot CLI** is read from its session-state logs. Records from its optional OTel file exporter are kept only for sessions the session-state logs do not know, so a request is never counted twice. The OTel conventions do not state whether output includes reasoning, so for those records the two are treated as disjoint and not subtracted.
+- **GitHub Copilot CLI** is read from its session-state logs.
+  Records from its optional OTel file exporter are kept only for sessions the session-state logs do not know, so a request is never counted twice.
+  The OTel conventions do not state whether output includes reasoning, so for those records the two are treated as disjoint and not subtracted.
 - **Claude Code** reports the 5m/1h cache-write split, which populates `tokens.cacheWrite1h`, and records `costUSD`, which populates `costUsd`.
 - **OpenCode** supplies `workspace`, `title` and, when non-zero, `costUsd`.
 - **Hermes Agent** reports a per-row `message_count`, which populates `calls`.

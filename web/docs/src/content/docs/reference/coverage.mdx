@@ -34,7 +34,8 @@ Every `Rollup` has `key`, `tokens`, `events`, `turns` and `calls`.
 
 - Kiro CLI token counts are estimates.
 - Reasonix and fx expose session-level rows only, so per-message `turn` and `calls` detail is unavailable.
-- GitHub Copilot CLI records taken from its OTel export are assumed to report reasoning disjoint from output. If that export turns out to include it, reasoning would be counted twice for those records.
+- GitHub Copilot CLI records taken from its OTel export are assumed to report reasoning disjoint from output.
+  If that export turns out to include it, reasoning would be counted twice for those records.
 - `priceRollups` on a tiered model can overbill when a rollup sums several events. The row is flagged `tieredAggregate` and `priceEvents` is the exact path.
 - Long-context tiers come from LiteLLM only.
 - A `costUsd` is whatever the harness recorded. Skopli does not audit it.
