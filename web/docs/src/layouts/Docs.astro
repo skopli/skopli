@@ -4,6 +4,7 @@ import "@skopli/ui/styles/shiki.css";
 import "@skopli/ui/styles/tabs.css";
 import "../styles/docs.css";
 import Footer from "@skopli/ui/components/Footer.astro";
+import Head from "@skopli/ui/components/Head.astro";
 import Logo from "@skopli/ui/components/Logo.astro";
 import ThemeInit from "@skopli/ui/components/ThemeInit.astro";
 import ThemeToggle from "@skopli/ui/components/ThemeToggle.astro";
@@ -11,8 +12,9 @@ import type { MarkdownHeading } from "astro";
 import PageActions from "../components/PageActions.astro";
 import Search from "../components/Search.astro";
 import Sidebar from "../components/Sidebar.astro";
-import { BASE, SITE, mdPath, ordered, pagePath } from "../nav";
+import { project } from "@skopli/ui/project";
 import { published } from "@skopli/ui/quickstart";
+import { BASE, SITE, mdPath, ogPath, ordered, pagePath } from "../nav";
 
 interface Props {
   slug: string;
@@ -27,7 +29,26 @@ const prev = index > 0 ? ordered[index - 1] : undefined;
 const next = index >= 0 && index < ordered.length - 1 ? ordered[index + 1] : undefined;
 const toc = headings.filter((h) => h.depth === 2 || h.depth === 3);
 const canonical = `${SITE}${pagePath(slug)}`;
-const github = "https://github.com/skopli/skopli";
+const image = `${SITE}${ogPath(slug)}`;
+const siteName = "Skopli docs";
+const root = slug === "index";
+const { github, site } = project;
+const org = { "@type": "Organization", name: project.name, url: site };
+const jsonLd = [
+  {
+    "@context": "https://schema.org",
+    "@type": "TechArticle",
+    headline: title,
+    description,
+    url: canonical,
+    image,
+    inLanguage: "en",
+    author: org,
+    publisher: org,
+    isPartOf: { "@type": "WebSite", name: siteName, url: project.docs },
+    about: { "@type": "SoftwareSourceCode", name: project.name, url: site, codeRepository: github },
+  },
+];
 ---
 
 <!doctype html>
@@ -35,16 +56,19 @@ const github = "https://github.com/skopli/skopli";
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>{slug === "index" ? "Skopli docs" : `${title} | Skopli docs`}</title>
-    <meta name="description" content={description} />
     <link rel="icon" href={`${BASE}/favicon.svg`} type="image/svg+xml" />
-    <link rel="canonical" href={canonical} />
-    <link rel="alternate" type="text/markdown" href={`${SITE}${mdPath(slug)}`} />
-    <meta property="og:title" content={title} />
-    <meta property="og:description" content={description} />
-    <meta property="og:type" content="article" />
-    <meta property="og:site_name" content="Skopli docs" />
-    <meta property="og:url" content={canonical} />
+    <Head
+      documentTitle={root ? title : `${title} | ${siteName}`}
+      {title}
+      {description}
+      url={canonical}
+      {siteName}
+      type="article"
+      {image}
+      markdown={`${SITE}${mdPath(slug)}`}
+      {jsonLd}
+    />
+    {root && <link rel="alternate" type="text/markdown" href={`${project.docs}llms.txt`} />}
     <ThemeInit />
   </head>
   <body class="docs">
@@ -64,7 +88,7 @@ const github = "https://github.com/skopli/skopli";
           </svg>
         </button>
         <nav class="docs__top-nav" aria-label="Site">
-          <a href="https://skopli.com">skopli.com</a>
+          <a href={site}>skopli.com</a>
           <a href={github}>GitHub</a>
           <ThemeToggle />
         </nav>
@@ -122,7 +146,7 @@ const github = "https://github.com/skopli/skopli";
     <Footer
       maxWidth="96rem"
       links={[
-        { label: "skopli.com", href: "https://skopli.com" },
+        { label: "skopli.com", href: site },
         { label: "GitHub", href: github },
         ...(published ? [{ label: "npm", href: "https://www.npmjs.com/package/skopli" }] : []),
         { label: "View as Markdown", href: mdPath(slug) },

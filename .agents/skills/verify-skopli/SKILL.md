@@ -1,6 +1,6 @@
 ---
 name: verify-skopli
-description: Drive Skopli the way a user does and capture proof. Covers the docs site (theme, search, nine-language code tabs, page actions, Markdown twins and llms feeds), the marketing site, and the library surface replayed against the golden corpus or a real home directory. Use before calling a web or facade change done, when a reviewer asks for runtime evidence, or when a claim about the sites needs a screenshot or response body.
+description: Drive Skopli the way a user does and capture proof. Covers the docs site (theme, search, nine-language code tabs, page actions, Markdown twins and llms feeds), the marketing site, the discovery metadata on both (robots, sitemaps, social cards, JSON-LD), and the library surface replayed against the golden corpus or a real home directory. Use before calling a web or facade change done, when a reviewer asks for runtime evidence, or when a claim about the sites needs a screenshot or response body.
 ---
 
 # Verify Skopli
@@ -86,8 +86,8 @@ Stable handles on the docs site:
 | `nav[aria-label="Docs"]`                                                      | sidebar                                                                                                       |
 | `nav[aria-label="Previous and next"]`                                         | pager                                                                                                         |
 
-Routes: docs pages are `/skopli/<slug>/`, their twins `/skopli/<slug>.md`, the feeds `/skopli/llms.txt` and `/skopli/llms-full.txt`.
-The marketing site is `/` with sections `#harnesses` and the same theme toggle and code tabs.
+Routes: docs pages are `/skopli/<slug>/`, their twins `/skopli/<slug>.md`, their cards `/skopli/og/<slug>.png`, the feeds `/skopli/llms.txt` and `/skopli/llms-full.txt`, the sitemap `/skopli/sitemap-index.xml`.
+The marketing site is `/` with sections `#harnesses` and the same theme toggle and code tabs; its feeds are `/llms.txt` and `/llms-full.txt`, its card `/og.png`, its sitemap `/sitemap-index.xml`; `/robots.txt` sits at each host root.
 
 Library steps run through `scripts/golden.mjs`:
 

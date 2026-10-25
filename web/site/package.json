@@ -11,6 +11,7 @@
   "dependencies": {
     "@astrojs/sitemap": "3.7.4",
     "@skopli/ui": "workspace:*",
-    "astro": "7.3.5"
+    "astro": "7.3.5",
+    "sharp": "0.35.5"
   }
 }

@@ -10,10 +10,16 @@
     "./harnesses": "./src/harnesses.ts",
     "./quickstart": "./src/quickstart.ts",
     "./langs": "./src/langs.ts",
+    "./markdown": "./src/markdown.ts",
+    "./og": "./src/og.ts",
+    "./project": "./src/project.ts",
     "./scrollable": "./src/scrollable.ts"
   },
   "dependencies": {
     "@fontsource-variable/inter": "5.3.0",
-    "@fontsource-variable/jetbrains-mono": "5.3.0"
+    "@fontsource-variable/jetbrains-mono": "5.3.0",
+    "@fontsource/inter": "5.3.0",
+    "satori": "0.62.0",
+    "sharp": "0.35.5"
   }
 }

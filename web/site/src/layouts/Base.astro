@@ -3,9 +3,12 @@ import "@skopli/ui/styles/base.css";
 import "@skopli/ui/styles/shiki.css";
 import "@skopli/ui/styles/tabs.css";
 import Footer from "@skopli/ui/components/Footer.astro";
+import Head from "@skopli/ui/components/Head.astro";
 import Logo from "@skopli/ui/components/Logo.astro";
 import ThemeInit from "@skopli/ui/components/ThemeInit.astro";
 import ThemeToggle from "@skopli/ui/components/ThemeToggle.astro";
+import { langs } from "@skopli/ui/langs";
+import { project } from "@skopli/ui/project";
 import { published } from "@skopli/ui/quickstart";
 
 interface Props {
@@ -14,8 +17,20 @@ interface Props {
 }
 
 const { title, description } = Astro.props;
-const docs = "https://docs.skopli.com/skopli/";
-const github = "https://github.com/skopli/skopli";
+const { docs, github, site } = project;
+const jsonLd = [
+  { "@context": "https://schema.org", "@type": "WebSite", name: project.name, url: site, description },
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareSourceCode",
+    name: project.name,
+    description,
+    url: site,
+    codeRepository: github,
+    license: project.license,
+    programmingLanguage: Object.values(langs),
+  },
+];
 ---
 
 <!doctype html>
@@ -23,15 +38,18 @@ const github = "https://github.com/skopli/skopli";
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>{title}</title>
-    <meta name="description" content={description} />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
-    <link rel="canonical" href={Astro.site} />
-    <meta property="og:title" content={title} />
-    <meta property="og:description" content={description} />
-    <meta property="og:type" content="website" />
-    <meta property="og:site_name" content="Skopli" />
-    <meta property="og:url" content={Astro.site} />
+    <Head
+      documentTitle={title}
+      {title}
+      {description}
+      url={site}
+      siteName={project.name}
+      type="website"
+      image={`${site}og.png`}
+      markdown={`${site}llms.txt`}
+      {jsonLd}
+    />
     <ThemeInit />
   </head>
   <body>
