@@ -1,17 +1,20 @@
 # Page actions
 
-Every docs page carries three actions under its title: copy the page as Markdown to the clipboard, open the Markdown twin, and hand the twin's URL to an AI agent.
+Every docs page carries one split control under its title: a `Copy page` button that copies the page as Markdown, joined to a chevron that opens a menu with the Markdown twin, a link copier and six AI handoffs.
 
 ## Sub-features
 
-- `actions-copy` fetches the page's `.md` twin, writes it to the clipboard and flips the label to `Copied` for 1.5 seconds.
-- `actions-view-md` links to the page's `.md` twin.
-- `actions-open-in` expands a menu of six agent links (ChatGPT, Claude, Grok, Perplexity, Google AI Mode, Cursor), each carrying a prompt that names the twin's public URL.
+- `actions-copy` fetches the page's `.md` twin, writes it to the clipboard and flips the label to `Copied` for 1.5 seconds. The label carries `aria-live="polite"` so the flip is announced.
+- `actions-menu` is the chevron button (`aria-label="More actions"`, `aria-haspopup="menu"`, `aria-expanded`). Click, Enter, Space or ArrowDown open the `role="menu"` list and the keys move focus to its first item; Escape, whether focus is on the chevron or on an item, closes it and returns focus to the chevron; Tab out or an outside click closes it. Enter or Space on an item activates it; activating an item closes the menu and returns focus to the chevron.
+- `actions-view-md` is the first menu item and links to the page's `.md` twin.
+- `actions-copy-link` is the second menu item and copies the twin's public URL; the label flips to `Link copied`.
+- `actions-open-in` is the six remaining items (ChatGPT, Claude, Grok, Perplexity, Google AI Mode, Cursor), each carrying a prompt that names the twin's public URL.
 - `actions-footer-md` repeats `View as Markdown` in the footer.
+- `actions-no-js`: without JavaScript the list renders as a plain card under the control and its items sit in the Tab order, so the twin link and the six handoffs stay reachable by keyboard. The component script marks the group `data-enhanced` and sets `tabindex="-1"` on every item; only then does the stylesheet collapse the list behind the chevron and Tab skip the items.
 
 ## How to get to it (user POV)
 
-- Open any docs page, for example `/skopli/guide/reading/`; the `Copy page`, `View as Markdown` and `Open in` controls sit under the page description.
+- Open any docs page, for example `/skopli/guide/reading/`; the `Copy page` control and its chevron sit under the page description.
 - The footer of every docs page has a `View as Markdown` link.
 
 ## Driving it with browser.mjs
@@ -31,30 +34,73 @@ node .agents/skills/verify-skopli/scripts/browser.mjs --out .verify/evidence/<ru
   eval "navigator.clipboard.readText().then(t=>t.length)" \
   fetch http://127.0.0.1:4322/skopli/guide/reading.md \
   wait 'text=Copy page' \
-  eval "document.querySelector('a.actions__btn--md').getAttribute('href')" \
-  click 'role=link[name="View as Markdown"] >> nth=0' \
+  eval "document.querySelector('[data-more]').getAttribute('aria-haspopup')+' '+document.querySelector('[data-more]').getAttribute('aria-expanded')" \
+  press '[data-more]' ArrowDown \
+  eval "document.querySelector('[data-more]').getAttribute('aria-expanded')+' '+document.activeElement.getAttribute('role')+' '+document.activeElement.textContent.trim()" \
+  screenshot 03-menu \
+  eval "[...document.querySelectorAll('[role=menuitem]')].map(a=>a.textContent.trim()+' '+(a.href||''))" \
+  press '[role=menu]' Escape \
+  eval "document.querySelector('[data-more]').getAttribute('aria-expanded')+' '+document.activeElement.getAttribute('aria-label')" \
+  click '[data-more]' \
+  press '[data-more]' Escape \
+  eval "document.querySelector('[data-more]').getAttribute('aria-expanded')+' '+document.activeElement.getAttribute('aria-label')" \
+  press '[data-more]' Enter \
+  press '[role=menu]' Tab \
+  eval "document.querySelector('[data-more]').getAttribute('aria-expanded')+' '+document.querySelector('[role=menu]').contains(document.activeElement)" \
+  click '[data-more]' \
+  click 'role=menuitem[name="Copy Markdown link"]' \
+  wait 'text=Link copied' \
+  eval "document.querySelector('[data-more]').getAttribute('aria-expanded')+' '+document.activeElement.getAttribute('aria-label')" \
+  eval "navigator.clipboard.readText()" \
+  wait 'text=Copy page' \
+  press '[data-more]' ArrowDown \
+  press '[role=menu]' ArrowDown \
+  press '[role=menu]' Enter \
+  wait 'text=Link copied' \
+  eval "document.querySelector('[data-more]').getAttribute('aria-expanded')+' '+document.activeElement.getAttribute('aria-label')" \
+  wait 'text=Copy page' \
+  press '[data-more]' ArrowDown \
+  press '[role=menu]' Space \
   eval "location.pathname+' '+document.contentType" \
   goto http://127.0.0.1:4322/skopli/guide/reading/ \
-  click 'text=Open in' \
-  eval "[...document.querySelectorAll('.actions__menu a')].map(a=>a.textContent.trim()+' '+a.href)" \
-  screenshot 03-open-in \
-  click 'h1' \
-  eval "document.querySelector('.actions__menu').open" \
   eval "[...document.querySelectorAll('footer a')].find(a=>a.textContent.trim()==='View as Markdown').getAttribute('href')"
 ```
 
+The run has 39 steps; the numbers below are the `[n]` prefixes in the transcript.
+
 - **Copy.** Steps 1 to 8 click the button and read the clipboard once the label flips. The clipboard starts with `# Reading usage` and its character count equals that of the saved `skopli_guide_reading.md` (the file is ASCII, so bytes and characters agree).
 - **Label resets.** Step 9 waits for the label to read `Copy page` again after the 1.5 second reset; `wait` uses Playwright's default 30 second timeout, so a label that never resets fails the step.
-- **View as Markdown.** Steps 10 to 12 read the href and follow the link. The href is `/skopli/guide/reading.md` and the result is `"/skopli/guide/reading.md text/markdown"`.
-- **Open in.** Steps 13 to 16 go back and expand the menu. Six links, each `href` containing `Read%20https%3A%2F%2Fdocs.skopli.com%2Fskopli%2Fguide%2Freading.md`; the Cursor link uses the `cursor://` scheme.
-- **Menu closes.** Steps 17 and 18 click the title. The `open` value is `false`.
-- **Footer link.** Step 19 reads the footer. The href is `/skopli/guide/reading.md`.
-- **Proof.** The transcript holds the clipboard excerpt and length, the hrefs and the menu state; `02-copied.png` shows the `Copied` label and `03-open-in.png` the expanded menu.
+- **Menu opens by keyboard.** Step 10 reads `"menu false"`. Step 11 presses ArrowDown on the chevron and step 12 reads `"true menuitem View as Markdown"`: the menu is expanded and focus sits on its first item. Step 13 saves `03-menu.png`.
+- **Menu contents.** Step 14 lists eight items: `View as Markdown` with the twin href, `Copy Markdown link` with no href, then six `Open in` links whose `href` contains `Read%20https%3A%2F%2Fdocs.skopli.com%2Fskopli%2Fguide%2Freading.md`; the Cursor link uses the `cursor://` scheme.
+- **Escape from an item returns focus.** Step 15 presses Escape on the focused item and step 16 reads `"false More actions"`: the menu closed and the chevron has focus again.
+- **Escape from the chevron closes.** Step 17 opens the menu with a click, which leaves focus on the chevron; step 18 presses Escape there and step 19 reads `"false More actions"`.
+- **Tab out closes.** Steps 20 to 22 reopen with Enter, press Tab inside the menu and read `"false false"`.
+- **Copy Markdown link by mouse.** Steps 23 to 28 open the menu and click the item. Step 26 reads `"false More actions"` (the menu closed and focus is back on the chevron), step 27 reads `https://docs.skopli.com/skopli/guide/reading.md` from the clipboard and step 28 waits for the label to return to `Copy page`.
+- **Copy Markdown link by keyboard.** Steps 29 to 34 open with ArrowDown, move to the second item and press Enter. Step 33 reads `"false More actions"` again: keyboard activation hands focus back to the chevron instead of dropping it on the document.
+- **Space activates a link item.** Step 35 opens with ArrowDown and step 36 presses Space on `View as Markdown`; step 37 reads `"/skopli/guide/reading.md text/markdown"`, so Space followed the link.
+- **Footer link.** Step 38 returns to the page and step 39 reads the footer. The href is `/skopli/guide/reading.md`.
+- **Proof.** The transcript holds the clipboard excerpt and length, the focus and `aria-expanded` readings and the hrefs; `02-copied.png` shows the `Copied` label and `03-menu.png` the open menu with focus on its first item.
+
+The no-JavaScript fallback is a separate run with `--no-js`:
+
+```sh
+node .agents/skills/verify-skopli/scripts/browser.mjs --out .verify/evidence/<run>/page-actions-no-js --no-js \
+  goto http://127.0.0.1:4322/skopli/guide/reading/ \
+  eval "document.querySelector('[data-actions]').hasAttribute('data-enhanced')" \
+  eval "[...document.querySelectorAll('.actions a')].filter(a=>a.getClientRects().length).map(a=>a.textContent.trim())" \
+  eval "document.documentElement.scrollWidth" \
+  eval "document.querySelectorAll('.actions [tabindex]').length" \
+  press '[data-more]' Tab \
+  eval "document.activeElement.textContent.trim()" \
+  screenshot 01-no-js
+```
+
+Step 2 reads `false` (the script never ran), step 3 lists the seven rendered links (`View as Markdown` and the six `Open in` entries), step 4 reads the viewport width, so nothing overflows, step 5 reads `0` (no item carries a static `tabindex`), step 7 reads `View as Markdown` (Tab from the chevron lands on the first item), and `01-no-js.png` shows the list as a card under the control.
 
 ## Gotchas
 
 - The copy is asynchronous. Reading the clipboard or the label straight after the click sees the old state; wait for `Copied` first.
 - Do not follow the `Open in` links. They leave the local origins and `browser.mjs` blocks them; the `href` values are the proof.
-- Narrow viewports (860px and below) hide the `View as Markdown` button under the title; the footer link remains.
+- The menu is not a `<details>`; `aria-expanded` on `[data-more]` is its only state, and the stylesheet hides the list from that attribute once the group carries `data-enhanced`. The items ship without `tabindex`; the script sets `-1` on them, so a Tab that reaches an item means the script did not run.
 - A `Copy failed` label means the `.md` twin did not answer `200`; check the markdown-feeds feature before blaming the button.
 - The clipboard is per browser profile, so each invocation starts empty.

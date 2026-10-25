@@ -3,7 +3,8 @@ import { appendFileSync, mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { chromium } from "playwright-core";
 
-const usage = `usage: browser.mjs --out <dir> [--viewport <w>x<h>] <step> [<step> ...]
+const usage = `usage: browser.mjs --out <dir> [--viewport <w>x<h>] [--no-js] <step> [<step> ...]
+--no-js disables JavaScript in the page to check what the markup alone delivers.
 Each step is one argument naming the step followed by its arguments:
   goto <url>               navigate and wait for load
   reload                   reload the current page
@@ -37,10 +38,12 @@ const arity = {
 const argv = process.argv.slice(2);
 let out;
 let viewport = { width: 1280, height: 900 };
+let javaScriptEnabled = true;
 const steps = [];
 for (let i = 0; i < argv.length; i++) {
   const arg = argv[i];
   if (arg === "--out") out = argv[++i];
+  else if (arg === "--no-js") javaScriptEnabled = false;
   else if (arg === "--viewport") {
     const size = /^(\d+)x(\d+)$/.exec(argv[++i] ?? "");
     if (!size) {
@@ -76,7 +79,7 @@ const log = (line) => {
 
 const local = (url) => ["127.0.0.1", "localhost"].includes(new URL(url).hostname);
 const browser = await chromium.launch();
-const context = await browser.newContext({ viewport });
+const context = await browser.newContext({ viewport, javaScriptEnabled });
 await context.route("**/*", (route) => {
   if (local(route.request().url())) return route.continue();
   log(`blocked: ${route.request().url()}`);
