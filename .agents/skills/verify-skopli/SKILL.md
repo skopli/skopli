@@ -116,7 +116,7 @@ A local `llama-server` reports cache reuse in its own fields, so `scripts/gatewa
 node .agents/skills/verify-skopli/scripts/gateway.ts --port 8081 --upstream http://127.0.0.1:8080 --log .verify/evidence/<run>/gateway-usage.jsonl
 ```
 
-It binds `127.0.0.1` on `--port` (default `8081`), forwards every request to `--upstream` (default `http://127.0.0.1:8080`) with its body and headers unchanged, streams responses through line by line, and prints one JSON line with its PID, port, upstream and log on stdout when it listens.
+It binds `127.0.0.1` on `--port` (default `8081`), forwards every request to `--upstream` (default `http://127.0.0.1:8080`) with its body and headers unchanged, streams responses through line by line, and prints one JSON line with `gateway` (its own origin), `upstream` and `pid` on stdout when it listens.
 Stop it by that PID.
 `--log` is optional and appends one JSON line per routed exchange (`at`, `path`, `status`, `stream`, `cacheControl`, `aborted`, `usage` as sent to the harness), which is the per-call evidence for a capture.
 `aborted` is true when the harness closed the connection before the response finished, so a reconciliation can set those lines aside.
@@ -147,7 +147,7 @@ Cache mapping, with `llama-server` as the source of truth for what was reused fr
 | `/v1/messages`         | `usage.cache_read_input_tokens`, `usage.input_tokens` (uncached) | `cache_read_input_tokens` kept; when a `system`, `tools` or message content block of the request carries `cache_control`, `cache_creation_input_tokens` = the uncached tokens and `input_tokens` = 0, otherwise `cache_creation_input_tokens` = 0 and `input_tokens` unchanged. In a stream `message_start` is rewritten and `message_delta.usage` is made cumulative. |
 | `/v1/responses`        | none                                                             | forwarded unchanged; the server already fills `usage.input_tokens_details.cached_tokens`.                                                                                                                                                                                                                                                                              |
 
-Both routes are server-reported: the server's own counters are used and nothing is derived from request text.
+All three routes are server-reported: the chat and messages rewrites use the server's own counters, the Responses route passes the server's usage through, and nothing is derived from request text.
 Run the server with prompt caching on (the default) and at least one slot per concurrent harness session, since a slot's prefix cache is what turn two reuses.
 A capture's README names the gateway, the server build, the model and that the cache numbers are server-reported.
 The unit test is `scripts/gateway.test.ts`, run by `pnpm run test`.
