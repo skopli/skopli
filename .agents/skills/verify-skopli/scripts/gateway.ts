@@ -3,7 +3,7 @@ import { appendFileSync } from "node:fs";
 import { createServer, type IncomingHttpHeaders, type Server } from "node:http";
 
 type Json = Record<string, unknown>;
-type Route = "chat" | "messages";
+type Route = "chat" | "messages" | "responses";
 
 const obj = (v: unknown): Json | undefined =>
   v !== null && typeof v === "object" && !Array.isArray(v) ? (v as Json) : undefined;
@@ -37,7 +37,7 @@ export const rewriteMessageUsage = (usage: Json, cacheControl: boolean): Json =>
 export const rewriteBody = (route: Route, text: string, cacheControl: boolean): string => {
   const body = parse(text);
   const usage = obj(body?.usage);
-  if (!body || !usage) return text;
+  if (!body || !usage || route === "responses") return text;
   if (route === "chat") return JSON.stringify(rewriteChat(body));
   return JSON.stringify({ ...body, usage: rewriteMessageUsage(usage, cacheControl) });
 };
@@ -47,7 +47,7 @@ export const sseRewriter = (route: Route, cacheControl: boolean) => {
   let input: Json = {};
   return (data: string): string => {
     const chunk = parse(data);
-    if (!chunk) return data;
+    if (!chunk || route === "responses") return data;
     if (route === "chat") {
       timings = obj(chunk.timings) ?? timings;
       return JSON.stringify(rewriteChat(chunk, timings));
@@ -65,11 +65,27 @@ export const sseRewriter = (route: Route, cacheControl: boolean) => {
   };
 };
 
+/** The usage block a chunk or body carries, wherever the three wires put it. */
+export const usageOf = (body: Json | undefined): unknown =>
+  body?.usage ?? obj(body?.message)?.usage ?? obj(body?.response)?.usage;
+
 const routes: Record<string, Route> = {
-  "/v1/chat/completions": "chat",
-  "/v1/messages": "messages",
+  "/chat/completions": "chat",
+  "/messages": "messages",
+  "/responses": "responses",
 };
-const routeOf = (url: string): Route | undefined => routes[new URL(url, "http://gateway").pathname];
+export const routeOf = (url: string): Route | undefined => {
+  const path = new URL(url, "http://gateway").pathname;
+  return routes[path.startsWith("/v1/") ? path.slice(3) : path];
+};
+/** Harnesses whose base URL already ends in `/v1` post bare `/messages`; llama-server
+ *  serves the routed endpoints under `/v1` only, so routed paths are forwarded there. */
+export const upstreamUrl = (url: string, upstream: URL): URL => {
+  const target = new URL(url, upstream);
+  if (routeOf(url) && !target.pathname.startsWith("/v1/"))
+    target.pathname = `/v1${target.pathname}`;
+  return target;
+};
 
 const dropped = new Set([
   "host",
@@ -85,25 +101,56 @@ const forwardable = (headers: IncomingHttpHeaders | Headers): Record<string, str
       .map(([k, v]) => [k, v as string]),
   );
 
-export const createGateway = (upstream: URL, log?: string): Server =>
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+const refused = (error: unknown): boolean =>
+  ["ECONNREFUSED", "ECONNRESET"].includes(String(obj(obj(error)?.cause)?.code));
+const connect = async (url: URL, init: RequestInit, attempts = 3): Promise<Response> => {
+  for (let i = 1; ; i++) {
+    try {
+      return await fetch(url, init);
+    } catch (error) {
+      if (i >= attempts || !refused(error)) throw error;
+      await sleep(200 * i);
+    }
+  }
+};
+
+export type GatewayOptions = { log?: string | undefined; quiet?: boolean; json?: boolean };
+
+export const createGateway = (upstream: URL, { log, quiet, json }: GatewayOptions = {}): Server =>
   createServer(async (req, res) => {
     const chunks: Buffer[] = [];
     for await (const chunk of req) chunks.push(chunk as Buffer);
     const body = Buffer.concat(chunks);
-    const url = new URL(req.url ?? "/", upstream);
+    const url = upstreamUrl(req.url ?? "/", upstream);
+    // Progress goes to stderr; `json` makes each line machine-readable.
+    const progress = (status: number, error?: string) => {
+      if (quiet) return;
+      const line = { method: req.method, path: url.pathname, status, ...(error ? { error } : {}) };
+      console.error(
+        json
+          ? JSON.stringify(line)
+          : `gateway: ${line.method} ${line.path} ${status}${error ? ` ${error}` : ""}`,
+      );
+    };
     let response: Response;
     try {
       const init: RequestInit = { method: req.method ?? "GET", headers: forwardable(req.headers) };
-      response = await fetch(url, body.length ? { ...init, body } : init);
+      response = await connect(url, body.length ? { ...init, body } : init);
     } catch (error) {
       res.writeHead(502, { "content-type": "text/plain" });
       res.end(`gateway: upstream ${url} unreachable: ${String(error)}`);
+      progress(502, String(error));
       return;
     }
     const route = routeOf(req.url ?? "/");
     const cacheControl = body.includes('"cache_control"');
     const headers = forwardable(response.headers);
     const stream = response.headers.get("content-type")?.startsWith("text/event-stream") ?? false;
+    let aborted = false;
+    res.on("close", () => {
+      aborted = !res.writableFinished;
+    });
     const record = (usage: unknown) => {
       const line = {
         at: new Date().toISOString(),
@@ -111,9 +158,11 @@ export const createGateway = (upstream: URL, log?: string): Server =>
         status: response.status,
         stream,
         cacheControl,
+        aborted,
         usage,
       };
       if (log) appendFileSync(log, `${JSON.stringify(line)}\n`);
+      progress(response.status);
     };
     if (!route || !response.body) {
       res.writeHead(response.status, headers);
@@ -123,12 +172,12 @@ export const createGateway = (upstream: URL, log?: string): Server =>
     }
     if (!stream) {
       const out = rewriteBody(route, await response.text(), cacheControl);
-      record(parse(out)?.usage);
       res.writeHead(response.status, {
         ...headers,
         "content-length": String(Buffer.byteLength(out)),
       });
       res.end(out);
+      record(usageOf(parse(out)));
       return;
     }
     res.writeHead(response.status, headers);
@@ -141,8 +190,7 @@ export const createGateway = (upstream: URL, log?: string): Server =>
         return;
       }
       const data = rewrite(line.slice(6));
-      const seen = parse(data);
-      usage = seen?.usage ?? obj(seen?.message)?.usage ?? usage;
+      usage = usageOf(parse(data)) ?? usage;
       res.write(`data: ${data}\n`);
     };
     for await (const chunk of response.body) {
@@ -152,19 +200,86 @@ export const createGateway = (upstream: URL, log?: string): Server =>
       lines.forEach(emit);
     }
     if (pending) emit(pending);
-    record(usage);
     res.end();
+    record(usage);
   });
 
+const help = `usage: gateway.ts [--port <n>] [--upstream <url>] [--log <file>] [--quiet] [--json] [--dry-run]
+
+Usage-rewriting proxy in front of a local llama-server. Forwards every request
+unchanged and rewrites only the usage block of chat completions and messages
+responses so a harness logs the cache fields its cloud provider would send.
+Responses API calls pass through unchanged; their usage is logged as well.
+
+  --port <n>        port to bind on 127.0.0.1 (default 8081)
+  --upstream <url>  llama-server origin (default http://127.0.0.1:8080)
+  --log <file>      append one JSON line per upstream response (route, status,
+                    stream, cacheControl, aborted, usage as sent to the client)
+  --quiet           no per-request lines on stderr
+  --json            per-request stderr lines as JSON objects
+  --dry-run         print the resolved configuration as JSON and exit
+  --help            this text
+
+exit codes: 0 ok, 1 could not listen, 2 usage error
+
+examples:
+  node gateway.ts --port 8081 --upstream http://127.0.0.1:8080 --log usage.jsonl
+  OPENAI_BASE_URL=http://127.0.0.1:8081/v1 OPENAI_API_KEY=sk-dummy <harness>
+  ANTHROPIC_BASE_URL=http://127.0.0.1:8081 ANTHROPIC_API_KEY=sk-ant-dummy <harness>`;
+
 if (import.meta.main) {
-  const flag = (name: string, fallback: string) => {
-    const i = process.argv.indexOf(name);
-    return i === -1 ? fallback : (process.argv[i + 1] ?? fallback);
+  const argv = process.argv.slice(2);
+  const known = new Set([
+    "--port",
+    "--upstream",
+    "--log",
+    "--quiet",
+    "--json",
+    "--dry-run",
+    "--help",
+  ]);
+  const flag = (name: string) => {
+    const i = argv.indexOf(name);
+    return i === -1 ? undefined : argv[i + 1];
   };
-  const port = Number(flag("--port", "8081"));
-  const upstream = new URL(flag("--upstream", "http://127.0.0.1:8080"));
-  const log = process.argv.includes("--log") ? flag("--log", "") : undefined;
-  createGateway(upstream, log).listen(port, "127.0.0.1", () => {
-    console.log(`gateway: http://127.0.0.1:${port} -> ${upstream.origin} pid ${process.pid}`);
+  const unknown = argv.filter(
+    (a, i) => a.startsWith("--") && !known.has(a) && argv[i - 1] !== "--log",
+  );
+  if (argv.includes("--help")) {
+    console.log(help);
+    process.exit(0);
+  }
+  if (unknown.length) {
+    console.error(`gateway: unknown option ${unknown.join(" ")}\n\n${help}`);
+    process.exit(2);
+  }
+  const config = {
+    port: Number(flag("--port") ?? "8081"),
+    upstream: flag("--upstream") ?? "http://127.0.0.1:8080",
+    log: flag("--log"),
+    quiet: argv.includes("--quiet"),
+    json: argv.includes("--json"),
+  };
+  if (!Number.isInteger(config.port) || config.port <= 0 || !URL.canParse(config.upstream)) {
+    console.error(`gateway: bad --port or --upstream\n\n${help}`);
+    process.exit(2);
+  }
+  if (argv.includes("--dry-run")) {
+    console.log(JSON.stringify(config, null, 2));
+    process.exit(0);
+  }
+  const server = createGateway(new URL(config.upstream), config);
+  server.on("error", (error) => {
+    console.error(`gateway: cannot listen on 127.0.0.1:${config.port}: ${error.message}`);
+    process.exit(1);
+  });
+  server.listen(config.port, "127.0.0.1", () => {
+    console.log(
+      JSON.stringify({
+        gateway: `http://127.0.0.1:${config.port}`,
+        upstream: config.upstream,
+        pid: process.pid,
+      }),
+    );
   });
 }

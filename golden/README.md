@@ -13,6 +13,13 @@ The TypeScript implementation was retired rather than kept as a live oracle.
 For new third-party format changes, both implementations would be written by the same maintainer from the same samples, so a sibling implementation provides correlated guesses, not independence.
 The ground truth for this domain is the third-party applications' real files and their own reported numbers.
 
+## Real captures
+
+Cases named after a wire shape (`<harness>/openai-chat`, `<harness>/anthropic-messages`) are real captures.
+Each was a multi-turn session of the installed harness against a local `llama-server` behind the verification skill's usage gateway, promoted with `scripts/promote.mjs`, and its README names the gateway, server build, model, cache source and the redaction applied.
+Every other case is a hand-shaped fixture and is not captured: either the harness is not installable here, its endpoint is not configurable, or its on-disk layout in the capture differs from the one the reader targets, and the wave report lists the reason per cell.
+Hand-shaped fixtures stay in place until a real capture covers the same shape.
+
 ## Updating the corpus
 
 Git is the change control: any edit to a gold file shows up in the diff and is reviewed like code.

@@ -1,12 +1,18 @@
+import { mkdtempSync, readFileSync } from "node:fs";
 import { createServer, type Server } from "node:http";
 import type { AddressInfo } from "node:net";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { afterAll, describe, expect, it } from "vitest";
 import {
   createGateway,
   rewriteBody,
   rewriteChat,
   rewriteMessageUsage,
+  routeOf,
+  upstreamUrl,
   sseRewriter,
+  usageOf,
 } from "./gateway.ts";
 
 const chat = {
@@ -95,7 +101,44 @@ describe("messages", () => {
   });
 });
 
+describe("routes", () => {
+  it("matches the three wires with or without the /v1 prefix", () => {
+    expect(routeOf("/v1/chat/completions")).toBe("chat");
+    expect(routeOf("/chat/completions?x=1")).toBe("chat");
+    expect(routeOf("/v1/messages")).toBe("messages");
+    expect(routeOf("/v1/responses")).toBe("responses");
+    expect(routeOf("/v1/models")).toBeUndefined();
+  });
+  it("forwards routed paths under /v1 and leaves the rest alone", () => {
+    const up = new URL("http://127.0.0.1:8080");
+    expect(upstreamUrl("/messages", up).pathname).toBe("/v1/messages");
+    expect(upstreamUrl("/v1/messages", up).pathname).toBe("/v1/messages");
+    expect(upstreamUrl("/chat/completions?x=1", up).href).toBe(
+      "http://127.0.0.1:8080/v1/chat/completions?x=1",
+    );
+    expect(upstreamUrl("/health", up).pathname).toBe("/health");
+  });
+
+  it("finds usage in a body, a message_start, or a response.completed event", () => {
+    expect(usageOf({ usage: { a: 1 } })).toEqual({ a: 1 });
+    expect(usageOf({ type: "message_start", message: { usage: { b: 2 } } })).toEqual({ b: 2 });
+    expect(usageOf({ type: "response.completed", response: { usage: { c: 3 } } })).toEqual({
+      c: 3,
+    });
+    expect(usageOf({ type: "response.output_text.delta" })).toBeUndefined();
+  });
+
+  it("never rewrites responses bodies or streams", () => {
+    const text = JSON.stringify({
+      usage: { input_tokens: 44, input_tokens_details: { cached_tokens: 43 } },
+    });
+    expect(rewriteBody("responses", text, false)).toBe(text);
+    expect(sseRewriter("responses", false)(text)).toBe(text);
+  });
+});
+
 describe("proxy", () => {
+  const log = join(mkdtempSync(join(tmpdir(), "gateway-")), "usage.jsonl");
   const sse = [
     "event: message_start\n",
     `data: ${JSON.stringify({ type: "message_start", message: { usage: { ...message, output_tokens: 0 } } })}\n\n`,
@@ -122,8 +165,15 @@ describe("proxy", () => {
         resolve(`http://127.0.0.1:${(server.address() as AddressInfo).port}`),
       ),
     );
-  const ready = listen(upstream).then((origin) => listen(createGateway(new URL(origin))));
+  const ready = listen(upstream).then((origin) =>
+    listen(createGateway(new URL(origin), { log, quiet: true })),
+  );
   afterAll(() => upstream.close());
+  const logged = () =>
+    readFileSync(log, "utf8")
+      .trim()
+      .split("\n")
+      .map((l) => JSON.parse(l) as Record<string, unknown>);
 
   it("rewrites a stream whose data line is split across chunks", async () => {
     const res = await fetch(`${await ready}/v1/messages`, {
@@ -148,11 +198,37 @@ describe("proxy", () => {
     });
   });
 
-  it("forwards other routes untouched", async () => {
-    const body = JSON.stringify({
-      usage: { input_tokens: 44, input_tokens_details: { cached_tokens: 43 } },
-    });
+  it("forwards responses untouched and still logs their usage", async () => {
+    const usage = { input_tokens: 44, input_tokens_details: { cached_tokens: 43 } };
+    const body = JSON.stringify({ usage });
     const res = await fetch(`${await ready}/v1/responses`, { method: "POST", body });
     expect(await res.text()).toBe(body);
+    const line = logged().find((l) => l.path === "/v1/responses");
+    expect(line).toMatchObject({ status: 200, stream: false, aborted: false, usage });
+  });
+
+  it("serves a bare /messages from the upstream /v1/messages", async () => {
+    const res = await fetch(`${await ready}/messages`, { method: "POST", body: "{}" });
+    expect(res.status).toBe(200);
+    expect((await res.text()).includes("message_start")).toBe(true);
+  });
+  it("retries a refused upstream connection before answering 502", async () => {
+    const late = createServer((_req, res) => res.end("{}"));
+    const port = (upstream.address() as AddressInfo).port + 1000;
+    const gateway = await listen(
+      createGateway(new URL(`http://127.0.0.1:${port}`), { quiet: true }),
+    );
+    setTimeout(() => late.listen(port, "127.0.0.1"), 100);
+    const res = await fetch(`${gateway}/v1/models`);
+    late.close();
+    expect(res.status).toBe(200);
+  });
+  it("logs the rewritten usage of a stream", async () => {
+    const line = logged().find((l) => l.path === "/v1/messages");
+    expect(line).toMatchObject({
+      stream: true,
+      cacheControl: true,
+      usage: { cache_creation_input_tokens: 20, cache_read_input_tokens: 26, output_tokens: 6 },
+    });
   });
 });

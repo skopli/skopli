@@ -1,0 +1,87 @@
+{
+  "schema_version": 1,
+  "events": [
+    {
+      "harness": "pi",
+      "messageId": "a855f5e3",
+      "model": "qwen",
+      "sessionId": "01a17287-5104-733a-b81b-17d0435141b3",
+      "subagent": false,
+      "timestamp": "2026-10-25T10:11:00.403Z",
+      "tokens": {
+        "cacheRead": 5,
+        "cacheWrite": 0,
+        "input": 1610,
+        "output": 48,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "pi",
+      "messageId": "650eb7bb",
+      "model": "qwen",
+      "sessionId": "01a17287-5104-733a-b81b-17d0435141b3",
+      "subagent": false,
+      "timestamp": "2026-10-25T10:13:46.258Z",
+      "tokens": {
+        "cacheRead": 1662,
+        "cacheWrite": 0,
+        "input": 1876,
+        "output": 104,
+        "reasoning": 0
+      },
+      "turn": false
+    },
+    {
+      "harness": "pi",
+      "messageId": "11db1d04",
+      "model": "qwen",
+      "sessionId": "01a17287-5104-733a-b81b-17d0435141b3",
+      "subagent": false,
+      "timestamp": "2026-10-25T10:18:02.143Z",
+      "tokens": {
+        "cacheRead": 3641,
+        "cacheWrite": 0,
+        "input": 24,
+        "output": 47,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "pi",
+      "messageId": "f5e6f82f",
+      "model": "qwen",
+      "sessionId": "01a17287-5104-733a-b81b-17d0435141b3",
+      "subagent": false,
+      "timestamp": "2026-10-25T10:23:32.026Z",
+      "tokens": {
+        "cacheRead": 3711,
+        "cacheWrite": 0,
+        "input": 24,
+        "output": 74,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "pi",
+      "messageId": "7003e9f2",
+      "model": "qwen",
+      "sessionId": "01a17287-5104-733a-b81b-17d0435141b3",
+      "subagent": false,
+      "timestamp": "2026-10-25T10:25:38.503Z",
+      "tokens": {
+        "cacheRead": 3808,
+        "cacheWrite": 0,
+        "input": 29,
+        "output": 27,
+        "reasoning": 0
+      },
+      "turn": true
+    }
+  ],
+  "diagnostics": [],
+  "skipped": {}
+}

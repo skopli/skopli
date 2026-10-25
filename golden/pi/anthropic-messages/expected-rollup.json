@@ -1,0 +1,50 @@
+{
+  "schema_version": 1,
+  "by": {
+    "model": [
+      {
+        "key": "qwen",
+        "tokens": {
+          "input": 0,
+          "output": 441,
+          "cacheRead": 13900,
+          "cacheWrite": 2657,
+          "reasoning": 0
+        },
+        "events": 5,
+        "turns": 4,
+        "calls": 5
+      }
+    ],
+    "day": [
+      {
+        "key": "2026-10-25",
+        "tokens": {
+          "input": 0,
+          "output": 441,
+          "cacheRead": 13900,
+          "cacheWrite": 2657,
+          "reasoning": 0
+        },
+        "events": 5,
+        "turns": 4,
+        "calls": 5
+      }
+    ],
+    "harness": [
+      {
+        "key": "pi",
+        "tokens": {
+          "input": 0,
+          "output": 441,
+          "cacheRead": 13900,
+          "cacheWrite": 2657,
+          "reasoning": 0
+        },
+        "events": 5,
+        "turns": 4,
+        "calls": 5
+      }
+    ]
+  }
+}

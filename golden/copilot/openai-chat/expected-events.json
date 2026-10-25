@@ -1,0 +1,75 @@
+{
+  "schema_version": 1,
+  "events": [
+    {
+      "harness": "copilot",
+      "messageId": "d155f278-02af-4886-b9e1-2bc8e2a06942:a29de093-4dd9-4c8c-a48b-df6baaf83bc6",
+      "model": "qwen",
+      "sessionId": "d155f278-02af-4886-b9e1-2bc8e2a06942",
+      "subagent": false,
+      "timestamp": "2026-10-25T10:09:18.807Z",
+      "tokens": {
+        "cacheRead": 5,
+        "cacheWrite": 0,
+        "input": 11478,
+        "output": 37,
+        "reasoning": 0
+      },
+      "turn": false,
+      "workspace": "/home/user/project"
+    },
+    {
+      "harness": "copilot",
+      "messageId": "d155f278-02af-4886-b9e1-2bc8e2a06942:fa719b28-2215-4ff8-9a72-c9a0b4678823",
+      "model": "qwen",
+      "sessionId": "d155f278-02af-4886-b9e1-2bc8e2a06942",
+      "subagent": false,
+      "timestamp": "2026-10-25T10:13:16.020Z",
+      "tokens": {
+        "cacheRead": 11514,
+        "cacheWrite": 0,
+        "input": 11575,
+        "output": 27,
+        "reasoning": 0
+      },
+      "turn": false,
+      "workspace": "/home/user/project"
+    },
+    {
+      "harness": "copilot",
+      "messageId": "d155f278-02af-4886-b9e1-2bc8e2a06942:31a1b177-f8c1-46e2-8dd5-b542bb86bb27",
+      "model": "qwen",
+      "sessionId": "d155f278-02af-4886-b9e1-2bc8e2a06942",
+      "subagent": false,
+      "timestamp": "2026-10-25T10:17:55.849Z",
+      "tokens": {
+        "cacheRead": 11601,
+        "cacheWrite": 0,
+        "input": 11662,
+        "output": 59,
+        "reasoning": 0
+      },
+      "turn": false,
+      "workspace": "/home/user/project"
+    },
+    {
+      "harness": "copilot",
+      "messageId": "d155f278-02af-4886-b9e1-2bc8e2a06942:fdc0f8c8-f5c0-4fc8-b5ef-cdf7c1ca0a72",
+      "model": "qwen",
+      "sessionId": "d155f278-02af-4886-b9e1-2bc8e2a06942",
+      "subagent": false,
+      "timestamp": "2026-10-25T10:23:05.122Z",
+      "tokens": {
+        "cacheRead": 5,
+        "cacheWrite": 0,
+        "input": 14137,
+        "output": 28,
+        "reasoning": 0
+      },
+      "turn": false,
+      "workspace": "/home/user/project"
+    }
+  ],
+  "diagnostics": [],
+  "skipped": {}
+}

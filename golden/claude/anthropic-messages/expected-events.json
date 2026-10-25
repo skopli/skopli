@@ -1,0 +1,79 @@
+{
+  "schema_version": 1,
+  "events": [
+    {
+      "harness": "claude",
+      "messageId": "chatcmpl-V0s62tofPVacpt18NaFBaCk42Gz3eSig",
+      "model": "models/qwen2.5-1.5b-instruct-q4_k_m.gguf",
+      "sessionId": "8e67e456-b8fe-43c0-9915-67339f2a803c",
+      "subagent": false,
+      "timestamp": "2026-10-25T10:11:03.819Z",
+      "tokens": {
+        "cacheRead": 3,
+        "cacheWrite": 15737,
+        "cacheWrite1h": 0,
+        "input": 0,
+        "output": 44,
+        "reasoning": 0
+      },
+      "turn": true,
+      "workspace": "/home/user/project"
+    },
+    {
+      "harness": "claude",
+      "messageId": "chatcmpl-2p4KoGyuVA51iTysRi9K3xPJ6dip2Lpt",
+      "model": "models/qwen2.5-1.5b-instruct-q4_k_m.gguf",
+      "sessionId": "8e67e456-b8fe-43c0-9915-67339f2a803c",
+      "subagent": false,
+      "timestamp": "2026-10-25T10:19:46.654Z",
+      "tokens": {
+        "cacheRead": 15783,
+        "cacheWrite": 50,
+        "cacheWrite1h": 0,
+        "input": 0,
+        "output": 215,
+        "reasoning": 0
+      },
+      "turn": true,
+      "workspace": "/home/user/project"
+    },
+    {
+      "harness": "claude",
+      "messageId": "chatcmpl-8zOaaLUjfkDNuINCm7YljNXgBhczmega",
+      "model": "models/qwen2.5-1.5b-instruct-q4_k_m.gguf",
+      "sessionId": "8e67e456-b8fe-43c0-9915-67339f2a803c",
+      "subagent": false,
+      "timestamp": "2026-10-25T10:25:31.704Z",
+      "tokens": {
+        "cacheRead": 16047,
+        "cacheWrite": 49,
+        "cacheWrite1h": 0,
+        "input": 0,
+        "output": 182,
+        "reasoning": 0
+      },
+      "turn": true,
+      "workspace": "/home/user/project"
+    },
+    {
+      "harness": "claude",
+      "messageId": "chatcmpl-BtvR647RmZJNh6pMXL7pDkf0f4K4qSaS",
+      "model": "models/qwen2.5-1.5b-instruct-q4_k_m.gguf",
+      "sessionId": "8e67e456-b8fe-43c0-9915-67339f2a803c",
+      "subagent": false,
+      "timestamp": "2026-10-25T10:30:39.978Z",
+      "tokens": {
+        "cacheRead": 16277,
+        "cacheWrite": 46,
+        "cacheWrite1h": 0,
+        "input": 0,
+        "output": 278,
+        "reasoning": 0
+      },
+      "turn": true,
+      "workspace": "/home/user/project"
+    }
+  ],
+  "diagnostics": [],
+  "skipped": {}
+}

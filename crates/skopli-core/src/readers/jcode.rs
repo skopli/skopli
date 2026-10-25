@@ -43,10 +43,13 @@ pub fn jcode_home(override_dir: Option<&str>, home: &Path) -> PathBuf {
 
 const UNKNOWN_MODEL: &str = "jcode-unknown";
 
-/// Anthropic-style per-message usage. A snapshot/journal message with no usage
+/// Anthropic-style per-message usage, written as `usage` (journal) or
+/// `token_usage` (snapshot). OpenAI-compatible providers also record
+/// `prompt_tokens`, whose `input_tokens` twin includes the cached tokens, so
+/// those are subtracted to count each token once. A message with no usage
 /// object, or one whose token counts are all zero, yields `None`.
 fn parse_usage(message: &Value) -> Option<TokenCounts> {
-    let usage = match message.get("usage") {
+    let usage = match message.get("usage").or_else(|| message.get("token_usage")) {
         Some(u) if is_record(u) => u,
         _ => return None,
     };
@@ -57,10 +60,17 @@ fn parse_usage(message: &Value) -> Option<TokenCounts> {
             .unwrap_or(0.0)
             .max(0.0)
     };
-    let input = pick("input_tokens");
     let output = pick("output_tokens");
     let cache_read = pick("cache_read_input_tokens");
     let cache_write = pick("cache_creation_input_tokens");
+    // Snapshots write `prompt_tokens` as the cache-inclusive context total for every
+    // provider, while `input_tokens` is provider-native (inclusive for OpenAI-compatible
+    // wires, uncached for split-accounting wires), so the total is the stable base.
+    let input = if usage.get("prompt_tokens").is_some() {
+        (pick("prompt_tokens") - cache_read - cache_write).max(0.0)
+    } else {
+        pick("input_tokens")
+    };
     if input == 0.0 && output == 0.0 && cache_read == 0.0 && cache_write == 0.0 {
         return None;
     }
@@ -75,9 +85,11 @@ fn parse_usage(message: &Value) -> Option<TokenCounts> {
 }
 
 /// Build an event from one message (snapshot entry or journal payload).
+/// `session_model` is the snapshot-level `model`, used when the message has none.
 fn event_from_message(
     message: &Value,
     session_id: &str,
+    session_model: Option<&Value>,
     file: &str,
     index: usize,
     fallback_timestamp: &str,
@@ -89,6 +101,7 @@ fn event_from_message(
         .unwrap_or_else(|| fallback_timestamp.to_owned());
     let model = message
         .get("model")
+        .or(session_model)
         .and_then(as_string)
         .filter(|m| !m.trim().is_empty())
         .unwrap_or_else(|| UNKNOWN_MODEL.to_owned());
@@ -139,7 +152,7 @@ fn read_journal(
             _ => continue,
         };
         if let Some(event) =
-            event_from_message(message, session_id, file, *index, fallback_timestamp)
+            event_from_message(message, session_id, None, file, *index, fallback_timestamp)
         {
             events.push(event);
         }
@@ -172,9 +185,14 @@ fn read_snapshot(
         if !is_record(message) {
             continue;
         }
-        if let Some(event) =
-            event_from_message(message, session_id, file, index, fallback_timestamp)
-        {
+        if let Some(event) = event_from_message(
+            message,
+            session_id,
+            parsed.get("model"),
+            file,
+            index,
+            fallback_timestamp,
+        ) {
             events.push(event);
         }
     }
@@ -285,6 +303,56 @@ mod tests {
         let events = read_jcode(&home).events;
         assert_eq!(events.len(), 1);
         assert_eq!(events[0].message_id, "m1");
+        fs::remove_dir_all(&dir).ok();
+    }
+
+    #[test]
+    fn split_accounting_snapshot_derives_uncached_input_from_the_total() {
+        // Anthropic-wire snapshots keep `input_tokens` at the uncached count and
+        // `prompt_tokens` at input + cache read + cache creation.
+        let dir = scratch_dir("token-usage-split");
+        let sessions = dir.join("sessions");
+        fs::create_dir_all(&sessions).unwrap();
+        fs::write(
+            sessions.join("session_b.json"),
+            r#"{"id":"session_b","model":"m","messages":[{"id":"a1","role":"assistant","content":[],"timestamp":"2026-10-25T12:30:00Z","token_usage":{"prompt_tokens":15698,"input_tokens":1,"output_tokens":25,"cache_read_input_tokens":7111,"cache_creation_input_tokens":8586}}]}"#,
+        )
+        .unwrap();
+        let e = read_jcode(&dir).events.remove(0);
+        assert_eq!(
+            (
+                e.tokens.input,
+                e.tokens.output,
+                e.tokens.cache_read,
+                e.tokens.cache_write
+            ),
+            (1, 25, 7111, 8586)
+        );
+        fs::remove_dir_all(&dir).ok();
+    }
+
+    #[test]
+    fn snapshot_token_usage_and_session_model() {
+        // Current snapshots write per-message `token_usage` (OpenAI-compatible
+        // providers include cached tokens in input) and keep the model on the
+        // session, not on the message.
+        let dir = scratch_dir("token-usage");
+        let sessions = dir.join("sessions");
+        fs::create_dir_all(&sessions).unwrap();
+        fs::write(
+            sessions.join("session_a.json"),
+            r#"{"id":"session_a","model":"qwen","provider_key":"openai-compatible","messages":[{"id":"u1","role":"user","content":[],"timestamp":"2026-10-25T12:10:44.555Z"},{"id":"a1","role":"assistant","content":[],"timestamp":"2026-10-25T12:13:07.738265960Z","token_usage":{"prompt_tokens":15696,"input_tokens":15696,"output_tokens":54,"cache_read_input_tokens":3}}]}"#,
+        )
+        .unwrap();
+        let events = read_jcode(&dir).events;
+        assert_eq!(events.len(), 1);
+        let e = &events[0];
+        assert_eq!((e.message_id.as_str(), e.model.as_str()), ("a1", "qwen"));
+        assert_eq!(e.timestamp, "2026-10-25T12:13:07.738Z");
+        assert_eq!(
+            (e.tokens.input, e.tokens.output, e.tokens.cache_read),
+            (15693, 54, 3)
+        );
         fs::remove_dir_all(&dir).ok();
     }
 

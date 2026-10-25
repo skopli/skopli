@@ -116,9 +116,20 @@ A local `llama-server` reports cache reuse in its own fields, so `scripts/gatewa
 node .agents/skills/verify-skopli/scripts/gateway.ts --port 8081 --upstream http://127.0.0.1:8080 --log .verify/evidence/<run>/gateway-usage.jsonl
 ```
 
-It binds `127.0.0.1` on `--port` (default `8081`), forwards every request to `--upstream` (default `http://127.0.0.1:8080`) with its body and headers unchanged, streams responses through line by line, and prints its PID on start.
+It binds `127.0.0.1` on `--port` (default `8081`), forwards every request to `--upstream` (default `http://127.0.0.1:8080`) with its body and headers unchanged, streams responses through line by line, and prints one JSON line with its PID, port, upstream and log on stdout when it listens.
 Stop it by that PID.
-`--log` is optional and appends one JSON line per rewritten exchange (route, status, whether it streamed, whether the request carried `cache_control`, the usage block as sent to the harness), which is the per-call evidence for a capture.
+`--log` is optional and appends one JSON line per routed exchange (`at`, `path`, `status`, `stream`, `cacheControl`, `aborted`, `usage` as sent to the harness), which is the per-call evidence for a capture.
+`aborted` is true when the harness closed the connection before the response finished, so a reconciliation can set those lines aside.
+A harness whose base URL already ends in `/v1` posts bare `/messages` or `/chat/completions`; the gateway forwards routed paths to the upstream `/v1/...` endpoint, where `llama-server` serves them.
+A refused or reset upstream connection is retried three times before the harness receives a `502`.
+
+Command line: `--help` prints the options with examples, `--dry-run` prints the resolved configuration as JSON and exits, `--quiet` drops the per-request stderr lines, `--json` makes those lines JSON objects.
+Progress and errors go to stderr; stdout carries only machine-readable JSON.
+Exit codes: `0` ok, `1` could not listen, `2` usage error.
+
+Two companion scripts turn a capture into evidence and a golden case.
+`scripts/reconcile.mjs <home> <harness> <gateway-usage.jsonl>` reads the home through the facade, sums the gateway lines (aborted lines separately) and prints both totals with their delta; it exits `0` when input, output, cache read and cache write agree.
+`scripts/promote.mjs <home> <harness>/<case> --store <rel>... --redact <from>=<to>... --cache <text>` copies the named stores into `golden/<harness>/<case>/input/`, rewrites text, JSON, zstd logs and SQLite text columns with the redaction pairs, writes `input-manifest.json` and a README naming the gateway, server, model and cache source, and regenerates the expected files through `scripts/replay.mjs`, the same replay `golden.mjs` uses.
 
 Point a harness at it with the base URL variables it reads and a dummy key, for example `OPENAI_BASE_URL=http://127.0.0.1:8081/v1 OPENAI_API_KEY=sk-dummy` or `ANTHROPIC_BASE_URL=http://127.0.0.1:8081 ANTHROPIC_API_KEY=sk-ant-dummy`.
 The key is never checked; confirm it does not appear in the promoted capture.
@@ -171,14 +182,16 @@ It checks every input in a small finite domain against the documented promises a
 
 ## Helpers
 
-| Script                | Invocation                                                                          | Purpose                                                               |
-| --------------------- | ----------------------------------------------------------------------------------- | --------------------------------------------------------------------- |
-| `scripts/launch.sh`   | `bash .agents/skills/verify-skopli/scripts/launch.sh`                               | build everything, serve both sites, write `state.sh`                  |
-| `scripts/doctor.sh`   | `bash .agents/skills/verify-skopli/scripts/doctor.sh`                               | read-only health check, exit `0` when worth driving                   |
-| `scripts/browser.mjs` | `node .agents/skills/verify-skopli/scripts/browser.mjs --out <dir> <steps>`         | headless Chromium step runner with transcript, screenshots and bodies |
-| `scripts/golden.mjs`  | `node .agents/skills/verify-skopli/scripts/golden.mjs <harness>/<case> --out <dir>` | replay a golden case through the facade and compare                   |
-| `scripts/home.mjs`    | `node .agents/skills/verify-skopli/scripts/home.mjs <home-dir> --out <dir>`         | detect and read an arbitrary home directory through the facade        |
-| `scripts/gateway.ts`  | `node .agents/skills/verify-skopli/scripts/gateway.ts --port <n> --upstream <url>`  | usage-rewriting proxy in front of a local `llama-server` for captures |
-| `scripts/cleanup.sh`  | `bash .agents/skills/verify-skopli/scripts/cleanup.sh`                              | stop the servers by PID, keep evidence                                |
+| Script                  | Invocation                                                                          | Purpose                                                               |
+| ----------------------- | ----------------------------------------------------------------------------------- | --------------------------------------------------------------------- |
+| `scripts/launch.sh`     | `bash .agents/skills/verify-skopli/scripts/launch.sh`                               | build everything, serve both sites, write `state.sh`                  |
+| `scripts/doctor.sh`     | `bash .agents/skills/verify-skopli/scripts/doctor.sh`                               | read-only health check, exit `0` when worth driving                   |
+| `scripts/browser.mjs`   | `node .agents/skills/verify-skopli/scripts/browser.mjs --out <dir> <steps>`         | headless Chromium step runner with transcript, screenshots and bodies |
+| `scripts/golden.mjs`    | `node .agents/skills/verify-skopli/scripts/golden.mjs <harness>/<case> --out <dir>` | replay a golden case through the facade and compare                   |
+| `scripts/home.mjs`      | `node .agents/skills/verify-skopli/scripts/home.mjs <home-dir> --out <dir>`         | detect and read an arbitrary home directory through the facade        |
+| `scripts/gateway.ts`    | `node .agents/skills/verify-skopli/scripts/gateway.ts --port <n> --upstream <url>`  | usage-rewriting proxy in front of a local `llama-server` for captures |
+| `scripts/reconcile.mjs` | `node .agents/skills/verify-skopli/scripts/reconcile.mjs <home> <harness> <log>`    | compare a captured home's totals with the gateway log                 |
+| `scripts/promote.mjs`   | `node .agents/skills/verify-skopli/scripts/promote.mjs <home> <harness>/<case> ...` | redact and copy a capture into a golden case and regenerate expected  |
+| `scripts/cleanup.sh`    | `bash .agents/skills/verify-skopli/scripts/cleanup.sh`                              | stop the servers by PID, keep evidence                                |
 
 The scripts are executable and run on Linux only: they depend on `bash`, `curl`, `ss`, `/proc`, `git`, Node 24 and the repository's dev dependencies.

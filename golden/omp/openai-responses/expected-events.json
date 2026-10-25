@@ -1,0 +1,103 @@
+{
+  "schema_version": 1,
+  "events": [
+    {
+      "harness": "omp",
+      "messageId": "a9053f65",
+      "model": "qwen",
+      "sessionId": "01a17296-67bd-7195-bdd7-66e3eb2eb604",
+      "subagent": false,
+      "timestamp": "2026-10-25T10:26:07.506Z",
+      "tokens": {
+        "cacheRead": 7506,
+        "cacheWrite": 0,
+        "input": 1,
+        "output": 29,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "omp",
+      "messageId": "52d6f83b",
+      "model": "qwen",
+      "sessionId": "01a17296-67bd-7195-bdd7-66e3eb2eb604",
+      "subagent": false,
+      "timestamp": "2026-10-25T10:29:49.679Z",
+      "tokens": {
+        "cacheRead": 7535,
+        "cacheWrite": 0,
+        "input": 28,
+        "output": 30,
+        "reasoning": 0
+      },
+      "turn": false
+    },
+    {
+      "harness": "omp",
+      "messageId": "92d1a328",
+      "model": "qwen",
+      "sessionId": "01a17296-67bd-7195-bdd7-66e3eb2eb604",
+      "subagent": false,
+      "timestamp": "2026-10-25T10:32:07.488Z",
+      "tokens": {
+        "cacheRead": 7592,
+        "cacheWrite": 0,
+        "input": 28,
+        "output": 19,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "omp",
+      "messageId": "6c17ce4e",
+      "model": "qwen",
+      "sessionId": "01a17296-67bd-7195-bdd7-66e3eb2eb604",
+      "subagent": false,
+      "timestamp": "2026-10-25T10:38:19.346Z",
+      "tokens": {
+        "cacheRead": 7638,
+        "cacheWrite": 0,
+        "input": 29,
+        "output": 58,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "omp",
+      "messageId": "4e77d7b2",
+      "model": "qwen",
+      "sessionId": "01a17296-67bd-7195-bdd7-66e3eb2eb604",
+      "subagent": false,
+      "timestamp": "2026-10-25T10:48:19.758Z",
+      "tokens": {
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "input": 0,
+        "output": 0,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "omp",
+      "messageId": "03639e4a",
+      "model": "qwen",
+      "sessionId": "01a17296-67bd-7195-bdd7-66e3eb2eb604",
+      "subagent": false,
+      "timestamp": "2026-10-25T10:55:49.902Z",
+      "tokens": {
+        "cacheRead": 7109,
+        "cacheWrite": 0,
+        "input": 700,
+        "output": 36,
+        "reasoning": 0
+      },
+      "turn": true
+    }
+  ],
+  "diagnostics": [],
+  "skipped": {}
+}

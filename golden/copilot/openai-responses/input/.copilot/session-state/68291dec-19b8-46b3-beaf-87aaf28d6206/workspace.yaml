@@ -1,0 +1,13 @@
+id: 68291dec-19b8-46b3-beaf-87aaf28d6206
+cwd: /home/user/project
+git_root: /home/user/project
+repository: sindresorhus/p-limit
+host_type: github
+branch: main
+client_name: github/cli
+name: Read index.js in this project and explain in two sentences what pLimit does.
+user_named: false
+summary_count: 0
+fork_count: 0
+created_at: 2026-10-25T11:43:03.101Z
+updated_at: 2026-10-25T11:43:05.697Z

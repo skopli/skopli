@@ -70,4 +70,38 @@ mod tests {
             vec![test_home().join(".codebuddy")]
         );
     }
+
+    // Current CodeBuddy rows: `type: "message"` with a top-level `role`, an epoch-ms
+    // `timestamp`, the model under `providerData.model`, and the provider's raw usage
+    // (OpenAI chat `prompt_tokens`, which includes the cached prefix) next to the
+    // Anthropic-named `message.usage`.
+    #[test]
+    fn reads_message_rows_with_provider_data() {
+        let root = crate::readers::shared::scratch_dir("codebuddy-rows");
+        let dir = root.join("projects").join("home-user-project");
+        std::fs::create_dir_all(&dir).unwrap();
+        std::fs::write(
+            dir.join("s1.jsonl"),
+            concat!(
+                r#"{"id":"u1","timestamp":1792926532333,"type":"message","role":"user","content":[{"type":"input_text","text":"hi"}],"sessionId":"s1"}"#,
+                "\n",
+                r#"{"id":"a1","parentId":"u1","timestamp":1792926948636,"type":"message","role":"assistant","providerData":{"model":"m1","rawUsage":{"completion_tokens":129,"prompt_tokens":22017,"prompt_tokens_details":{"cached_tokens":17944}}},"content":[{"type":"output_text","text":"ok"}],"sessionId":"s1","message":{"usage":{"input_tokens":22017,"output_tokens":129,"total_tokens":22146,"cache_read_input_tokens":17944}}}"#,
+                "\n",
+            ),
+        )
+        .unwrap();
+        let result = read_claude_transcripts(std::slice::from_ref(&root), "codebuddy");
+        assert_eq!(result.events.len(), 1, "{:?}", result.warnings);
+        let e = &result.events[0];
+        assert_eq!(e.timestamp, "2026-10-25T11:15:48.636Z");
+        assert_eq!(e.model, "m1");
+        assert_eq!(e.message_id, "a1");
+        assert_eq!(e.session_id, "s1");
+        assert!(e.turn);
+        assert_eq!(
+            (e.tokens.input, e.tokens.output, e.tokens.cache_read),
+            (22017 - 17944, 129, 17944)
+        );
+        std::fs::remove_dir_all(&root).unwrap();
+    }
 }

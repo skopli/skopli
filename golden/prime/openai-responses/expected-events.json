@@ -1,0 +1,39 @@
+{
+  "schema_version": 1,
+  "events": [
+    {
+      "harness": "prime",
+      "messageId": "f3ad33d7",
+      "model": "qwen",
+      "sessionId": "01a172b9-18e8-75cf-8f4c-5b40c689ddd4",
+      "subagent": false,
+      "timestamp": "2026-10-25T11:09:22.491Z",
+      "tokens": {
+        "cacheRead": 7062,
+        "cacheWrite": 0,
+        "input": 887,
+        "output": 164,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "prime",
+      "messageId": "3b3a3144",
+      "model": "qwen",
+      "sessionId": "01a172b9-18e8-75cf-8f4c-5b40c689ddd4",
+      "subagent": false,
+      "timestamp": "2026-10-25T11:14:24.837Z",
+      "tokens": {
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "input": 0,
+        "output": 0,
+        "reasoning": 0
+      },
+      "turn": true
+    }
+  ],
+  "diagnostics": [],
+  "skipped": {}
+}

@@ -1,0 +1,71 @@
+{
+  "schema_version": 1,
+  "events": [
+    {
+      "harness": "jcode",
+      "messageId": "message_1792931437682_4156635746301421897",
+      "model": "claude-sonnet-4-6",
+      "sessionId": "session_rhino_1792931357688_b78d67003292c106",
+      "subagent": false,
+      "timestamp": "2026-10-25T12:30:37.682Z",
+      "tokens": {
+        "cacheRead": 7111,
+        "cacheWrite": 8586,
+        "input": 0,
+        "output": 25,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "jcode",
+      "messageId": "message_1792931444266_7052533513800552948",
+      "model": "claude-sonnet-4-6",
+      "sessionId": "session_rhino_1792931357688_b78d67003292c106",
+      "subagent": false,
+      "timestamp": "2026-10-25T12:30:44.266Z",
+      "tokens": {
+        "cacheRead": 15721,
+        "cacheWrite": 54,
+        "input": 0,
+        "output": 24,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "jcode",
+      "messageId": "message_1792931450915_13673281310267973444",
+      "model": "claude-sonnet-4-6",
+      "sessionId": "session_rhino_1792931357688_b78d67003292c106",
+      "subagent": false,
+      "timestamp": "2026-10-25T12:30:50.915Z",
+      "tokens": {
+        "cacheRead": 15798,
+        "cacheWrite": 55,
+        "input": 0,
+        "output": 37,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "jcode",
+      "messageId": "message_1792931456822_3987319458635696452",
+      "model": "claude-sonnet-4-6",
+      "sessionId": "session_rhino_1792931357688_b78d67003292c106",
+      "subagent": false,
+      "timestamp": "2026-10-25T12:30:56.822Z",
+      "tokens": {
+        "cacheRead": 15889,
+        "cacheWrite": 55,
+        "input": 0,
+        "output": 41,
+        "reasoning": 0
+      },
+      "turn": true
+    }
+  ],
+  "diagnostics": [],
+  "skipped": {}
+}

@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "harness": "pi",
+  "case": "anthropic-messages",
+  "home": ".",
+  "options": {
+    "harnesses": [
+      "pi"
+    ],
+    "tz": "UTC"
+  },
+  "rollups": [
+    "model",
+    "day",
+    "harness"
+  ]
+}

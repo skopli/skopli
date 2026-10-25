@@ -660,15 +660,25 @@ fn read_db_rows(db_path: &str, harness: &str) -> Result<ReaderResult, ()> {
     })
 }
 
-/// List the `opencode.db` / `opencode-*.db` files directly under `root`,
-/// sorted.
-fn opencode_db_paths(root: &Path) -> Vec<PathBuf> {
+/// List the `.db` files directly under `root`, sorted: `opencode.db` / `opencode-*.db`
+/// (the shared schema name) plus the fork's own `<harness>.db` / `<harness>-*.db`
+/// (`mimocode.db`), which is what current forks write.
+fn db_paths(root: &Path, harness: &str) -> Vec<PathBuf> {
+    let stems = ["opencode", harness];
     let mut paths: Vec<PathBuf> = Vec::new();
     if let Ok(entries) = std::fs::read_dir(root) {
         for entry in entries.flatten() {
             let name = entry.file_name().to_string_lossy().into_owned();
-            let matches = name == "opencode.db"
-                || (name.starts_with("opencode-") && name.ends_with(".db") && name.len() > 12);
+            let Some(stem) = name.strip_suffix(".db") else {
+                continue;
+            };
+            let matches = stems.iter().any(|s| {
+                stem == *s
+                    || stem
+                        .strip_prefix(s)
+                        .and_then(|r| r.strip_prefix('-'))
+                        .is_some_and(|r| !r.is_empty())
+            });
             if matches {
                 paths.push(entry.path());
             }
@@ -703,7 +713,7 @@ pub fn read_opencode(roots: &[PathBuf], harness: &str) -> ReaderResult {
     };
 
     for root in roots {
-        for db_path in opencode_db_paths(root) {
+        for db_path in db_paths(root, harness) {
             let db_str = db_path.to_string_lossy().into_owned();
             match read_db_rows(&db_str, harness) {
                 Ok(result) => merge(result, &mut skipped, &mut warnings, &mut events, &mut seen),
@@ -736,6 +746,32 @@ pub fn read_opencode(roots: &[PathBuf], harness: &str) -> ReaderResult {
 mod tests {
     use super::*;
     use crate::readers::shared::test_home;
+
+    #[test]
+    fn db_paths_use_the_harness_name() {
+        let root = crate::readers::shared::scratch_dir("db-paths");
+        for name in [
+            "opencode.db",
+            "opencode-2.db",
+            "mimocode.db",
+            "mimocode-.db",
+            "x.db",
+        ] {
+            std::fs::write(root.join(name), b"").unwrap();
+        }
+        let names = |h: &str| {
+            db_paths(&root, h)
+                .iter()
+                .map(|p| p.file_name().unwrap().to_string_lossy().into_owned())
+                .collect::<Vec<_>>()
+        };
+        assert_eq!(names("opencode"), vec!["opencode-2.db", "opencode.db"]);
+        assert_eq!(
+            names("mimocode"),
+            vec!["mimocode.db", "opencode-2.db", "opencode.db"]
+        );
+        std::fs::remove_dir_all(&root).unwrap();
+    }
 
     #[test]
     fn mimocode_home_appends_data() {

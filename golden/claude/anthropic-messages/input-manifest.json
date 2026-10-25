@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "harness": "claude",
+  "case": "anthropic-messages",
+  "home": ".",
+  "options": {
+    "harnesses": [
+      "claude"
+    ],
+    "tz": "UTC"
+  },
+  "rollups": [
+    "model",
+    "day",
+    "harness"
+  ]
+}

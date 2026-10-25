@@ -1,0 +1,151 @@
+{
+  "schema_version": 1,
+  "events": [
+    {
+      "harness": "mimocode",
+      "messageId": "msg_g001a1729c31950017UWYJ7aCH",
+      "model": "llama/qwen",
+      "sessionId": "ses_ffe5e8d63d346ffeiLi67SWUxx",
+      "subagent": false,
+      "timestamp": "2026-10-25T10:30:01.365Z",
+      "title": "\"Read index.js and tell me in two sentences wha…",
+      "tokens": {
+        "cacheRead": 3,
+        "cacheWrite": 0,
+        "input": 26035,
+        "output": 58,
+        "reasoning": 0
+      },
+      "turn": true,
+      "workspace": "/home/user/project"
+    },
+    {
+      "harness": "mimocode",
+      "messageId": "msg_g001a172a2ae30001swJ8fBniZ",
+      "model": "llama/qwen",
+      "sessionId": "ses_ffe5e8d5d5217ffe0WACucDrRC",
+      "subagent": true,
+      "timestamp": "2026-10-25T10:37:06.480Z",
+      "title": "checkpoint-writer: Previous checkpoint: /home/user/scratch/mimocode",
+      "tokens": {
+        "cacheRead": 9648,
+        "cacheWrite": 0,
+        "input": 20842,
+        "output": 74,
+        "reasoning": 0
+      },
+      "turn": true,
+      "workspace": "/home/user/project"
+    },
+    {
+      "harness": "mimocode",
+      "messageId": "msg_g001a172a2ae33001US2BFEFN7",
+      "model": "llama/qwen",
+      "sessionId": "ses_ffe5e8d63d346ffeiLi67SWUxx",
+      "subagent": false,
+      "timestamp": "2026-10-25T10:37:06.483Z",
+      "title": "\"Read index.js and tell me in two sentences wha…",
+      "tokens": {
+        "cacheRead": 5,
+        "cacheWrite": 0,
+        "input": 26117,
+        "output": 89,
+        "reasoning": 0
+      },
+      "turn": true,
+      "workspace": "/home/user/project"
+    },
+    {
+      "harness": "mimocode",
+      "messageId": "msg_g001a172aea9c7001R1f1OnzTf",
+      "model": "llama/qwen",
+      "sessionId": "ses_ffe5e8d5d5217ffe0WACucDrRC",
+      "subagent": true,
+      "timestamp": "2026-10-25T10:50:11.783Z",
+      "title": "checkpoint-writer: Previous checkpoint: /home/user/scratch/mimocode",
+      "tokens": {
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "input": 0,
+        "output": 0,
+        "reasoning": 0
+      },
+      "turn": true,
+      "workspace": "/home/user/project"
+    },
+    {
+      "harness": "mimocode",
+      "messageId": "msg_g001a172af8291001YaxLMjhDm",
+      "model": "llama/qwen",
+      "sessionId": "ses_ffe5e8d507dfdffe4RGR9euF6e",
+      "subagent": true,
+      "timestamp": "2026-10-25T10:51:07.281Z",
+      "title": "checkpoint-writer: Previous checkpoint: /home/user/scratch/mimocode",
+      "tokens": {
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "input": 0,
+        "output": 0,
+        "reasoning": 0
+      },
+      "turn": true,
+      "workspace": "/home/user/project"
+    },
+    {
+      "harness": "mimocode",
+      "messageId": "msg_g001a172af8297001Y92JLJoFU",
+      "model": "llama/qwen",
+      "sessionId": "ses_ffe5e8d63d346ffeiLi67SWUxx",
+      "subagent": false,
+      "timestamp": "2026-10-25T10:51:07.287Z",
+      "title": "\"Read index.js and tell me in two sentences wha…",
+      "tokens": {
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "input": 0,
+        "output": 0,
+        "reasoning": 0
+      },
+      "turn": true,
+      "workspace": "/home/user/project"
+    },
+    {
+      "harness": "mimocode",
+      "messageId": "msg_g001a172bc5540001TUvilaSur",
+      "model": "llama/qwen",
+      "sessionId": "ses_ffe5e8d43ac0cffeKM330X9wNx",
+      "subagent": true,
+      "timestamp": "2026-10-25T11:05:07.648Z",
+      "title": "checkpoint-writer: Previous checkpoint: /home/user/scratch/mimocode",
+      "tokens": {
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "input": 0,
+        "output": 0,
+        "reasoning": 0
+      },
+      "turn": true,
+      "workspace": "/home/user/project"
+    },
+    {
+      "harness": "mimocode",
+      "messageId": "msg_g001a172bc5543001DyKN94VKp",
+      "model": "llama/qwen",
+      "sessionId": "ses_ffe5e8d63d346ffeiLi67SWUxx",
+      "subagent": false,
+      "timestamp": "2026-10-25T11:05:07.651Z",
+      "title": "\"Read index.js and tell me in two sentences wha…",
+      "tokens": {
+        "cacheRead": 26584,
+        "cacheWrite": 0,
+        "input": 196,
+        "output": 86,
+        "reasoning": 0
+      },
+      "turn": true,
+      "workspace": "/home/user/project"
+    }
+  ],
+  "diagnostics": [],
+  "skipped": {}
+}

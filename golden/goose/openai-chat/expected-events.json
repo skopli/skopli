@@ -1,0 +1,23 @@
+{
+  "schema_version": 1,
+  "events": [
+    {
+      "harness": "goose",
+      "messageId": "20261025_1",
+      "model": "openai/qwen",
+      "sessionId": "20261025_1",
+      "subagent": false,
+      "timestamp": "2026-10-25T12:15:01.000Z",
+      "tokens": {
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "input": 26730,
+        "output": 290,
+        "reasoning": 0
+      },
+      "turn": false
+    }
+  ],
+  "diagnostics": [],
+  "skipped": {}
+}

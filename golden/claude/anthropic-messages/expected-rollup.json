@@ -1,0 +1,53 @@
+{
+  "schema_version": 1,
+  "by": {
+    "model": [
+      {
+        "key": "models/qwen2.5-1.5b-instruct-q4_k_m.gguf",
+        "tokens": {
+          "input": 0,
+          "output": 719,
+          "cacheRead": 48110,
+          "cacheWrite": 15882,
+          "reasoning": 0,
+          "cacheWrite1h": 0
+        },
+        "events": 4,
+        "turns": 4,
+        "calls": 4
+      }
+    ],
+    "day": [
+      {
+        "key": "2026-10-25",
+        "tokens": {
+          "input": 0,
+          "output": 719,
+          "cacheRead": 48110,
+          "cacheWrite": 15882,
+          "reasoning": 0,
+          "cacheWrite1h": 0
+        },
+        "events": 4,
+        "turns": 4,
+        "calls": 4
+      }
+    ],
+    "harness": [
+      {
+        "key": "claude",
+        "tokens": {
+          "input": 0,
+          "output": 719,
+          "cacheRead": 48110,
+          "cacheWrite": 15882,
+          "reasoning": 0,
+          "cacheWrite1h": 0
+        },
+        "events": 4,
+        "turns": 4,
+        "calls": 4
+      }
+    ]
+  }
+}

@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
-import { isAbsolute, join, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
+import { join } from "node:path";
+import { canonical, replayCase } from "./replay.mjs";
 
 const [caseId, outFlag, outDir] = process.argv.slice(2);
 if (!caseId || outFlag !== "--out" || !outDir) {
@@ -9,45 +9,8 @@ if (!caseId || outFlag !== "--out" || !outDir) {
   process.exit(2);
 }
 
-const root = resolve(fileURLToPath(import.meta.url), "../../../../..");
-const { readUsage, rollup } = await import(join(root, "dist/index.js"));
-const dir = join(root, "golden", caseId);
-const input = join(dir, "input");
+const { dir, options, dims, events, by, result } = await replayCase(caseId);
 const read = (name) => JSON.parse(readFileSync(join(dir, name), "utf8"));
-const manifest = read("input-manifest.json");
-
-const place = (v) => (isAbsolute(v) ? v : join(input, v));
-const at = (v) => (v === "." ? input : v);
-const env = Object.fromEntries(Object.entries(manifest.env ?? {}).map(([k, v]) => [k, place(v)]));
-const options = {
-  home: manifest.home ? at(manifest.home) : "/nonexistent",
-  env,
-  harnesses: [manifest.harness],
-  tz: manifest.options?.tz ?? "UTC",
-};
-if (manifest.cwd) options.cwd = at(manifest.cwd);
-
-const relativize = (s) => s.replaceAll(input, "").replace(/(^|\s)\/+/g, "$1");
-const key = (e) => [e.timestamp, e.sessionId, e.messageId, e.model].join("\0");
-const result = await readUsage(options);
-const events = result.events
-  .map((e) => ({
-    ...e,
-    sessionId: e.sessionId.startsWith(input) ? relativize(e.sessionId) : e.sessionId,
-    messageId: relativize(e.messageId),
-  }))
-  .sort((a, b) => (key(a) < key(b) ? -1 : key(a) > key(b) ? 1 : 0));
-const dims = manifest.rollups ?? ["model", "day", "harness"];
-const by = Object.fromEntries(
-  dims.map((d) => [d, rollup(events, d === "day" ? { by: d, tz: "UTC" } : { by: d })]),
-);
-
-const canonical = (v) =>
-  JSON.stringify(v, (_, x) =>
-    x && typeof x === "object" && !Array.isArray(x)
-      ? Object.fromEntries(Object.entries(x).sort(([a], [b]) => (a < b ? -1 : 1)))
-      : x,
-  );
 const expectedEvents = read("expected-events.json");
 const expectedRollup = read("expected-rollup.json");
 const summary = {
