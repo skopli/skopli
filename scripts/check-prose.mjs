@@ -13,8 +13,12 @@ if (args.length) {
       "THIRD-PARTY-NOTICES.md excepted) and fails on an em dash anywhere or on two sentences in",
       "one Markdown line. Runs inside pnpm run lint; no options, no files to pass.",
       "",
+      "Not detected: a second sentence opening with a lowercase word or a digit. Not skipped:",
+      "a code block indented four spaces instead of fenced; fence it.",
+      "",
       "  exit 0  every rule holds",
       "  exit 1  findings, one file:line: rule per line on stderr, then the fix per rule",
+      "  exit 2  unknown argument, this usage on stderr",
     ].join("\n"),
   );
   process.exit(help ? 0 : 2);
@@ -27,7 +31,7 @@ const files = execFileSync("git", ["ls-files", "-z"], { encoding: "utf8" })
   .split("\0")
   .filter((file) => file && !thirdParty(file));
 
-const abbreviation = /\b(e\.g|i\.e|etc|vs|cf|approx|no|fig|vol|ch|Dr|Mr|Mrs|Ms|St|Inc|Ltd)\.$/i;
+const abbreviation = /\b(e\.g|i\.e|etc|vs|cf|approx|No|fig|vol|ch|Dr|Mr|Mrs|Ms|St|Inc|Ltd)\.$/;
 const marker = /^(\s*>)*\s*(([-*+]|\d+\.)\s+)?/;
 const notProse = /^(#|\||<|\[[^\]]+\]:|$)/;
 const spans = /`[^`]*`|\([^)]*\)|\[[^\]]*\]/g;
@@ -43,12 +47,12 @@ const paragraphLines = (text) => {
       front = !(i > 0 && raw === "---");
       return;
     }
-    if (/^\s*(```|~~~)/.test(raw)) {
+    let line = raw.replace(marker, "");
+    if (/^(```|~~~)/.test(line)) {
       fenced = !fenced;
       return;
     }
     if (fenced) return;
-    let line = raw;
     if (comment) {
       const end = line.indexOf("-->");
       if (end < 0) return;
@@ -61,8 +65,7 @@ const paragraphLines = (text) => {
       comment = true;
       line = line.slice(0, open);
     }
-    const body = line.replace(marker, "");
-    if (!notProse.test(body)) out.push([body, i + 1]);
+    if (!notProse.test(line)) out.push([line, i + 1]);
   });
   return out;
 };
