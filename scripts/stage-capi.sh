@@ -31,7 +31,9 @@ cp crates/skopli-capi/include/skopli.h "$stage/"
 found=0
 for name in libskopli.so libskopli.dylib libskopli.a skopli.dll skopli.dll.lib skopli.lib; do
   f="target/$target/release/$name"
-  [ -f "$f" ] && cp "$f" "$stage/" && found=1
+  [ -f "$f" ] || continue
+  cp "$f" "$stage/"
+  found=1
 done
 if [ "$found" = 0 ]; then
   echo "no skopli library under target/$target/release; build it first" >&2
