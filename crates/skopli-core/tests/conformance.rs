@@ -31,22 +31,12 @@ use skopli_core::types::UsageEvent;
 mod support;
 use support::structural_eq;
 
-fn repo_root() -> PathBuf {
-    // crates/skopli-core -> repo root is two levels up
-    Path::new(env!("CARGO_MANIFEST_DIR"))
-        .parent()
-        .and_then(Path::parent)
-        .expect("repo root")
-        .to_path_buf()
-}
-
 /// Strip the absolute `input/` prefix (in `/` and `\` forms) from a path or
-/// message and normalize `\` to `/`, matching the TS exporter's
-/// `relativizeMessage` (scripts/export-golden.ts): strip every bare `inputDir`
-/// variant, normalize `\`->`/`, then collapse a run of leading separators only
-/// at the start of the string or right after whitespace. Unlike a naive
-/// prefix-with-separator strip, this preserves a separator that follows a
-/// non-space, non-start character (e.g. the `/` in
+/// message and normalize `\` to `/`, matching the TS exporter: strip every bare
+/// `inputDir` variant, normalize `\`->`/`, then collapse a run of leading
+/// separators only at the start of the string or right after whitespace.
+/// Unlike a naive prefix-with-separator strip, this preserves a separator that
+/// follows a non-space, non-start character (e.g. the `/` in
 /// `devin-desktop:/session-a.ndjson`), exactly as the exporter does.
 fn relativize(text: &str, input_dir: &Path) -> String {
     let abs = input_dir.to_string_lossy();
@@ -233,29 +223,25 @@ struct GoldenCase {
     dir: PathBuf,
 }
 
-/// List sorted subdirectory `(name, path)` pairs under `dir`.
 fn subdirs(dir: &Path) -> Vec<(String, PathBuf)> {
-    let mut out = Vec::new();
-    if let Ok(entries) = std::fs::read_dir(dir) {
-        for entry in entries.flatten() {
-            if entry.file_type().map(|t| t.is_dir()).unwrap_or(false) {
-                out.push((
-                    entry.file_name().to_string_lossy().into_owned(),
-                    entry.path(),
-                ));
-            }
-        }
-    }
-    out.sort_by(|a, b| a.0.cmp(&b.0));
+    let mut out: Vec<(String, PathBuf)> = std::fs::read_dir(dir)
+        .map(|entries| {
+            entries
+                .flatten()
+                .filter(|e| e.file_type().map(|t| t.is_dir()).unwrap_or(false))
+                .map(|e| (e.file_name().to_string_lossy().into_owned(), e.path()))
+                .collect()
+        })
+        .unwrap_or_default();
+    out.sort();
     out
 }
 
-/// Discover every `golden/<harness>/<case>/` directory, in a stable order.
+/// Every `golden/<harness>/<case>/` holding an `expected-events.json`, in a
+/// stable order. `golden/pricing/`, `rollup-*` and `registry/` hold no cases.
 fn discover_cases() -> Vec<GoldenCase> {
-    let golden = repo_root().join("golden");
     let mut cases = Vec::new();
-    for (harness, harness_dir) in subdirs(&golden) {
-        // `golden/pricing/` is not a harness (no <case>/expected-events.json).
+    for (harness, harness_dir) in subdirs(&support::repo_root().join("golden")) {
         for (case, dir) in subdirs(&harness_dir) {
             if dir.join("expected-events.json").is_file() {
                 cases.push(GoldenCase {
@@ -345,7 +331,7 @@ fn context_for(dir: &Path) -> ReaderContext {
 /// consume it) fails here.
 #[test]
 fn registry_id_fixture_matches_registered_readers() {
-    let fixture = repo_root().join("golden").join("registry").join("ids.json");
+    let fixture = support::repo_root().join("golden/registry/ids.json");
     let parsed: Value = serde_json::from_str(
         &std::fs::read_to_string(&fixture).expect("read golden/registry/ids.json"),
     )
@@ -459,4 +445,44 @@ fn conformance() {
 
     assert!(!passed.is_empty(), "no registered-harness cases ran");
     assert!(failures.is_empty(), "conformance failures: {failures:#?}");
+}
+
+#[test]
+fn comparator_has_teeth() {
+    let cases = [
+        (
+            json!({"a": 1}),
+            json!({"a": 1, "b": null}),
+            false,
+            "absent is not null",
+        ),
+        (
+            json!({"a": 1, "b": null}),
+            json!({"a": 1}),
+            false,
+            "null is not absent",
+        ),
+        (json!(0.0123), json!(0.0124), false, "f64 mismatch detected"),
+        (json!(3), json!(3.0), true, "integral int equals float"),
+        (json!(0.0123), json!(0.0123), true, "equal f64 accepted"),
+        (
+            json!([1, 2]),
+            json!([1, 2, 3]),
+            false,
+            "array length detected",
+        ),
+        (
+            json!({"b": 2, "a": 1}),
+            json!({"a": 1, "b": 2}),
+            true,
+            "key order ignored",
+        ),
+    ];
+    for (actual, expected, should_match, name) in cases {
+        assert_eq!(
+            structural_eq(&actual, &expected, "").is_ok(),
+            should_match,
+            "{name}: {actual} vs {expected}"
+        );
+    }
 }
