@@ -36,7 +36,7 @@ cargo build -p skopli-capi --release
 ```
 
 The default `libskopli` opens no socket.
-The `net` cargo feature adds built-in catalog fetching for bare-C consumers.
+The `net` cargo feature adds built-in catalog fetching for C consumers.
 
 ## Test
 
@@ -84,7 +84,7 @@ The links change the table widths, so that copy is excluded from oxfmt.
 
 Readers never touch the network.
 A field the harness does not record is `0`, and a timestamp that cannot be parsed is a diagnostic, not an epoch-0 event.
-A reader estimates tokens only when the harness stores none, and the harness table then labels it estimated (Kiro today).
+A reader estimates tokens only when the harness stores none, and `README.md`, `llms.txt`, and the docs then say so next to the harness (Kiro today).
 
 ## Add a pricing source
 

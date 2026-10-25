@@ -9,22 +9,22 @@ reference (`test/pricing.test.ts`) defines the gold.
 
 ## Files
 
-- `source-openrouter.json`, `source-litellm.json`, `source-modelsdev.json` —
+- `source-openrouter.json`, `source-litellm.json`, `source-modelsdev.json`:
   canonical raw source payloads, one per built-in source, in the on-the-wire
   shape each source parser consumes. Each parses through its format and prices
   the shared `openai/gpt-5` rollup to `pricedUsd` (2.25); the reference suite
   asserts this for all three so their parser shapes stay valid.
-- `source-openrouter-empty.json` — a syntactically valid OpenRouter payload
+- `source-openrouter-empty.json`: a syntactically valid OpenRouter payload
   that parses to zero prices (unusable), for the `fetched-empty` behavior.
-- `cache-fresh.json`, `cache-stale.json` — canonical cache files
+- `cache-fresh.json`, `cache-stale.json`: canonical cache files
   (`{ fetchedAt, payload }`), each wrapping the OpenRouter source payload. The
   `fetchedAt` timestamps are fixed so age is deterministic relative to `now`.
-- `cache-fresh-empty.json` — a fresh-aged cache whose payload parses to zero
+- `cache-fresh-empty.json`: a fresh-aged cache whose payload parses to zero
   prices, for the `cached-empty` behavior.
-- `request.json` — the single rollup every behavior prices, plus the pricing
+- `request.json`: the single rollup every behavior prices, plus the pricing
   options (`mode: "calculate"`) and the clock/TTL knobs the harness applies.
   `nowSecond` is the advanced clock for `live-reload`.
-- `expected/<behavior>.json` — the expected outcome per behavior: whether a
+- `expected/<behavior>.json`: the expected outcome per behavior: whether a
   fetch was issued (`fetched`), the resulting cache `fetchedAt`, and the priced
   total (`pricedUsd`). `live-reload.json` instead pins the two-query shape:
   `fetchesTotal`, `fetchedAtFirst`, `fetchedAtSecond`.
@@ -40,7 +40,7 @@ All timestamps are UTC ISO-8601 with millisecond precision.
   `2026-08-01T00:01:00.000Z`
 - `ttlMs` = `60000`. The fresh cache's age is `now - fetchedAtFresh` =
   `60000` ms, exactly equal to `ttlMs`. The shared cross-facade contract is
-  `age > ttlMs` means stale, so `age == ttlMs` is fresh — the fresh fixture sits
+  `age > ttlMs` means stale, so `age == ttlMs` is fresh; the fresh fixture sits
   precisely on that boundary (an exact-boundary fixture is the strongest test of
   the comparison). This matches the TypeScript reference (`src/pricing/cache.ts`:
   `stale = age > ttlMs`) and the Rust core (`stale: age > ttl_ms`). The stale
@@ -48,40 +48,40 @@ All timestamps are UTC ISO-8601 with millisecond precision.
 
 ## The five behaviors
 
-1. `cold-fetch` — empty cacheDir, fetch returns `source-openrouter.json`; the
+1. `cold-fetch`: empty cacheDir, fetch returns `source-openrouter.json`; the
    file is written with `fetchedAt = now` and the rollup prices to `pricedUsd`.
-2. `warm-cache` — `cache-fresh.json` present, fetch must not be called; priced
+2. `warm-cache`: `cache-fresh.json` present, fetch must not be called; priced
    from cache, `fetchedAt` unchanged.
-3. `ttl-refresh` — `cache-stale.json` present with `refresh: true`; fetch called
+3. `ttl-refresh`: `cache-stale.json` present with `refresh: true`; fetch called
    once, `fetchedAt` advances to `now`.
-4. `offline` — `offline: true` with `cache-stale.json` present; served from
+4. `offline`: `offline: true` with `cache-stale.json` present; served from
    cache without fetching, `fetchedAt` unchanged. The `offline-no-cache`
    subcase (`expected/offline-no-cache.json`) covers `offline: true` with an
    empty cacheDir: the source is skipped, no fetch is issued, and the rollup
    degrades to an unpriced miss rather than crashing (`fetched: false`,
    `priced: false`, `fetchedAt: null`).
-5. `stale-fallback` — `cache-stale.json` present and fetch throws; the stale
+5. `stale-fallback`: `cache-stale.json` present and fetch throws; the stale
    payload is served, `fetchedAt` unchanged. The fetch is attempted exactly
    once (`fetched: true`) before the fallback.
 
 ## The three hardening behaviors
 
-6. `fetched-empty` — `cache-stale.json` present, fetch succeeds but returns
+6. `fetched-empty`: `cache-stale.json` present, fetch succeeds but returns
    `source-openrouter-empty.json` (parses to zero prices). An unusable fetched
    payload is treated like a fetch failure: the stale catalog is served, the
-   cache file is NOT overwritten (`fetchedAt` stays `fetchedAtStale`), and the
+   cache file is not overwritten (`fetchedAt` stays `fetchedAtStale`), and the
    rollup still prices to `pricedUsd`. The same rule covers a 2xx body that is
    not valid JSON: never let it poison the cache; fall back to stale.
-7. `cached-empty` — `cache-fresh-empty.json` present (fresh age, zero prices).
+7. `cached-empty`: `cache-fresh-empty.json` present (fresh age, zero prices).
    A cache payload that parses to zero prices is unusable, same as no cache:
    a fetch is issued (`fetched: true`), returns the canonical payload, the
    cache is rewritten with `fetchedAt = now`, and the rollup prices to
    `pricedUsd`. Matches TS `src/pricing/sources.ts` (cachedCatalog null when
    `prices.size === 0`).
-8. `live-reload` — one long-lived pricing instance, empty cacheDir. Query 1 at
+8. `live-reload`: one long-lived pricing instance, empty cacheDir. Query 1 at
    `now` fetches (`fetchedAtFirst = now`) and prices. The clock then advances
    to `nowSecond` (`now + 120000` ms > `ttlMs`); query 2 on the SAME instance
-   must consult sources again — the disk cache is now stale, so a second fetch
+   must consult sources again; the disk cache is now stale, so a second fetch
    is issued and the file's `fetchedAt` advances to `fetchedAtSecond =
    nowSecond`. Total fetches across both queries = `fetchesTotal` (2). Both
    queries price to `pricedUsd`. This pins the TS semantics that catalog loads

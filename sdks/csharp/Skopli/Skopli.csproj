@@ -14,7 +14,7 @@
     <PackageId>Skopli</PackageId>
     <Version>0.1.0</Version>
     <GenerateDocumentationFile>false</GenerateDocumentationFile>
-    <Description>Idiomatic C# facade over the skopli C ABI (csbindgen P/Invoke).</Description>
+    <Description>C# facade over the Skopli C ABI (csbindgen P/Invoke): read, roll up, and price AI coding-agent token usage.</Description>
     <PackageProjectUrl>https://docs.skopli.com/skopli/</PackageProjectUrl>
     <RepositoryUrl>https://github.com/skopli/skopli</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
