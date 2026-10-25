@@ -10,6 +10,8 @@
     "./harnesses": "./src/harnesses.ts",
     "./quickstart": "./src/quickstart.ts",
     "./langs": "./src/langs.ts",
+    "./markdown": "./src/markdown.ts",
+    "./project": "./src/project.ts",
     "./scrollable": "./src/scrollable.ts"
   },
   "dependencies": {
