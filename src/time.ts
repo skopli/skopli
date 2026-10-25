@@ -8,11 +8,8 @@ function daysFromCivil(year: number, month: number, day: number): number {
   return era * 146_097 + doe - 719_468;
 }
 
-// Parse an ECMA-262 Date Time String Format timestamp to epoch millis:
-// YYYY-MM-DD (T HH:mm(:ss(.sss)?)?)? (Z | ±HH:mm)?, offsetless date-time is UTC.
-// Anything else is undefined, so both twins bucket the same non-canonical input
-// into the invalid-date block rather than letting host Date leniency diverge.
-// Mirrors date_parse_ms in time.rs.
+// YYYY-MM-DD (T HH:mm(:ss(.sss)?)?)? (Z | ±HH:mm)? to epoch millis; offsetless is UTC,
+// anything else is undefined.
 export function dateParseMs(input: string): number | undefined {
   const isDigits = (from: number, len: number): number | undefined => {
     const slice = input.slice(from, from + len);
@@ -55,8 +52,8 @@ export function dateParseMs(input: string): number | undefined {
     }
     if (input.length > idx) {
       const c = input[idx];
-      if (c === "Z" && input.length === idx + 1) {
-        // UTC
+      if (c === "Z") {
+        if (input.length !== idx + 1) return undefined;
       } else if (c === "+" || c === "-") {
         const sign = c === "-" ? -1 : 1;
         if (input.length !== idx + 6 || input[idx + 3] !== ":") return undefined;
