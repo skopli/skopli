@@ -42,7 +42,7 @@ const targets = [
   </button>
   <ul class="actions__menu" id="page-actions-menu" role="menu" aria-label="Page actions">
     <li role="none">
-      <a role="menuitem" tabindex="-1" href={md}>
+      <a role="menuitem" href={md}>
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true">
           <rect x="3" y="5" width="18" height="14" rx="1.5" />
           <path d="M7 15V9l2.5 3L12 9v6M16 9v6M14 13l2 2 2-2" />
@@ -51,7 +51,7 @@ const targets = [
       </a>
     </li>
     <li role="none">
-      <button role="menuitem" tabindex="-1" type="button" data-copy-link>
+      <button role="menuitem" type="button" data-copy-link>
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true">
           <path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1.2 1.2" />
           <path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1.2-1.2" />
@@ -62,7 +62,7 @@ const targets = [
     <li role="separator"></li>
     {targets.map(({ name, icon, href }) => (
       <li role="none">
-        <a role="menuitem" tabindex="-1" href={href} rel="noopener"><Icon name={icon} />Open in {name}</a>
+        <a role="menuitem" href={href} rel="noopener"><Icon name={icon} />Open in {name}</a>
       </li>
     ))}
   </ul>
@@ -79,6 +79,7 @@ const targets = [
 
   if (root && copy && more && menu && label && md && link) {
     const items = [...menu.querySelectorAll<HTMLElement>("[role=menuitem]")];
+    for (const item of items) item.tabIndex = -1;
     const idle = label.textContent;
     let reset: number | undefined;
 

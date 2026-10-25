@@ -10,7 +10,7 @@ Every docs page carries one split control under its title: a `Copy page` button 
 - `actions-copy-link` is the second menu item and copies the twin's public URL; the label flips to `Link copied`.
 - `actions-open-in` is the six remaining items (ChatGPT, Claude, Grok, Perplexity, Google AI Mode, Cursor), each carrying a prompt that names the twin's public URL.
 - `actions-footer-md` repeats `View as Markdown` in the footer.
-- `actions-no-js`: without JavaScript the list renders as a plain card under the control, so the twin link and the six handoffs stay reachable. The component script marks the group `data-enhanced`, and only then does the stylesheet collapse the list behind the chevron.
+- `actions-no-js`: without JavaScript the list renders as a plain card under the control and its items sit in the Tab order, so the twin link and the six handoffs stay reachable by keyboard. The component script marks the group `data-enhanced` and sets `tabindex="-1"` on every item; only then does the stylesheet collapse the list behind the chevron and Tab skip the items.
 
 ## How to get to it (user POV)
 
@@ -89,15 +89,18 @@ node .agents/skills/verify-skopli/scripts/browser.mjs --out .verify/evidence/<ru
   eval "document.querySelector('[data-actions]').hasAttribute('data-enhanced')" \
   eval "[...document.querySelectorAll('.actions a')].filter(a=>a.getClientRects().length).map(a=>a.textContent.trim())" \
   eval "document.documentElement.scrollWidth" \
+  eval "document.querySelectorAll('.actions [tabindex]').length" \
+  press '[data-more]' Tab \
+  eval "document.activeElement.textContent.trim()" \
   screenshot 01-no-js
 ```
 
-Step 2 reads `false` (the script never ran), step 3 lists the seven rendered links (`View as Markdown` and the six `Open in` entries), step 4 reads the viewport width, so nothing overflows, and `01-no-js.png` shows the list as a card under the control.
+Step 2 reads `false` (the script never ran), step 3 lists the seven rendered links (`View as Markdown` and the six `Open in` entries), step 4 reads the viewport width, so nothing overflows, step 5 reads `0` (no item carries a static `tabindex`), step 7 reads `View as Markdown` (Tab from the chevron lands on the first item), and `01-no-js.png` shows the list as a card under the control.
 
 ## Gotchas
 
 - The copy is asynchronous. Reading the clipboard or the label straight after the click sees the old state; wait for `Copied` first.
 - Do not follow the `Open in` links. They leave the local origins and `browser.mjs` blocks them; the `href` values are the proof.
-- The menu is not a `<details>`; `aria-expanded` on `[data-more]` is its only state, and the stylesheet hides the list from that attribute once the group carries `data-enhanced`.
+- The menu is not a `<details>`; `aria-expanded` on `[data-more]` is its only state, and the stylesheet hides the list from that attribute once the group carries `data-enhanced`. The items ship without `tabindex`; the script sets `-1` on them, so a Tab that reaches an item means the script did not run.
 - A `Copy failed` label means the `.md` twin did not answer `200`; check the markdown-feeds feature before blaming the button.
 - The clipboard is per browser profile, so each invocation starts empty.
