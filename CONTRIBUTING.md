@@ -58,9 +58,10 @@ A change to an `expected-*.json` file is a documented behavior change.
 Say why in the commit message.
 `golden/README.md` describes the corpus layout and how to add a case.
 
-Five files are generated, each from a source elsewhere in the repository, and `pnpm run sync --check` (part of `pnpm run check`) fails when a copy drifts:
+Five files carry generated content, each block from a source elsewhere in the repository, and `pnpm run sync --check` (part of `pnpm run check`) fails when a copy drifts:
 
 - the install table in `README.md`, from `web/ui/src/quickstart.ts`
+- the supported-harness table in `README.md`, from `web/ui/src/harnesses.ts` (names, ids and which rows carry a logo from `assets/logos/`)
 - the supported-harness list in `llms.txt`, from `golden/registry/ids.json`
 - the docs copy of this page, from `CONTRIBUTING.md`
 - the C header `crates/skopli-capi/include/skopli.h`, from the crate's `extern "C"` surface through cbindgen
