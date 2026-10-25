@@ -48,7 +48,7 @@
     "build:native": "napi build --platform --release -o native --js index.cjs --package skopli-node --manifest-path crates/skopli-node/Cargo.toml",
     "build": "napi build --platform --release -o native --js index.cjs --package skopli-node --manifest-path crates/skopli-node/Cargo.toml && pnpm run clean && tsc -p tsconfig.build.json",
     "prepare": "pnpm run clean && tsc -p tsconfig.build.json",
-    "lint": "oxlint",
+    "lint": "oxlint && node scripts/check-prose.mjs",
     "format": "oxfmt --check .",
     "format:write": "oxfmt .",
     "typecheck": "tsc --noEmit && pnpm -r run typecheck",

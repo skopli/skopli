@@ -45,7 +45,7 @@ The `net` cargo feature adds built-in catalog fetching for C consumers.
 
 The local gate has two parts.
 The Rust format, lint, and test commands come first.
-`pnpm run check` runs oxlint, oxfmt, tsc over the facade and both sites, vitest, and the generated-file check.
+`pnpm run check` runs oxlint, the prose rules in [`scripts/check-prose.mjs`](https://github.com/skopli/skopli/blob/main/scripts/check-prose.mjs) (no em dash in any tracked text; captured harness input under [`golden/`](https://github.com/skopli/skopli/tree/main/golden/) is exempt), oxfmt, tsc over the facade and both sites, vitest, and the generated-file check.
 
 ```sh
 cargo fmt --all -- --check
