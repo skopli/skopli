@@ -78,12 +78,13 @@ const targets = [
 
   if (root && copy && more && menu && label && md && link) {
     const items = [...menu.querySelectorAll<HTMLElement>("[role=menuitem]")];
+    const idle = label.textContent;
     let reset: number | undefined;
 
     const show = (message: string) => {
       label.textContent = message;
       clearTimeout(reset);
-      reset = window.setTimeout(() => (label.textContent = "Copy page"), 1500);
+      reset = window.setTimeout(() => (label.textContent = idle), 1500);
     };
     const write = async (text: string | Promise<string>, done: string) => {
       try {
@@ -105,6 +106,10 @@ const targets = [
       if (open && focus !== undefined) items.at(focus)?.focus();
     };
     const isOpen = () => !menu.hidden;
+    const close = () => {
+      toggle(false);
+      more.focus();
+    };
 
     copy.addEventListener("click", () => write(pageMarkdown(), "Copied"));
     more.addEventListener("click", () => toggle(!isOpen()));
@@ -129,21 +134,22 @@ const targets = [
       if (next !== undefined) {
         event.preventDefault();
         items.at(next % items.length)?.focus();
-      } else if (event.key === "Escape") {
+      } else if (event.key === " ") {
         event.preventDefault();
-        toggle(false);
-        more.focus();
+        items[current]?.click();
       }
     });
     root.addEventListener("keydown", (event) => {
-      if (event.key === "Tab" && isOpen()) toggle(false);
+      if (!isOpen()) return;
+      if (event.key === "Tab") toggle(false);
+      if (event.key === "Escape") close();
     });
     menu.addEventListener("click", (event) => {
       if (!(event.target instanceof Element)) return;
       const item = event.target.closest("[role=menuitem]");
       if (!item) return;
       if (item.hasAttribute("data-copy-link")) write(link, "Link copied");
-      toggle(false);
+      close();
     });
     document.addEventListener("pointerdown", (event) => {
       if (isOpen() && event.target instanceof Node && !root.contains(event.target)) toggle(false);

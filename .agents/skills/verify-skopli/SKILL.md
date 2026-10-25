@@ -80,8 +80,8 @@ Stable handles on the docs site:
 | `role=button[name="Menu"]`                                                    | sidebar toggle, only visible at widths of 860px and below                                                     |
 | `role=tab[name="Python"]` and the other eight language names                  | code tabs, choice persisted in `localStorage["skopli-lang"]`                                                  |
 | `role=button[name="Copy page"]`                                               | copies the page's Markdown twin, label flips to `Copied` for 1.5s                                             |
-| `role=link[name="View as Markdown"]`                                          | the page's `.md` twin                                                                                         |
-| `.actions__menu summary` (text `Open in`)                                     | expands six external agent links                                                                              |
+| `role=button[name="More actions"]`                                            | chevron joined to `Copy page`; `aria-expanded` is the menu state                                              |
+| `role=menuitem[name="View as Markdown"]` and the other seven item names       | menu items, resolvable only while the menu is open                                                            |
 | `nav[aria-label="Docs"]`                                                      | sidebar                                                                                                       |
 | `nav[aria-label="Previous and next"]`                                         | pager                                                                                                         |
 

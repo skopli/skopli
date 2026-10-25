@@ -157,7 +157,6 @@
   min-height: var(--tap);
   padding: 0 var(--space-3);
   border: 1px solid var(--rule-strong);
-  border-radius: var(--radius);
   background: transparent;
   color: var(--ink-2);
   cursor: pointer;

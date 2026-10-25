@@ -50,6 +50,6 @@ Name only user paths, stable handles, required state, commands and observable pr
 - [Theme](./theme.md) covers dark first paint, the toggle on both sites, and the persisted choice across reload.
 - [Docs search](./docs-search.md) covers the header search, the mobile search toggle, matching, empty and clear states.
 - [Code tabs](./code-tabs.md) covers the nine-language tabs on docs pages and the marketing quickstart, keyboard navigation, and the persisted language.
-- [Page actions](./page-actions.md) covers Copy page, View as Markdown and the Open in menu on every docs page.
+- [Page actions](./page-actions.md) covers the split `Copy page` control on every docs page: the copy button, the chevron menu with `View as Markdown`, `Copy Markdown link` and six `Open in` handoffs, and the footer twin link.
 - [Markdown twins and llms feeds](./markdown-feeds.md) covers the `.md` twin of every docs page, `llms.txt` on both sites and `llms-full.txt`.
 - [Library golden replay](./library-golden.md) covers reading and rolling up a golden case through the built facade, and reading a real home directory.
