@@ -5,45 +5,45 @@
       {
         "key": "qwen",
         "tokens": {
-          "input": 786,
-          "output": 172,
-          "cacheRead": 37380,
+          "input": 87,
+          "output": 155,
+          "cacheRead": 30302,
           "cacheWrite": 0,
           "reasoning": 0
         },
-        "events": 6,
-        "turns": 5,
-        "calls": 6
+        "events": 4,
+        "turns": 4,
+        "calls": 4
       }
     ],
     "day": [
       {
         "key": "2026-10-25",
         "tokens": {
-          "input": 786,
-          "output": 172,
-          "cacheRead": 37380,
+          "input": 87,
+          "output": 155,
+          "cacheRead": 30302,
           "cacheWrite": 0,
           "reasoning": 0
         },
-        "events": 6,
-        "turns": 5,
-        "calls": 6
+        "events": 4,
+        "turns": 4,
+        "calls": 4
       }
     ],
     "harness": [
       {
         "key": "omp",
         "tokens": {
-          "input": 786,
-          "output": 172,
-          "cacheRead": 37380,
+          "input": 87,
+          "output": 155,
+          "cacheRead": 30302,
           "cacheWrite": 0,
           "reasoning": 0
         },
-        "events": 6,
-        "turns": 5,
-        "calls": 6
+        "events": 4,
+        "turns": 4,
+        "calls": 4
       }
     ]
   }

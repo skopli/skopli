@@ -10,4 +10,4 @@ Real capture of a multi-turn session, promoted from the harness home directory w
 - Store paths: `.local/share/opencode/opencode.db`.
 - Redaction: user name, home directory, project path, host name and placeholder API keys replaced; path slugs renamed to match; SQLite text columns rewritten in place and the database checkpointed and vacuumed.
 - Events 4, sessions 1, diagnostics 0, skipped 0.
-- Totals: input 7310, output 71, cache read 21870, cache write 0, reasoning 0.
+- Totals: input 88, output 124, cache read 29115, cache write 0, reasoning 0.

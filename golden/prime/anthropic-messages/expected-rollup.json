@@ -6,14 +6,14 @@
         "key": "qwen",
         "tokens": {
           "input": 0,
-          "output": 356,
-          "cacheRead": 31252,
-          "cacheWrite": 980,
+          "output": 120,
+          "cacheRead": 31152,
+          "cacheWrite": 994,
           "reasoning": 0
         },
-        "events": 8,
-        "turns": 8,
-        "calls": 8
+        "events": 4,
+        "turns": 4,
+        "calls": 4
       }
     ],
     "day": [
@@ -21,14 +21,14 @@
         "key": "2026-10-25",
         "tokens": {
           "input": 0,
-          "output": 356,
-          "cacheRead": 31252,
-          "cacheWrite": 980,
+          "output": 120,
+          "cacheRead": 31152,
+          "cacheWrite": 994,
           "reasoning": 0
         },
-        "events": 8,
-        "turns": 8,
-        "calls": 8
+        "events": 4,
+        "turns": 4,
+        "calls": 4
       }
     ],
     "harness": [
@@ -36,14 +36,14 @@
         "key": "prime",
         "tokens": {
           "input": 0,
-          "output": 356,
-          "cacheRead": 31252,
-          "cacheWrite": 980,
+          "output": 120,
+          "cacheRead": 31152,
+          "cacheWrite": 994,
           "reasoning": 0
         },
-        "events": 8,
-        "turns": 8,
-        "calls": 8
+        "events": 4,
+        "turns": 4,
+        "calls": 4
       }
     ]
   }

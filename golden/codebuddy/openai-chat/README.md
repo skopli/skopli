@@ -9,5 +9,5 @@ Real capture of a multi-turn session, promoted from the harness home directory w
 - Cache numbers: server-reported prompt_tokens_details.cached_tokens from the gateway (timings.cache_n).
 - Store paths: `.codebuddy/projects`.
 - Redaction: user name, home directory, project path, host name and placeholder API keys replaced; path slugs renamed to match; SQLite text columns rewritten in place and the database checkpointed and vacuumed.
-- Events 3, sessions 1, diagnostics 0, skipped 0.
-- Totals: input 6809, output 366, cache read 60810, cache write 0, reasoning 0.
+- Events 5, sessions 1, diagnostics 0, skipped 0.
+- Totals: input 30293, output 364, cache read 89028, cache write 0, reasoning 0.

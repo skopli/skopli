@@ -6,14 +6,14 @@
         "key": "qwen",
         "tokens": {
           "input": 0,
-          "output": 384,
-          "cacheRead": 47576,
-          "cacheWrite": 255,
+          "output": 226,
+          "cacheRead": 49872,
+          "cacheWrite": 13677,
           "reasoning": 0
         },
-        "events": 3,
-        "turns": 3,
-        "calls": 3
+        "events": 4,
+        "turns": 4,
+        "calls": 4
       }
     ],
     "day": [
@@ -21,14 +21,14 @@
         "key": "2026-10-25",
         "tokens": {
           "input": 0,
-          "output": 384,
-          "cacheRead": 47576,
-          "cacheWrite": 255,
+          "output": 226,
+          "cacheRead": 49872,
+          "cacheWrite": 13677,
           "reasoning": 0
         },
-        "events": 3,
-        "turns": 3,
-        "calls": 3
+        "events": 4,
+        "turns": 4,
+        "calls": 4
       }
     ],
     "harness": [
@@ -36,14 +36,14 @@
         "key": "kilo",
         "tokens": {
           "input": 0,
-          "output": 384,
-          "cacheRead": 47576,
-          "cacheWrite": 255,
+          "output": 226,
+          "cacheRead": 49872,
+          "cacheWrite": 13677,
           "reasoning": 0
         },
-        "events": 3,
-        "turns": 3,
-        "calls": 3
+        "events": 4,
+        "turns": 4,
+        "calls": 4
       }
     ]
   }

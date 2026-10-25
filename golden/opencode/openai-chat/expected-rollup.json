@@ -5,9 +5,9 @@
       {
         "key": "llama/qwen",
         "tokens": {
-          "input": 7310,
-          "output": 71,
-          "cacheRead": 21870,
+          "input": 88,
+          "output": 124,
+          "cacheRead": 29115,
           "cacheWrite": 0,
           "reasoning": 0
         },
@@ -20,9 +20,9 @@
       {
         "key": "2026-10-25",
         "tokens": {
-          "input": 7310,
-          "output": 71,
-          "cacheRead": 21870,
+          "input": 88,
+          "output": 124,
+          "cacheRead": 29115,
           "cacheWrite": 0,
           "reasoning": 0
         },
@@ -35,9 +35,9 @@
       {
         "key": "opencode",
         "tokens": {
-          "input": 7310,
-          "output": 71,
-          "cacheRead": 21870,
+          "input": 88,
+          "output": 124,
+          "cacheRead": 29115,
           "cacheWrite": 0,
           "reasoning": 0
         },

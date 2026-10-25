@@ -10,4 +10,4 @@ Real capture of a multi-turn session, promoted from the harness home directory w
 - Store paths: `.prime/agent/sessions`.
 - Redaction: user name, home directory, project path, host name and placeholder API keys replaced; path slugs renamed to match; SQLite text columns rewritten in place and the database checkpointed and vacuumed.
 - Events 4, sessions 1, diagnostics 0, skipped 0.
-- Totals: input 8020, output 400, cache read 24260, cache write 0, reasoning 0.
+- Totals: input 8032, output 159, cache read 24123, cache write 0, reasoning 0.

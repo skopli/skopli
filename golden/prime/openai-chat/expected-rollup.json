@@ -5,9 +5,9 @@
       {
         "key": "qwen",
         "tokens": {
-          "input": 8020,
-          "output": 400,
-          "cacheRead": 24260,
+          "input": 8032,
+          "output": 159,
+          "cacheRead": 24123,
           "cacheWrite": 0,
           "reasoning": 0
         },
@@ -20,9 +20,9 @@
       {
         "key": "2026-10-25",
         "tokens": {
-          "input": 8020,
-          "output": 400,
-          "cacheRead": 24260,
+          "input": 8032,
+          "output": 159,
+          "cacheRead": 24123,
           "cacheWrite": 0,
           "reasoning": 0
         },
@@ -35,9 +35,9 @@
       {
         "key": "prime",
         "tokens": {
-          "input": 8020,
-          "output": 400,
-          "cacheRead": 24260,
+          "input": 8032,
+          "output": 159,
+          "cacheRead": 24123,
           "cacheWrite": 0,
           "reasoning": 0
         },

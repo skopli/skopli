@@ -5,9 +5,9 @@
       {
         "key": "llama/qwen",
         "tokens": {
-          "input": 73190,
-          "output": 307,
-          "cacheRead": 36240,
+          "input": 47528,
+          "output": 297,
+          "cacheRead": 88380,
           "cacheWrite": 0,
           "reasoning": 0
         },
@@ -20,9 +20,9 @@
       {
         "key": "2026-10-25",
         "tokens": {
-          "input": 73190,
-          "output": 307,
-          "cacheRead": 36240,
+          "input": 47528,
+          "output": 297,
+          "cacheRead": 88380,
           "cacheWrite": 0,
           "reasoning": 0
         },
@@ -35,9 +35,9 @@
       {
         "key": "mimocode",
         "tokens": {
-          "input": 73190,
-          "output": 307,
-          "cacheRead": 36240,
+          "input": 47528,
+          "output": 297,
+          "cacheRead": 88380,
           "cacheWrite": 0,
           "reasoning": 0
         },

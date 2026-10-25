@@ -5,9 +5,9 @@
       {
         "key": "qwen",
         "tokens": {
-          "input": 260,
-          "output": 294,
-          "cacheRead": 63193,
+          "input": 15904,
+          "output": 260,
+          "cacheRead": 47584,
           "cacheWrite": 0,
           "reasoning": 0
         },
@@ -20,9 +20,9 @@
       {
         "key": "2026-10-25",
         "tokens": {
-          "input": 260,
-          "output": 294,
-          "cacheRead": 63193,
+          "input": 15904,
+          "output": 260,
+          "cacheRead": 47584,
           "cacheWrite": 0,
           "reasoning": 0
         },
@@ -35,9 +35,9 @@
       {
         "key": "kilo",
         "tokens": {
-          "input": 260,
-          "output": 294,
-          "cacheRead": 63193,
+          "input": 15904,
+          "output": 260,
+          "cacheRead": 47584,
           "cacheWrite": 0,
           "reasoning": 0
         },

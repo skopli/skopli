@@ -5,45 +5,45 @@
       {
         "key": "llama/qwen",
         "tokens": {
-          "input": 3774,
-          "output": 141,
+          "input": 3749,
+          "output": 287,
           "cacheRead": 23893,
           "cacheWrite": 0,
           "reasoning": 0
         },
-        "events": 5,
-        "turns": 5,
-        "calls": 5
+        "events": 4,
+        "turns": 4,
+        "calls": 4
       }
     ],
     "day": [
       {
         "key": "2026-10-25",
         "tokens": {
-          "input": 3774,
-          "output": 141,
+          "input": 3749,
+          "output": 287,
           "cacheRead": 23893,
           "cacheWrite": 0,
           "reasoning": 0
         },
-        "events": 5,
-        "turns": 5,
-        "calls": 5
+        "events": 4,
+        "turns": 4,
+        "calls": 4
       }
     ],
     "harness": [
       {
         "key": "opencode",
         "tokens": {
-          "input": 3774,
-          "output": 141,
+          "input": 3749,
+          "output": 287,
           "cacheRead": 23893,
           "cacheWrite": 0,
           "reasoning": 0
         },
-        "events": 5,
-        "turns": 5,
-        "calls": 5
+        "events": 4,
+        "turns": 4,
+        "calls": 4
       }
     ]
   }

@@ -10,4 +10,4 @@ Real capture of a multi-turn session, promoted from the harness home directory w
 - Store paths: `.factory/sessions`.
 - Redaction: user name, home directory, project path, host name and placeholder API keys replaced; path slugs renamed to match; SQLite text columns rewritten in place and the database checkpointed and vacuumed.
 - Events 1, sessions 1, diagnostics 0, skipped 0.
-- Totals: input 9174, output 125, cache read 18387, cache write 0, reasoning 0.
+- Totals: input 9209, output 215, cache read 27754, cache write 0, reasoning 0.

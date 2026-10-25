@@ -10,4 +10,4 @@ Real capture of a multi-turn session, promoted from the harness home directory w
 - Store paths: `.copilot/session-state`.
 - Redaction: user name, home directory, project path, host name and placeholder API keys replaced; path slugs renamed to match; SQLite text columns rewritten in place and the database checkpointed and vacuumed.
 - Events 4, sessions 1, diagnostics 0, skipped 0.
-- Totals: input 55880, output 134, cache read 41870, cache write 0, reasoning 0.
+- Totals: input 9696, output 155, cache read 46208, cache write 0, reasoning 0.

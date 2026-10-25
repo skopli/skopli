@@ -9,5 +9,5 @@ Real capture of a multi-turn session, promoted from the harness home directory w
 - Cache numbers: server-reported cache_read_input_tokens; cache_creation_input_tokens is gateway-derived (uncached input booked as creation when the request carried cache_control).
 - Store paths: `.prime/agent/sessions`.
 - Redaction: user name, home directory, project path, host name and placeholder API keys replaced; path slugs renamed to match; SQLite text columns rewritten in place and the database checkpointed and vacuumed.
-- Events 8, sessions 2, diagnostics 0, skipped 0.
-- Totals: input 0, output 356, cache read 31252, cache write 980, reasoning 0.
+- Events 4, sessions 1, diagnostics 0, skipped 0.
+- Totals: input 0, output 120, cache read 31152, cache write 994, reasoning 0.

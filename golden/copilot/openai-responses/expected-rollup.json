@@ -5,9 +5,9 @@
       {
         "key": "qwen",
         "tokens": {
-          "input": 55904,
-          "output": 148,
-          "cacheRead": 41893,
+          "input": 9706,
+          "output": 245,
+          "cacheRead": 46363,
           "cacheWrite": 0,
           "reasoning": 0
         },
@@ -20,9 +20,9 @@
       {
         "key": "2026-10-25",
         "tokens": {
-          "input": 55904,
-          "output": 148,
-          "cacheRead": 41893,
+          "input": 9706,
+          "output": 245,
+          "cacheRead": 46363,
           "cacheWrite": 0,
           "reasoning": 0
         },
@@ -35,9 +35,9 @@
       {
         "key": "copilot",
         "tokens": {
-          "input": 55904,
-          "output": 148,
-          "cacheRead": 41893,
+          "input": 9706,
+          "output": 245,
+          "cacheRead": 46363,
           "cacheWrite": 0,
           "reasoning": 0
         },

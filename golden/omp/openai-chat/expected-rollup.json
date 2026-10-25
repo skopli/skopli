@@ -6,8 +6,8 @@
         "key": "qwen",
         "tokens": {
           "input": 7590,
-          "output": 101,
-          "cacheRead": 22748,
+          "output": 113,
+          "cacheRead": 22747,
           "cacheWrite": 0,
           "reasoning": 0
         },
@@ -21,8 +21,8 @@
         "key": "2026-10-25",
         "tokens": {
           "input": 7590,
-          "output": 101,
-          "cacheRead": 22748,
+          "output": 113,
+          "cacheRead": 22747,
           "cacheWrite": 0,
           "reasoning": 0
         },
@@ -36,8 +36,8 @@
         "key": "omp",
         "tokens": {
           "input": 7590,
-          "output": 101,
-          "cacheRead": 22748,
+          "output": 113,
+          "cacheRead": 22747,
           "cacheWrite": 0,
           "reasoning": 0
         },

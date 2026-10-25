@@ -5,9 +5,9 @@
       {
         "key": "qwen",
         "tokens": {
-          "input": 3563,
-          "output": 300,
-          "cacheRead": 12827,
+          "input": 2641,
+          "output": 223,
+          "cacheRead": 9808,
           "cacheWrite": 0,
           "reasoning": 0
         },
@@ -20,9 +20,9 @@
       {
         "key": "2026-10-25",
         "tokens": {
-          "input": 3563,
-          "output": 300,
-          "cacheRead": 12827,
+          "input": 2641,
+          "output": 223,
+          "cacheRead": 9808,
           "cacheWrite": 0,
           "reasoning": 0
         },
@@ -35,9 +35,9 @@
       {
         "key": "pi",
         "tokens": {
-          "input": 3563,
-          "output": 300,
-          "cacheRead": 12827,
+          "input": 2641,
+          "output": 223,
+          "cacheRead": 9808,
           "cacheWrite": 0,
           "reasoning": 0
         },

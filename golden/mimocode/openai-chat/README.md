@@ -10,4 +10,4 @@ Real capture of a multi-turn session, promoted from the harness home directory w
 - Store paths: `.local/share/mimocode/mimocode.db`, `.local/share/mimocode/storage`.
 - Redaction: user name, home directory, project path, host name and placeholder API keys replaced; path slugs renamed to match; SQLite text columns rewritten in place and the database checkpointed and vacuumed.
 - Events 8, sessions 4, diagnostics 0, skipped 0.
-- Totals: input 73190, output 307, cache read 36240, cache write 0, reasoning 0.
+- Totals: input 47528, output 297, cache read 88380, cache write 0, reasoning 0.

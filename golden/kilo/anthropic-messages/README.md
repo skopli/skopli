@@ -9,6 +9,5 @@ Real capture of a multi-turn session, promoted from the harness home directory w
 - Cache numbers: server-reported cache_read_input_tokens; cache_creation_input_tokens is gateway-derived (uncached input booked as creation when the request carried cache_control).
 - Store paths: `.local/share/kilo/kilo.db`, `.local/share/kilo/storage`, `.local/share/kilo/log`.
 - Redaction: user name, home directory, project path, host name and placeholder API keys replaced; path slugs renamed to match; SQLite text columns rewritten in place and the database checkpointed and vacuumed.
-- Events 3, sessions 1, diagnostics 0, skipped 0.
-- Totals: input 0, output 384, cache read 47576, cache write 255, reasoning 0.
-- The harness's `snapshot/` object store and `telemetry-id` are left out: the reader does not consume them and they carry machine identifiers.
+- Events 4, sessions 1, diagnostics 0, skipped 0.
+- Totals: input 0, output 226, cache read 49872, cache write 13677, reasoning 0.

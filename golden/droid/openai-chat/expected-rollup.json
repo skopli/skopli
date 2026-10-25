@@ -5,9 +5,9 @@
       {
         "key": "qwen-0",
         "tokens": {
-          "input": 9174,
-          "output": 125,
-          "cacheRead": 18387,
+          "input": 9209,
+          "output": 215,
+          "cacheRead": 27754,
           "cacheWrite": 0,
           "reasoning": 0
         },
@@ -20,9 +20,9 @@
       {
         "key": "2026-10-25",
         "tokens": {
-          "input": 9174,
-          "output": 125,
-          "cacheRead": 18387,
+          "input": 9209,
+          "output": 215,
+          "cacheRead": 27754,
           "cacheWrite": 0,
           "reasoning": 0
         },
@@ -35,9 +35,9 @@
       {
         "key": "droid",
         "tokens": {
-          "input": 9174,
-          "output": 125,
-          "cacheRead": 18387,
+          "input": 9209,
+          "output": 215,
+          "cacheRead": 27754,
           "cacheWrite": 0,
           "reasoning": 0
         },
