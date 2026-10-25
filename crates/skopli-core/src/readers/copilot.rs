@@ -116,6 +116,9 @@ fn usage_record_event(
         .and_then(as_string)
         .and_then(|t| date_parse_ms(t.trim()))
         .and_then(to_iso_string)?;
+    // `inputTokens` is the server's prompt count and includes the cached prefix, like the
+    // OTel `gen_ai.usage.input_tokens`; `input` is the uncached part.
+    let cache_read = optional_cell(usage.get("cacheReadTokens"))?;
     Some(UsageEvent {
         harness: "copilot".to_owned(),
         timestamp,
@@ -125,9 +128,9 @@ fn usage_record_event(
         subagent: false,
         model: usage.get("model").and_then(as_string)?,
         tokens: TokenCounts {
-            input: required_cell(usage.get("inputTokens"))?,
+            input: required_cell(usage.get("inputTokens"))?.saturating_sub(cache_read),
             output: required_cell(usage.get("outputTokens"))?,
-            cache_read: optional_cell(usage.get("cacheReadTokens"))?,
+            cache_read,
             cache_write: optional_cell(usage.get("cacheWriteTokens"))?,
             cache_write1h: None,
             reasoning: 0,
@@ -568,7 +571,8 @@ mod tests {
         assert_eq!(event.message_id, "sess-1:rec-2");
         assert_eq!(event.timestamp, "2026-10-18T18:30:27.454Z");
         assert_eq!(event.model, "qwen");
-        assert_eq!(event.tokens.input, 11468);
+        // `inputTokens` is the server's cache-inclusive prompt count; `input` excludes the cached part.
+        assert_eq!(event.tokens.input, 11463);
         assert_eq!(event.tokens.output, 19);
         assert_eq!(event.tokens.cache_read, 5);
         assert_eq!(event.workspace.as_deref(), Some("/work/proj"));
