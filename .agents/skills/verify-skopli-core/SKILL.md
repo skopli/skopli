@@ -131,7 +131,7 @@ The formatting of a start into its key is `to_iso_string`, which allocates and i
 ## Readers
 
 Four tests live in `tests/readers.rs`; the mutation and judgement helpers live in `src/readers.rs`.
-The domain is the golden corpus: every `golden/<harness>/<case>/` with an `input-manifest.json`, forty-five cases over all forty registered readers, copied into a scratch home and read through the real `Reader::read` with the context the manifest describes, exactly as `crates/skopli-core/tests/conformance.rs` builds it.
+The domain is the golden corpus: every `golden/<harness>/<case>/` with an `input-manifest.json`, seventy-four cases over all forty registered readers, copied into a scratch home and read through the real `Reader::read` with the context the manifest describes, exactly as `crates/skopli-core/tests/conformance.rs` builds it.
 Nothing in the expectations comes from the reader under test: the token classes come from the cell names in the harness's own files, the event counts from `expected-events.json`, the timestamp grammar from the shared parser.
 
 `readers_never_panic_on_damaged_input` is the totality check.
@@ -154,7 +154,7 @@ A bump that moves any other counter, moves the derived counter the wrong way, or
 The text overwrite may keep or drop the record, but a drop must raise a diagnostic.
 Three literal tables in the test keep the check honest:
 
-- `IGNORED_BY_DESIGN` names the live cells a reader reads around on purpose, each with the reason from the reader's own documentation (amp per-message usage behind a ledger, the claude 5m split, the one negative claude 1h split that the reader drops as absent, the deepseek chunk sample, the fx snapshot totals, prime child usage, the reasonix prompt total).
+- `IGNORED_BY_DESIGN` names the live cells a reader reads around on purpose, each with the reason from the reader's own documentation (amp per-message usage behind a ledger, the claude 5m split, the one negative claude 1h split that the reader drops as absent, the deepseek chunk sample, the fx snapshot totals, prime child usage, the reasonix prompt total, and from the real captures: context and output limits named like counters, running session totals and restated usage beside the counters that are read, dollar costs named after the counters they price, turn and prompt ordinals, and the jcode provider-native input whose cache-inclusive total is read instead).
   A row matches on `path=value`, so the negative-split row matches only the negative cell and the positive 1h cells are checked.
   An entry that matches no cell fails the check, so the list cannot outlive the corpus.
 - `KNOWN_SILENT_DROPS` names the findings the check makes in the product today (below).
@@ -167,8 +167,8 @@ Three literal tables in the test keep the check honest:
 ### Bounds
 
 - One mutation per run: a single cell replaced or a single file damaged, never two at once.
-- 15,905 damaged inputs across the forty-five cases, 92 of which leave the reader with an unusable timestamp that the wire read drops.
-- 630 live token cell mutations over 31 readers, 91 inert cells skipped, 11 ignored-by-design entries exercised, 4 known silent drops reproduced.
+- 98,119 damaged inputs across the seventy-four cases, 208 of which leave the reader with an unusable timestamp that the wire read drops.
+- 1,296 live token cell mutations over 31 readers, 457 inert cells skipped, 26 ignored-by-design entries exercised, 4 known silent drops reproduced.
 - Files the readers open through other means (SQLite databases, zstd streams) get only the byte-level damage, since they hold no JSON leaves to shift.
 
 Not covered: the token mapping of the nine readers in `NO_MAPPING_COVERAGE` (`cherrystudio`, `goose`, `hermes`, `kilo`, `kiro` and `zed` read SQLite only; `cline`, `roo` and `kilocode` keep their counters inside a JSON string in `ui_messages.json`, which the leaf walk does not enter), two faults in one record, faults in file names or directory structure, records the golden case does not contain, readers' handling of a cell type they never see in the corpus, and the exact diagnostic text.
@@ -213,16 +213,16 @@ The `codebuddy` reader shares the claude parser, so both claude breaks also fail
 Four tests live in `tests/detect.rs`; the marker table and the two detector bridges live in `src/detect.rs`, and `ts-detect.mjs` runs `detectHarnesses` from `src/detect.ts` over a batch of homes in one Node process.
 The Rust side is `skopli_wire::read::detect`, the entry the facades call, which marks a harness supported when its reader yields an event.
 
-`layouts_detect_as_the_marker_table_says` enumerates home layouts over the 80 markers in `MARKERS`, each a directory or file `src/detect.ts` probes under the home with an empty environment and the home as working directory, tagged with the harness it speaks for or with the unsupported product it names.
+`layouts_detect_as_the_marker_table_says` enumerates home layouts over the 81 markers in `MARKERS`, each a directory or file `src/detect.ts` probes under the home with an empty environment and the home as working directory, tagged with the harness it speaks for or with the unsupported product it names.
 Every root the detector spells relative to the home is a row, whichever operating system it serves: the VS Code `globalStorage` task root of each extension under `.config/Code`, `Library/Application Support/Code`, `.vscode-server/data` and `AppData/Roaming/Code`, the kiro database under `.kiro`, `.local/share/amazon-q` and `Library/Application Support/amazon-q`, and the Windows `AppData` roots of Cursor and Crush next to their Linux ones.
-The layouts are the empty home, every single marker, every pair of markers and all markers at once: 3,242 homes.
+The layouts are the empty home, every single marker, every pair of markers and all markers at once: 3,323 homes.
 The TypeScript detector is run twice over all of them and must return the same answer (a pure function of the layout), and each answer must be exactly the harnesses and products the present markers speak for.
 The single-marker layouts establish that no two harnesses claim the same marker; `pi` (`.pi/agent/sessions`) and `kimchi` (`.config/kimchi/harness/sessions`) are distinct markers, which pins the decision that kimchi does not claim pi's session root.
 Marker files are one empty line, so a reader opening one meets a real, empty record stream.
 The Rust detector runs over the same homes and must claim no harness from any of them, since an empty marker holds no record; so on every enumerated layout the Rust verdict is a subset of the TypeScript one.
 
 `rust_and_typescript_agree_on_golden_homes` copies every golden case to the default root its reader resolves with no environment override (`DEFAULT_ROOTS`, read off each reader's root resolver), one home per case plus one home holding all of them, and requires both detectors to report exactly that case's harness alone and exactly the set of all harnesses together.
-Each home whose Linux root has a sibling on another operating system (`SIBLING_ROOTS`: the three other VS Code `globalStorage` roots, the macOS roots of CherryStudio, CommandCode, goose, kiro and Zed, the Block goose root and the Linux amazon-q root of kiro) is copied again with the tree moved to that sibling, 16 more homes over 62 in total, and must detect the same way; a sibling no golden home holds fails the check so the list cannot drift.
+Each home whose Linux root has a sibling on another operating system (`SIBLING_ROOTS`: the three other VS Code `globalStorage` roots, the macOS roots of CherryStudio, CommandCode, goose, kiro and Zed, the Block goose root and the Linux amazon-q root of kiro) is copied again with the tree moved to that sibling, 18 more homes over 93 in total, and must detect the same way; a sibling no golden home holds fails the check so the list cannot drift.
 This is the agreement check between the two detectors: the TypeScript probe sees a marker where the Rust reader yields an event, for every harness and every root, and neither sees anything else.
 
 `recorded_homes_probe_every_harness_that_yields_events` replays recorded homes read-only when `SKOPLI_VERIFY_HOMES` names a directory of `<harness>/<endpoint>/` homes.
@@ -256,6 +256,8 @@ Changing the gemini probe in `src/detect.ts` from `tmp` to `sessions` fails both
 Making `skopli_wire::read::detect` mark a harness supported when its reader raised a warning, not only when it yielded an event, fails the layout check: `820 of 2417 layouts disagree with the marker table`, starting with `[".local/share/opencode/opencode.db"]: rust claims ["opencode"] from empty markers`.
 Changing the macOS VS Code root in `src/detect.ts` from `Application Support/Code` to `Application Support/Other` fails the layout check: `227 of 3242 layouts disagree with the marker table`, starting with the three single-marker macOS task roots of roo, cline and kilocode expected and not detected.
 The same change to the macOS root in `crates/skopli-core/src/readers/vscode_ext.rs` fails the golden-homes check on the three relocated homes: `cline/ext-basic at Library/Application Support/Code/User/globalStorage: typescript ["cline"], rust [], want ["cline"]`, and the same for kilocode and roo.
+Dropping the harness's own database stem from `hasDatabase` in `src/detect.ts`, so a `mimocode.db` beside no `storage` directory is no longer a probe hit, fails the layout check: `79 of 3323 layouts disagree with the marker table`, starting with `[".local/share/mimocode/mimocode.db"]: expected ... ["mimocode"], got ... []`; the golden-homes check keeps passing because the real mimocode home also holds `storage`.
+Removing the matching `MARKERS` row instead passes both checks, which is the documented assumption above: the table is the oracle and must change with the probe.
 Each variant was applied to the working tree, run, and reverted.
 
 ## When the verified code changes on purpose
