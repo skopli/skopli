@@ -13,10 +13,6 @@ fn main() {
     println!("cargo:rerun-if-changed=src");
     println!("cargo:rerun-if-changed=cbindgen.toml");
     println!("cargo:rerun-if-changed=include/skopli.h");
-    println!(
-        "cargo:rerun-if-changed={}",
-        csharp_out(&crate_dir).display()
-    );
     println!("cargo:rerun-if-env-changed=SKOPLI_GEN_HEADER");
     println!("cargo:rerun-if-env-changed=SKOPLI_GEN_CSHARP");
 
@@ -26,6 +22,11 @@ fn main() {
 
     if env::var("SKOPLI_GEN_CSHARP").as_deref() == Ok("1") {
         gen_csharp(&crate_dir);
+    }
+
+    let csharp = csharp_out(&crate_dir);
+    if csharp.exists() {
+        println!("cargo:rerun-if-changed={}", csharp.display());
     }
 }
 
