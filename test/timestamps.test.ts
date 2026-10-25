@@ -4,6 +4,7 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { loadCached, storeCached } from "../src/pricing/cache.ts";
+import { dateParseMs } from "../src/time.ts";
 
 // Cache fetchedAt boundary conformance, driven by the SHARED fixtures in
 // golden/pricing/timestamps/. The stamp is one wire contract read and written
@@ -20,6 +21,14 @@ const cases = JSON.parse(readFileSync(casesPath, "utf8")) as Cases;
 function writeStamp(dir: string, name: string, stamp: string): void {
   writeFileSync(join(dir, name), JSON.stringify({ fetchedAt: stamp, payload: {} }));
 }
+
+describe("dateParseMs (shared gold, same grammar as the Rust core)", () => {
+  for (const kase of cases.read) {
+    it(kase.name, () => {
+      expect(dateParseMs(kase.stamp)).toBe(kase.epochMs ?? undefined);
+    });
+  }
+});
 
 describe("cache timestamp boundary read (shared gold)", () => {
   for (const kase of cases.read) {
