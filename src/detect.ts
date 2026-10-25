@@ -533,11 +533,17 @@ function crushDetected(home: string, resolver: PathResolver): boolean {
   return candidates.some((dir) => existsSync(join(dir, "projects.json")));
 }
 
-function hasOpencodeDatabase(root: string): boolean {
+// Forks keep the opencode schema: the store is `opencode.db` or, in current forks, `<app>.db`.
+function hasDatabase(root: string, app: string): boolean {
+  const stems = ["opencode", app];
   try {
-    return readdirSync(root).some(
-      (name) => name === "opencode.db" || /^opencode-.+\.db$/.test(name),
-    );
+    return readdirSync(root).some((name) => {
+      if (!name.endsWith(".db")) return false;
+      const stem = name.slice(0, -3);
+      return stems.some(
+        (s) => stem === s || (stem.startsWith(`${s}-`) && stem.length > s.length + 1),
+      );
+    });
   } catch {
     return false;
   }
@@ -550,21 +556,21 @@ export function detectHarnesses(resolver: PathResolver = defaultPathResolver): D
   }
   if (
     opencodeRoots(resolver).some(
-      (root) => dirExists(join(root, "storage")) || hasOpencodeDatabase(root),
+      (root) => dirExists(join(root, "storage")) || hasDatabase(root, "opencode"),
     )
   ) {
     supported.push("opencode");
   }
   if (
     mimocodeRoots(resolver).some(
-      (root) => dirExists(join(root, "storage")) || hasOpencodeDatabase(root),
+      (root) => dirExists(join(root, "storage")) || hasDatabase(root, "mimocode"),
     )
   ) {
     supported.push("mimocode");
   }
   if (
     commandcodeRoots(resolver).some(
-      (root) => dirExists(join(root, "storage")) || hasOpencodeDatabase(root),
+      (root) => dirExists(join(root, "storage")) || hasDatabase(root, "commandcode"),
     )
   ) {
     supported.push("commandcode");

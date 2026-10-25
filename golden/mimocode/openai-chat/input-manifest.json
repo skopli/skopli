@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "harness": "mimocode",
+  "case": "openai-chat",
+  "home": ".",
+  "options": {
+    "harnesses": [
+      "mimocode"
+    ],
+    "tz": "UTC"
+  },
+  "rollups": [
+    "model",
+    "day",
+    "harness"
+  ]
+}

@@ -1,0 +1,50 @@
+{
+  "schema_version": 1,
+  "by": {
+    "model": [
+      {
+        "key": "qwen",
+        "tokens": {
+          "input": 0,
+          "output": 195,
+          "cacheRead": 23093,
+          "cacheWrite": 7646,
+          "reasoning": 0
+        },
+        "events": 4,
+        "turns": 4,
+        "calls": 4
+      }
+    ],
+    "day": [
+      {
+        "key": "2026-10-25",
+        "tokens": {
+          "input": 0,
+          "output": 195,
+          "cacheRead": 23093,
+          "cacheWrite": 7646,
+          "reasoning": 0
+        },
+        "events": 4,
+        "turns": 4,
+        "calls": 4
+      }
+    ],
+    "harness": [
+      {
+        "key": "omp",
+        "tokens": {
+          "input": 0,
+          "output": 195,
+          "cacheRead": 23093,
+          "cacheWrite": 7646,
+          "reasoning": 0
+        },
+        "events": 4,
+        "turns": 4,
+        "calls": 4
+      }
+    ]
+  }
+}

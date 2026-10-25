@@ -60,6 +60,7 @@ pub const MARKERS: &[Marker] = &[
     file("opencode", ".local/share/opencode/opencode.db"),
     dir("mimocode", ".local/share/mimocode/storage"),
     file("mimocode", ".local/share/mimocode/opencode.db"),
+    file("mimocode", ".local/share/mimocode/mimocode.db"),
     dir("commandcode", ".local/share/commandcode/storage"),
     dir(
         "commandcode",

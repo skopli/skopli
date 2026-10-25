@@ -201,6 +201,21 @@ describe("detectHarnesses mimocode roots", () => {
     }
   });
 
+  it("detects a database-only root named after the fork", () => {
+    const home = makeHome();
+    const xdg = mkdtempSync(join(tmpdir(), "skopli-mimo-db-"));
+    try {
+      mkdirSync(join(xdg, "mimocode"), { recursive: true });
+      writeFileSync(join(xdg, "mimocode", "mimocode.db"), "");
+      const resolver = createPathResolver({ home, env: { XDG_DATA_HOME: xdg } });
+      expect(detectHarnesses(resolver).supported).toContain("mimocode");
+      expect(detectHarnesses(resolver).supported).not.toContain("opencode");
+    } finally {
+      rmSync(home, { recursive: true, force: true });
+      rmSync(xdg, { recursive: true, force: true });
+    }
+  });
+
   it("prefers MIMOCODE_HOME over XDG_DATA_HOME", () => {
     const home = makeHome();
     const mimoHome = mkdtempSync(join(tmpdir(), "skopli-mimo-home-win-"));

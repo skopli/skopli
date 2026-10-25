@@ -1,0 +1,79 @@
+{
+  "schema_version": 1,
+  "events": [
+    {
+      "harness": "opencode",
+      "messageId": "msg_1735ec7fa001BIIkQrfnLkjhwW",
+      "model": "llama/qwen",
+      "sessionId": "ses_e8ca139f3ffeu1stmShmNuH0xK",
+      "subagent": false,
+      "timestamp": "2026-10-25T14:02:33.850Z",
+      "title": "Explain pLimit in two sentences from index.js.",
+      "tokens": {
+        "cacheRead": 7222,
+        "cacheWrite": 0,
+        "input": 1,
+        "output": 17,
+        "reasoning": 0
+      },
+      "turn": true,
+      "workspace": "/home/user/project"
+    },
+    {
+      "harness": "opencode",
+      "messageId": "msg_1735edda9001h7wHe8fGEnySbW",
+      "model": "llama/qwen",
+      "sessionId": "ses_e8ca139f3ffeu1stmShmNuH0xK",
+      "subagent": false,
+      "timestamp": "2026-10-25T14:02:39.401Z",
+      "title": "Explain pLimit in two sentences from index.js.",
+      "tokens": {
+        "cacheRead": 7239,
+        "cacheWrite": 0,
+        "input": 28,
+        "output": 25,
+        "reasoning": 0
+      },
+      "turn": true,
+      "workspace": "/home/user/project"
+    },
+    {
+      "harness": "opencode",
+      "messageId": "msg_1735eefb7001VL3CY3Y32q4QjG",
+      "model": "llama/qwen",
+      "sessionId": "ses_e8ca139f3ffeu1stmShmNuH0xK",
+      "subagent": false,
+      "timestamp": "2026-10-25T14:02:44.023Z",
+      "title": "Explain pLimit in two sentences from index.js.",
+      "tokens": {
+        "cacheRead": 7291,
+        "cacheWrite": 0,
+        "input": 29,
+        "output": 44,
+        "reasoning": 0
+      },
+      "turn": true,
+      "workspace": "/home/user/project"
+    },
+    {
+      "harness": "opencode",
+      "messageId": "msg_1735f051d001hUBp6lFfOQ3DwY",
+      "model": "llama/qwen",
+      "sessionId": "ses_e8ca139f3ffeu1stmShmNuH0xK",
+      "subagent": false,
+      "timestamp": "2026-10-25T14:02:49.501Z",
+      "title": "Explain pLimit in two sentences from index.js.",
+      "tokens": {
+        "cacheRead": 7363,
+        "cacheWrite": 0,
+        "input": 30,
+        "output": 38,
+        "reasoning": 0
+      },
+      "turn": true,
+      "workspace": "/home/user/project"
+    }
+  ],
+  "diagnostics": [],
+  "skipped": {}
+}

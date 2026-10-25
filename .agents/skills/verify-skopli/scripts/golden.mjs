@@ -1,53 +1,42 @@
 #!/usr/bin/env node
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
-import { isAbsolute, join, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
+import { join, relative } from "node:path";
+import { parseArgs } from "./cli.mjs";
+import { canonical, replayCase, root } from "./replay.mjs";
 
-const [caseId, outFlag, outDir] = process.argv.slice(2);
-if (!caseId || outFlag !== "--out" || !outDir) {
-  console.error("usage: golden.mjs <harness>/<case> --out <dir>");
-  process.exit(2);
+const help = `usage: golden.mjs <harness>/<case> --out <dir> [--dry-run] [--quiet]
+
+Replays one golden case through dist/index.js and compares the events and the
+rollups with the case's expected files. Writes actual-events.json,
+actual-rollup.json and result.json under --out and prints result.json on stdout.
+
+  --out <dir>  directory for the actual output and the result (required)
+  --dry-run    print the case directory and the output paths as JSON and exit
+  --quiet      no pass/fail line on stderr
+  --help       this text
+
+exit codes: 0 pass, 1 events or a rollup differ, 2 usage error
+
+examples:
+  golden.mjs claude/basic --out .verify/evidence/20261018T180000Z/golden/claude-basic
+  for c in golden/*/*/expected-events.json; do c=\${c#golden/}; golden.mjs \${c%/expected-events.json} --out /tmp/g/\${c%/*} --quiet; done`;
+const { positional, one, dryRun, log, usage } = parseArgs(help, ["--out"]);
+const [caseId] = positional;
+const outDir = one("--out");
+if (!caseId?.includes("/") || !outDir)
+  usage("golden: <harness>/<case> and --out <dir> are required");
+
+const dir = join(root, "golden", caseId);
+const outputs = ["actual-events.json", "actual-rollup.json", "result.json"].map((f) =>
+  join(outDir, f),
+);
+if (dryRun) {
+  console.log(JSON.stringify({ case: caseId, dir: relative(root, dir), outputs }, null, 2));
+  process.exit(0);
 }
 
-const root = resolve(fileURLToPath(import.meta.url), "../../../../..");
-const { readUsage, rollup } = await import(join(root, "dist/index.js"));
-const dir = join(root, "golden", caseId);
-const input = join(dir, "input");
+const { options, dims, events, by, result } = await replayCase(caseId);
 const read = (name) => JSON.parse(readFileSync(join(dir, name), "utf8"));
-const manifest = read("input-manifest.json");
-
-const place = (v) => (isAbsolute(v) ? v : join(input, v));
-const at = (v) => (v === "." ? input : v);
-const env = Object.fromEntries(Object.entries(manifest.env ?? {}).map(([k, v]) => [k, place(v)]));
-const options = {
-  home: manifest.home ? at(manifest.home) : "/nonexistent",
-  env,
-  harnesses: [manifest.harness],
-  tz: manifest.options?.tz ?? "UTC",
-};
-if (manifest.cwd) options.cwd = at(manifest.cwd);
-
-const relativize = (s) => s.replaceAll(input, "").replace(/(^|\s)\/+/g, "$1");
-const key = (e) => [e.timestamp, e.sessionId, e.messageId, e.model].join("\0");
-const result = await readUsage(options);
-const events = result.events
-  .map((e) => ({
-    ...e,
-    sessionId: e.sessionId.startsWith(input) ? relativize(e.sessionId) : e.sessionId,
-    messageId: relativize(e.messageId),
-  }))
-  .sort((a, b) => (key(a) < key(b) ? -1 : key(a) > key(b) ? 1 : 0));
-const dims = manifest.rollups ?? ["model", "day", "harness"];
-const by = Object.fromEntries(
-  dims.map((d) => [d, rollup(events, d === "day" ? { by: d, tz: "UTC" } : { by: d })]),
-);
-
-const canonical = (v) =>
-  JSON.stringify(v, (_, x) =>
-    x && typeof x === "object" && !Array.isArray(x)
-      ? Object.fromEntries(Object.entries(x).sort(([a], [b]) => (a < b ? -1 : 1)))
-      : x,
-  );
 const expectedEvents = read("expected-events.json");
 const expectedRollup = read("expected-rollup.json");
 const summary = {
@@ -63,10 +52,10 @@ const summary = {
 };
 
 mkdirSync(outDir, { recursive: true });
-writeFileSync(join(outDir, "actual-events.json"), JSON.stringify({ events }, null, 2));
-writeFileSync(join(outDir, "actual-rollup.json"), JSON.stringify({ by }, null, 2));
-writeFileSync(join(outDir, "result.json"), JSON.stringify(summary, null, 2));
+writeFileSync(outputs[0], JSON.stringify({ events }, null, 2));
+writeFileSync(outputs[1], JSON.stringify({ by }, null, 2));
+writeFileSync(outputs[2], JSON.stringify(summary, null, 2));
 console.log(JSON.stringify(summary, null, 2));
 const pass = summary.eventsMatch && Object.values(summary.rollupsMatch).every(Boolean);
-console.log(pass ? "golden: pass" : "golden: FAIL");
+log(pass ? `golden: pass ${caseId}` : `golden: FAIL ${caseId}`);
 process.exit(pass ? 0 : 1);

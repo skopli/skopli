@@ -1,0 +1,19 @@
+INFO  2026-10-25T14:14:44 +974ms service=default version=7.8.12 command=run process_role=main run_id=ee16bc5c-ab7c-486f-93ed-0a05e8a99c2f opencode
+INFO  2026-10-25T14:14:45 +234ms service=bus type=session.turn.open subscribing
+INFO  2026-10-25T14:14:45 +3ms service=bus type=session.turn.close subscribing
+INFO  2026-10-25T14:14:45 +0ms service=bus type=memory.status subscribing
+INFO  2026-10-25T14:14:45 +1ms service=bus type=memory.updated subscribing
+INFO  2026-10-25T14:14:45 +409ms service=kilo-sessions sessionId=ses_e8c960db3ffeH89IfRwoerboxO session bootstrap skipped: no client
+INFO  2026-10-25T14:14:47 +2136ms service=kilocode-indexing workspacePath=/home/user/project initializing project indexing
+INFO  2026-10-25T14:14:47 +73ms service=bus type=indexing.status publishing
+INFO  2026-10-25T14:14:47 +0ms service=bus type=indexing.status publishing
+INFO  2026-10-25T14:14:48 +713ms service=bus type=session.turn.open publishing
+INFO  2026-10-25T14:14:48 +11ms service=model-cache providerID=kilo fetching models
+INFO  2026-10-25T14:14:48 +243ms service=model-cache providerID=kilo count=336 models fetched and cached
+INFO  2026-10-25T14:14:48 +4ms service=model-cache providerID=apertis fetching models
+INFO  2026-10-25T14:14:48 +0ms service=model-cache providerID=apertis count=0 models fetched and cached
+INFO  2026-10-25T14:14:49 +477ms service=model-cache providerID=apertis refreshing models
+INFO  2026-10-25T14:14:49 +0ms service=model-cache providerID=apertis count=0 models fetched and cached
+INFO  2026-10-25T14:14:49 +163ms service=snapshot.seed paths=16 dropped=0 ignored=0 large=0 trusted=true shared=true reset=0 duration=98 snapshot seed complete
+INFO  2026-10-25T14:14:59 +10282ms service=snapshot.materialize roots=1 duration=56 snapshot objects materialized
+INFO  2026-10-25T14:16:46 +106964ms service=bus type=session.turn.close publishing

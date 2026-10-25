@@ -107,6 +107,53 @@ node .agents/skills/verify-skopli/scripts/home.mjs <home-dir> --out .verify/evid
 It calls `detectHarnesses` and `readUsage` with that directory as `home` and `cwd` and an empty `env`, so nothing from the current machine's environment leaks in, and writes `home-result.json` (detected harnesses, event and session counts overall and per harness under `byHarness`, first diagnostic) next to `home-read.json`, the full `readUsage` result with its events, diagnostics and skipped files.
 There is no expected output to compare against; the proof is the recorded counts and the absence of diagnostics.
 
+## Usage gateway
+
+Golden cases captured from a real harness need the harness to log the usage shape its cloud provider would send.
+A local `llama-server` reports cache reuse in its own fields, so `scripts/gateway.ts` sits between the harness and the server and rewrites only the `usage` block on the way back.
+
+```sh
+node .agents/skills/verify-skopli/scripts/gateway.ts --port 8081 --upstream http://127.0.0.1:8080 --log .verify/evidence/<run>/gateway-usage.jsonl
+```
+
+It binds `127.0.0.1` on `--port` (default `8081`), forwards every request to `--upstream` (default `http://127.0.0.1:8080`) with its body and headers unchanged, streams responses through line by line, and prints one JSON line with `gateway` (its own origin), `upstream` and `pid` on stdout when it listens.
+Stop it by that PID.
+`--log` is optional and appends one JSON line per forwarded request (`at`, `method`, `path`, `route` or `null` for an auxiliary call such as `/v1/models`, `status`, `stream`, `cacheControl`, `aborted`, `usage` as sent to the harness for any JSON response that carries one, auxiliary calls included, or `null`), which is the per-call evidence for a capture and shows every call the harness made.
+Streams are decoded with a streaming decoder, so a UTF-8 character split across two chunks reaches the harness intact.
+`aborted` is true when the harness closed the connection before the response finished, so a reconciliation can set those lines aside.
+A harness whose base URL already ends in `/v1` posts bare `/messages` or `/chat/completions`; the gateway forwards routed paths to the upstream `/v1/...` endpoint, where `llama-server` serves them.
+A refused or reset upstream connection is retried three times before the harness receives a `502`.
+
+Command line: `--help` prints the options with examples, `--dry-run` prints the resolved configuration as JSON and exits, `--quiet` drops the per-request stderr lines, `--json` makes those lines JSON objects.
+Progress and errors go to stderr; stdout carries only machine-readable JSON.
+Exit codes: `0` ok, `1` could not listen, `2` usage error.
+
+Two companion scripts turn a capture into evidence and a golden case.
+`scripts/reconcile.mjs <home> <harness> <gateway-usage.jsonl>` reads the home through the facade, sums the gateway lines (aborted lines separately) and prints both totals with their delta; it exits `0` when input, output, cache read and cache write agree.
+`scripts/promote.mjs <home> <harness>/<case> --store <rel>... --redact <from>=<to>... --cache <text>` copies the named stores into `golden/<harness>/<case>/input/`, rewrites text, JSON, zstd logs and SQLite text columns with the redaction pairs (longest source first, so a short rule cannot consume the path a longer rule names), writes `input-manifest.json` and a README naming the gateway, server, model and cache source, and regenerates the expected files through `scripts/replay.mjs`, the same replay `golden.mjs` uses.
+It validates every `--store` path first and builds the case under `.verify/promote/`, swapping it into `golden/` only once every check has passed, so a bad argument or a failed check leaves the existing case untouched.
+Before writing the manifest it checks every file it copied and exits `1` when a redaction source is still present in the bytes (zstd logs are checked decompressed), when `.gitignore` would ignore a file, or when a non-text file has no `binary` attribute in `.gitattributes`; the message names the file and the fix.
+`promote.mjs`, `reconcile.mjs` and `golden.mjs` share one command line shape through `scripts/cli.mjs`: `--help` prints the options with examples, `--dry-run` prints what the run would read and write as JSON and exits (for `promote.mjs` the resolved redaction rules and every file it would write, since it replaces the case directory), `--quiet` drops the progress and verdict lines on stderr, stdout carries only JSON, an unknown option exits `2`.
+The test is `scripts/cli.test.ts`.
+Name only the stores the reader consumes: object stores such as a harness's `snapshot/` directory carry machine identifiers in binary files that no redaction rule can rewrite.
+A promoted set is proven from a clean checkout, not from the worktree that produced it: commit, `git worktree add --detach <dir> <sha>`, and run the golden sweep and the conformance tests there, because an ignored or eol-converted file is only missing or corrupt in the fresh tree.
+
+Point a harness at it with the base URL variables it reads and a dummy key, for example `OPENAI_BASE_URL=http://127.0.0.1:8081/v1 OPENAI_API_KEY=sk-dummy` or `ANTHROPIC_BASE_URL=http://127.0.0.1:8081 ANTHROPIC_API_KEY=sk-ant-dummy`.
+The key is never checked; confirm it does not appear in the promoted capture.
+
+Cache mapping, with `llama-server` as the source of truth for what was reused from its prefix cache:
+
+| Route                  | Server fields read                                               | Rewrite                                                                                                                                                                                                                                                                                                                                                                |
+| ---------------------- | ---------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `/v1/chat/completions` | `timings.cache_n`                                                | `usage.prompt_tokens_details.cached_tokens = cache_n`; `prompt_tokens` stays the full prompt. In a stream the `timings` seen on any chunk apply to the chunk that carries `usage`.                                                                                                                                                                                     |
+| `/v1/messages`         | `usage.cache_read_input_tokens`, `usage.input_tokens` (uncached) | `cache_read_input_tokens` kept; when a `system`, `tools` or message content block of the request carries `cache_control`, `cache_creation_input_tokens` = the uncached tokens and `input_tokens` = 0, otherwise `cache_creation_input_tokens` = 0 and `input_tokens` unchanged. In a stream `message_start` is rewritten and `message_delta.usage` is made cumulative. |
+| `/v1/responses`        | none                                                             | forwarded unchanged; the server already fills `usage.input_tokens_details.cached_tokens`.                                                                                                                                                                                                                                                                              |
+
+All three routes are server-reported: the chat and messages rewrites use the server's own counters, the Responses route passes the server's usage through, and nothing is derived from request text.
+Run the server with prompt caching on (the default) and at least one slot per concurrent harness session, since a slot's prefix cache is what turn two reuses.
+A capture's README names the gateway, the server build, the model and that the cache numbers are server-reported.
+The unit test is `scripts/gateway.test.ts`, run by `pnpm run test`.
+
 ## Evidence
 
 Evidence goes under `.verify/evidence/<run>/<feature>/`, where `<run>` is a UTC timestamp such as `20261018T180000Z`.
@@ -142,13 +189,16 @@ It checks every input in a small finite domain against the documented promises a
 
 ## Helpers
 
-| Script                | Invocation                                                                          | Purpose                                                               |
-| --------------------- | ----------------------------------------------------------------------------------- | --------------------------------------------------------------------- |
-| `scripts/launch.sh`   | `bash .agents/skills/verify-skopli/scripts/launch.sh`                               | build everything, serve both sites, write `state.sh`                  |
-| `scripts/doctor.sh`   | `bash .agents/skills/verify-skopli/scripts/doctor.sh`                               | read-only health check, exit `0` when worth driving                   |
-| `scripts/browser.mjs` | `node .agents/skills/verify-skopli/scripts/browser.mjs --out <dir> <steps>`         | headless Chromium step runner with transcript, screenshots and bodies |
-| `scripts/golden.mjs`  | `node .agents/skills/verify-skopli/scripts/golden.mjs <harness>/<case> --out <dir>` | replay a golden case through the facade and compare                   |
-| `scripts/home.mjs`    | `node .agents/skills/verify-skopli/scripts/home.mjs <home-dir> --out <dir>`         | detect and read an arbitrary home directory through the facade        |
-| `scripts/cleanup.sh`  | `bash .agents/skills/verify-skopli/scripts/cleanup.sh`                              | stop the servers by PID, keep evidence                                |
+| Script                  | Invocation                                                                          | Purpose                                                               |
+| ----------------------- | ----------------------------------------------------------------------------------- | --------------------------------------------------------------------- |
+| `scripts/launch.sh`     | `bash .agents/skills/verify-skopli/scripts/launch.sh`                               | build everything, serve both sites, write `state.sh`                  |
+| `scripts/doctor.sh`     | `bash .agents/skills/verify-skopli/scripts/doctor.sh`                               | read-only health check, exit `0` when worth driving                   |
+| `scripts/browser.mjs`   | `node .agents/skills/verify-skopli/scripts/browser.mjs --out <dir> <steps>`         | headless Chromium step runner with transcript, screenshots and bodies |
+| `scripts/golden.mjs`    | `node .agents/skills/verify-skopli/scripts/golden.mjs <harness>/<case> --out <dir>` | replay a golden case through the facade and compare                   |
+| `scripts/home.mjs`      | `node .agents/skills/verify-skopli/scripts/home.mjs <home-dir> --out <dir>`         | detect and read an arbitrary home directory through the facade        |
+| `scripts/gateway.ts`    | `node .agents/skills/verify-skopli/scripts/gateway.ts --port <n> --upstream <url>`  | usage-rewriting proxy in front of a local `llama-server` for captures |
+| `scripts/reconcile.mjs` | `node .agents/skills/verify-skopli/scripts/reconcile.mjs <home> <harness> <log>`    | compare a captured home's totals with the gateway log                 |
+| `scripts/promote.mjs`   | `node .agents/skills/verify-skopli/scripts/promote.mjs <home> <harness>/<case> ...` | redact and copy a capture into a golden case and regenerate expected  |
+| `scripts/cleanup.sh`    | `bash .agents/skills/verify-skopli/scripts/cleanup.sh`                              | stop the servers by PID, keep evidence                                |
 
 The scripts are executable and run on Linux only: they depend on `bash`, `curl`, `ss`, `/proc`, `git`, Node 24 and the repository's dev dependencies.

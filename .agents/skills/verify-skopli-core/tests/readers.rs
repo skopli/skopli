@@ -130,6 +130,81 @@ const KNOWN_SILENT_DROPS: &[(&str, &str, &str)] = &[
 /// touches fails the check so the list cannot drift from the corpus.
 const IGNORED_BY_DESIGN: &[(&str, &str, &str)] = &[
     (
+        "copilot",
+        "data.usage.maxPromptTokens",
+        "a context limit, not a token count",
+    ),
+    (
+        "copilot",
+        "data.usage.maxOutputTokens",
+        "an output limit, not a token count",
+    ),
+    (
+        "droid",
+        "inclusiveTokenUsage.",
+        "running session totals; the per-call counters are read from tokenUsage",
+    ),
+    (
+        "droid",
+        "lastCallTokenUsage.",
+        "restates the last tokenUsage, which is read",
+    ),
+    (
+        "pi",
+        "usage.cost.",
+        "dollar costs named after the counters they price",
+    ),
+    (
+        "prime",
+        "usage.cost.",
+        "dollar costs named after the counters they price",
+    ),
+    (
+        "claude",
+        "turnPosition.promptIndex",
+        "a turn ordinal, not a token count",
+    ),
+    (
+        "codebuddy",
+        "providerData.rawUsage.",
+        "the raw provider usage only marks the wire shape; the counters are read from message.usage",
+    ),
+    (
+        "codebuddy",
+        "providerData.usage.",
+        "restates message.usage, which is read",
+    ),
+    (
+        "gajae",
+        "usage.cost.",
+        "dollar costs named after the counters they price",
+    ),
+    (
+        "omp",
+        "usage.cost.",
+        "dollar costs named after the counters they price",
+    ),
+    (
+        "omp",
+        "contextSnapshot.promptTokens",
+        "the context size after the turn, not the request's usage",
+    ),
+    (
+        "jcode",
+        "token_usage.input_tokens",
+        "provider-native input whose cache inclusion varies by wire; the cache-inclusive prompt_tokens total is read instead",
+    ),
+    (
+        "qwen",
+        "systemPayload.snapshot.promptCount",
+        "prompt ordinals of the project snapshot, not token counts",
+    ),
+    (
+        "qwen",
+        "systemPayload.uiEvent.",
+        "the UI event restates the usage record of the same turn, which is read",
+    ),
+    (
         "amp",
         "messages.",
         "per-message usage is the fallback for a thread without a usage ledger; the golden thread has one",

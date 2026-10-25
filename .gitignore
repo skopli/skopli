@@ -52,7 +52,7 @@ sdks/swift/.build/
 .env
 .env.*
 !.env.example
-*.local
+.env*.local
 
 # OS noise
 .DS_Store

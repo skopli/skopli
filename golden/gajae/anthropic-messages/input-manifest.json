@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "harness": "gajae",
+  "case": "anthropic-messages",
+  "home": ".",
+  "options": {
+    "harnesses": [
+      "gajae"
+    ],
+    "tz": "UTC"
+  },
+  "rollups": [
+    "model",
+    "day",
+    "harness"
+  ]
+}

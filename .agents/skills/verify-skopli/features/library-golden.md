@@ -23,7 +23,7 @@ Preconditions:
 - A case directory such as `golden/claude/basic/` with an `expected-events.json`.
 - For the home replay, a directory laid out like a user's home (for example `<dir>/.claude/projects/...`) that holds at least one native session file.
 
-- **Replay a case.** Run `node .agents/skills/verify-skopli/scripts/golden.mjs claude/basic --out .verify/evidence/<run>/library`. The output ends with `golden: pass`, exit code `0`, and `result.json` shows `"eventsMatch": true` with `model`, `day` and `harness` all `true` under `rollupsMatch`.
+- **Replay a case.** Run `node .agents/skills/verify-skopli/scripts/golden.mjs claude/basic --out .verify/evidence/<run>/library`. Stderr ends with `golden: pass claude/basic`, exit code `0`, and `result.json` shows `"eventsMatch": true` with `model`, `day` and `harness` all `true` under `rollupsMatch`.
 - **Second harness.** Run `node .agents/skills/verify-skopli/scripts/golden.mjs opencode/db-basic --out .verify/evidence/<run>/library-opencode`. Same shape of result; this case reads a SQLite store.
 - **Diagnostics.** Read `result.json` from the first run. `diagnostics` is `2` and `skipped` is `2` for `claude/basic`, matching the malformed rows that case carries.
 - **Rust core.** Run `cargo test -p skopli-core --test conformance` from the repository root and keep the output. It ends with `test result: ok`.

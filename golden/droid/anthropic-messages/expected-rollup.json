@@ -1,0 +1,50 @@
+{
+  "schema_version": 1,
+  "by": {
+    "model": [
+      {
+        "key": "qwen-0",
+        "tokens": {
+          "input": 0,
+          "output": 361,
+          "cacheRead": 28290,
+          "cacheWrite": 9297,
+          "reasoning": 0
+        },
+        "events": 1,
+        "turns": 0,
+        "calls": 1
+      }
+    ],
+    "day": [
+      {
+        "key": "2026-10-25",
+        "tokens": {
+          "input": 0,
+          "output": 361,
+          "cacheRead": 28290,
+          "cacheWrite": 9297,
+          "reasoning": 0
+        },
+        "events": 1,
+        "turns": 0,
+        "calls": 1
+      }
+    ],
+    "harness": [
+      {
+        "key": "droid",
+        "tokens": {
+          "input": 0,
+          "output": 361,
+          "cacheRead": 28290,
+          "cacheWrite": 9297,
+          "reasoning": 0
+        },
+        "events": 1,
+        "turns": 0,
+        "calls": 1
+      }
+    ]
+  }
+}

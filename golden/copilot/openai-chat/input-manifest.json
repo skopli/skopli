@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "harness": "copilot",
+  "case": "openai-chat",
+  "home": ".",
+  "options": {
+    "harnesses": [
+      "copilot"
+    ],
+    "tz": "UTC"
+  },
+  "rollups": [
+    "model",
+    "day",
+    "harness"
+  ]
+}
