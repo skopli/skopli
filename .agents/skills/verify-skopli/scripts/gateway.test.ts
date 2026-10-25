@@ -175,6 +175,11 @@ describe("proxy", () => {
         res.end(Buffer.concat(chunks));
         return;
       }
+      if (req.url === "/v1/models") {
+        res.writeHead(200, { "content-type": "application/json" });
+        res.end('{"data":[]}');
+        return;
+      }
       res.writeHead(200, { "content-type": "text/event-stream" });
       if (req.url === "/v1/chat/completions") split(res, cafe, cafe.indexOf("\u00e9") + 1);
       else split(res, sse, sse.indexOf("input_tokens"));
@@ -224,13 +229,26 @@ describe("proxy", () => {
     expect(await res.text()).toBe(cafe.toString("utf8"));
   });
 
+  it("forwards an unrouted request untouched and logs it with a null route and usage", async () => {
+    const res = await fetch(`${await ready}/v1/models`);
+    expect(await res.text()).toBe('{"data":[]}');
+    expect(logged().find((l) => l.path === "/v1/models")).toMatchObject({
+      method: "GET",
+      route: null,
+      status: 200,
+      stream: false,
+      aborted: false,
+      usage: null,
+    });
+  });
+
   it("forwards responses untouched and still logs their usage", async () => {
     const usage = { input_tokens: 44, input_tokens_details: { cached_tokens: 43 } };
     const body = JSON.stringify({ usage });
     const res = await fetch(`${await ready}/v1/responses`, { method: "POST", body });
     expect(await res.text()).toBe(body);
     const line = logged().find((l) => l.path === "/v1/responses");
-    expect(line).toMatchObject({ status: 200, stream: false, aborted: false, usage });
+    expect(line).toMatchObject({ route: "responses", status: 200, stream: false, usage });
   });
 
   it("serves a bare /messages from the upstream /v1/messages", async () => {

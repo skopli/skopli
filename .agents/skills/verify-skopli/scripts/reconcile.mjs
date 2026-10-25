@@ -35,7 +35,8 @@ const add = (acc, t) => {
   for (const k of Object.keys(acc)) acc[k] += t[k] ?? 0;
   return acc;
 };
-const fromLine = ({ usage: u = {} }) => {
+const fromLine = ({ usage: u }) => {
+  u ??= {};
   const cached = u.prompt_tokens_details?.cached_tokens ?? u.input_tokens_details?.cached_tokens;
   if (cached !== undefined) {
     const prompt = u.prompt_tokens ?? u.input_tokens ?? 0;

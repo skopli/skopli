@@ -45,20 +45,24 @@ export const carriesCacheControl = (body: Json | undefined): boolean => {
   );
 };
 
-export const rewriteBody = (route: Route, text: string, cacheControl: boolean): string => {
+export const rewriteBody = (
+  route: Route | undefined,
+  text: string,
+  cacheControl: boolean,
+): string => {
   const body = parse(text);
   const usage = obj(body?.usage);
-  if (!body || !usage || route === "responses") return text;
+  if (!body || !usage || !route || route === "responses") return text;
   if (route === "chat") return JSON.stringify(rewriteChat(body));
   return JSON.stringify({ ...body, usage: rewriteMessageUsage(usage, cacheControl) });
 };
 
-export const sseRewriter = (route: Route, cacheControl: boolean) => {
+export const sseRewriter = (route: Route | undefined, cacheControl: boolean) => {
   let timings: Json | undefined;
   let input: Json = {};
   return (data: string): string => {
     const chunk = parse(data);
-    if (!chunk || route === "responses") return data;
+    if (!chunk || !route || route === "responses") return data;
     if (route === "chat") {
       timings = obj(chunk.timings) ?? timings;
       return JSON.stringify(rewriteChat(chunk, timings));
@@ -163,22 +167,18 @@ export const createGateway = (upstream: URL, { log, quiet, json }: GatewayOption
     const record = (usage: unknown) => {
       const line = {
         at: new Date().toISOString(),
+        method: req.method,
         path: url.pathname,
+        route: route ?? null,
         status: response.status,
         stream,
         cacheControl,
         aborted,
-        usage,
+        usage: usage ?? null,
       };
       if (log) appendFileSync(log, `${JSON.stringify(line)}\n`);
       progress(response.status);
     };
-    if (!route || !response.body) {
-      res.writeHead(response.status, headers);
-      for await (const chunk of response.body ?? []) res.write(chunk);
-      res.end();
-      return;
-    }
     if (!stream) {
       const out = rewriteBody(route, await response.text(), cacheControl);
       res.writeHead(response.status, {
@@ -220,12 +220,14 @@ const help = `usage: gateway.ts [--port <n>] [--upstream <url>] [--log <file>] [
 Usage-rewriting proxy in front of a local llama-server. Forwards every request
 unchanged and rewrites only the usage block of chat completions and messages
 responses so a harness logs the cache fields its cloud provider would send.
-Responses API calls pass through unchanged; their usage is logged as well.
+Every other path (Responses API included) passes through unchanged and is
+logged as well, so auxiliary calls show up in the reconciliation.
 
   --port <n>        port to bind on 127.0.0.1 (default 8081)
   --upstream <url>  llama-server origin (default http://127.0.0.1:8080)
-  --log <file>      append one JSON line per upstream response (route, status,
-                    stream, cacheControl, aborted, usage as sent to the client)
+  --log <file>      append one JSON line per upstream response (method, path,
+                    route or null, status, stream, cacheControl, aborted, usage
+                    as sent to the client or null)
   --quiet           no per-request lines on stderr
   --json            per-request stderr lines as JSON objects
   --dry-run         print the resolved configuration as JSON and exit
