@@ -167,8 +167,8 @@ Three literal tables in the test keep the check honest:
 ### Bounds
 
 - One mutation per run: a single cell replaced or a single file damaged, never two at once.
-- 98,119 damaged inputs across the seventy-four cases, 208 of which leave the reader with an unusable timestamp that the wire read drops.
-- 1,296 live token cell mutations over 31 readers, 457 inert cells skipped, 26 ignored-by-design entries exercised, 4 known silent drops reproduced.
+- 96,522 damaged inputs across the seventy-four cases, 206 of which leave the reader with an unusable timestamp that the wire read drops.
+- 1,284 live token cell mutations over 31 readers, 461 inert cells skipped, 26 ignored-by-design entries exercised, 4 known silent drops reproduced.
 - Files the readers open through other means (SQLite databases, zstd streams) get only the byte-level damage, since they hold no JSON leaves to shift.
 
 Not covered: the token mapping of the nine readers in `NO_MAPPING_COVERAGE` (`cherrystudio`, `goose`, `hermes`, `kilo`, `kiro` and `zed` read SQLite only; `cline`, `roo` and `kilocode` keep their counters inside a JSON string in `ui_messages.json`, which the leaf walk does not enter), two faults in one record, faults in file names or directory structure, records the golden case does not contain, readers' handling of a cell type they never see in the corpus, and the exact diagnostic text.
