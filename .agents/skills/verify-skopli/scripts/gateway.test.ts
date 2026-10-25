@@ -37,7 +37,7 @@ describe("chat completions", () => {
   it("leaves a body without timings alone", () => {
     const { timings: _, ...bare } = chat;
     expect(rewriteChat(bare)).toEqual(bare);
-    expect(rewriteBody("chat", "not json", false)).toBe("not json");
+    expect(rewriteBody("chat", bare, false)).toBe(bare);
   });
 
   it("carries timings from an earlier chunk onto the usage chunk of a stream", () => {
@@ -66,10 +66,9 @@ describe("messages", () => {
       cache_read_input_tokens: 26,
       output_tokens: 6,
     });
-    expect(
-      JSON.parse(rewriteBody("messages", JSON.stringify({ usage: message }), true)).usage
-        .input_tokens,
-    ).toBe(0);
+    expect(rewriteBody("messages", { usage: message }, true)).toMatchObject({
+      usage: { input_tokens: 0 },
+    });
   });
 
   it("reads cache_control from system, tool and content blocks, not from prose", () => {
@@ -142,11 +141,9 @@ describe("routes", () => {
   });
 
   it("never rewrites responses bodies or streams", () => {
-    const text = JSON.stringify({
-      usage: { input_tokens: 44, input_tokens_details: { cached_tokens: 43 } },
-    });
-    expect(rewriteBody("responses", text, false)).toBe(text);
-    expect(sseRewriter("responses", false)(text)).toBe(text);
+    const body = { usage: { input_tokens: 44, input_tokens_details: { cached_tokens: 43 } } };
+    expect(rewriteBody("responses", body, false)).toBe(body);
+    expect(sseRewriter("responses", false)(JSON.stringify(body))).toBe(JSON.stringify(body));
   });
 });
 
@@ -163,6 +160,7 @@ describe("proxy", () => {
     `data: ${JSON.stringify({ choices: [{ delta: { content: "caf\u00e9" } }] })}\n\n`,
   );
   const blob = Buffer.from([0xff, 0x00, 0xfe]);
+  const embeddings = '{"data": [],\n "usage": {"prompt_tokens": 12, "total_tokens": 12}}';
   const split = (res: ServerResponse, bytes: Buffer, cut: number) => {
     res.write(bytes.subarray(0, cut));
     setTimeout(() => res.end(bytes.subarray(cut)), 10);
@@ -179,6 +177,11 @@ describe("proxy", () => {
       if (req.url === "/v1/models") {
         res.writeHead(200, { "content-type": "application/json" });
         res.end('{"data":[]}');
+        return;
+      }
+      if (req.url === "/v1/embeddings") {
+        res.writeHead(200, { "content-type": "application/json; charset=utf-8" });
+        res.end(embeddings);
         return;
       }
       if (req.url === "/v1/blob") {
@@ -245,6 +248,15 @@ describe("proxy", () => {
       stream: false,
       aborted: false,
       usage: null,
+    });
+  });
+
+  it("logs the usage an unrouted JSON response carries and forwards the body byte for byte", async () => {
+    const res = await fetch(`${await ready}/v1/embeddings`, { method: "POST", body: "{}" });
+    expect(await res.text()).toBe(embeddings);
+    expect(logged().find((l) => l.path === "/v1/embeddings")).toMatchObject({
+      route: null,
+      usage: { prompt_tokens: 12, total_tokens: 12 },
     });
   });
 

@@ -118,7 +118,7 @@ node .agents/skills/verify-skopli/scripts/gateway.ts --port 8081 --upstream http
 
 It binds `127.0.0.1` on `--port` (default `8081`), forwards every request to `--upstream` (default `http://127.0.0.1:8080`) with its body and headers unchanged, streams responses through line by line, and prints one JSON line with `gateway` (its own origin), `upstream` and `pid` on stdout when it listens.
 Stop it by that PID.
-`--log` is optional and appends one JSON line per forwarded request (`at`, `method`, `path`, `route` or `null` for an auxiliary call such as `/v1/models`, `status`, `stream`, `cacheControl`, `aborted`, `usage` as sent to the harness or `null`), which is the per-call evidence for a capture and shows every call the harness made.
+`--log` is optional and appends one JSON line per forwarded request (`at`, `method`, `path`, `route` or `null` for an auxiliary call such as `/v1/models`, `status`, `stream`, `cacheControl`, `aborted`, `usage` as sent to the harness for any JSON response that carries one, auxiliary calls included, or `null`), which is the per-call evidence for a capture and shows every call the harness made.
 Streams are decoded with a streaming decoder, so a UTF-8 character split across two chunks reaches the harness intact.
 `aborted` is true when the harness closed the connection before the response finished, so a reconciliation can set those lines aside.
 A harness whose base URL already ends in `/v1` posts bare `/messages` or `/chat/completions`; the gateway forwards routed paths to the upstream `/v1/...` endpoint, where `llama-server` serves them.

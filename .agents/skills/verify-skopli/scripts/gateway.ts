@@ -45,16 +45,12 @@ export const carriesCacheControl = (body: Json | undefined): boolean => {
   );
 };
 
-export const rewriteBody = (
-  route: Route | undefined,
-  text: string,
-  cacheControl: boolean,
-): string => {
-  const body = parse(text);
-  const usage = obj(body?.usage);
-  if (!body || !usage || !route || route === "responses") return text;
-  if (route === "chat") return JSON.stringify(rewriteChat(body));
-  return JSON.stringify({ ...body, usage: rewriteMessageUsage(usage, cacheControl) });
+/** Returns `body` itself when the route leaves it alone, so the caller can forward the raw bytes. */
+export const rewriteBody = (route: Route | undefined, body: Json, cacheControl: boolean): Json => {
+  const usage = obj(body.usage);
+  if (!usage || !route || route === "responses") return body;
+  if (route === "chat") return rewriteChat(body);
+  return { ...body, usage: rewriteMessageUsage(usage, cacheControl) };
 };
 
 export const sseRewriter = (route: Route | undefined, cacheControl: boolean) => {
@@ -181,10 +177,14 @@ export const createGateway = (upstream: URL, { log, quiet, json }: GatewayOption
     };
     if (!stream) {
       const raw = Buffer.from(await response.arrayBuffer());
-      const out = route ? Buffer.from(rewriteBody(route, raw.toString("utf8"), cacheControl)) : raw;
+      const json = response.headers.get("content-type")?.startsWith("application/json")
+        ? parse(raw.toString("utf8"))
+        : undefined;
+      const sent = json && rewriteBody(route, json, cacheControl);
+      const out = sent && sent !== json ? Buffer.from(JSON.stringify(sent)) : raw;
       res.writeHead(response.status, { ...headers, "content-length": String(out.length) });
       res.end(out);
-      record(route ? usageOf(parse(out.toString("utf8"))) : undefined);
+      record(usageOf(sent));
       return;
     }
     res.writeHead(response.status, headers);
