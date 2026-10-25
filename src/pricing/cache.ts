@@ -1,5 +1,6 @@
 import { mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import { dateParseMs } from "../time.ts";
 
 type CacheFile = {
   fetchedAt: string;
@@ -33,9 +34,9 @@ export function loadCached(
   if (typeof parsed !== "object" || parsed === null) return null;
   const file = parsed as Partial<CacheFile>;
   if (typeof file.fetchedAt !== "string" || file.payload === undefined) return null;
-  const age = now - Date.parse(file.fetchedAt);
-  if (!Number.isFinite(age)) return null;
-  return { fetchedAt: file.fetchedAt, payload: file.payload, stale: age > ttlMs };
+  const fetchedMs = dateParseMs(file.fetchedAt);
+  if (fetchedMs === undefined) return null;
+  return { fetchedAt: file.fetchedAt, payload: file.payload, stale: now - fetchedMs > ttlMs };
 }
 
 export function storeCached(

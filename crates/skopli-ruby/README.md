@@ -1,18 +1,13 @@
 # skopli (Ruby)
 
-Native Ruby binding over `skopli-core` (via [magnus] + [rb-sys]) - read,
-roll up, and price AI coding-agent token usage. The gem is a thin, idiomatic
-Ruby facade (`Data.define` value classes, symbol dimensions like `:claude` /
-`:day`, keyword-args, the `Skopli::Error` hierarchy) over a native extension
-that binds the Rust core **directly** (not the C ABI).
+Native Ruby binding over `skopli-core` (via [magnus] + [rb-sys]) - read, roll up, and price AI coding-agent token usage.
+The gem is a thin, idiomatic Ruby facade (`Data.define` value classes, symbol dimensions like `:claude` / `:day`, keyword-args, the `Skopli::Error` hierarchy) over a native extension that binds the Rust core **directly** (not the C ABI).
 
-Sync-only v1: every native call releases the GVL around the Rust work, so other
-Ruby threads make progress.
+Sync-only v1: every native call releases the GVL around the Rust work, so other Ruby threads make progress.
 
 ## Layout
 
-This gem is crate-local: the same directory is both a Cargo crate
-(`crates/skopli-ruby`) and a RubyGem.
+This gem is crate-local: the same directory is both a Cargo crate (`crates/skopli-ruby`) and a RubyGem.
 
 ```
 crates/skopli-ruby/

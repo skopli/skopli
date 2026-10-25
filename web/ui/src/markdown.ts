@@ -1,4 +1,4 @@
-import { harnesses } from "./harnesses.ts";
+import { harnesses, label } from "./harnesses.ts";
 import { langs } from "./langs.ts";
 import { command, quickstarts, releaseNote } from "./quickstart.ts";
 
@@ -13,5 +13,5 @@ export const quickstartMd = [
 export const harnessMd = [
   "| Harness | id |",
   "| --- | --- |",
-  ...harnesses.map((h) => `| ${h.name} | \`${h.id}\` |`),
+  ...harnesses.map((h) => `| ${label(h)} | \`${h.id}\` |`),
 ].join("\n");

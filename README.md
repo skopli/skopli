@@ -19,7 +19,7 @@
   <img src="assets/logos/goose.svg" height="20" alt="goose" align="absmiddle" />&nbsp;&nbsp;
   <img src="assets/logos/grok.svg" height="20" alt="Grok Build" align="absmiddle" />&nbsp;&nbsp;
   <img src="assets/logos/cline.svg" height="20" alt="Cline" align="absmiddle" />&nbsp;&nbsp;
-  <img src="assets/logos/roocode.svg" height="20" alt="Roo Code" align="absmiddle" />&nbsp;&nbsp;
+  <img src="assets/logos/roo.svg" height="20" alt="Roo Code" align="absmiddle" />&nbsp;&nbsp;
   <img src="assets/logos/kilocode.svg" height="20" alt="Kilo Code" align="absmiddle" />&nbsp;&nbsp;
   <img src="assets/logos/zed.svg" height="20" alt="Zed Agent" align="absmiddle" />
 </p>
@@ -60,7 +60,8 @@ One Rust core applies the same rules behind every facade: TypeScript, Python, Ru
 
 <!-- generated: install-table -->
 
-No release has shipped yet, and no registry has a usable package. Each line below installs from the repository.
+No release has shipped yet, and no registry has a usable package.
+Each line below installs from the repository.
 
 | Language   | Install now (from the repository)                                                                                                                                                                                                           | Notes                                                                                                                                             | After the first release                                                                                               |
 | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
@@ -133,31 +134,35 @@ for (const row of priced) {
 
 ## Supported harnesses
 
-40 harnesses are supported.
+<!-- generated: harness-table -->
+
+40 supported.
 The id is what you pass in `readUsage({ harnesses: [...] })`.
 
-| Harness                                                                                        | id               |     | Harness                                                                                            | id             |
-| ---------------------------------------------------------------------------------------------- | ---------------- | --- | -------------------------------------------------------------------------------------------------- | -------------- |
-| <img src="assets/logos/claude.svg" height="16" alt="" align="absmiddle" /> Claude Code         | `claude`         |     | <img src="assets/logos/grok.svg" height="16" alt="" align="absmiddle" /> Grok Build                | `grok`         |
-| <img src="assets/logos/opencode.svg" height="16" alt="" align="absmiddle" /> OpenCode          | `opencode`       |     | Auggie CLI                                                                                         | `augment`      |
-| <img src="assets/logos/codex.svg" height="16" alt="" align="absmiddle" /> Codex CLI            | `codex`          |     | Codebuff                                                                                           | `codebuff`     |
-| <img src="assets/logos/gemini.svg" height="16" alt="" align="absmiddle" /> Gemini CLI          | `gemini`         |     | Xum                                                                                                | `mux`          |
-| <img src="assets/logos/copilot.svg" height="16" alt="" align="absmiddle" /> GitHub Copilot CLI | `copilot`        |     | <img src="assets/logos/zed.svg" height="16" alt="" align="absmiddle" /> Zed Agent                  | `zed`          |
-| <img src="assets/logos/amp.svg" height="16" alt="" align="absmiddle" /> Amp CLI                | `amp`            |     | <img src="assets/logos/zcode.svg" height="16" alt="" align="absmiddle" /> ZCode                    | `zcode`        |
-| Droid CLI                                                                                      | `droid`          |     | <img src="assets/logos/devin.svg" height="16" alt="" align="absmiddle" /> Devin CLI                | `devin`        |
-| <img src="assets/logos/qwen.svg" height="16" alt="" align="absmiddle" /> Qwen Code             | `qwen`           |     | <img src="assets/logos/roocode.svg" height="16" alt="" align="absmiddle" /> Roo Code               | `roo`          |
-| Pi                                                                                             | `pi`             |     | <img src="assets/logos/cline.svg" height="16" alt="" align="absmiddle" /> Cline                    | `cline`        |
-| omp                                                                                            | `omp`            |     | <img src="assets/logos/kilocode.svg" height="16" alt="" align="absmiddle" /> Kilo Code for VS Code | `kilocode`     |
-| <img src="assets/logos/kilocode.svg" height="16" alt="" align="absmiddle" /> Kilo Code CLI     | `kilo`           |     | <img src="assets/logos/junie.svg" height="16" alt="" align="absmiddle" /> Junie                    | `junie`        |
-| <img src="assets/logos/goose.svg" height="16" alt="" align="absmiddle" /> goose                | `goose`          |     | <img src="assets/logos/openclaw.svg" height="16" alt="" align="absmiddle" /> OpenClaw              | `openclaw`     |
-| Hermes Agent                                                                                   | `hermes`         |     | <img src="assets/logos/kimi.svg" height="16" alt="" align="absmiddle" /> Kimi Code CLI             | `kimi`         |
-| Prime Agent                                                                                    | `prime`          |     | Gajae-Code                                                                                         | `gajae`        |
-| Kimchi Coding                                                                                  | `kimchi`         |     | MiMo Code                                                                                          | `mimocode`     |
-| Command Code                                                                                   | `commandcode`    |     | CodeBuddy Code                                                                                     | `codebuddy`    |
-| jcode                                                                                          | `jcode`          |     | Cherry Studio                                                                                      | `cherrystudio` |
-| OpenCodeReview                                                                                 | `opencodereview` |     | Trae Agent                                                                                         | `trae`         |
-| DeepSeek Harness                                                                               | `deepseek`       |     | Reasonix                                                                                           | `reasonix`     |
-| Kiro CLI                                                                                       | `kiro`           |     | fx                                                                                                 | `fx`           |
+| Harness                                                                                        | id            |     | Harness                                                                                            | id               |
+| ---------------------------------------------------------------------------------------------- | ------------- | --- | -------------------------------------------------------------------------------------------------- | ---------------- |
+| <img src="assets/logos/claude.svg" height="16" alt="" align="absmiddle" /> Claude Code         | `claude`      |     | Xum                                                                                                | `mux`            |
+| <img src="assets/logos/codex.svg" height="16" alt="" align="absmiddle" /> Codex CLI            | `codex`       |     | <img src="assets/logos/zcode.svg" height="16" alt="" align="absmiddle" /> ZCode                    | `zcode`          |
+| <img src="assets/logos/gemini.svg" height="16" alt="" align="absmiddle" /> Gemini CLI          | `gemini`      |     | <img src="assets/logos/roo.svg" height="16" alt="" align="absmiddle" /> Roo Code                   | `roo`            |
+| <img src="assets/logos/opencode.svg" height="16" alt="" align="absmiddle" /> OpenCode          | `opencode`    |     | <img src="assets/logos/cline.svg" height="16" alt="" align="absmiddle" /> Cline                    | `cline`          |
+| MiMo Code                                                                                      | `mimocode`    |     | <img src="assets/logos/kilocode.svg" height="16" alt="" align="absmiddle" /> Kilo Code CLI         | `kilo`           |
+| Command Code                                                                                   | `commandcode` |     | <img src="assets/logos/kilocode.svg" height="16" alt="" align="absmiddle" /> Kilo Code for VS Code | `kilocode`       |
+| <img src="assets/logos/copilot.svg" height="16" alt="" align="absmiddle" /> GitHub Copilot CLI | `copilot`     |     | <img src="assets/logos/openclaw.svg" height="16" alt="" align="absmiddle" /> OpenClaw              | `openclaw`       |
+| <img src="assets/logos/amp.svg" height="16" alt="" align="absmiddle" /> Amp CLI                | `amp`         |     | <img src="assets/logos/kimi.svg" height="16" alt="" align="absmiddle" /> Kimi Code CLI             | `kimi`           |
+| Droid CLI                                                                                      | `droid`       |     | <img src="assets/logos/junie.svg" height="16" alt="" align="absmiddle" /> Junie                    | `junie`          |
+| <img src="assets/logos/qwen.svg" height="16" alt="" align="absmiddle" /> Qwen Code             | `qwen`        |     | <img src="assets/logos/devin.svg" height="16" alt="" align="absmiddle" /> Devin CLI                | `devin`          |
+| Pi                                                                                             | `pi`          |     | Hermes Agent                                                                                       | `hermes`         |
+| omp                                                                                            | `omp`         |     | <img src="assets/logos/goose.svg" height="16" alt="" align="absmiddle" /> goose                    | `goose`          |
+| Prime Agent                                                                                    | `prime`       |     | <img src="assets/logos/zed.svg" height="16" alt="" align="absmiddle" /> Zed Agent                  | `zed`            |
+| Gajae-Code                                                                                     | `gajae`       |     | Cherry Studio                                                                                      | `cherrystudio`   |
+| Kimchi Coding                                                                                  | `kimchi`      |     | OpenCodeReview                                                                                     | `opencodereview` |
+| <img src="assets/logos/grok.svg" height="16" alt="" align="absmiddle" /> Grok Build            | `grok`        |     | Trae Agent                                                                                         | `trae`           |
+| Auggie CLI                                                                                     | `augment`     |     | DeepSeek Harness                                                                                   | `deepseek`       |
+| Codebuff                                                                                       | `codebuff`    |     | Reasonix                                                                                           | `reasonix`       |
+| CodeBuddy Code                                                                                 | `codebuddy`   |     | Kiro CLI (estimated)                                                                               | `kiro`           |
+| jcode                                                                                          | `jcode`       |     | fx                                                                                                 | `fx`             |
+
+<!-- /generated -->
 
 Kiro CLI stores no token counts, so its events carry estimated tokens.
 GitHub Copilot CLI is read from its session-state logs; events from its optional OTel export are kept only for sessions those logs do not cover.

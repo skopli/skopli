@@ -43,10 +43,14 @@ node .agents/skills/verify-skopli/scripts/browser.mjs --out .verify/evidence/<ru
 ```
 
 - **Wide entry.** Steps 1 and 2 load the page and wait for the box with placeholder `Search docs`.
-- **Match.** Steps 3 to 7 type `timezone`. The message reads `3 results for timezone` and the links include `Rollups /skopli/guide/rollups/` and `Coverage /skopli/reference/coverage/` with their section hits.
-- **Open result.** Steps 8 and 9 follow the first result link, `Rollups`. The path is `/skopli/guide/rollups/`.
-- **Empty state.** Steps 10 to 14 search `zzqxv` on the new page. The message reads `No results for zzqxv`.
-- **Clear.** Steps 15 to 17 press the clear button. The value is `""` and the result count is `0`.
+- **Match.** Steps 3 to 7 type `timezone`.
+  The message reads `3 results for timezone` and the links include `Rollups /skopli/guide/rollups/` and `Coverage /skopli/reference/coverage/` with their section hits.
+- **Open result.** Steps 8 and 9 follow the first result link, `Rollups`.
+  The path is `/skopli/guide/rollups/`.
+- **Empty state.** Steps 10 to 14 search `zzqxv` on the new page.
+  The message reads `No results for zzqxv`.
+- **Clear.** Steps 15 to 17 press the clear button.
+  The value is `""` and the result count is `0`.
 - **Narrow entry.** Run a second invocation at phone width.
 
 ```sh
@@ -64,8 +68,11 @@ node .agents/skills/verify-skopli/scripts/browser.mjs --out .verify/evidence/<ru
 
 ## Gotchas
 
-- Results update after a short debounce. Wait for `.pagefind-ui__result` or for text containing the new query, never a fixed sleep; reading the message right after `fill` returns the previous query's message.
+- Results update after a short debounce.
+  Wait for `.pagefind-ui__result` or for text containing the new query, never a fixed sleep; reading the message right after `fill` returns the previous query's message.
 - The input has no ARIA label; its accessible name is the placeholder `Search docs`, so `role=textbox[name="Search docs"]` is the handle and `role=searchbox` does not match.
-- Result links repeat page titles for section hits, and the sidebar carries the same titles. Click through `.pagefind-ui__result-link` so the proof follows the result and not the sidebar.
-- A dev server (`astro dev`) has no pagefind bundle, so the box never appears there. Verify against the built output launch serves.
+- Result links repeat page titles for section hits, and the sidebar carries the same titles.
+  Click through `.pagefind-ui__result-link` so the proof follows the result and not the sidebar.
+- A dev server (`astro dev`) has no pagefind bundle, so the box never appears there.
+  Verify against the built output launch serves.
 - The `Search` toggle and `Menu` button only exist in the DOM as visible controls at 860px and below.

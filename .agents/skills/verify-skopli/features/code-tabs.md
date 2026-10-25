@@ -39,10 +39,14 @@ node .agents/skills/verify-skopli/scripts/browser.mjs --out .verify/evidence/<ru
   screenshot 03-rollups-swift
 ```
 
-- **Default.** Steps 1 to 3 list the tabs. Nine entries, `TypeScript:true` and the other eight `false`.
-- **Click.** Steps 4 to 7 pick Python. Only `python:false` appears; the other panels are `true` (hidden); the stored value is `"python"`.
-- **Keyboard.** Steps 8 to 10 focus Go and press ArrowRight. The result is `"Swift swift"`.
-- **Persist.** Steps 11 to 13 open another page. The selected tab is `"Swift"`.
+- **Default.** Steps 1 to 3 list the tabs.
+  Nine entries, `TypeScript:true` and the other eight `false`.
+- **Click.** Steps 4 to 7 pick Python.
+  Only `python:false` appears; the other panels are `true` (hidden); the stored value is `"python"`.
+- **Keyboard.** Steps 8 to 10 focus Go and press ArrowRight.
+  The result is `"Swift swift"`.
+- **Persist.** Steps 11 to 13 open another page.
+  The selected tab is `"Swift"`.
 - **Marketing site.** Run a second invocation for the other origin.
 
 ```sh
@@ -59,7 +63,9 @@ node .agents/skills/verify-skopli/scripts/browser.mjs --out .verify/evidence/<ru
 
 ## Gotchas
 
-- The language is stored per origin. Picking Swift on the docs does not change the marketing site; prove each on its own.
-- Arrow keys only act while a tab has focus. Click the tab first or the keypress goes nowhere.
+- The language is stored per origin.
+  Picking Swift on the docs does not change the marketing site; prove each on its own.
+- Arrow keys only act while a tab has focus.
+  Click the tab first or the keypress goes nowhere.
 - A page can hold several `code-tabs` groups; selecting a language in one switches them all, so assert on every panel, not the first.
 - The getting-started page renders the quickstart tabs with an install line above each sample; the tab handles are the same.

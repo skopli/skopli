@@ -134,7 +134,8 @@ Brand marks are 16px `currentColor` SVGs in `ink-2`, vendored unmodified; a harn
 ## Do's and Don'ts
 
 - Do show real output from the repository's fixtures and say where the numbers come from.
-- Do keep `priced: false` visible. A miss is a result.
+- Do keep `priced: false` visible.
+  A miss is a result.
 - Don't invent testimonials, adoption figures or benchmarks.
 - Don't add eyebrows, numbered section labels or repeated subtitles.
 - Don't use the em dash in copy.

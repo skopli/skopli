@@ -1,7 +1,6 @@
 # skopli (Python)
 
-Native (PyO3 + maturin, abi3-py310) binding over `skopli-core`: read, roll
-up, and price AI coding-agent token usage with no Node/Bun runtime.
+Native (PyO3 + maturin, abi3-py310) binding over `skopli-core`: read, roll up, and price AI coding-agent token usage with no Node/Bun runtime.
 
 ```python
 import skopli
@@ -16,10 +15,7 @@ pricing = skopli.create_pricing(overrides=[
 priced = pricing.price_rollups(rollups)
 ```
 
-The public API is snake_case; results are frozen slotted dataclasses; `Harness`
-and `RollupBy` are string enums; a price lookup is a `PriceHit | PriceMiss`
-union (`match` on `.priced`). Errors raise `SkopliError` ->
-`InvalidArgumentError` (also a `ValueError`) / `CatalogError`.
+The public API is snake_case; results are frozen slotted dataclasses; `Harness` and `RollupBy` are string enums; a price lookup is a `PriceHit | PriceMiss` union (`match` on `.priced`).
+Errors raise `SkopliError` -> `InvalidArgumentError` (also a `ValueError`) / `CatalogError`.
 
-Sync-only v1: every call releases the GIL, so wrap in `asyncio.to_thread` for
-async callers.
+Sync-only v1: every call releases the GIL, so wrap in `asyncio.to_thread` for async callers.

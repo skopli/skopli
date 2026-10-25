@@ -4,10 +4,7 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { loadCached, storeCached } from "../src/pricing/cache.ts";
-
-// Cache fetchedAt boundary conformance, driven by the SHARED fixtures in
-// golden/pricing/timestamps/. The stamp is one wire contract read and written
-// by seven facades; TS and the native core must agree on every boundary.
+import { dateParseMs } from "../src/time.ts";
 
 type ReadCase = { name: string; stamp: string; epochMs: number | null };
 type Cases = { read: ReadCase[]; write: number[] };
@@ -17,36 +14,45 @@ const casesPath = fileURLToPath(
 );
 const cases = JSON.parse(readFileSync(casesPath, "utf8")) as Cases;
 
-function writeStamp(dir: string, name: string, stamp: string): void {
+const name = "pricing-openrouter.json";
+const cacheWith = (stamp: string): string => {
+  const dir = mkdtempSync(join(tmpdir(), "skopli-ts-"));
   writeFileSync(join(dir, name), JSON.stringify({ fetchedAt: stamp, payload: {} }));
-}
+  return dir;
+};
 
-describe("cache timestamp boundary read (shared gold)", () => {
+describe("dateParseMs replays the shared timestamp fixture", () => {
   for (const kase of cases.read) {
     it(kase.name, () => {
-      const dir = mkdtempSync(join(tmpdir(), "skopli-ts-ts-"));
-      const name = "pricing-openrouter.json";
-      writeStamp(dir, name, kase.stamp);
-      if (kase.epochMs === null) {
-        expect(loadCached(dir, name, 0, 0)).toBeNull();
-        return;
-      }
-      // At now == epochMs the age is zero, not stale; one ms later it is stale.
-      // The pair pins the parsed epoch to the millisecond.
-      expect(loadCached(dir, name, 0, kase.epochMs)?.stale).toBe(false);
-      expect(loadCached(dir, name, 0, kase.epochMs + 1)?.stale).toBe(true);
+      expect(dateParseMs(kase.stamp)).toBe(kase.epochMs ?? undefined);
     });
   }
 });
 
-describe("cache timestamp boundary write (shared gold)", () => {
+describe("loadCached reads fetchedAt with the shared grammar", () => {
+  it("is fresh at the parsed instant and stale one ms later", () => {
+    const dir = cacheWith("2026-08-01T00:00:00.000Z");
+    expect(loadCached(dir, name, 0, 1785542400000)?.stale).toBe(false);
+    expect(loadCached(dir, name, 0, 1785542400001)?.stale).toBe(true);
+  });
+  for (const stamp of [
+    "not-a-timestamp",
+    "2026-08-01T00:00:00+0000",
+    "Sat, 01 Aug 2026 00:00:00 GMT",
+  ]) {
+    it(`misses on ${stamp}, whatever the host Date accepts`, () => {
+      expect(loadCached(cacheWith(stamp), name, 0, 1785542400000)).toBeNull();
+    });
+  }
+});
+
+describe("storeCached writes the canonical stamp", () => {
   for (const ms of cases.write) {
     it(`writes integral-ms for ${ms}`, () => {
-      const dir = mkdtempSync(join(tmpdir(), "skopli-ts-tsw-"));
-      const stamp = storeCached(dir, "pricing-openrouter.json", {}, ms);
+      const stamp = storeCached(mkdtempSync(join(tmpdir(), "skopli-ts-")), name, {}, ms);
       expect(stamp).toHaveLength(24);
       expect(stamp.endsWith("Z")).toBe(true);
-      expect(Date.parse(stamp)).toBe(ms);
+      expect(dateParseMs(stamp)).toBe(ms);
     });
   }
 });

@@ -1,23 +1,14 @@
 # Billing-block rollup conformance fixtures
 
-Shared gold for `rollup(by: "block", blockMs, tz)`: events aggregate into
-session-window blocks that approximate a provider quota window. A block opens at
-the first event's timestamp floored to the block grain in the requested zone and
-spans `blockMs`; events in `[start, start + blockMs)` join it, and the first
-event past that opens a new block. The grain is the hour for any `blockMs` of an
-hour or more, and `blockMs` itself below an hour, measured from the start of the
-local wall-clock hour. A block therefore never starts mid-hour unless the width
-is shorter than an hour, and two blocks never share a key. Because the grain
-restarts at every hour, a sub-hour width that does not divide the hour can give
-a key inside the previous block's window: with a forty-minute width, events at
-22:50 and 23:25 open blocks keyed `22:40` and `23:00`, and `23:00` lies inside
-the first block's window `[22:40, 23:20)`. Keys stay distinct and ascending and
-every event belongs to exactly one block; only a consumer that reads
-`[key, key + blockMs)` as the instants a block holds sees overlapping windows.
-Each row's key is the ISO-8601 instant of its block start. This fixture pins
-that windowing so any consumer that anchors, splits, or floors a block wrong
-fails against shared gold. The Rust core and every language facade (which
-reaches the same core over the C ABI) consume it the same way.
+Shared gold for `rollup(by: "block", blockMs, tz)`: events aggregate into session-window blocks that approximate a provider quota window.
+A block opens at the first event's timestamp floored to the block grain in the requested zone and spans `blockMs`; events in `[start, start + blockMs)` join it, and the first event past that opens a new block.
+The grain is the hour for any `blockMs` of an hour or more, and `blockMs` itself below an hour, measured from the start of the local wall-clock hour.
+A block therefore never starts mid-hour unless the width is shorter than an hour, and two blocks never share a key.
+Because the grain restarts at every hour, a sub-hour width that does not divide the hour can give a key inside the previous block's window: with a forty-minute width, events at 22:50 and 23:25 open blocks keyed `22:40` and `23:00`, and `23:00` lies inside the first block's window `[22:40, 23:20)`.
+Keys stay distinct and ascending and every event belongs to exactly one block; only a consumer that reads `[key, key + blockMs)` as the instants a block holds sees overlapping windows.
+Each row's key is the ISO-8601 instant of its block start.
+This fixture pins that windowing so any consumer that anchors, splits, or floors a block wrong fails against shared gold.
+The Rust core and every language facade (which reaches the same core over the C ABI) consume it the same way.
 
 ## `cases.json`
 
@@ -25,17 +16,13 @@ An array of cases, each:
 
 - `name`: a stable case identifier.
 - `tz`: the IANA zone passed as the rollup `tz` option (drives the block floor).
-- `blockMs`: the block width in milliseconds passed as the rollup `blockMs`
-  option (`18000000` is the five-hour default). The field is always present in
-  the fixture; a zero or negative value is a policy input, not an omission, and
-  falls back to the five-hour default. Omitting `blockMs` entirely (using the
-  default) is tested per suite outside this fixture, since the shared schema
-  requires the field. Keeping the field required is the cleaner choice: every
-  consumer reads a plain integer with no null handling.
-- `timestamps`: the ISO-8601 timestamps of the events to roll up. A consumer
-  synthesizes one usage event per timestamp and rolls them up with
-  `{ by: "block", tz, blockMs }`. Order is irrelevant; the rollup sorts events by
-  timestamp before windowing.
+- `blockMs`: the block width in milliseconds passed as the rollup `blockMs` option (`18000000` is the five-hour default).
+  The field is always present in the fixture; a zero or negative value is a policy input, not an omission, and falls back to the five-hour default.
+  Omitting `blockMs` entirely (using the default) is tested per suite outside this fixture, since the shared schema requires the field.
+  Keeping the field required is the cleaner choice: every consumer reads a plain integer with no null handling.
+- `timestamps`: the ISO-8601 timestamps of the events to roll up.
+  A consumer synthesizes one usage event per timestamp and rolls them up with `{ by: "block", tz, blockMs }`.
+  Order is irrelevant; the rollup sorts events by timestamp before windowing.
 - `expected`: the resulting blocks in ascending block-start order, each with its
   `key` (the ISO-8601 block-start instant) and `events` count.
 
@@ -59,23 +46,18 @@ An array of cases, each:
 - `forty-minute-width-floors-from-the-hour`: a width that does not divide the
   hour is measured from the hour start, so 22:50 with a forty-minute width
   anchors to `22:40`.
-- `forty-minute-width-key-inside-previous-window`: with the same width, 22:50
-  and 23:10 share the `22:40` block, whose window runs to 23:20, and 23:25 opens
-  a block keyed `23:00`, an instant inside that window. Keys stay distinct and
-  ascending and each event sits in exactly one block.
+- `forty-minute-width-key-inside-previous-window`: with the same width, 22:50 and 23:10 share the `22:40` block, whose window runs to 23:20, and 23:25 opens a block keyed `23:00`, an instant inside that window.
+  Keys stay distinct and ascending and each event sits in exactly one block.
 - `minute-twenty-four-floors-to-the-local-hour`: an event at minute `:24` of a
   named non-UTC zone (`Europe/London`, on UTC in January) floors to `22:00`,
   pinning that the wall-clock minute is read as a minute and never confused
   with a `24` hour digit.
 - `kolkata-floors-local-hour`: `Asia/Kolkata` (UTC+5:30) floors the local
   wall-clock hour, so 09:17Z (14:47 local) anchors to 14:00 local = 08:30Z.
-- `fall-back-first-occurrence-anchors-earlier-hour`: during the
-  `America/New_York` fall-back, 05:30Z is the first `01:30` (EDT). Flooring
-  subtracts the local minute/second from the instant, preserving the occurrence,
-  so it anchors to 05:00Z, not the repeated hour's earlier occurrence.
-- `fall-back-second-occurrence-anchors-later-hour`: 06:30Z is the second `01:30`
-  (EST) of the same fall-back; occurrence-preserving flooring anchors it to
-  06:00Z. The two occurrences resolve to different instants.
+- `fall-back-first-occurrence-anchors-earlier-hour`: during the `America/New_York` fall-back, 05:30Z is the first `01:30` (EDT).
+  Flooring subtracts the local minute/second from the instant, preserving the occurrence, so it anchors to 05:00Z, not the repeated hour's earlier occurrence.
+- `fall-back-second-occurrence-anchors-later-hour`: 06:30Z is the second `01:30` (EST) of the same fall-back; occurrence-preserving flooring anchors it to 06:00Z.
+  The two occurrences resolve to different instants.
 - `fall-back-both-occurrences-separate-blocks`: both repeated-hour events with a
   one-hour width open separate blocks (05:00Z and 06:00Z), pinning that the
   reference and core agree on repeated-hour flooring.
@@ -84,9 +66,8 @@ An array of cases, each:
   and 07:00Z; with a one-hour width they open separate blocks.
 - `three-consecutive-gaps`: four events each more than one one-hour block apart
   open four consecutive blocks, exercising the re-anchor branch more than once.
-- `zero-block-ms-falls-back-to-default`: a `blockMs` of `0` falls back to the
-  five-hour default, so two events within five hours share one block. This pins
-  the non-positive-width policy.
+- `zero-block-ms-falls-back-to-default`: a `blockMs` of `0` falls back to the five-hour default, so two events within five hours share one block.
+  This pins the non-positive-width policy.
 - `negative-block-ms-falls-back-to-default`: a negative `blockMs` also falls back
   to the five-hour default.
 - `non-canonical-slash-timestamp-is-invalid`: a `2026/01/01 09:30:00` timestamp
@@ -100,11 +81,6 @@ An array of cases, each:
 
 ## Timestamp grammar
 
-Both the reference (`src/rollup.ts`) and the core (`crates/skopli-core`) parse
-and sort timestamps at the rollup boundary with the same strict ECMA-262 Date
-Time String Format grammar (`YYYY-MM-DD` optionally followed by
-`THH:mm(:ss(.sss)?)?` and `Z` or `±HH:mm`; an offsetless date-time is UTC).
-Anything outside that grammar sorts last and shares the single `invalid-date`
-block. This keeps a caller-supplied event list bucketed identically on both
-sides, since `rollup` is a public function and does not require reader-canonical
-input.
+Both the reference (`src/rollup.ts`) and the core (`crates/skopli-core`) parse and sort timestamps at the rollup boundary with the same strict ECMA-262 Date Time String Format grammar (`YYYY-MM-DD` optionally followed by `THH:mm(:ss(.sss)?)?` and `Z` or `±HH:mm`; an offsetless date-time is UTC).
+Anything outside that grammar sorts last and shares the single `invalid-date` block.
+This keeps a caller-supplied event list bucketed identically on both sides, since `rollup` is a public function and does not require reader-canonical input.

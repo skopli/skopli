@@ -13,7 +13,7 @@ export const published = false;
 
 export const releaseNote = published
   ? ""
-  : "No release has shipped yet, and no registry has a usable package. Each line below installs from the repository.";
+  : "No release has shipped yet, and no registry has a usable package.\nEach line below installs from the repository.";
 
 export const command = (q: Quickstart) => (published ? (q.install ?? q.source) : q.source);
 
