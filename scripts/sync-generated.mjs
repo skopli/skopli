@@ -1,11 +1,27 @@
+import { spawnSync } from "node:child_process";
 import { existsSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { harnesses } from "../web/ui/src/harnesses.ts";
 import { langs } from "../web/ui/src/langs.ts";
 import { command, published, quickstarts, releaseNote } from "../web/ui/src/quickstart.ts";
 
+const args = process.argv.slice(2);
+if (args.some((a) => a !== "--check")) {
+  const help = args.includes("--help") || args.includes("-h");
+  (help ? console.log : console.error)(
+    [
+      "usage: pnpm run sync [--check]",
+      "",
+      "Regenerates every committed derived file: the README install table, the llms.txt",
+      "harness list, the docs copy of CONTRIBUTING.md, the C header and the C# bindings.",
+      "",
+      "  --check  leave every file as it is; exit 1 and list the stale files instead",
+    ].join("\n"),
+  );
+  process.exit(help ? 0 : 2);
+}
 process.chdir(join(import.meta.dirname, ".."));
-const check = process.argv.includes("--check");
+const check = args.includes("--check");
 const repo = "https://github.com/skopli/skopli";
 const read = (file) => readFileSync(file, "utf8");
 const ids = JSON.parse(read("golden/registry/ids.json")).ids;
@@ -89,6 +105,32 @@ for (const [file, render] of targets) {
   if (check) stale.push(file);
   else writeFileSync(file, next);
 }
+
+const cargoGenerated = [
+  "crates/skopli-capi/include/skopli.h",
+  "sdks/csharp/Skopli/Native/NativeMethods.g.cs",
+];
+const before = cargoGenerated.map(read);
+const cargo = spawnSync("cargo", ["build", "--quiet", "-p", "skopli-capi"], {
+  stdio: "inherit",
+  env: { ...process.env, SKOPLI_GEN_HEADER: "1", SKOPLI_GEN_CSHARP: "1" },
+});
+cargoGenerated.forEach((file, i) => {
+  if (read(file) === before[i]) return;
+  if (check) {
+    stale.push(file);
+    writeFileSync(file, before[i]);
+  }
+});
+if (cargo.status !== 0) {
+  console.error(
+    cargo.error?.code === "ENOENT"
+      ? "cargo not found on PATH; it regenerates the C header and the C# bindings"
+      : "cargo build -p skopli-capi failed",
+  );
+  process.exit(1);
+}
+
 if (stale.length) {
   console.error(`out of date: ${stale.join(", ")}\nregenerate with: pnpm run sync`);
   process.exit(1);

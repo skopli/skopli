@@ -40,18 +40,15 @@ The `net` cargo feature adds built-in catalog fetching for bare-C consumers.
 
 ## Test
 
-The local gate has three parts.
+The local gate has two parts.
 The Rust format, lint, and test commands come first.
 `pnpm run check` runs oxlint, oxfmt, tsc, vitest, and the generated-file check.
-The two zero-diff scripts compare `skopli.h` against cbindgen and the C# P/Invoke layer against csbindgen.
 
 ```sh
 cargo fmt --all -- --check
 cargo clippy --workspace --exclude skopli --all-targets -- -D warnings
 cargo test --workspace --exclude skopli
 pnpm run check
-bash scripts/check-capi-header.sh
-bash scripts/check-csharp-bindings.sh
 ```
 
 CI runs the same commands across a Rust matrix (1.88, 1.89, stable) and a Node addon matrix, plus both site builds, the Python, Go, and .NET facades on Ubuntu, macOS, and Windows, Ruby and Java on Ubuntu and macOS, and Swift on macOS.
@@ -61,11 +58,13 @@ A change to an `expected-*.json` file is a documented behavior change.
 Say why in the commit message.
 `golden/README.md` describes the corpus layout and how to add a case.
 
-Three files are generated, each from a source elsewhere in the repository, and `pnpm run sync --check` (part of `pnpm run check`) fails when a copy drifts:
+Five files are generated, each from a source elsewhere in the repository, and `pnpm run sync --check` (part of `pnpm run check`) fails when a copy drifts:
 
 - the install table in `README.md`, from `web/ui/src/quickstart.ts`
 - the supported-harness list in `llms.txt`, from `golden/registry/ids.json`
 - the docs copy of this page, from `CONTRIBUTING.md`
+- the C header `crates/skopli-capi/include/skopli.h`, from the crate's `extern "C"` surface through cbindgen
+- the C# P/Invoke layer `sdks/csharp/Skopli/Native/NativeMethods.g.cs`, from the same surface through csbindgen
 
 Edit the source and run `pnpm run sync`.
 On the docs copy, every backticked path that exists in the repository becomes a link to the file on GitHub.
@@ -105,7 +104,7 @@ Built-in catalogs live in `crates/skopli-core/src/pricing/sources.rs`, one `Sour
 
 - Branch from `main`. Every change lands through a pull request.
 - The PR title is a Conventional Commit (`feat(web): ...`, `fix(core): ...`) and the PR carries one independently releasable change.
-- CI must be green, including the zero-diff and generated-file checks above.
+- CI must be green, including the generated-file check above.
 - Docs and marketing copy state only what the code does: no benchmarks, adoption numbers, or testimonials.
 
 ## Releases
