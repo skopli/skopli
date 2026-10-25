@@ -1,21 +1,8 @@
-# Release - build ALL artifacts, upload to a DRAFT GitHub release, and (GATED)
-# publish to registries (ticket 21; spec.md "Release-ready CI" 393-426).
-#
-# ============================ PUBLISHING IS GATED ============================
-# Nothing here can publish until:
-#   1. the repo variable  PUBLISH_ENABLED  is set to the string 'true', AND
-#   2. each registry's OIDC trusted-publisher configuration exists and names
-#      this owner/repo/workflow (see PUBLISHING-SETUP.md), AND
-#   3. this workflow is triggered (push of a v* tag, or a manual workflow_dispatch).
-# Every publish job carries `if: vars.PUBLISH_ENABLED == 'true'` and
-# authenticates only via OIDC trusted publishing (id-token: write): no
-# long-lived registry secret is stored. Without the registry-side publisher
-# configuration the token exchange is rejected, so a stray run is a hard stop.
-# The GitHub release is created as a DRAFT (never auto-published).
-# ============================================================================
-#
-# Third-party actions are pinned to full commit SHAs. Least-privilege per job:
-# the default is `contents: read`; the draft-release job takes
+# Build every artifact, upload them to a draft GitHub release, and publish to the registries
+# only when the repository variable PUBLISH_ENABLED is the string 'true' and the registry's
+# OIDC trusted publisher names this workflow (PUBLISHING-SETUP.md). No registry secret is stored;
+# without the trusted-publisher configuration the token exchange fails and the job stops.
+# Third-party actions are pinned to full commit SHAs. The draft-release job alone takes
 # `contents: write`; publish jobs take `id-token: write`.
 name: Release
 
@@ -40,14 +27,6 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  # ==========================================================================
-  # ARTIFACT BUILDS (no publishing; each uploads to the workflow artifact store)
-  # ==========================================================================
-
-  # --- Node napi prebuilds: napi-rs v3 matrix ------------------------------
-  # Platform-package naming/scoping (optionalDependencies wiring, `napi
-  # create-npm-dirs`) is deferred to ticket 08 (the name is not yet fixed); this
-  # job builds the per-target .node prebuild the publish step would consume.
   napi-prebuild:
     name: napi-prebuild (${{ matrix.target }})
     runs-on: ${{ matrix.runner }}
@@ -64,17 +43,10 @@ jobs:
           - { runner: ubuntu-latest, target: x86_64-unknown-linux-musl }
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
-      - uses: pnpm/action-setup@f40ffcd9367d9f12939873eb1018b921a783ffaa # v4
-      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+      - uses: ./.github/actions/node
+      - uses: ./.github/actions/rust
         with:
-          node-version: 24
-          cache: pnpm
-      - uses: dtolnay/rust-toolchain@4360b52568e2003a75bf9bc1d59f33a8e3fc893c # stable branch (pinned)
-        with:
-          toolchain: "1.89.0"
           targets: ${{ matrix.target }}
-      - uses: Swatinem/rust-cache@49a0bdc70d2e1b713ca9e2869b211fcce03d3c1c # v2
-      - run: pnpm install --frozen-lockfile
       - if: matrix.target == 'x86_64-unknown-linux-musl'
         run: sudo apt-get install -y musl-tools
       - name: napi build (release, per target)
@@ -85,10 +57,7 @@ jobs:
           path: native/*.node
           if-no-files-found: error
 
-  # --- Python wheels: maturin abi3 wheels across the full platform matrix ----
-  # Mirrors `maturin generate-ci github` (spec.md 410-413): manylinux
-  # x64/x86/aarch64/armv7/s390x/ppc64le, musllinux_1_2 x64/x86/aarch64/armv7,
-  # windows x64/x86/arm64, macOS x86_64 + aarch64 (NOT universal2), + sdist.
+  # maturin abi3 wheels: manylinux, musllinux_1_2, windows, macOS per arch (not universal2), plus sdist.
   python-wheels:
     name: py-wheels (${{ matrix.platform }}-${{ matrix.target }})
     runs-on: ${{ matrix.runner }}
@@ -96,14 +65,12 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          # manylinux
           - { runner: ubuntu-latest, platform: manylinux, target: x86_64, manylinux: auto }
           - { runner: ubuntu-latest, platform: manylinux, target: x86, manylinux: auto }
           - { runner: ubuntu-latest, platform: manylinux, target: aarch64, manylinux: auto }
           - { runner: ubuntu-latest, platform: manylinux, target: armv7, manylinux: auto }
           - { runner: ubuntu-latest, platform: manylinux, target: s390x, manylinux: auto }
           - { runner: ubuntu-latest, platform: manylinux, target: ppc64le, manylinux: auto }
-          # musllinux
           - { runner: ubuntu-latest, platform: musllinux, target: x86_64, manylinux: musllinux_1_2 }
           - { runner: ubuntu-latest, platform: musllinux, target: x86, manylinux: musllinux_1_2 }
           - {
@@ -113,11 +80,9 @@ jobs:
               manylinux: musllinux_1_2,
             }
           - { runner: ubuntu-latest, platform: musllinux, target: armv7, manylinux: musllinux_1_2 }
-          # windows
           - { runner: windows-latest, platform: windows, target: x64, manylinux: auto }
           - { runner: windows-latest, platform: windows, target: x86, manylinux: auto }
           - { runner: windows-latest, platform: windows, target: aarch64, manylinux: auto }
-          # macOS (per-arch, not universal2)
           - { runner: macos-latest, platform: macos, target: x86_64, manylinux: auto }
           - { runner: macos-latest, platform: macos, target: aarch64, manylinux: auto }
     steps:
@@ -155,7 +120,6 @@ jobs:
           path: dist-py
           if-no-files-found: error
 
-  # --- C ABI cdylibs/staticlibs per target ---------------------------------
   capi-artifacts:
     name: capi (${{ matrix.target }})
     runs-on: ${{ matrix.runner }}
@@ -171,11 +135,9 @@ jobs:
           - { runner: windows-latest, target: aarch64-pc-windows-msvc }
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
-      - uses: dtolnay/rust-toolchain@4360b52568e2003a75bf9bc1d59f33a8e3fc893c # stable branch (pinned)
+      - uses: ./.github/actions/rust
         with:
-          toolchain: "1.89.0"
           targets: ${{ matrix.target }}
-      - uses: Swatinem/rust-cache@49a0bdc70d2e1b713ca9e2869b211fcce03d3c1c # v2
       - name: Build C ABI cdylib + staticlib
         run: cargo build -p skopli-capi --release --target ${{ matrix.target }}
       - name: Package one archive per target (header + libraries)
@@ -187,7 +149,6 @@ jobs:
           path: dist-capi/*
           if-no-files-found: error
 
-  # --- Ruby native gem -----------------------------------------------------
   ruby-gem:
     name: ruby-gem
     runs-on: ubuntu-latest
@@ -198,10 +159,7 @@ jobs:
           ruby-version: "3.4"
           bundler-cache: true
           working-directory: crates/skopli-ruby
-      - uses: dtolnay/rust-toolchain@4360b52568e2003a75bf9bc1d59f33a8e3fc893c # stable branch (pinned)
-        with:
-          toolchain: "1.89.0"
-      - uses: Swatinem/rust-cache@49a0bdc70d2e1b713ca9e2869b211fcce03d3c1c # v2
+      - uses: ./.github/actions/rust
       - name: Build the gem
         working-directory: crates/skopli-ruby
         run: |
@@ -213,16 +171,12 @@ jobs:
           path: crates/skopli-ruby/skopli.gem
           if-no-files-found: error
 
-  # --- C#/.NET NuGet package -----------------------------------------------
   dotnet-nupkg:
     name: dotnet-nupkg
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
-      - uses: dtolnay/rust-toolchain@4360b52568e2003a75bf9bc1d59f33a8e3fc893c # stable branch (pinned)
-        with:
-          toolchain: "1.89.0"
-      - uses: Swatinem/rust-cache@49a0bdc70d2e1b713ca9e2869b211fcce03d3c1c # v2
+      - uses: ./.github/actions/rust
       - name: Build C ABI cdylib
         run: cargo build -p skopli-capi --release
       - name: dotnet pack
@@ -233,7 +187,6 @@ jobs:
           path: dist-nuget/*.nupkg
           if-no-files-found: error
 
-  # --- Java JAR ------------------------------------------------------------
   java-jar:
     name: java-jar
     runs-on: ubuntu-latest
@@ -255,9 +208,6 @@ jobs:
           path: sdks/java/build/libs/*.jar
           if-no-files-found: error
 
-  # ==========================================================================
-  # DRAFT RELEASE (only job with contents: write) - never auto-published
-  # ==========================================================================
   draft-release:
     name: draft-release
     needs:
@@ -269,8 +219,6 @@ jobs:
       - dotnet-nupkg
       - java-jar
     runs-on: ubuntu-latest
-    # Only real thing this workflow writes: a DRAFT release. Skipped on a
-    # dry-run dispatch.
     if: ${{ github.event_name == 'push' || inputs.dry_run == false }}
     permissions:
       contents: write
@@ -283,19 +231,10 @@ jobs:
       - name: Create/refresh the DRAFT GitHub release
         uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2
         with:
-          draft: true # never auto-published; a human publishes it
+          draft: true
           prerelease: false
           generate_release_notes: true
           files: release-artifacts/**/*
-
-  # ==========================================================================
-  # PUBLISH JOBS - ALL GATED on vars.PUBLISH_ENABLED == 'true' (repo variable,
-  # absent here). All five registries authenticate via GitHub Actions OIDC
-  # trusted publishing (id-token: write): no long-lived registry secret is
-  # stored anywhere. Until the matching trusted-publisher configuration exists
-  # on each registry (see PUBLISHING-SETUP.md), the token exchange is rejected
-  # and the job hard-stops, so a stray run cannot publish.
-  # ==========================================================================
 
   publish-npm:
     name: publish-npm (GATED, OIDC)
@@ -307,27 +246,18 @@ jobs:
       id-token: write
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
-      - uses: pnpm/action-setup@f40ffcd9367d9f12939873eb1018b921a783ffaa # v4
-      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+      - uses: ./.github/actions/node
         with:
-          node-version: 24
-          cache: pnpm
           registry-url: "https://registry.npmjs.org"
       - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
           path: dist-artifacts
-      - run: pnpm install --frozen-lockfile
-      # npm >= 11.5.1 exchanges the job's OIDC identity for a single-use
-      # publish credential when the package has a trusted publisher naming
-      # this repo + workflow. Requires the one-off local bootstrap publish
-      # (PUBLISHING-SETUP.md "npm") for skopli and every skopli-<platform>
-      # prebuild. napi prepublish wires the per-platform optionalDependencies
-      # and publishes each prebuild package.
+      # npm >= 11.5.1 exchanges the job's OIDC identity for a publish credential; the one-off
+      # bootstrap publish of skopli and every skopli-<platform> package is in PUBLISHING-SETUP.md.
       - name: npm >= 11.5.1 for OIDC trusted publishing
         run: |
-          npm --version
-          npx --yes semver --range ">=11.5.1" "$(npm --version)" >/dev/null \
-            || npm install -g npm@latest
+          have="$(npm --version)"
+          [ "$(printf '%s\n' 11.5.1 "$have" | sort -V | head -n1)" = 11.5.1 ] || npm install -g npm@latest
       - name: napi prepublish + publish (GATED, OIDC)
         run: |
           pnpm exec napi prepublish -t npm
@@ -347,9 +277,6 @@ jobs:
           pattern: wheels-*
           merge-multiple: true
           path: dist-py
-      # PyPI trusted publishing: the action exchanges the job's OIDC identity
-      # for a single-use API token; requires the pending trusted publisher on
-      # pypi.org (PUBLISHING-SETUP.md "PyPI"). No stored secret.
       - name: publish to PyPI (GATED, OIDC)
         uses: pypa/gh-action-pypi-publish@dc37677b2e1c63e2034f94d8a5b11f265b73ba33 # v1.14.2
         with:
@@ -366,17 +293,11 @@ jobs:
       id-token: write
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
-      - uses: dtolnay/rust-toolchain@4360b52568e2003a75bf9bc1d59f33a8e3fc893c # stable branch (pinned)
-        with:
-          toolchain: "1.89.0"
-      # crates.io trusted publishing: mints a 30-minute token from the job's
-      # OIDC identity; requires the trusted publisher configured per crate on
-      # crates.io (PUBLISHING-SETUP.md "crates.io"). No stored secret.
+      - uses: ./.github/actions/rust
       - name: mint crates.io token (GATED, OIDC)
         id: cratesio
         uses: rust-lang/crates-io-auth-action@c6f97d42243bad5fab37ca0427f495c86d5b1a18 # v1.0.5
-      # Crates already on crates.io are skipped so a re-run after a partial
-      # publish finishes the rest.
+      # Crates already on crates.io are skipped so a re-run finishes a partial publish.
       - name: cargo publish core, wire, capi (GATED)
         env:
           CARGO_REGISTRY_TOKEN: ${{ steps.cratesio.outputs.token }}
@@ -410,9 +331,6 @@ jobs:
         with:
           name: ruby-gem
           path: gem-out
-      # RubyGems trusted publishing: exchanges the job's OIDC identity for a
-      # short-lived API key; requires the pending trusted publisher on
-      # rubygems.org (PUBLISHING-SETUP.md "RubyGems"). No stored secret.
       - name: configure RubyGems credentials (GATED, OIDC)
         uses: rubygems/configure-rubygems-credentials@dc5a8d8553e6ee01fc26761a49e99e733d17954a # v2.1.0
       - name: gem push (GATED)
@@ -431,10 +349,6 @@ jobs:
         with:
           name: dotnet-nupkg
           path: nuget-out
-      # NuGet trusted publishing: exchanges the job's OIDC identity for a
-      # one-hour API key; requires the trusted publishing policy on nuget.org
-      # for the `skopli` profile (PUBLISHING-SETUP.md "NuGet"). No stored
-      # secret.
       - name: NuGet login (GATED, OIDC)
         id: nuget-login
         uses: NuGet/login@ebc737b6fc418a6ca0073cf116ec8dc156d8b81e # v1

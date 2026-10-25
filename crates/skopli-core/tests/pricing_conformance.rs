@@ -1,6 +1,5 @@
 //! Pricing conformance: reproduce the hermetic priced-rollup gold with ZERO
-//! network. Mirrors `runPricingCases` in scripts/export-golden.ts and the
-//! synthetic events in test/golden-cases/pricing.ts.
+//! network, mirroring the exporter's pricing cases.
 //!
 //! The committed snapshot payloads (`golden/pricing/catalogs/{openrouter,
 //! litellm}.json`) are fed through the SAME parsers a facade would call after
@@ -14,7 +13,7 @@
 //! bit-exactness gate; a 1-ULP fallback is reserved but is only enabled if
 //! bit-exact is disproved.
 
-use std::path::{Path, PathBuf};
+use std::path::Path;
 
 use serde_json::{Value, json};
 use skopli_core::pricing::parse::{parse_litellm, parse_openrouter};
@@ -24,18 +23,10 @@ use skopli_core::rollup::{RollupBy, RollupOptions, rollup};
 use skopli_core::types::{TokenCounts, UsageEvent};
 
 mod support;
-use support::structural_eq;
+use support::{repo_root, structural_eq};
 
 /// The exporter pins `fetchedAt` to this sentinel in the priced gold.
 const PINNED_FETCHED_AT: &str = "2026-08-01T00:00:00.000Z";
-
-fn repo_root() -> PathBuf {
-    Path::new(env!("CARGO_MANIFEST_DIR"))
-        .parent()
-        .and_then(Path::parent)
-        .expect("repo root")
-        .to_path_buf()
-}
 
 fn read_json(path: &Path) -> Value {
     serde_json::from_str(&std::fs::read_to_string(path).expect("read snapshot"))
@@ -77,7 +68,7 @@ fn event(message_id: &str, ts_sec: u32, model: &str, tokens: TokenCounts) -> Usa
     }
 }
 
-/// The exact synthetic events from test/golden-cases/pricing.ts, `basic` case.
+/// The synthetic events the `basic` priced gold was exported from.
 fn basic_events() -> Vec<UsageEvent> {
     vec![
         event("flat", 0, "gpt-5", tk(1000, 500, 0, 0, None, 0)),
@@ -138,8 +129,7 @@ fn model_price_json(price: &ModelPrice) -> Value {
     value
 }
 
-/// Serialize a priced rollup to the gold-file `pricing` shape (mirrors
-/// `canonicalPricedRollup` in scripts/export-golden.ts), pinning `fetchedAt`.
+/// Serialize a priced rollup to the gold-file `pricing` shape, pinning `fetchedAt`.
 fn canonical_priced_pricing(pricing: &RollupPricing) -> Value {
     match pricing {
         RollupPricing::Hit {

@@ -21,6 +21,8 @@
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 
+use serde::Deserialize;
+use serde::de::IgnoredAny;
 use serde_json::{Value, json};
 use skopli_core::readers::reader::{Reader, ReaderContext};
 use skopli_core::readers::shared::{ReaderResult, ReaderWarning};
@@ -31,22 +33,12 @@ use skopli_core::types::UsageEvent;
 mod support;
 use support::structural_eq;
 
-fn repo_root() -> PathBuf {
-    // crates/skopli-core -> repo root is two levels up
-    Path::new(env!("CARGO_MANIFEST_DIR"))
-        .parent()
-        .and_then(Path::parent)
-        .expect("repo root")
-        .to_path_buf()
-}
-
 /// Strip the absolute `input/` prefix (in `/` and `\` forms) from a path or
-/// message and normalize `\` to `/`, matching the TS exporter's
-/// `relativizeMessage` (scripts/export-golden.ts): strip every bare `inputDir`
-/// variant, normalize `\`->`/`, then collapse a run of leading separators only
-/// at the start of the string or right after whitespace. Unlike a naive
-/// prefix-with-separator strip, this preserves a separator that follows a
-/// non-space, non-start character (e.g. the `/` in
+/// message and normalize `\` to `/`, matching the TS exporter: strip every bare
+/// `inputDir` variant, normalize `\`->`/`, then collapse a run of leading
+/// separators only at the start of the string or right after whitespace.
+/// Unlike a naive prefix-with-separator strip, this preserves a separator that
+/// follows a non-space, non-start character (e.g. the `/` in
 /// `devin-desktop:/session-a.ndjson`), exactly as the exporter does.
 fn relativize(text: &str, input_dir: &Path) -> String {
     let abs = input_dir.to_string_lossy();
@@ -209,23 +201,6 @@ fn build_rollup_envelope(result: &ReaderResult, dimensions: &[String]) -> Value 
     })
 }
 
-/// The rollup dimensions a case exercises, read from its
-/// `input-manifest.json` `rollups` array; defaults to
-/// `["model", "day", "harness"]` when absent.
-fn rollup_dimensions(dir: &Path) -> Vec<String> {
-    std::fs::read_to_string(dir.join("input-manifest.json"))
-        .ok()
-        .and_then(|text| serde_json::from_str::<Value>(&text).ok())
-        .and_then(|m| {
-            m.get("rollups").and_then(Value::as_array).map(|arr| {
-                arr.iter()
-                    .filter_map(|v| v.as_str().map(str::to_owned))
-                    .collect::<Vec<_>>()
-            })
-        })
-        .unwrap_or_else(|| vec!["model".to_owned(), "day".to_owned(), "harness".to_owned()])
-}
-
 /// A discovered golden case: `golden/<harness>/<case>/`.
 struct GoldenCase {
     harness: String,
@@ -233,29 +208,64 @@ struct GoldenCase {
     dir: PathBuf,
 }
 
-/// List sorted subdirectory `(name, path)` pairs under `dir`.
+/// `input-manifest.json`: the home, cwd and env wiring plus the rollup lanes a
+/// case exercises. Every field the exporter writes is named here so a typo or
+/// an unknown key fails the case instead of silently falling back to defaults.
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct Manifest {
+    schema_version: u32,
+    harness: String,
+    case: String,
+    #[serde(default)]
+    env: BTreeMap<String, String>,
+    home: Option<String>,
+    cwd: Option<String>,
+    #[serde(rename = "options")]
+    _options: IgnoredAny,
+    rollups: Option<Vec<String>>,
+}
+
+fn manifest_for(case: &GoldenCase) -> Manifest {
+    let path = case.dir.join("input-manifest.json");
+    let text = std::fs::read_to_string(&path).unwrap_or_else(|e| panic!("{}: {e}", path.display()));
+    let manifest: Manifest =
+        serde_json::from_str(&text).unwrap_or_else(|e| panic!("{}: {e}", path.display()));
+    assert_eq!(
+        manifest.schema_version,
+        1,
+        "{}: schema_version",
+        path.display()
+    );
+    assert_eq!(
+        manifest.harness,
+        case.harness,
+        "{}: harness",
+        path.display()
+    );
+    assert_eq!(manifest.case, case.case, "{}: case", path.display());
+    manifest
+}
+
 fn subdirs(dir: &Path) -> Vec<(String, PathBuf)> {
-    let mut out = Vec::new();
-    if let Ok(entries) = std::fs::read_dir(dir) {
-        for entry in entries.flatten() {
-            if entry.file_type().map(|t| t.is_dir()).unwrap_or(false) {
-                out.push((
-                    entry.file_name().to_string_lossy().into_owned(),
-                    entry.path(),
-                ));
-            }
-        }
-    }
-    out.sort_by(|a, b| a.0.cmp(&b.0));
+    let mut out: Vec<(String, PathBuf)> = std::fs::read_dir(dir)
+        .map(|entries| {
+            entries
+                .flatten()
+                .filter(|e| e.file_type().map(|t| t.is_dir()).unwrap_or(false))
+                .map(|e| (e.file_name().to_string_lossy().into_owned(), e.path()))
+                .collect()
+        })
+        .unwrap_or_default();
+    out.sort();
     out
 }
 
-/// Discover every `golden/<harness>/<case>/` directory, in a stable order.
+/// Every `golden/<harness>/<case>/` holding an `expected-events.json`, in a
+/// stable order. `golden/pricing/`, `rollup-*` and `registry/` hold no cases.
 fn discover_cases() -> Vec<GoldenCase> {
-    let golden = repo_root().join("golden");
     let mut cases = Vec::new();
-    for (harness, harness_dir) in subdirs(&golden) {
-        // `golden/pricing/` is not a harness (no <case>/expected-events.json).
+    for (harness, harness_dir) in subdirs(&support::repo_root().join("golden")) {
         for (case, dir) in subdirs(&harness_dir) {
             if dir.join("expected-events.json").is_file() {
                 cases.push(GoldenCase {
@@ -269,71 +279,38 @@ fn discover_cases() -> Vec<GoldenCase> {
     cases
 }
 
-/// Resolve the env-override `ReaderContext` for a case from its
-/// `input-manifest.json`. `env` values equal to `"."` resolve to the case
-/// `input/` dir (the exporter's convention for a data root inside `input/`);
-/// the home is set to a nonexistent path so default roots never resolve.
-fn context_for(dir: &Path) -> ReaderContext {
+/// Resolve the `ReaderContext` for a case with the same two rules as the TS
+/// sweep: `home` and `cwd` are `"."` (the case `input/` dir) or taken verbatim;
+/// an `env` value is joined onto `input/` unless absolute. Without `home` the
+/// home is a nonexistent path so default roots never resolve; without `cwd` the
+/// context carries none and project-local readers yield nothing.
+fn context_for(dir: &Path, manifest: &Manifest) -> ReaderContext {
     let input_dir = dir.join("input");
-    let manifest_path = dir.join("input-manifest.json");
-    let manifest: Option<Value> = std::fs::read_to_string(&manifest_path)
-        .ok()
-        .and_then(|text| serde_json::from_str::<Value>(&text).ok());
-
-    // The manifest `home` field ("." -> the case `input/` dir) sets the home
-    // directory a home-based reader (e.g. omp) resolves from; absent -> a
-    // nonexistent path so default roots never resolve.
-    let home = manifest
-        .as_ref()
-        .and_then(|m| m.get("home"))
-        .and_then(Value::as_str)
-        .map(|v| {
-            if v == "." {
-                input_dir.clone()
-            } else {
-                PathBuf::from(v)
-            }
-        })
-        .unwrap_or_else(|| PathBuf::from("/nonexistent"));
-
-    let mut ctx = ReaderContext::new(home);
-    if let Some(env) = manifest
-        .as_ref()
-        .and_then(|m| m.get("env"))
-        .and_then(Value::as_object)
-    {
-        for (name, value) in env {
-            if let Some(v) = value.as_str() {
-                // The exporter resolves every env value with `resolve(inputDir,
-                // rel)` (scripts/export-golden.ts): `.` -> the case `input/`
-                // dir, any other relative path -> joined onto `input/`, and an
-                // absolute path passes through unchanged.
-                let candidate = Path::new(v);
-                let resolved = if candidate.is_absolute() {
-                    v.to_owned()
-                } else if v == "." {
-                    input_dir.to_string_lossy().into_owned()
-                } else {
-                    input_dir.join(v).to_string_lossy().into_owned()
-                };
-                ctx = ctx.with_env(name.clone(), resolved);
-            }
-        }
-    }
-    // The manifest `cwd` field ("." -> the case `input/` dir) sets the working
-    // directory a project-local reader (e.g. trae) resolves from; absent -> the
-    // context carries no cwd and such readers yield nothing.
-    if let Some(cwd) = manifest
-        .as_ref()
-        .and_then(|m| m.get("cwd"))
-        .and_then(Value::as_str)
-    {
-        let resolved = if cwd == "." {
+    let at = |v: &str| {
+        if v == "." {
             input_dir.clone()
         } else {
-            PathBuf::from(cwd)
-        };
-        ctx = ctx.with_cwd(resolved);
+            PathBuf::from(v)
+        }
+    };
+    let place = |v: &str| {
+        if v == "." || Path::new(v).is_absolute() {
+            at(v)
+        } else {
+            input_dir.join(v)
+        }
+    };
+    let home = manifest
+        .home
+        .as_deref()
+        .map(at)
+        .unwrap_or_else(|| PathBuf::from("/nonexistent"));
+    let mut ctx = ReaderContext::new(home);
+    for (name, value) in &manifest.env {
+        ctx = ctx.with_env(name.clone(), place(value).to_string_lossy().into_owned());
+    }
+    if let Some(cwd) = &manifest.cwd {
+        ctx = ctx.with_cwd(at(cwd));
     }
     ctx
 }
@@ -345,7 +322,7 @@ fn context_for(dir: &Path) -> ReaderContext {
 /// consume it) fails here.
 #[test]
 fn registry_id_fixture_matches_registered_readers() {
-    let fixture = repo_root().join("golden").join("registry").join("ids.json");
+    let fixture = support::repo_root().join("golden/registry/ids.json");
     let parsed: Value = serde_json::from_str(
         &std::fs::read_to_string(&fixture).expect("read golden/registry/ids.json"),
     )
@@ -409,8 +386,8 @@ fn conformance() {
         )
         .expect("parse expected-events.json");
 
-        let ctx = context_for(&case.dir);
-        let result = reader.read(&ctx);
+        let manifest = manifest_for(case);
+        let result = reader.read(&context_for(&case.dir, &manifest));
         let actual = build_envelope(&result, &input_dir, &case.harness);
 
         match structural_eq(&actual, &expected, "") {
@@ -432,7 +409,9 @@ fn conformance() {
                 &std::fs::read_to_string(&rollup_path).expect("read expected-rollup.json"),
             )
             .expect("parse expected-rollup.json");
-            let dimensions = rollup_dimensions(&case.dir);
+            let dimensions = manifest.rollups.clone().unwrap_or_else(|| {
+                vec!["model".to_owned(), "day".to_owned(), "harness".to_owned()]
+            });
             let actual_rollup = build_rollup_envelope(&result, &dimensions);
             match structural_eq(&actual_rollup, &expected_rollup, "") {
                 Ok(()) => {
@@ -459,4 +438,44 @@ fn conformance() {
 
     assert!(!passed.is_empty(), "no registered-harness cases ran");
     assert!(failures.is_empty(), "conformance failures: {failures:#?}");
+}
+
+#[test]
+fn comparator_has_teeth() {
+    let cases = [
+        (
+            json!({"a": 1}),
+            json!({"a": 1, "b": null}),
+            false,
+            "absent is not null",
+        ),
+        (
+            json!({"a": 1, "b": null}),
+            json!({"a": 1}),
+            false,
+            "null is not absent",
+        ),
+        (json!(0.0123), json!(0.0124), false, "f64 mismatch detected"),
+        (json!(3), json!(3.0), true, "integral int equals float"),
+        (json!(0.0123), json!(0.0123), true, "equal f64 accepted"),
+        (
+            json!([1, 2]),
+            json!([1, 2, 3]),
+            false,
+            "array length detected",
+        ),
+        (
+            json!({"b": 2, "a": 1}),
+            json!({"a": 1, "b": 2}),
+            true,
+            "key order ignored",
+        ),
+    ];
+    for (actual, expected, should_match, name) in cases {
+        assert_eq!(
+            structural_eq(&actual, &expected, "").is_ok(),
+            should_match,
+            "{name}: {actual} vs {expected}"
+        );
+    }
 }

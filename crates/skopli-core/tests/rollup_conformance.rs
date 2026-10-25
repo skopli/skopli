@@ -1,23 +1,15 @@
-//! Timezone day-bucketing conformance, driven by the SHARED fixtures in
-//! golden/rollup-tz/. Each case synthesizes one usage event per timestamp,
-//! rolls them up by day in the case's zone, and asserts the resulting buckets
-//! (key + event count) equal the shared gold. The language facades consume the
-//! same fixture over the C ABI, so a facade that buckets a non-UTC day wrong
-//! fails against the same gold.
-
-use std::path::{Path, PathBuf};
+//! Day-bucketing and billing-block conformance, driven by the shared fixtures in
+//! `golden/rollup-tz/` and `golden/rollup-block/`. Each case synthesizes one
+//! usage event per timestamp, rolls them up in the case's zone and asserts the
+//! resulting buckets (key + event count) equal the gold the language facades
+//! replay over the C ABI.
 
 use serde::Deserialize;
 use skopli_core::rollup::{RollupBy, RollupOptions, rollup};
 use skopli_core::types::{TokenCounts, UsageEvent};
 
-fn repo_root() -> PathBuf {
-    Path::new(env!("CARGO_MANIFEST_DIR"))
-        .parent()
-        .and_then(Path::parent)
-        .expect("repo root")
-        .to_path_buf()
-}
+#[allow(dead_code)]
+mod support;
 
 #[derive(Deserialize)]
 struct Bucket {
@@ -29,6 +21,8 @@ struct Bucket {
 struct Case {
     name: String,
     tz: String,
+    #[serde(rename = "blockMs")]
+    block_ms: Option<i64>,
     timestamps: Vec<String>,
     expected: Vec<Bucket>,
 }
@@ -50,27 +44,23 @@ fn event(ts: &str) -> UsageEvent {
     }
 }
 
-#[test]
-fn rollup_tz_conformance() {
-    let path = repo_root()
+fn replay(fixture: &str, by: RollupBy) {
+    let path = support::repo_root()
         .join("golden")
-        .join("rollup-tz")
+        .join(fixture)
         .join("cases.json");
     let cases: Vec<Case> =
         serde_json::from_str(&std::fs::read_to_string(&path).expect("read cases.json"))
             .expect("parse cases.json");
-    assert!(!cases.is_empty(), "no rollup-tz cases found");
-
+    assert!(!cases.is_empty(), "no {fixture} cases found");
     for case in &cases {
         let events: Vec<UsageEvent> = case.timestamps.iter().map(|t| event(t)).collect();
-        let out = rollup(
-            &events,
-            &RollupOptions {
-                by: RollupBy::Day,
-                tz: Some(case.tz.clone()),
-                block_ms: None,
-            },
-        );
+        let options = RollupOptions {
+            by,
+            tz: Some(case.tz.clone()),
+            block_ms: case.block_ms,
+        };
+        let out = rollup(&events, &options);
         assert_eq!(
             out.len(),
             case.expected.len(),
@@ -82,4 +72,14 @@ fn rollup_tz_conformance() {
             assert_eq!(got.events, want.events, "{}: bucket events", case.name);
         }
     }
+}
+
+#[test]
+fn rollup_tz_conformance() {
+    replay("rollup-tz", RollupBy::Day);
+}
+
+#[test]
+fn rollup_block_conformance() {
+    replay("rollup-block", RollupBy::Block);
 }

@@ -74,8 +74,8 @@ the `NativeLib` MSBuild property or `SKOPLI_LIBRARY_PATH`).
 csbindgen run of the crate's `extern "C"` surface:
 
 ```sh
-SKOPLI_GEN_CSHARP=1 cargo build -p skopli-capi   # regenerate
-scripts/check-csharp-bindings.sh                          # zero-diff gate
+pnpm run sync           # regenerate
+pnpm run sync --check   # zero-diff gate
 ```
 
 Generation is gated on the env var so ordinary `cargo build` stays unaffected.
