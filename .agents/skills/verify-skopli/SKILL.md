@@ -67,6 +67,7 @@ Steps: `goto <url>`, `reload`, `viewport <w> <h>`, `click <selector>`, `fill <se
 Selectors are Playwright selectors; prefer `role=` with an accessible name over CSS.
 `eval` records the JSON result of the expression and awaits promises.
 `assert` stops the run and saves `failure.png` when the expression is falsy, so a failed journey leaves its last screen behind.
+`--no-js` before the steps disables JavaScript in the page; `eval` and `assert` still run, so a drive can prove what the markup alone delivers.
 Run `node .agents/skills/verify-skopli/scripts/browser.mjs` with no steps to print the full step list.
 
 Stable handles on the docs site:
