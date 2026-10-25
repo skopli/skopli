@@ -10,12 +10,11 @@ export const getStaticPaths: GetStaticPaths = async () => {
 
 export const GET: APIRoute = async ({ props }) => {
   const { entry } = props;
-  const url = `${SITE}${pagePath(entry.id)}`.replace(/^https:\/\//, "");
   const png = await ogImage({
     site: "Skopli docs",
     title: entry.data.title,
     description: entry.data.description,
-    url,
+    url: `${SITE}${pagePath(entry.id)}`,
   });
   return new Response(png, { headers: { "content-type": "image/png" } });
 };

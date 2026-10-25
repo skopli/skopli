@@ -20,7 +20,7 @@ export const layers = [
   },
 ];
 
-export const rules = [
+export const rules: [string, string][] = [
   ["Reasoning tokens", "billed at the output rate"],
   ["Cache read and write", "fall back to the input rate when a catalog omits them"],
   ["1h cache writes", "billed at the catalog's 1h rate when it has one, else input x 2"],

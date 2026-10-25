@@ -3,9 +3,8 @@ import inter500 from "@fontsource/inter/files/inter-latin-500-normal.woff?inline
 import satori from "satori";
 import sharp from "sharp";
 import mark from "./assets/skopli-mark-dark.svg?raw";
+import { ogSize } from "./project.ts";
 import tokensCss from "./styles/tokens.css?raw";
-
-export const ogSize = { width: 1200, height: 630 } as const;
 
 const rootTokens = tokensCss.match(/:root\s*{([^}]*)}/)?.[1] ?? "";
 const token = (name: string): string => {
@@ -14,26 +13,36 @@ const token = (name: string): string => {
   return match[1].trim();
 };
 
-const fontData = (dataUrl: string): Buffer => Buffer.from(dataUrl.split(",")[1] ?? "", "base64");
+const fontData = (name: string, dataUrl: string): Buffer => {
+  const base64 = dataUrl.split(",")[1];
+  if (!base64) throw new Error(`${name} did not import as a data URL`);
+  return Buffer.from(base64, "base64");
+};
 
 const fonts = [
-  { name: "Inter", data: fontData(inter400), weight: 400 as const },
-  { name: "Inter", data: fontData(inter500), weight: 500 as const },
+  { name: "Inter", data: fontData("inter400", inter400), weight: 400 as const },
+  { name: "Inter", data: fontData("inter500", inter500), weight: 500 as const },
 ];
 
-type Node = { type: string; props: Record<string, unknown> };
+type SatoriNode = { type: string; props: Record<string, unknown> };
 const el = (
   type: string,
   style: Record<string, string | number>,
-  children?: Node[] | string,
-): Node => ({
+  children?: SatoriNode[] | string,
+): SatoriNode => ({
   type,
   props: { style, children },
 });
 
 export type OgCard = { site: string; title: string; description: string; url: string };
 
-export const ogImage = async ({ site, title, description, url }: OgCard): Promise<Uint8Array> => {
+export const ogImage = async ({
+  site,
+  title,
+  description,
+  url,
+}: OgCard): Promise<Uint8Array<ArrayBuffer>> => {
+  const { host, pathname } = new URL(url);
   const paper = token("paper");
   const ink = token("ink");
   const ink2 = token("ink-2");
@@ -82,7 +91,7 @@ export const ogImage = async ({ site, title, description, url }: OgCard): Promis
           fontSize: 24,
           color: ink3,
         },
-        url,
+        `${host}${pathname === "/" ? "" : pathname}`,
       ),
     ],
   );

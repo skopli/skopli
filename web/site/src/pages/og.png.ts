@@ -4,6 +4,6 @@ import { project } from "@skopli/ui/project";
 import { description, title } from "../content.ts";
 
 export const GET: APIRoute = async () =>
-  new Response(await ogImage({ site: project.name, title, description, url: "skopli.com" }), {
+  new Response(await ogImage({ site: project.name, title, description, url: project.site }), {
     headers: { "content-type": "image/png" },
   });

@@ -29,8 +29,11 @@ const prev = index > 0 ? ordered[index - 1] : undefined;
 const next = index >= 0 && index < ordered.length - 1 ? ordered[index + 1] : undefined;
 const toc = headings.filter((h) => h.depth === 2 || h.depth === 3);
 const canonical = `${SITE}${pagePath(slug)}`;
+const image = `${SITE}${ogPath(slug)}`;
 const siteName = "Skopli docs";
-const { github } = project;
+const root = slug === "index";
+const { github, site } = project;
+const org = { "@type": "Organization", name: project.name, url: site };
 const jsonLd = [
   {
     "@context": "https://schema.org",
@@ -38,10 +41,12 @@ const jsonLd = [
     headline: title,
     description,
     url: canonical,
-    image: `${SITE}${ogPath(slug)}`,
+    image,
     inLanguage: "en",
-    isPartOf: { "@type": "WebSite", name: siteName, url: `${SITE}${BASE}/` },
-    about: { "@type": "SoftwareSourceCode", name: project.name, url: project.site, codeRepository: github },
+    author: org,
+    publisher: org,
+    isPartOf: { "@type": "WebSite", name: siteName, url: project.docs },
+    about: { "@type": "SoftwareSourceCode", name: project.name, url: site, codeRepository: github },
   },
 ];
 ---
@@ -53,16 +58,17 @@ const jsonLd = [
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <link rel="icon" href={`${BASE}/favicon.svg`} type="image/svg+xml" />
     <Head
+      documentTitle={root ? title : `${title} | ${siteName}`}
       {title}
       {description}
       url={canonical}
       {siteName}
       type="article"
-      image={`${SITE}${ogPath(slug)}`}
+      {image}
       markdown={`${SITE}${mdPath(slug)}`}
       {jsonLd}
     />
-    {slug === "index" && <link rel="alternate" type="text/markdown" href={`${SITE}${BASE}/llms.txt`} />}
+    {root && <link rel="alternate" type="text/markdown" href={`${project.docs}llms.txt`} />}
     <ThemeInit />
   </head>
   <body class="docs">
@@ -82,7 +88,7 @@ const jsonLd = [
           </svg>
         </button>
         <nav class="docs__top-nav" aria-label="Site">
-          <a href="https://skopli.com">skopli.com</a>
+          <a href={site}>skopli.com</a>
           <a href={github}>GitHub</a>
           <ThemeToggle />
         </nav>
@@ -140,7 +146,7 @@ const jsonLd = [
     <Footer
       maxWidth="96rem"
       links={[
-        { label: "skopli.com", href: "https://skopli.com" },
+        { label: "skopli.com", href: site },
         { label: "GitHub", href: github },
         ...(published ? [{ label: "npm", href: "https://www.npmjs.com/package/skopli" }] : []),
         { label: "View as Markdown", href: mdPath(slug) },

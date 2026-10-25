@@ -1,3 +1,5 @@
+import { project } from "@skopli/ui/project";
+
 export type NavItem = { label: string; slug: string };
 
 export const nav: { label: string; items: NavItem[] }[] = [
@@ -38,8 +40,9 @@ export const ordered: NavItem[] = [
   ...nav.flatMap((g) => g.items),
 ];
 
-export const SITE = "https://docs.skopli.com";
-export const BASE = "/skopli";
+const docs = new URL(project.docs);
+export const SITE = docs.origin;
+export const BASE = docs.pathname.replace(/\/$/, "");
 
 export const pagePath = (slug: string): string =>
   slug === "index" ? `${BASE}/` : `${BASE}/${slug}/`;
