@@ -12,7 +12,6 @@ Its final working state (readers, case definitions, exporter) was verified zero-
 The TypeScript implementation was retired rather than kept as a live oracle.
 For new third-party format changes, both implementations would be written by the same maintainer from the same samples, so a sibling implementation provides correlated guesses, not independence.
 The ground truth for this domain is the third-party applications' real files and their own reported numbers.
-Other projects that rewrote in a new language kept the predecessor's test artifacts and deleted its code; this corpus follows that pattern.
 
 ## Updating the corpus
 

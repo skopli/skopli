@@ -87,7 +87,7 @@ The links change the table widths, so that copy is excluded from oxfmt.
 
 Readers never touch the network.
 A field the harness does not record is `0`, and a timestamp that cannot be parsed is a diagnostic, not an epoch-0 event.
-A reader estimates tokens only when the harness stores none, and [`README.md`](https://github.com/skopli/skopli/blob/main/README.md), [`llms.txt`](https://github.com/skopli/skopli/blob/main/llms.txt), and the docs then say so next to the harness (Kiro today).
+A reader estimates tokens only when the harness stores none, and [`README.md`](https://github.com/skopli/skopli/blob/main/README.md), [`llms.txt`](https://github.com/skopli/skopli/blob/main/llms.txt), and the docs then state the estimate for that harness (Kiro today).
 
 ## Add a pricing source
 

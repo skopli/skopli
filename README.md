@@ -33,13 +33,18 @@
 
 </div>
 
-> No accounts, no telemetry. The Read and Rollup layers never touch the network. The Price layer fetches market catalogs by default when you use it, caches them for an hour, and keeps pricing from that cache when the network is gone.
+> No accounts, no telemetry.
+> The Read and Rollup layers never touch the network.
+> The Price layer fetches market catalogs by default when you use it, caches them for an hour, and keeps pricing from that cache when the network is gone.
 
-Skopli is an SDK, not a CLI. It reads the session state your agent harnesses already store on disk (tokens, sessions, turns, calls), normalizes it, aggregates it, and prices it. Build your own dashboards, reports, or billing checks on top.
+Skopli is an SDK, not a CLI.
+It reads the tokens, sessions, turns, and calls your agent harnesses already store on disk, then normalizes, aggregates, and prices them.
+Build your own dashboards, reports, or billing checks on top.
 
 ## Why Skopli
 
-Three independent layers. Use any subset:
+Three independent layers.
+Use any subset:
 
 | Layer      | What it does                                                                                                                                                          | Network          |
 | ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------- |
@@ -128,7 +133,8 @@ for (const row of priced) {
 
 ## Supported harnesses
 
-40 harnesses are supported. The id is what you pass in `readUsage({ harnesses: [...] })`.
+40 harnesses are supported.
+The id is what you pass in `readUsage({ harnesses: [...] })`.
 
 | Harness                                                                                        | id               |     | Harness                                                                                            | id             |
 | ---------------------------------------------------------------------------------------------- | ---------------- | --- | -------------------------------------------------------------------------------------------------- | -------------- |
@@ -239,8 +245,12 @@ const hit = await pricing.lookupModel("openai/gpt-5");
 
 Prices are USD per million tokens.
 
-- **Cache and offline use**: each catalog is cached on disk (1 hour TTL by default, atomic writes); when a fetch fails, a stale cache of any age is used. Default fetches time out after 10 seconds. `pricing.catalogs()` reports what loaded.
-- **Explicit misses**: model names match in tiers (exact key, provider-prefix strip, family aliases, separator/date normalization, provider-prefixed forms, alias table). Unmatched models return `{ priced: false, attempted: [...] }`, never a guess. Zero-cost catalog entries are treated as placeholders and skipped (`{ priced: false, reason: "zeroCost" }` when only they match); an explicit `$0` override is intentional and stays priced.
+- **Cache and offline use**: each catalog is cached on disk (1 hour TTL by default, atomic writes); when a fetch fails, a stale cache of any age is used.
+  Default fetches time out after 10 seconds.
+  `pricing.catalogs()` returns each loaded source's name, `fetchedAt`, and model count.
+- **Explicit misses**: model names match in tiers (exact key, provider-prefix strip, family aliases, separator/date normalization, provider-prefixed forms, alias table).
+  Unmatched models return `{ priced: false, attempted: [...] }`, never a guess.
+  Zero-cost catalog entries are treated as placeholders and skipped (`{ priced: false, reason: "zeroCost" }` when only they match); an explicit `$0` override is intentional and stays priced.
 - **Cost math**: reasoning tokens bill at the output rate; token buckets are disjoint (readers subtract reasoning-inclusive output at the source, so nothing bills twice); Claude's 5m/1h cache-write split bills at the per-TTL rates; long-context tier rates (128k to 512k boundaries, LiteLLM catalog) are selected per request with marginal billing by default and whole-request repricing for Anthropic models.
 - **Three cost modes**: `calculate` recomputes from tokens x rates, `display` reports the harness-recorded cost, `auto` prefers recorded and falls back to calculated.
 - **Per-event tiers**: `priceRollups` prices summed rollups (exact for flat-rate models, flags `tieredAggregate: true` where summing could cross a tier boundary); `priceEvents` prices each event at its own context and then aggregates, which is the correct path for tiered models:
@@ -249,7 +259,7 @@ Prices are USD per million tokens.
 const priced = await pricing.priceEvents(events, { by: "model" });
 ```
 
-The full pricing semantics (tier inheritance and fallbacks, the whole-request heuristic and its error bounds, mixed-provenance aggregation, cache-write composition per tier) are documented at [docs.skopli.com](https://docs.skopli.com/skopli/).
+The full pricing semantics are documented at [docs.skopli.com](https://docs.skopli.com/skopli/): tier inheritance and fallbacks, the whole-request heuristic and its error bounds, mixed-provenance aggregation, and cache-write composition per tier.
 
 ## Contributing
 
