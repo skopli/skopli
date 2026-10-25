@@ -44,5 +44,5 @@ export const replayCase = async (caseId) => {
   const by = Object.fromEntries(
     dims.map((d) => [d, rollup(events, d === "day" ? { by: d, tz: "UTC" } : { by: d })]),
   );
-  return { dir, options, dims, events, by, result };
+  return { dir, options, dims, events, by, result, relativize };
 };

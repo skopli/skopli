@@ -234,8 +234,7 @@ const manifest = {
 };
 writeFileSync(join(dir, "input-manifest.json"), `${JSON.stringify(manifest, null, 2)}\n`);
 
-const { events, by, result } = await replayCase(caseId);
-const relativize = (s) => s.replaceAll(input, "").replace(/(^|\s)\/+/g, "$1");
+const { events, by, result, relativize } = await replayCase(caseId);
 // Same normalisation the Rust conformance replay applies: paths relative to input/, sorted,
 // one warning-severity diagnostic per reader warning, skipped grouped by harness only when non-empty.
 const diagnostics = result.diagnostics
