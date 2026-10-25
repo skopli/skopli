@@ -1,5 +1,5 @@
 import { mkdtempSync, readFileSync } from "node:fs";
-import { createServer, type Server } from "node:http";
+import { createServer, type Server, type ServerResponse } from "node:http";
 import type { AddressInfo } from "node:net";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -152,11 +152,20 @@ describe("routes", () => {
 
 describe("proxy", () => {
   const log = join(mkdtempSync(join(tmpdir(), "gateway-")), "usage.jsonl");
-  const sse = [
-    "event: message_start\n",
-    `data: ${JSON.stringify({ type: "message_start", message: { usage: { ...message, output_tokens: 0 } } })}\n\n`,
-    `event: message_delta\ndata: ${JSON.stringify({ type: "message_delta", usage: { output_tokens: 6 } })}\n\n`,
-  ].join("");
+  const sse = Buffer.from(
+    [
+      "event: message_start\n",
+      `data: ${JSON.stringify({ type: "message_start", message: { usage: { ...message, output_tokens: 0 } } })}\n\n`,
+      `event: message_delta\ndata: ${JSON.stringify({ type: "message_delta", usage: { output_tokens: 6 } })}\n\n`,
+    ].join(""),
+  );
+  const cafe = Buffer.from(
+    `data: ${JSON.stringify({ choices: [{ delta: { content: "caf\u00e9" } }] })}\n\n`,
+  );
+  const split = (res: ServerResponse, bytes: Buffer, cut: number) => {
+    res.write(bytes.subarray(0, cut));
+    setTimeout(() => res.end(bytes.subarray(cut)), 10);
+  };
   const upstream = createServer((req, res) => {
     const chunks: Buffer[] = [];
     req.on("data", (c: Buffer) => chunks.push(c));
@@ -167,9 +176,8 @@ describe("proxy", () => {
         return;
       }
       res.writeHead(200, { "content-type": "text/event-stream" });
-      const cut = sse.indexOf("input_tokens");
-      res.write(sse.slice(0, cut));
-      setTimeout(() => res.end(sse.slice(cut)), 10);
+      if (req.url === "/v1/chat/completions") split(res, cafe, cafe.indexOf("\u00e9") + 1);
+      else split(res, sse, sse.indexOf("input_tokens"));
     });
   });
   const listen = (server: Server) =>
@@ -209,6 +217,11 @@ describe("proxy", () => {
       cache_read_input_tokens: 26,
       output_tokens: 6,
     });
+  });
+
+  it("keeps a UTF-8 character whose bytes arrive in two chunks", async () => {
+    const res = await fetch(`${await ready}/v1/chat/completions`, { method: "POST", body: "{}" });
+    expect(await res.text()).toBe(cafe.toString("utf8"));
   });
 
   it("forwards responses untouched and still logs their usage", async () => {

@@ -202,12 +202,14 @@ export const createGateway = (upstream: URL, { log, quiet, json }: GatewayOption
       usage = usageOf(parse(data)) ?? usage;
       res.write(`data: ${data}\n`);
     };
-    for await (const chunk of response.body) {
-      pending += Buffer.from(chunk).toString("utf8");
+    const decoder = new TextDecoder();
+    for await (const chunk of response.body ?? []) {
+      pending += decoder.decode(chunk, { stream: true });
       const lines = pending.split("\n");
       pending = lines.pop() ?? "";
       lines.forEach(emit);
     }
+    pending += decoder.decode();
     if (pending) emit(pending);
     res.end();
     record(usage);
