@@ -10,6 +10,7 @@ Every docs page carries one split control under its title: a `Copy page` button 
 - `actions-copy-link` is the second menu item and copies the twin's public URL; the label flips to `Link copied`.
 - `actions-open-in` is the six remaining items (ChatGPT, Claude, Grok, Perplexity, Google AI Mode, Cursor), each carrying a prompt that names the twin's public URL.
 - `actions-footer-md` repeats `View as Markdown` in the footer.
+- `actions-no-js`: without JavaScript the list renders as a plain card under the control, so the twin link and the six handoffs stay reachable. The component script marks the group `data-enhanced`, and only then does the stylesheet collapse the list behind the chevron.
 
 ## How to get to it (user POV)
 
@@ -80,10 +81,23 @@ The run has 39 steps; the numbers below are the `[n]` prefixes in the transcript
 - **Footer link.** Step 38 returns to the page and step 39 reads the footer. The href is `/skopli/guide/reading.md`.
 - **Proof.** The transcript holds the clipboard excerpt and length, the focus and `aria-expanded` readings and the hrefs; `02-copied.png` shows the `Copied` label and `03-menu.png` the open menu with focus on its first item.
 
+The no-JavaScript fallback is a separate run with `--no-js`:
+
+```sh
+node .agents/skills/verify-skopli/scripts/browser.mjs --out .verify/evidence/<run>/page-actions-no-js --no-js \
+  goto http://127.0.0.1:4322/skopli/guide/reading/ \
+  eval "document.querySelector('[data-actions]').hasAttribute('data-enhanced')" \
+  eval "[...document.querySelectorAll('.actions a')].filter(a=>a.getClientRects().length).map(a=>a.textContent.trim())" \
+  eval "document.documentElement.scrollWidth" \
+  screenshot 01-no-js
+```
+
+Step 2 reads `false` (the script never ran), step 3 lists the seven rendered links (`View as Markdown` and the six `Open in` entries), step 4 reads the viewport width, so nothing overflows, and `01-no-js.png` shows the list as a card under the control.
+
 ## Gotchas
 
 - The copy is asynchronous. Reading the clipboard or the label straight after the click sees the old state; wait for `Copied` first.
 - Do not follow the `Open in` links. They leave the local origins and `browser.mjs` blocks them; the `href` values are the proof.
-- The menu is a `hidden` list, not a `<details>`; read `aria-expanded` on `[data-more]` for its state.
+- The menu is not a `<details>`; `aria-expanded` on `[data-more]` is its only state, and the stylesheet hides the list from that attribute once the group carries `data-enhanced`.
 - A `Copy failed` label means the `.md` twin did not answer `200`; check the markdown-feeds feature before blaming the button.
 - The clipboard is per browser profile, so each invocation starts empty.

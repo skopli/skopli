@@ -40,7 +40,7 @@ const targets = [
       <path d="m6 9 6 6 6-6" />
     </svg>
   </button>
-  <ul class="actions__menu" id="page-actions-menu" role="menu" aria-label="Page actions" hidden>
+  <ul class="actions__menu" id="page-actions-menu" role="menu" aria-label="Page actions">
     <li role="none">
       <a role="menuitem" tabindex="-1" href={md}>
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true">
@@ -67,6 +67,7 @@ const targets = [
     ))}
   </ul>
 </div>
+<script is:inline>document.querySelector("[data-actions]").dataset.enhanced = "";</script>
 
 <script>
   const root = document.querySelector<HTMLElement>("[data-actions]");
@@ -102,10 +103,9 @@ const targets = [
 
     const toggle = (open: boolean, focus?: number) => {
       more.setAttribute("aria-expanded", String(open));
-      menu.hidden = !open;
       if (open && focus !== undefined) items.at(focus)?.focus();
     };
-    const isOpen = () => !menu.hidden;
+    const isOpen = () => more.getAttribute("aria-expanded") === "true";
     const close = () => {
       toggle(false);
       more.focus();
