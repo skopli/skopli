@@ -3,7 +3,8 @@
 // Redaction rules apply to text files, to zstd-compressed text, and to every text column of
 // SQLite databases (WAL checkpointed first, then VACUUMed). Each rule also applies in its
 // dash-joined (`-home-user`) and percent-encoded (`%2Fhome%2Fuser`) forms so project-slug
-// directory names stay consistent with the paths inside the files.
+// directory names stay consistent with the paths inside the files; longer sources apply first
+// so a short rule (`ubuntu=user`) cannot consume the path a longer rule names.
 // After copying, every written file is checked: no redaction source may survive in its bytes
 // (zstd files are checked decompressed), git must not ignore it, and a non-text file must carry
 // an explicit binary attribute so checkin never applies eol conversion to it. Any hit exits 1.
@@ -36,7 +37,7 @@ is removed and rewritten on every run.
 
   --store <rel>         path under <capture-home> to copy (repeatable, required)
   --redact <from>=<to>  text to replace; also applied dash-joined and percent-
-                        encoded (repeatable)
+                        encoded, longest source first (repeatable)
   --env NAME=<rel>      point the manifest env var at input/<rel> instead of home
   --gateway <text>      README: gateway description
   --server <text>       README: server description
@@ -90,7 +91,7 @@ const rules = [
       ])
       .map((rule) => [rule[0], rule]),
   ).values(),
-];
+].sort((a, b) => b[0].length - a[0].length);
 const redact = (s) => rules.reduce((acc, [from, to]) => acc.replaceAll(from, to), s);
 // Same first-8000-bytes NUL heuristic git uses to tell text from binary.
 const isText = (buf) => !buf.subarray(0, 8000).includes(0);

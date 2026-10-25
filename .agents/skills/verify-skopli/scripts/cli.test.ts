@@ -23,7 +23,7 @@ describe("script command lines", () => {
     expect(stderr).toContain("--bogus");
   });
 
-  it("promote --dry-run previews the rules and the files, writing nothing", () => {
+  it("promote --dry-run previews longest-first rules and the files, writing nothing", () => {
     const home = mkdtempSync(join(tmpdir(), "promote-dry-"));
     mkdirSync(join(home, "store", "ubuntu-x-y"), { recursive: true });
     writeFileSync(join(home, "store", "ubuntu-x-y", "s.json"), "{}");
@@ -41,7 +41,10 @@ describe("script command lines", () => {
     );
     expect(status).toBe(0);
     const plan = JSON.parse(stdout) as { rules: [string, string][]; files: string[] };
-    expect(plan.rules.map(([from]) => from)).toContain("/home/ubuntu/x/y");
+    const sources = plan.rules.map(([from]) => from);
+    expect(sources.indexOf("/home/ubuntu/x/y")).toBeLessThan(sources.indexOf("ubuntu"));
+    const lengths = sources.map((s) => s.length);
+    expect(lengths).toEqual([...lengths].sort((a, b) => b - a));
     expect(plan.files).toEqual(["golden/promote-dry-run/case/input/store/user-x-y/s.json"]);
     expect(existsSync(join(root, "golden", "promote-dry-run"))).toBe(false);
   });
