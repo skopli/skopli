@@ -47,7 +47,8 @@ A hand-shaped fixture with no real neighbour stays until a real capture exists; 
 | droid | anthropic-messages | captured | real multi-turn session, see the case README | this case |
 | droid | basic | not captured | hand-shaped sessions covering the `settings.json` fallback and broken-settings paths | droid/openai-chat, droid/anthropic-messages |
 | droid | openai-chat | captured | real multi-turn session, see the case README | this case |
-| fx | basic | not captured | reader gap: the installed harness writes `.fx/sessions/v2/<id>/{log.jsonl,index.jsonl}` while the reader targets `.fx/sessions/<id>/usage-v2.json` | none; this fixture stays until a real capture exists |
+| fx | basic | not captured | hand-shaped `usage-v2.json` sidecars, the older layout | fx/openai-chat |
+| fx | openai-chat | captured | real multi-turn session, see the case README | this case |
 | gajae | anthropic-messages | captured | real multi-turn session, see the case README | this case |
 | gajae | basic | not captured | hand-shaped single session | gajae/openai-chat, gajae/anthropic-messages |
 | gajae | openai-chat | captured | real multi-turn session, see the case README | this case |
@@ -94,7 +95,8 @@ A hand-shaped fixture with no real neighbour stays until a real capture exists; 
 | qwen | openai-chat | captured | real multi-turn session, see the case README | this case |
 | reasonix | basic | not captured | reader gap: the installed harness writes `.reasonix/stats/<date>.jsonl` rows while the reader targets `.reasonix/projects/...` | none; this fixture stays until a real capture exists |
 | roo | basic | not captured | capture layout gap: the CLI writes `.vscode-mock/global-storage/tasks/<id>/` while the reader roots at the editor extension's `globalStorage`; relocated by hand the reader yields 2 events | none; this fixture stays until a real capture exists |
-| trae | basic | not captured | one-shot CLI without resume and a chat-only client; the chat cell did not complete in the capture run | none; this fixture stays until a real capture exists |
+| trae | basic | not captured | hand-shaped trajectory JSON with the default `trajectory_<YYYYMMDD_HHMMSS>.json` names, which the real case (named by --trajectory-file) does not pin | trae/anthropic-messages |
+| trae | anthropic-messages | captured | real four-run capture, see the case README; reader gap filed there: naive local timestamps are booked as UTC | this case |
 | zcode | jsonl-basic | not captured | no CLI binary; the CLI package is buildable but was not built | none; this fixture stays until a real capture exists |
 | zed | basic | not captured | editor application; no headless agent mode with a configurable endpoint | none; this fixture stays until a real capture exists |
 

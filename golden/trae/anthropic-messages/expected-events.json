@@ -1,0 +1,295 @@
+{
+  "schema_version": 1,
+  "events": [
+    {
+      "harness": "trae",
+      "messageId": "trajectories/trajectory_run1.json:0",
+      "model": "qwen",
+      "sessionId": "trajectory_run1",
+      "subagent": false,
+      "timestamp": "2026-11-01T13:00:04.885Z",
+      "tokens": {
+        "cacheRead": 853,
+        "cacheWrite": 0,
+        "input": 1091,
+        "output": 15,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "trae",
+      "messageId": "trajectories/trajectory_run1.json:1",
+      "model": "qwen",
+      "sessionId": "trajectory_run1",
+      "subagent": false,
+      "timestamp": "2026-11-01T13:00:10.475Z",
+      "tokens": {
+        "cacheRead": 1958,
+        "cacheWrite": 0,
+        "input": 20,
+        "output": 32,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "trae",
+      "messageId": "trajectories/trajectory_run1.json:2",
+      "model": "qwen",
+      "sessionId": "trajectory_run1",
+      "subagent": false,
+      "timestamp": "2026-11-01T13:00:16.570Z",
+      "tokens": {
+        "cacheRead": 2009,
+        "cacheWrite": 0,
+        "input": 20,
+        "output": 28,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "trae",
+      "messageId": "trajectories/trajectory_run1.json:3",
+      "model": "qwen",
+      "sessionId": "trajectory_run1",
+      "subagent": false,
+      "timestamp": "2026-11-01T13:00:22.545Z",
+      "tokens": {
+        "cacheRead": 2056,
+        "cacheWrite": 0,
+        "input": 20,
+        "output": 28,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "trae",
+      "messageId": "trajectories/trajectory_run1.json:4",
+      "model": "qwen",
+      "sessionId": "trajectory_run1",
+      "subagent": false,
+      "timestamp": "2026-11-01T13:00:28.739Z",
+      "tokens": {
+        "cacheRead": 2103,
+        "cacheWrite": 0,
+        "input": 20,
+        "output": 28,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "trae",
+      "messageId": "trajectories/trajectory_run1.json:5",
+      "model": "qwen",
+      "sessionId": "trajectory_run1",
+      "subagent": false,
+      "timestamp": "2026-11-01T13:00:35.650Z",
+      "tokens": {
+        "cacheRead": 2150,
+        "cacheWrite": 0,
+        "input": 20,
+        "output": 28,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "trae",
+      "messageId": "trajectories/trajectory_run2.json:0",
+      "model": "qwen",
+      "sessionId": "trajectory_run2",
+      "subagent": false,
+      "timestamp": "2026-11-01T13:01:09.574Z",
+      "tokens": {
+        "cacheRead": 1925,
+        "cacheWrite": 0,
+        "input": 21,
+        "output": 58,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "trae",
+      "messageId": "trajectories/trajectory_run2.json:1",
+      "model": "qwen",
+      "sessionId": "trajectory_run2",
+      "subagent": false,
+      "timestamp": "2026-11-01T13:01:16.615Z",
+      "tokens": {
+        "cacheRead": 1989,
+        "cacheWrite": 0,
+        "input": 51,
+        "output": 38,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "trae",
+      "messageId": "trajectories/trajectory_run2.json:2",
+      "model": "qwen",
+      "sessionId": "trajectory_run2",
+      "subagent": false,
+      "timestamp": "2026-11-01T13:01:22.555Z",
+      "tokens": {
+        "cacheRead": 2077,
+        "cacheWrite": 0,
+        "input": 20,
+        "output": 34,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "trae",
+      "messageId": "trajectories/trajectory_run2.json:3",
+      "model": "qwen",
+      "sessionId": "trajectory_run2",
+      "subagent": false,
+      "timestamp": "2026-11-01T13:01:28.978Z",
+      "tokens": {
+        "cacheRead": 2130,
+        "cacheWrite": 0,
+        "input": 20,
+        "output": 34,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "trae",
+      "messageId": "trajectories/trajectory_run2.json:4",
+      "model": "qwen",
+      "sessionId": "trajectory_run2",
+      "subagent": false,
+      "timestamp": "2026-11-01T13:01:38.899Z",
+      "tokens": {
+        "cacheRead": 2183,
+        "cacheWrite": 0,
+        "input": 20,
+        "output": 51,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "trae",
+      "messageId": "trajectories/trajectory_run2.json:5",
+      "model": "qwen",
+      "sessionId": "trajectory_run2",
+      "subagent": false,
+      "timestamp": "2026-11-01T13:01:50.066Z",
+      "tokens": {
+        "cacheRead": 2253,
+        "cacheWrite": 0,
+        "input": 20,
+        "output": 50,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "trae",
+      "messageId": "trajectories/trajectory_run3.json:0",
+      "model": "qwen",
+      "sessionId": "trajectory_run3",
+      "subagent": false,
+      "timestamp": "2026-11-01T13:02:21.585Z",
+      "tokens": {
+        "cacheRead": 1925,
+        "cacheWrite": 0,
+        "input": 25,
+        "output": 79,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "trae",
+      "messageId": "trajectories/trajectory_run3.json:1",
+      "model": "qwen",
+      "sessionId": "trajectory_run3",
+      "subagent": false,
+      "timestamp": "2026-11-01T13:04:47.867Z",
+      "tokens": {
+        "cacheRead": 2028,
+        "cacheWrite": 0,
+        "input": 20,
+        "output": 751,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "trae",
+      "messageId": "trajectories/trajectory_run3.json:2",
+      "model": "qwen",
+      "sessionId": "trajectory_run3",
+      "subagent": false,
+      "timestamp": "2026-11-01T13:07:01.148Z",
+      "tokens": {
+        "cacheRead": 2798,
+        "cacheWrite": 0,
+        "input": 20,
+        "output": 611,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "trae",
+      "messageId": "trajectories/trajectory_run4.json:0",
+      "model": "qwen",
+      "sessionId": "trajectory_run4",
+      "subagent": false,
+      "timestamp": "2026-11-01T13:09:47.416Z",
+      "tokens": {
+        "cacheRead": 1925,
+        "cacheWrite": 0,
+        "input": 19,
+        "output": 26,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "trae",
+      "messageId": "trajectories/trajectory_run4.json:1",
+      "model": "qwen",
+      "sessionId": "trajectory_run4",
+      "subagent": false,
+      "timestamp": "2026-11-01T13:12:14.019Z",
+      "tokens": {
+        "cacheRead": 1969,
+        "cacheWrite": 0,
+        "input": 20,
+        "output": 1024,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "trae",
+      "messageId": "trajectories/trajectory_run4.json:2",
+      "model": "qwen",
+      "sessionId": "trajectory_run4",
+      "subagent": false,
+      "timestamp": "2026-11-01T13:14:34.504Z",
+      "tokens": {
+        "cacheRead": 3012,
+        "cacheWrite": 0,
+        "input": 21,
+        "output": 1024,
+        "reasoning": 0
+      },
+      "turn": true
+    }
+  ],
+  "diagnostics": [],
+  "skipped": {}
+}

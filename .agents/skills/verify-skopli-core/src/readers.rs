@@ -522,7 +522,10 @@ pub type Fault = (&'static str, String);
 /// and keeps its identity, its class's own counter moves by `+1`, at most its
 /// derived counter moves by `-1`; or exactly one event vanishes into a
 /// diagnostic while every other event stays byte-identical. The one event
-/// may also be one the reader had dropped as all-zero and now surfaces.
+/// may also be one the reader had dropped as all-zero and now surfaces. A
+/// cumulative cell, one a reader books as the delta from the previous
+/// restatement, may instead move its own event by `+1` and the next event by
+/// `-1` on the same counter (`judge_cumulative`).
 pub fn judge_bump(class: TokenClass, base: &Outcome, bumped: &Outcome) -> Result<(), Fault> {
     let (b, a) = (&base.events, &bumped.events);
     let prefix = b.iter().zip(a).take_while(|(x, y)| x == y).count();
@@ -546,6 +549,9 @@ pub fn judge_bump(class: TokenClass, base: &Outcome, bumped: &Outcome) -> Result
         }
         ([], [_]) | ([], []) => true,
         ([(x, _)], [(y, _)]) => x == y,
+        ([(x1, b1), (x2, b2)], [(y1, a1), (y2, a2)]) if x1 == y1 && x2 == y2 => {
+            return judge_cumulative(class, [b1, b2], [a1, a2]);
+        }
         _ => false,
     };
     if !same_record {
@@ -598,6 +604,36 @@ pub fn judge_bump(class: TokenClass, base: &Outcome, bumped: &Outcome) -> Result
         ));
     }
     Ok(())
+}
+
+/// The verdict for a bump of a cumulative cell: a reader that books each
+/// restatement as the delta from the previous one moves the bumped record's
+/// own counter by +1 and the next record's by -1, and nothing else.
+fn judge_cumulative(
+    class: TokenClass,
+    before: [&[i128; 6]; 2],
+    after: [&[i128; 6]; 2],
+) -> Result<(), Fault> {
+    let own = class.own();
+    let moved: Vec<(&str, i128, i128)> = COUNTERS
+        .iter()
+        .enumerate()
+        .map(|(i, name)| {
+            (
+                *name,
+                after[0][i] - before[0][i],
+                after[1][i] - before[1][i],
+            )
+        })
+        .filter(|(_, d1, d2)| *d1 != 0 || *d2 != 0)
+        .collect();
+    if moved.as_slice() == [(own, 1, -1)] {
+        return Ok(());
+    }
+    Err((
+        "cross-event attribution",
+        format!("a {class:?} cell bumped by 1 moved two events by {moved:?}"),
+    ))
 }
 
 /// The verdict for a token cell overwritten with text: the record is kept or

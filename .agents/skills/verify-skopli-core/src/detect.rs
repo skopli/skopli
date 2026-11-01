@@ -180,6 +180,7 @@ pub const MARKERS: &[Marker] = &[
     file("kiro", ".local/share/amazon-q/data.sqlite3"),
     file("kiro", "Library/Application Support/amazon-q/data.sqlite3"),
     file("fx", ".fx/sessions/s1/usage-v2.json"),
+    file("fx", ".fx/sessions/v2/s1/log.jsonl"),
     unsupported(Kind::Dir, ".cursor"),
     unsupported(Kind::Dir, "AppData/Roaming/Cursor"),
     unsupported(Kind::File, ".aider.chat.history.md"),

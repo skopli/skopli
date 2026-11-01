@@ -1,0 +1,50 @@
+{
+  "schema_version": 1,
+  "by": {
+    "model": [
+      {
+        "key": "qwen",
+        "tokens": {
+          "input": 1468,
+          "output": 3939,
+          "cacheRead": 37343,
+          "cacheWrite": 0,
+          "reasoning": 0
+        },
+        "events": 18,
+        "turns": 18,
+        "calls": 18
+      }
+    ],
+    "day": [
+      {
+        "key": "2026-11-01",
+        "tokens": {
+          "input": 1468,
+          "output": 3939,
+          "cacheRead": 37343,
+          "cacheWrite": 0,
+          "reasoning": 0
+        },
+        "events": 18,
+        "turns": 18,
+        "calls": 18
+      }
+    ],
+    "harness": [
+      {
+        "key": "trae",
+        "tokens": {
+          "input": 1468,
+          "output": 3939,
+          "cacheRead": 37343,
+          "cacheWrite": 0,
+          "reasoning": 0
+        },
+        "events": 18,
+        "turns": 18,
+        "calls": 18
+      }
+    ]
+  }
+}

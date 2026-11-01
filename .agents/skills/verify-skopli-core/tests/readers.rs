@@ -250,6 +250,11 @@ const IGNORED_BY_DESIGN: &[(&str, &str, &str)] = &[
         "snapshot totals restate the per-model rows, which are read",
     ),
     (
+        "fx",
+        "turn_summary.token_progress.",
+        "fx's own running estimate (input_exact false); the usage record carries the provider counts, which are read",
+    ),
+    (
         "prime",
         "child_usage_attributed.",
         "usage attributed from child sessions is not the message's own usage",
@@ -451,6 +456,50 @@ fn a_diagnostic_excuses_one_vanished_event_only() {
     );
     assert_eq!(
         kind(&outcome(&[event(1, 1), event(3, 2)], 1)),
+        Err("cross-event attribution")
+    );
+}
+
+/// A cumulative cell may move its own event by one and the next by minus one
+/// on the same counter; anything wider or on another counter is still a
+/// cross-event attribution.
+#[test]
+fn a_cumulative_cell_moves_its_event_and_the_next_in_opposite_directions() {
+    let event = |n: u8, input: i128, output: i128| {
+        let id = format!("e{n}");
+        (
+            (id.clone(), id.clone(), id.clone(), id),
+            [input, output, 0, 0, 0, 0],
+        )
+    };
+    let outcome = |events: &[(Identity, [i128; 6])]| Outcome {
+        events: events.to_vec(),
+        diagnostics: 0,
+    };
+    let base = outcome(&[event(1, 10, 1), event(2, 10, 1), event(3, 10, 1)]);
+    let kind = |bumped: &Outcome| judge_bump(TokenClass::Input, &base, bumped).map_err(|f| f.0);
+    assert_eq!(
+        kind(&outcome(&[
+            event(1, 11, 1),
+            event(2, 9, 1),
+            event(3, 10, 1)
+        ])),
+        Ok(())
+    );
+    assert_eq!(
+        kind(&outcome(&[
+            event(1, 11, 1),
+            event(2, 9, 0),
+            event(3, 10, 1)
+        ])),
+        Err("cross-event attribution")
+    );
+    assert_eq!(
+        kind(&outcome(&[
+            event(1, 11, 1),
+            event(2, 10, 1),
+            event(3, 9, 1)
+        ])),
         Err("cross-event attribution")
     );
 }
