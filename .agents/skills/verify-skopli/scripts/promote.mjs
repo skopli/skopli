@@ -75,7 +75,7 @@ const stores = many("--store");
 if (!captureHome || !caseId?.includes("/") || stores.length === 0) {
   usage("promote: <capture-home>, <harness>/<case> and at least one --store are required");
 }
-if (flag("--cwd") && many("--env").length) usage("promote: --cwd and --env are exclusive");
+if (flag("--cwd") && flag("--env")) usage("promote: --cwd and --env are exclusive");
 const missing = stores.filter((rel) => !existsSync(join(captureHome, rel)));
 if (missing.length) {
   usage(`promote: store not found under ${captureHome}: ${missing.join(", ")}`);
