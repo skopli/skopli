@@ -1,0 +1,25 @@
+{
+  "schema_version": 1,
+  "events": [
+    {
+      "harness": "fx",
+      "messageId": "EwEA_lH00bYn:usage",
+      "model": "qwen",
+      "sessionId": "EwEA_lH00bYn",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:45:38.148Z",
+      "title": "What does index.js in this project export? Answer",
+      "tokens": {
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "input": 36314,
+        "output": 99,
+        "reasoning": 0
+      },
+      "turn": false,
+      "workspace": "/home/user/p-limit"
+    }
+  ],
+  "diagnostics": [],
+  "skipped": {}
+}

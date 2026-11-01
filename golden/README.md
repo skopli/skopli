@@ -47,7 +47,8 @@ A hand-shaped fixture with no real neighbour stays until a real capture exists; 
 | droid | anthropic-messages | captured | real multi-turn session, see the case README | this case |
 | droid | basic | not captured | hand-shaped sessions covering the `settings.json` fallback and broken-settings paths | droid/openai-chat, droid/anthropic-messages |
 | droid | openai-chat | captured | real multi-turn session, see the case README | this case |
-| fx | basic | not captured | reader gap: the installed harness writes `.fx/sessions/v2/<id>/{log.jsonl,index.jsonl}` while the reader targets `.fx/sessions/<id>/usage-v2.json` | none; this fixture stays until a real capture exists |
+| fx | basic | not captured | hand-shaped `usage-v2.json` sidecars, the older layout | fx/openai-chat |
+| fx | openai-chat | captured | real multi-turn session, see the case README | this case |
 | gajae | anthropic-messages | captured | real multi-turn session, see the case README | this case |
 | gajae | basic | not captured | hand-shaped single session | gajae/openai-chat, gajae/anthropic-messages |
 | gajae | openai-chat | captured | real multi-turn session, see the case README | this case |
