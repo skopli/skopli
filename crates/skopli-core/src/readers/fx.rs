@@ -348,7 +348,8 @@ fn skip(label: &str, skipped: &mut Vec<String>, warnings: &mut Vec<ReaderWarning
 /// restates the session's cumulative usage after every model exchange, so
 /// each record becomes the difference from the previous valid record in file
 /// order (`seq` is not consulted), timestamped by that record and counted as
-/// one call; summing the records themselves would double count. A record
+/// one call but not as a turn, because a turn with tool calls restates more
+/// than once; summing the records themselves would double count. A record
 /// whose counters fall below the previous one is a fresh baseline and is
 /// booked whole. A record that restates the same totals adds nothing and
 /// yields no event. A malformed `usage` record or an unparsable line is a
@@ -401,7 +402,7 @@ fn read_v2_log(
                         timestamp,
                         session_id: session_id.to_owned(),
                         message_id: format!("{session_id}:{}", line.index + 1),
-                        turn: true,
+                        turn: false,
                         subagent: false,
                         model: model.clone(),
                         tokens,
@@ -1144,7 +1145,7 @@ mod tests {
         assert_eq!(event.tokens.cache_write, 0);
         assert_eq!(event.tokens.reasoning, 0);
         assert_eq!(event.calls, Some(1));
-        assert!(event.turn);
+        assert!(!event.turn);
         assert_eq!(event.workspace.as_deref(), Some("/work/p-limit"));
         assert_eq!(
             event.title.as_deref(),
