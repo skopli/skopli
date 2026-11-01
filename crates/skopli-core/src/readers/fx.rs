@@ -3,7 +3,9 @@ use std::path::{Path, PathBuf};
 use serde_json::Value;
 
 use super::reader::{Reader, ReaderContext};
-use super::shared::{ReaderResult, ReaderWarning, as_string, is_record, parse_timestamp_to_iso};
+use super::shared::{
+    ReaderResult, ReaderWarning, as_string, is_record, parse_timestamp_to_iso, read_jsonl_lines,
+};
 use crate::types::{TokenCounts, UsageEvent};
 
 /// The fx.sh reader wired into the harness registry. fx (vercel-labs/fx) is a
@@ -345,29 +347,34 @@ fn skip(label: &str, skipped: &mut Vec<String>, warnings: &mut Vec<ReaderWarning
 /// The immediate subdirectory names of `dir`, sorted. Unreadable directories
 /// and non-directory entries are ignored. Enumeration stays at depth one so a
 /// deeper nested file cannot masquerade as a session or shift ordinals.
-/// Read one v2 session log; `None` when the session has no usage yet or its
-/// usage record is malformed (which is also a diagnostic).
+/// Read one v2 session log into at most one event. The log restates the
+/// session's cumulative usage after every turn, so the last valid `usage`
+/// record in file order wins (`seq` is not consulted) and summing records
+/// would double count. A later malformed `usage` record or an unparsable line
+/// is a diagnostic and leaves the earlier snapshot standing; a session with no
+/// valid snapshot yields `None`. An unreadable file is a skipped file. The
+/// model is the last `prefs` record's, which covers the whole session even
+/// when the user switched models mid-way, because the log carries no per-model
+/// split.
 fn read_v2_log(
     file: &Path,
     session_id: &str,
     skipped: &mut Vec<String>,
     warnings: &mut Vec<ReaderWarning>,
 ) -> Option<UsageEvent> {
-    let content = std::fs::read_to_string(file).ok()?;
-    let label = |line: usize| format!("{}:{line}", file.display());
+    let file = file.to_string_lossy();
+    let lines = read_jsonl_lines(&file, skipped, warnings)?;
     let mut model = None;
     let mut title = None;
     let mut workspace = None;
     let mut usage = None;
-    for (index, line) in content.lines().enumerate() {
-        if line.trim().is_empty() {
+    for line in lines {
+        let label = || format!("{file}:{}", line.index + 1);
+        let record = &line.value;
+        if !is_record(record) {
+            skip(&label(), skipped, warnings);
             continue;
         }
-        let record = serde_json::from_str::<Value>(line).ok().filter(is_record);
-        let Some(record) = record else {
-            skip(&label(index + 1), skipped, warnings);
-            continue;
-        };
         let value = record.get("value");
         match (
             record.get("kind").and_then(Value::as_str),
@@ -378,9 +385,9 @@ fn read_v2_log(
                 model = value.and_then(|v| v.get("model")).and_then(as_string);
             }
             (Some("set"), Some("title")) => title = value.and_then(as_string),
-            (Some("set"), Some("usage")) => match v2_usage(&record) {
+            (Some("set"), Some("usage")) => match v2_usage(record) {
                 Some(snapshot) => usage = Some(snapshot),
-                None => skip(&label(index + 1), skipped, warnings),
+                None => skip(&label(), skipped, warnings),
             },
             _ => {}
         }
@@ -1113,6 +1120,68 @@ mod tests {
         let result = read_fx(&sessions);
         assert!(result.events.is_empty());
         assert!(result.skipped.is_empty());
+        fs::remove_dir_all(&dir).ok();
+    }
+
+    #[test]
+    fn v2_log_keeps_the_last_usage_snapshot_in_file_order() {
+        let dir = scratch_dir("v2-last-wins");
+        let sessions = dir.join("sessions");
+        let later = r#"{"v":1,"seq":4,"ts":1793564125166,"kind":"set","key":"usage","value":{"input_tokens":36314,"output_tokens":99,"cache_read_tokens":null,"cache_write_tokens":null,"reasoning_tokens":null},"crc":"0a0a0a0a"}"#;
+        write_v2_log(
+            &sessions,
+            "vi5FAUzM30R7",
+            &[V2_CREATED, V2_PREFS, V2_USAGE, later],
+        );
+        let result = read_fx(&sessions);
+        assert!(result.skipped.is_empty(), "{:?}", result.skipped);
+        assert_eq!(result.events.len(), 1);
+        assert_eq!(result.events[0].tokens.input, 36314);
+        assert_eq!(result.events[0].tokens.output, 99);
+        assert_eq!(result.events[0].timestamp, "2026-11-01T20:15:25.166Z");
+        fs::remove_dir_all(&dir).ok();
+    }
+
+    #[test]
+    fn v2_log_malformed_later_usage_keeps_the_earlier_snapshot_and_warns() {
+        let dir = scratch_dir("v2-later-malformed");
+        let sessions = dir.join("sessions");
+        let bad_usage = r#"{"v":1,"seq":9,"ts":1793564125166,"kind":"set","key":"usage","value":{"input_tokens":"x","output_tokens":2},"crc":"00000000"}"#;
+        write_v2_log(
+            &sessions,
+            "vi5FAUzM30R7",
+            &[V2_CREATED, V2_PREFS, V2_USAGE, bad_usage],
+        );
+        let result = read_fx(&sessions);
+        assert_eq!(result.events.len(), 1);
+        assert_eq!(result.events[0].tokens.input, 9016);
+        assert_eq!(result.skipped.len(), 1, "{:?}", result.skipped);
+        assert!(
+            result.skipped[0].ends_with("log.jsonl:4"),
+            "{}",
+            result.skipped[0]
+        );
+        fs::remove_dir_all(&dir).ok();
+    }
+
+    #[test]
+    fn v2_log_that_is_not_utf8_is_a_skipped_file() {
+        let dir = scratch_dir("v2-not-utf8");
+        let sessions = dir.join("sessions");
+        write_v2_log(&sessions, "vi5FAUzM30R7", &[V2_CREATED, V2_PREFS, V2_USAGE]);
+        let log = sessions.join("v2").join("vi5FAUzM30R7").join(V2_LOG_FILE);
+        let mut bytes = fs::read(&log).unwrap();
+        bytes.extend_from_slice(b"\xff\xfe{\n");
+        fs::write(&log, bytes).unwrap();
+        let result = read_fx(&sessions);
+        assert!(result.events.is_empty());
+        assert_eq!(result.skipped.len(), 1, "{:?}", result.skipped);
+        assert!(
+            result.skipped[0].ends_with("log.jsonl"),
+            "{}",
+            result.skipped[0]
+        );
+        assert_eq!(result.warnings.len(), 1);
         fs::remove_dir_all(&dir).ok();
     }
 
