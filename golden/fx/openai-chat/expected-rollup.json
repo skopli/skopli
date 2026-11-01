@@ -11,9 +11,9 @@
           "cacheWrite": 0,
           "reasoning": 0
         },
-        "events": 1,
-        "turns": 0,
-        "calls": 1
+        "events": 4,
+        "turns": 4,
+        "calls": 4
       }
     ],
     "day": [
@@ -26,9 +26,9 @@
           "cacheWrite": 0,
           "reasoning": 0
         },
-        "events": 1,
-        "turns": 0,
-        "calls": 1
+        "events": 4,
+        "turns": 4,
+        "calls": 4
       }
     ],
     "harness": [
@@ -41,9 +41,9 @@
           "cacheWrite": 0,
           "reasoning": 0
         },
-        "events": 1,
-        "turns": 0,
-        "calls": 1
+        "events": 4,
+        "turns": 4,
+        "calls": 4
       }
     ]
   }

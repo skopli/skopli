@@ -344,27 +344,32 @@ fn skip(label: &str, skipped: &mut Vec<String>, warnings: &mut Vec<ReaderWarning
     skipped.push(label.to_owned());
 }
 
-/// Read one v2 session log into at most one event. The log restates the
-/// session's cumulative usage after every turn, so the last valid `usage`
-/// record in file order wins (`seq` is not consulted) and summing records
-/// would double count. A later malformed `usage` record or an unparsable line
-/// is a diagnostic and leaves the earlier snapshot standing; a session with no
-/// valid snapshot yields `None`. An unreadable file is a skipped file. The
-/// model is the last `prefs` record's, which covers the whole session even
-/// when the user switched models mid-way, because the log carries no per-model
-/// split.
+/// Read one v2 session log into one event per `usage` record. The log
+/// restates the session's cumulative usage after every model exchange, so
+/// each record becomes the difference from the previous valid record in file
+/// order (`seq` is not consulted), timestamped by that record and counted as
+/// one call; summing the records themselves would double count. A record
+/// whose counters fall below the previous one is a fresh baseline and is
+/// booked whole. A record that restates the same totals adds nothing and
+/// yields no event. A malformed `usage` record or an unparsable line is a
+/// diagnostic and leaves the earlier events standing; an unreadable file is a
+/// skipped file. Each event carries the model of the latest `prefs` record
+/// before it and the session's final title and workspace.
 fn read_v2_log(
     file: &Path,
     session_id: &str,
     skipped: &mut Vec<String>,
     warnings: &mut Vec<ReaderWarning>,
-) -> Option<UsageEvent> {
+) -> Vec<UsageEvent> {
     let file = file.to_string_lossy();
-    let lines = read_jsonl_lines(&file, skipped, warnings)?;
-    let mut model = None;
+    let Some(lines) = read_jsonl_lines(&file, skipped, warnings) else {
+        return Vec::new();
+    };
+    let mut model = String::new();
     let mut title = None;
     let mut workspace = None;
-    let mut usage = None;
+    let mut previous = TokenCounts::default();
+    let mut events = Vec::new();
     for line in lines {
         let label = || format!("{file}:{}", line.index + 1);
         let record = &line.value;
@@ -379,31 +384,66 @@ fn read_v2_log(
         ) {
             (Some("session_created"), _) => workspace = record.get("workspace").and_then(as_string),
             (Some("set"), Some("prefs")) => {
-                model = value.and_then(|v| v.get("model")).and_then(as_string);
+                if let Some(m) = value.and_then(|v| v.get("model")).and_then(as_string) {
+                    model = m;
+                }
             }
             (Some("set"), Some("title")) => title = value.and_then(as_string),
             (Some("set"), Some("usage")) => match v2_usage(record) {
-                Some(snapshot) => usage = Some(snapshot),
+                Some((snapshot, timestamp)) => {
+                    let tokens = delta(&snapshot, &previous);
+                    previous = snapshot;
+                    if tokens == TokenCounts::default() {
+                        continue;
+                    }
+                    events.push(UsageEvent {
+                        harness: HARNESS.to_owned(),
+                        timestamp,
+                        session_id: session_id.to_owned(),
+                        message_id: format!("{session_id}:{}", line.index + 1),
+                        turn: true,
+                        subagent: false,
+                        model: model.clone(),
+                        tokens,
+                        calls: Some(1),
+                        cost_usd: None,
+                        workspace: None,
+                        title: None,
+                    });
+                }
                 None => skip(&label(), skipped, warnings),
             },
             _ => {}
         }
     }
-    let (tokens, timestamp) = usage?;
-    Some(UsageEvent {
-        harness: HARNESS.to_owned(),
-        timestamp,
-        session_id: session_id.to_owned(),
-        message_id: format!("{session_id}:usage"),
-        turn: false,
-        subagent: false,
-        model: model.unwrap_or_default(),
-        tokens,
-        calls: None,
-        cost_usd: None,
-        workspace,
-        title,
-    })
+    for event in &mut events {
+        event.workspace = workspace.clone();
+        event.title = title.clone();
+    }
+    events
+}
+
+/// `snapshot` minus `previous` per counter, or `snapshot` itself when any
+/// counter went down.
+fn delta(snapshot: &TokenCounts, previous: &TokenCounts) -> TokenCounts {
+    let pairs = [
+        (snapshot.input, previous.input),
+        (snapshot.output, previous.output),
+        (snapshot.cache_read, previous.cache_read),
+        (snapshot.cache_write, previous.cache_write),
+        (snapshot.reasoning, previous.reasoning),
+    ];
+    if pairs.iter().any(|(now, before)| now < before) {
+        return snapshot.clone();
+    }
+    TokenCounts {
+        input: snapshot.input - previous.input,
+        output: snapshot.output - previous.output,
+        cache_read: snapshot.cache_read - previous.cache_read,
+        cache_write: snapshot.cache_write - previous.cache_write,
+        cache_write1h: None,
+        reasoning: snapshot.reasoning - previous.reasoning,
+    }
 }
 
 /// The token counts and ISO timestamp of one v2 `usage` record, `None` when a
@@ -1082,7 +1122,7 @@ mod tests {
     const V2_TITLE: &str = r#"{"v":1,"seq":12,"ts":1793564111923,"kind":"set","key":"title","value":"What does index.js in this project export? Answer","crc":"1ad98e57"}"#;
 
     #[test]
-    fn v2_log_yields_one_event_per_session_from_the_usage_snapshot() {
+    fn v2_log_yields_one_event_per_usage_record() {
         let dir = scratch_dir("v2-log");
         let sessions = dir.join("sessions");
         write_v2_log(
@@ -1095,7 +1135,7 @@ mod tests {
         assert_eq!(result.events.len(), 1);
         let event = &result.events[0];
         assert_eq!(event.session_id, "vi5FAUzM30R7");
-        assert_eq!(event.message_id, "vi5FAUzM30R7:usage");
+        assert_eq!(event.message_id, "vi5FAUzM30R7:3");
         assert_eq!(event.model, "qwen");
         assert_eq!(event.timestamp, "2026-11-01T20:15:11.920Z");
         assert_eq!(event.tokens.input, 9016);
@@ -1103,7 +1143,8 @@ mod tests {
         assert_eq!(event.tokens.cache_read, 0);
         assert_eq!(event.tokens.cache_write, 0);
         assert_eq!(event.tokens.reasoning, 0);
-        assert_eq!(event.calls, None);
+        assert_eq!(event.calls, Some(1));
+        assert!(event.turn);
         assert_eq!(event.workspace.as_deref(), Some("/work/p-limit"));
         assert_eq!(
             event.title.as_deref(),
@@ -1124,26 +1165,37 @@ mod tests {
     }
 
     #[test]
-    fn v2_log_keeps_the_last_usage_snapshot_in_file_order() {
-        let dir = scratch_dir("v2-last-wins");
+    fn v2_log_books_each_restatement_as_the_delta_from_the_previous_one() {
+        let dir = scratch_dir("v2-deltas");
         let sessions = dir.join("sessions");
         let later = r#"{"v":1,"seq":4,"ts":1793564125166,"kind":"set","key":"usage","value":{"input_tokens":36314,"output_tokens":99,"cache_read_tokens":null,"cache_write_tokens":null,"reasoning_tokens":null},"crc":"0a0a0a0a"}"#;
+        let reset = r#"{"v":1,"seq":6,"ts":1793564130000,"kind":"set","key":"usage","value":{"input_tokens":5,"output_tokens":1,"cache_read_tokens":null,"cache_write_tokens":null,"reasoning_tokens":null},"crc":"0b0b0b0b"}"#;
         write_v2_log(
             &sessions,
             "vi5FAUzM30R7",
-            &[V2_CREATED, V2_PREFS, V2_USAGE, later],
+            &[V2_CREATED, V2_PREFS, V2_USAGE, later, later, reset],
         );
         let result = read_fx(&sessions);
         assert!(result.skipped.is_empty(), "{:?}", result.skipped);
-        assert_eq!(result.events.len(), 1);
-        assert_eq!(result.events[0].tokens.input, 36314);
-        assert_eq!(result.events[0].tokens.output, 99);
-        assert_eq!(result.events[0].timestamp, "2026-11-01T20:15:25.166Z");
+        let got: Vec<(u64, u64, &str)> = result
+            .events
+            .iter()
+            .map(|e| (e.tokens.input, e.tokens.output, e.timestamp.as_str()))
+            .collect();
+        assert_eq!(
+            got,
+            [
+                (9016, 17, "2026-11-01T20:15:11.920Z"),
+                (27298, 82, "2026-11-01T20:15:25.166Z"),
+                (5, 1, "2026-11-01T20:15:30.000Z"),
+            ]
+        );
+        assert!(result.events.iter().all(|e| e.calls == Some(1)));
         fs::remove_dir_all(&dir).ok();
     }
 
     #[test]
-    fn v2_log_malformed_later_usage_keeps_the_earlier_snapshot_and_warns() {
+    fn v2_log_malformed_later_usage_keeps_the_earlier_events_and_warns() {
         let dir = scratch_dir("v2-later-malformed");
         let sessions = dir.join("sessions");
         let bad_usage = r#"{"v":1,"seq":9,"ts":1793564125166,"kind":"set","key":"usage","value":{"input_tokens":"x","output_tokens":2},"crc":"00000000"}"#;
