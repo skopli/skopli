@@ -1,0 +1,135 @@
+{
+  "schema_version": 1,
+  "events": [
+    {
+      "harness": "kimchi",
+      "messageId": "6d3365cc",
+      "model": "qwen",
+      "sessionId": "01a19938-b1e2-7a96-94c1-d97be7caa3af",
+      "subagent": false,
+      "timestamp": "2026-11-01T22:26:32.342Z",
+      "tokens": {
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "input": 0,
+        "output": 0,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "kimchi",
+      "messageId": "4be36c67",
+      "model": "qwen",
+      "sessionId": "01a19938-d299-78d9-8007-58e7803aa79b",
+      "subagent": false,
+      "timestamp": "2026-11-01T22:26:40.698Z",
+      "tokens": {
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "input": 0,
+        "output": 0,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "kimchi",
+      "messageId": "17dcb1ad",
+      "model": "qwen",
+      "sessionId": "01a19938-f36c-7dd3-904e-5940366046aa",
+      "subagent": false,
+      "timestamp": "2026-11-01T22:26:49.111Z",
+      "tokens": {
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "input": 0,
+        "output": 0,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "kimchi",
+      "messageId": "86027965",
+      "model": "qwen",
+      "sessionId": "01a19939-142e-7cc7-b7eb-de8589f9366e",
+      "subagent": false,
+      "timestamp": "2026-11-01T22:26:57.486Z",
+      "tokens": {
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "input": 0,
+        "output": 0,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "kimchi",
+      "messageId": "36208235",
+      "model": "qwen",
+      "sessionId": "01a1993e-dcf1-713c-9543-57b626cc5972",
+      "subagent": false,
+      "timestamp": "2026-11-01T22:34:24.800Z",
+      "tokens": {
+        "cacheRead": 7509,
+        "cacheWrite": 10003,
+        "input": 0,
+        "output": 17,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "kimchi",
+      "messageId": "c04da091",
+      "model": "qwen",
+      "sessionId": "01a19940-07e8-75ce-af92-0cba9ef5d957",
+      "subagent": false,
+      "timestamp": "2026-11-01T22:34:37.463Z",
+      "tokens": {
+        "cacheRead": 17507,
+        "cacheWrite": 15,
+        "input": 0,
+        "output": 33,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "kimchi",
+      "messageId": "470637be",
+      "model": "qwen",
+      "sessionId": "01a19940-38b0-7311-91e0-8a9a650597ff",
+      "subagent": false,
+      "timestamp": "2026-11-01T22:34:51.496Z",
+      "tokens": {
+        "cacheRead": 17508,
+        "cacheWrite": 15,
+        "input": 0,
+        "output": 88,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "kimchi",
+      "messageId": "230f2417",
+      "model": "qwen",
+      "sessionId": "01a19940-6903-7053-8829-5cd17cb62907",
+      "subagent": false,
+      "timestamp": "2026-11-01T22:34:59.577Z",
+      "tokens": {
+        "cacheRead": 17508,
+        "cacheWrite": 13,
+        "input": 0,
+        "output": 19,
+        "reasoning": 0
+      },
+      "turn": true
+    }
+  ],
+  "diagnostics": [],
+  "skipped": {}
+}

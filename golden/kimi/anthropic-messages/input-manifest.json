@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "harness": "kimi",
+  "case": "anthropic-messages",
+  "home": ".",
+  "options": {
+    "harnesses": [
+      "kimi"
+    ],
+    "tz": "UTC"
+  },
+  "rollups": [
+    "model",
+    "day",
+    "harness"
+  ]
+}

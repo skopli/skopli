@@ -1,0 +1,29 @@
+{
+  "info": {
+    "id": "01a198d2-d738-7180-b526-e3d09756c4f4",
+    "cwd": "/home/user/project"
+  },
+  "agent_id": "ag1.97d2a6b6a94d4c2389be0f1934c193bc",
+  "attempt_id": "at1.9a5b4f09c89147f0a4f5b1c015477332",
+  "session_summary": "What does index.js export? One sentence. Then list the files",
+  "created_at": "2026-11-01T20:35:16.925886300Z",
+  "updated_at": "2026-11-01T20:35:51.089914Z",
+  "num_messages": 3,
+  "num_chat_messages": 5,
+  "current_model_id": "qwen",
+  "next_trace_turn": 1,
+  "chat_format_version": 1,
+  "session_kind": "headless",
+  "git_root_dir": "/home/user/project/",
+  "git_remotes": [
+    "https://git-manager.devin.ai/proxy/github.com/sindresorhus/p-limit"
+  ],
+  "head_commit": "a8a6fbec4e0e866d6d779b10889bb4f5567e70eb",
+  "head_branch": "main",
+  "request_id": "e4ffc7f5-8169-40bd-ace1-1b5511662845",
+  "grok_home": "/home/user/.grok",
+  "last_active_at": "2026-11-01T20:35:51.089914Z",
+  "generated_title": "What does index.js export? One sentence. Then list the files",
+  "agent_name": "grok-build-plan",
+  "sandbox_profile": "off"
+}

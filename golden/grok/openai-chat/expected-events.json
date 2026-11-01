@@ -1,0 +1,71 @@
+{
+  "schema_version": 1,
+  "events": [
+    {
+      "harness": "grok",
+      "messageId": ".grok/sessions/%2Fhome%2Fuser%2Fproject/01a198d1-1790-75a2-bfb2-8e6a5d1d8f5f/updates.jsonl:2",
+      "model": "qwen",
+      "sessionId": "01a198d1-1790-75a2-bfb2-8e6a5d1d8f5f",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:34:17.000Z",
+      "tokens": {
+        "cacheRead": 3,
+        "cacheWrite": 0,
+        "input": 11838,
+        "output": 11,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "grok",
+      "messageId": ".grok/sessions/%2Fhome%2Fuser%2Fproject/01a198d1-f363-7751-ba31-509786ca1bbf/updates.jsonl:2",
+      "model": "qwen",
+      "sessionId": "01a198d1-f363-7751-ba31-509786ca1bbf",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:34:46.215Z",
+      "tokens": {
+        "cacheRead": 7654,
+        "cacheWrite": 0,
+        "input": 4195,
+        "output": 43,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "grok",
+      "messageId": ".grok/sessions/%2Fhome%2Fuser%2Fproject/01a198d2-6584-74a3-bd61-ae1242075399/updates.jsonl:2",
+      "model": "qwen",
+      "sessionId": "01a198d2-6584-74a3-bd61-ae1242075399",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:35:15.234Z",
+      "tokens": {
+        "cacheRead": 7653,
+        "cacheWrite": 0,
+        "input": 4199,
+        "output": 30,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "grok",
+      "messageId": ".grok/sessions/%2Fhome%2Fuser%2Fproject/01a198d2-d738-7180-b526-e3d09756c4f4/updates.jsonl:2",
+      "model": "qwen",
+      "sessionId": "01a198d2-d738-7180-b526-e3d09756c4f4",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:35:51.088Z",
+      "tokens": {
+        "cacheRead": 7654,
+        "cacheWrite": 0,
+        "input": 4195,
+        "output": 120,
+        "reasoning": 0
+      },
+      "turn": true
+    }
+  ],
+  "diagnostics": [],
+  "skipped": {}
+}

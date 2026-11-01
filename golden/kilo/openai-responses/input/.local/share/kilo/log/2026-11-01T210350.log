@@ -1,0 +1,17 @@
+INFO  2026-11-01T21:03:50 +516ms service=default version=7.8.18 command=run process_role=main run_id=89e5fca0-547f-4bc5-9b1b-4e1a4d37c49b opencode
+INFO  2026-11-01T21:03:51 +360ms service=bus type=session.turn.open subscribing
+INFO  2026-11-01T21:03:51 +0ms service=bus type=session.turn.close subscribing
+INFO  2026-11-01T21:03:51 +0ms service=bus type=memory.status subscribing
+INFO  2026-11-01T21:03:51 +0ms service=bus type=memory.updated subscribing
+INFO  2026-11-01T21:03:51 +270ms service=kilo-sessions sessionId=ses_e6712feefffePTlm977pUOWWQ8 session bootstrap skipped: no client
+INFO  2026-11-01T21:03:54 +2826ms service=kilocode-indexing workspacePath=/home/user/project initializing project indexing
+INFO  2026-11-01T21:03:54 +28ms service=bus type=indexing.status publishing
+INFO  2026-11-01T21:03:54 +1ms service=bus type=indexing.status publishing
+INFO  2026-11-01T21:03:55 +608ms service=bus type=session.turn.open publishing
+INFO  2026-11-01T21:03:55 +18ms service=model-cache providerID=kilo fetching models
+INFO  2026-11-01T21:03:55 +198ms service=model-cache providerID=kilo count=321 models fetched and cached
+INFO  2026-11-01T21:03:55 +1ms service=model-cache providerID=apertis fetching models
+INFO  2026-11-01T21:03:55 +1ms service=model-cache providerID=apertis count=0 models fetched and cached
+INFO  2026-11-01T21:03:55 +358ms service=model-cache providerID=apertis refreshing models
+INFO  2026-11-01T21:03:55 +0ms service=model-cache providerID=apertis count=0 models fetched and cached
+INFO  2026-11-01T21:03:57 +1625ms service=bus type=session.turn.close publishing

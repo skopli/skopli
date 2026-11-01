@@ -17,7 +17,7 @@ The ground truth for this domain is the third-party applications' real files and
 
 Cases named after a wire shape (`<harness>/openai-chat`, `<harness>/anthropic-messages`, `<harness>/openai-responses`) are real captures.
 Each was a multi-turn session of the installed harness against a local `llama-server` behind the verification skill's usage gateway, promoted with `scripts/promote.mjs`, and its README names the gateway, server build, model, cache source and the redaction applied.
-Every other case is a hand-shaped fixture and is not captured; five harnesses (codex, grok, hermes, kimchi, kimi) were captured but not promoted because the reader or the store needs a decision first, and their rows say which.
+Every other case is a hand-shaped fixture and is not captured; codex, grok, hermes, kimchi and kimi have hand-shaped fixtures that were captured but not promoted because the reader or the store needs a decision first, and now sit beside real wire-shape cases from the Windows run, and their rows say which.
 Where a real capture sits beside a hand-shaped fixture of the same harness, the real capture is authoritative for the harness's current on-disk shape; the hand-shaped fixture stays because it pins an older or alternative layout the reader still supports.
 A hand-shaped fixture with no real neighbour stays until a real capture exists; the table gives the reason per case.
 
@@ -28,45 +28,63 @@ A hand-shaped fixture with no real neighbour stays until a real capture exists; 
 | cherrystudio | basic | not captured | desktop application without a headless mode | none; this fixture stays until a real capture exists |
 | claude | anthropic-messages | captured | real multi-turn session, see the case README | this case |
 | claude | basic | not captured | hand-shaped five-project transcript set | claude/anthropic-messages |
-| cline | ext-basic | not captured | the OpenAI-compatible provider is chat-only, the CLI rejects a base URL for the Anthropic provider, and the chat cell did not complete in the capture run | none; this fixture stays until a real capture exists |
+| cline | ext-basic | not captured | the OpenAI-compatible provider is chat-only, the CLI rejects a base URL for the Anthropic provider, and the chat cell did not complete in the capture run | cline/openai-chat |
+| cline | openai-chat | captured | real multi-turn session, see the case README; one looping session with 228 request rows | this case |
 | codebuddy | basic | not captured | hand-shaped single-session transcript | codebuddy/openai-chat |
 | codebuddy | openai-chat | captured | real multi-turn session, see the case README | this case |
 | codebuff | basic | not captured | every request needs the vendor's account token | none; this fixture stays until a real capture exists |
-| codex | archived | not captured | hand-shaped archived-session layout; the codex/basic row gives the reader finding | none; this fixture stays until a real capture exists |
-| codex | basic | captured, not promoted | the reader ignores `thread_token_usage.*` and `turn_token_usage.cache_write_input_tokens`, and that classification is still open | none; this fixture stays until a real capture exists |
+| codex | archived | not captured | hand-shaped archived-session layout; the codex/basic row gives the reader finding | codex/openai-responses |
+| codex | basic | captured, not promoted | the reader ignores `thread_token_usage.*` and `turn_token_usage.cache_write_input_tokens`, and that classification is still open | codex/openai-responses |
+| codex | openai-responses | captured | real multi-turn session, see the case README | this case |
 | commandcode | json-basic | not captured | reader gap: the installed harness writes `.commandcode/projects/<slug>/<uuid>.jsonl` with `usage.{inputTokens,outputTokens,cacheReadTokens,cacheWriteTokens}` while the reader targets `.local/share/commandcode` | none; this fixture stays until a real capture exists |
 | copilot | anthropic-messages | captured | real multi-turn session, see the case README | this case |
 | copilot | basic | not captured | hand-shaped `otel.jsonl` export, a different store from the session-state events the installed harness writes | copilot/openai-chat, copilot/anthropic-messages, copilot/openai-responses |
 | copilot | openai-chat | captured | real multi-turn session, see the case README | this case |
 | copilot | openai-responses | captured | real multi-turn session, see the case README | this case |
-| deepseek | basic | not captured | hand-shaped sessions covering the plain `jsonl`, zstd and damaged-file paths (`sess-bad`, `sess-sub`) | deepseek/openai-chat |
+| deepseek | anthropic-messages | captured | real multi-turn session, see the case README | this case |
+| deepseek | basic | not captured | hand-shaped sessions covering the plain `jsonl`, zstd and damaged-file paths (`sess-bad`, `sess-sub`) | deepseek/openai-chat, deepseek/openai-responses, deepseek/anthropic-messages |
 | deepseek | openai-chat | captured | real multi-turn session, see the case README | this case |
-| deepseek | sqlite | not captured | hand-shaped SQLite store (`sessions/db/sessions.db`) beside a `jsonl` session; the installed harness wrote `session.v4.jsonl.zstd` only | deepseek/openai-chat |
+| deepseek | openai-responses | captured | real multi-turn session, see the case README | this case |
+| deepseek | sqlite | not captured | hand-shaped SQLite store (`sessions/db/sessions.db`) beside a `jsonl` session; the installed harness wrote `session.v4.jsonl.zstd` only | deepseek/openai-chat, deepseek/openai-responses, deepseek/anthropic-messages |
 | devin | db-basic | not captured | closed client of a hosted service; model names resolve through the account, no base URL option | none; this fixture stays until a real capture exists |
 | devin | desktop-basic | not captured | same as devin/db-basic | none; this fixture stays until a real capture exists |
 | droid | anthropic-messages | captured | real multi-turn session, see the case README | this case |
-| droid | basic | not captured | hand-shaped sessions covering the `settings.json` fallback and broken-settings paths | droid/openai-chat, droid/anthropic-messages |
+| droid | basic | not captured | hand-shaped sessions covering the `settings.json` fallback and broken-settings paths | droid/openai-chat, droid/openai-responses, droid/anthropic-messages |
 | droid | openai-chat | captured | real multi-turn session, see the case README | this case |
+| droid | openai-responses | captured | real multi-turn session, see the case README | this case |
 | fx | basic | not captured | hand-shaped `usage-v2.json` sidecars, the older layout | fx/openai-chat |
 | fx | openai-chat | captured | real multi-turn session, see the case README | this case |
 | gajae | anthropic-messages | captured | real multi-turn session, see the case README | this case |
-| gajae | basic | not captured | hand-shaped single session | gajae/openai-chat, gajae/anthropic-messages |
+| gajae | basic | not captured | hand-shaped single session | gajae/openai-chat, gajae/openai-responses, gajae/anthropic-messages |
 | gajae | openai-chat | captured | real multi-turn session, see the case README | this case |
+| gajae | openai-responses | captured | real multi-turn session, see the case README | this case |
 | gemini | basic | not captured | speaks the vendor's generateContent API only; no OpenAI or Anthropic wire shape | none; this fixture stays until a real capture exists |
-| goose | basic | not captured | hand-shaped `sessions.db` | goose/openai-chat |
+| goose | anthropic-messages-windows | captured | real multi-turn session, see the case README; Windows store `AppData/Roaming/Block/goose/data/sessions/sessions.db` with cache columns | this case |
+| goose | basic | not captured | hand-shaped `sessions.db` | goose/openai-chat, goose/openai-chat-windows, goose/anthropic-messages-windows |
 | goose | openai-chat | captured | real multi-turn session, see the case README | this case |
-| grok | basic | captured, not promoted | `params.update.usage.reasoningTokens` moves the reader's `input` by the whole call; needs a red-first reader fix against the real file | none; this fixture stays until a real capture exists |
-| hermes | multi-home | captured, not promoted | the store is `.hermes/state.db` and is not isolated per session; promoting `.hermes/sessions` reads 0 events | none; this fixture stays until a real capture exists |
+| goose | openai-chat-windows | captured | real multi-turn session, see the case README; Windows store `AppData/Roaming/Block/goose/data/sessions/sessions.db` | this case |
+| grok | anthropic-messages | captured | real multi-turn session, see the case README | this case |
+| grok | basic | captured, not promoted | `params.update.usage.reasoningTokens` moves the reader's `input` by the whole call; needs a red-first reader fix against the real file | grok/openai-chat, grok/anthropic-messages |
+| grok | openai-chat | captured | real multi-turn session, see the case README | this case |
+| hermes | multi-home | captured, not promoted | the store is `.hermes/state.db` and is not isolated per session; promoting `.hermes/sessions` reads 0 events | hermes/openai-chat |
+| hermes | openai-chat | captured | real multi-turn session, see the case README; the store is `.hermes/state.db` | this case |
 | jcode | anthropic-messages | captured | real multi-turn session, see the case README | this case |
 | jcode | basic | not captured | hand-shaped sessions covering the corrupt, backup, journal and ambient-transcript paths | jcode/openai-chat, jcode/anthropic-messages |
 | jcode | openai-chat | captured | real multi-turn session, see the case README | this case |
 | junie | basic | not captured | no base URL, provider or API key option in the installed binary | none; this fixture stays until a real capture exists |
 | kilo | anthropic-messages | captured | real multi-turn session, see the case README | this case |
-| kilo | basic | not captured | hand-shaped `kilo.db` | kilo/openai-chat, kilo/anthropic-messages |
+| kilo | basic | not captured | hand-shaped `kilo.db` | kilo/openai-chat, kilo/openai-responses, kilo/anthropic-messages |
 | kilo | openai-chat | captured | real multi-turn session, see the case README | this case |
+| kilo | openai-responses | captured | real multi-turn session, see the case README | this case |
 | kilocode | basic | not captured | editor extension only; the reader reads the extension's `globalStorage` tasks. The standalone `kilo` CLI is a different harness | none; this fixture stays until a real capture exists |
-| kimchi | basic | captured, not promoted | the config directory mixes the store with binaries and the Responses gateway log was not captured; `message.usage.reasoning` and `usage.cost.*` are unclassified | none; this fixture stays until a real capture exists |
-| kimi | basic | captured, not promoted | the reader ignores `event.usage.*` and `message.meta.usage.*`, and that classification is still open | none; this fixture stays until a real capture exists |
+| kimchi | anthropic-messages | captured | real multi-turn session, see the case README | this case |
+| kimchi | basic | captured, not promoted | the config directory mixes the store with binaries and the Responses gateway log was not captured; `message.usage.reasoning` and `usage.cost.*` are unclassified | kimchi/openai-chat, kimchi/openai-responses, kimchi/anthropic-messages |
+| kimchi | openai-chat | captured | real multi-turn session, see the case README | this case |
+| kimchi | openai-responses | captured | real multi-turn session, see the case README | this case |
+| kimi | anthropic-messages | captured | real multi-turn session, see the case README | this case |
+| kimi | basic | captured, not promoted | the reader ignores `event.usage.*` and `message.meta.usage.*`, and that classification is still open | kimi/openai-chat, kimi/openai-responses, kimi/anthropic-messages |
+| kimi | openai-chat | captured | real multi-turn session, see the case README | this case |
+| kimi | openai-responses | captured | real multi-turn session, see the case README | this case |
 | kiro | basic | not captured | closed source, vendor account authentication only, no configurable endpoint | none; this fixture stays until a real capture exists |
 | mimocode | json-basic | not captured | hand-shaped JSON `storage/message` layout with a damaged row; the installed harness writes `mimocode.db` | mimocode/openai-chat |
 | mimocode | openai-chat | captured | real multi-turn session, see the case README | this case |
@@ -93,10 +111,12 @@ A hand-shaped fixture with no real neighbour stays until a real capture exists; 
 | prime | openai-responses | captured | real multi-turn session, see the case README | this case |
 | qwen | basic | not captured | hand-shaped single chat | qwen/openai-chat |
 | qwen | openai-chat | captured | real multi-turn session, see the case README | this case |
-| reasonix | basic | not captured | reader gap: the installed harness writes `.reasonix/stats/<date>.jsonl` rows while the reader targets `.reasonix/projects/...` | none; this fixture stays until a real capture exists |
+| reasonix | anthropic-messages-windows | captured | real multi-turn session, see the case README; Windows store `AppData/Roaming/reasonix/projects` with telemetry sidecars | this case |
+| reasonix | basic | not captured | reader gap: the installed harness writes `.reasonix/stats/<date>.jsonl` rows while the reader targets `.reasonix/projects/...` | reasonix/openai-chat-windows, reasonix/anthropic-messages-windows |
+| reasonix | openai-chat-windows | captured | real multi-turn session, see the case README; Windows store `AppData/Roaming/reasonix/projects` with telemetry sidecars | this case |
 | roo | basic | not captured | capture layout gap: the CLI writes `.vscode-mock/global-storage/tasks/<id>/` while the reader roots at the editor extension's `globalStorage`; relocated by hand the reader yields 2 events | none; this fixture stays until a real capture exists |
-| trae | basic | not captured | hand-shaped trajectory JSON with the default `trajectory_<YYYYMMDD_HHMMSS>.json` names, which the real case (named by --trajectory-file) does not pin | trae/anthropic-messages |
 | trae | anthropic-messages | captured | real four-run capture, see the case README; reader gap filed there: naive local timestamps are booked as UTC | this case |
+| trae | basic | not captured | hand-shaped trajectory JSON with the default `trajectory_<YYYYMMDD_HHMMSS>.json` names, which the real case (named by --trajectory-file) does not pin | trae/anthropic-messages |
 | zcode | jsonl-basic | not captured | no CLI binary; the CLI package is buildable but was not built | none; this fixture stays until a real capture exists |
 | zed | basic | not captured | editor application; no headless agent mode with a configurable endpoint | none; this fixture stays until a real capture exists |
 

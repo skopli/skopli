@@ -1,0 +1,71 @@
+{
+  "schema_version": 1,
+  "events": [
+    {
+      "harness": "kimi",
+      "messageId": ".kimi-code/sessions/wd_p-limit_466a08e60827/session_d2867139-6629-48f8-812f-2deec018ca6a/agents/main/wire.jsonl:15",
+      "model": "llama/qwen",
+      "sessionId": "session_d2867139-6629-48f8-812f-2deec018ca6a",
+      "subagent": false,
+      "timestamp": "2026-11-01T21:08:56.193Z",
+      "tokens": {
+        "cacheRead": 13622,
+        "cacheWrite": 159,
+        "input": 0,
+        "output": 58,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "kimi",
+      "messageId": ".kimi-code/sessions/wd_p-limit_466a08e60827/session_2773097f-1aee-4e49-99a6-ae7f6d667104/agents/main/wire.jsonl:15",
+      "model": "llama/qwen",
+      "sessionId": "session_2773097f-1aee-4e49-99a6-ae7f6d667104",
+      "subagent": false,
+      "timestamp": "2026-11-01T21:09:03.295Z",
+      "tokens": {
+        "cacheRead": 13622,
+        "cacheWrite": 169,
+        "input": 0,
+        "output": 31,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "kimi",
+      "messageId": ".kimi-code/sessions/wd_p-limit_466a08e60827/session_1b3579f6-b86a-4683-a116-6787fecbe54d/agents/main/wire.jsonl:15",
+      "model": "llama/qwen",
+      "sessionId": "session_1b3579f6-b86a-4683-a116-6787fecbe54d",
+      "subagent": false,
+      "timestamp": "2026-11-01T21:09:15.979Z",
+      "tokens": {
+        "cacheRead": 13624,
+        "cacheWrite": 168,
+        "input": 0,
+        "output": 163,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "kimi",
+      "messageId": ".kimi-code/sessions/wd_p-limit_466a08e60827/session_864fc706-e2b0-4b3d-99fd-95ae68f21ca0/agents/main/wire.jsonl:15",
+      "model": "llama/qwen",
+      "sessionId": "session_864fc706-e2b0-4b3d-99fd-95ae68f21ca0",
+      "subagent": false,
+      "timestamp": "2026-11-01T21:09:28.111Z",
+      "tokens": {
+        "cacheRead": 13624,
+        "cacheWrite": 166,
+        "input": 0,
+        "output": 114,
+        "reasoning": 0
+      },
+      "turn": true
+    }
+  ],
+  "diagnostics": [],
+  "skipped": {}
+}

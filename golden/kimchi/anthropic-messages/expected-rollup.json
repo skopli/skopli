@@ -1,0 +1,50 @@
+{
+  "schema_version": 1,
+  "by": {
+    "model": [
+      {
+        "key": "qwen",
+        "tokens": {
+          "input": 0,
+          "output": 157,
+          "cacheRead": 60032,
+          "cacheWrite": 10046,
+          "reasoning": 0
+        },
+        "events": 8,
+        "turns": 8,
+        "calls": 8
+      }
+    ],
+    "day": [
+      {
+        "key": "2026-11-01",
+        "tokens": {
+          "input": 0,
+          "output": 157,
+          "cacheRead": 60032,
+          "cacheWrite": 10046,
+          "reasoning": 0
+        },
+        "events": 8,
+        "turns": 8,
+        "calls": 8
+      }
+    ],
+    "harness": [
+      {
+        "key": "kimchi",
+        "tokens": {
+          "input": 0,
+          "output": 157,
+          "cacheRead": 60032,
+          "cacheWrite": 10046,
+          "reasoning": 0
+        },
+        "events": 8,
+        "turns": 8,
+        "calls": 8
+      }
+    ]
+  }
+}

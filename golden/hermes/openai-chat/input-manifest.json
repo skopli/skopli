@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "harness": "hermes",
+  "case": "openai-chat",
+  "home": ".",
+  "options": {
+    "harnesses": [
+      "hermes"
+    ],
+    "tz": "UTC"
+  },
+  "rollups": [
+    "model",
+    "day",
+    "harness"
+  ]
+}

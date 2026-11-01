@@ -10,4 +10,5 @@ Real capture of a multi-turn session, promoted from the harness home directory w
 - Store paths: `.local/share/goose/sessions`.
 - Redaction: user name, home directory, project path, host name and placeholder API keys replaced; path slugs renamed to match; SQLite text columns rewritten in place and the database checkpointed and vacuumed.
 - Events 1, sessions 1, diagnostics 0, skipped 0.
-- Totals: input 26730, output 290, cache read 0, cache write 0, reasoning 0.
+- Totals: input 4545, output 290, cache read 22185, cache write 0, reasoning 0.
+- Reader fix from the Windows run: the sessions table carries cache_read_tokens and cache_write_tokens inside a cache-inclusive input_tokens, so the reader now reports input 4545 and cache read 22185 where it reported input 26730 and no cache.

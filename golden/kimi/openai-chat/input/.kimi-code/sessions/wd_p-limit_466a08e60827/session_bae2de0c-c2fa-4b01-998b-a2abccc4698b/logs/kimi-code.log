@@ -1,0 +1,3 @@
+2026-11-01T21:07:15.480Z INFO  llm config  turnStep=0.1 provider=openai model=qwen modelAlias=llama/qwen thinkingEffort=off systemPromptChars=10714 toolCount=24
+2026-11-01T21:07:15.481Z INFO  llm request  turnStep=0.1
+2026-11-01T21:07:20.351Z INFO  llm response  turnStep=0.1 ttftMs=1561 streamDurationMs=3306 outputTokens=70 requestBuildMs=2 serverFirstTokenMs=1559 serverDecodeMs=3304 clientConsumeMs=2 clientBlockedMs=139
