@@ -231,8 +231,10 @@ const META_SUFFIX: &str = ".jsonl.meta";
 
 fn skip_malformed(file: &str, skipped: &mut Vec<String>, warnings: &mut Vec<ReaderWarning>) {
     warnings.push(ReaderWarning {
-        message: format!("skipping malformed {HARNESS} file {file}
-"),
+        message: format!(
+            "skipping malformed {HARNESS} file {file}
+"
+        ),
     });
     skipped.push(file.to_owned());
 }
@@ -275,15 +277,14 @@ fn read_telemetry(
         .get("updated_at")
         .and_then(as_string)
         .and_then(|raw| date_parse_ms(raw.trim()));
-    let (updated_at_ms, timestamp) = match updated_at_ms.and_then(|ms| {
-        crate::time::to_iso_string(ms).map(|ts| (ms, ts))
-    }) {
-        Some(pair) => pair,
-        None => {
-            skip_malformed(file, skipped, warnings);
-            return None;
-        }
-    };
+    let (updated_at_ms, timestamp) =
+        match updated_at_ms.and_then(|ms| crate::time::to_iso_string(ms).map(|ts| (ms, ts))) {
+            Some(pair) => pair,
+            None => {
+                skip_malformed(file, skipped, warnings);
+                return None;
+            }
+        };
     let session_id = meta
         .get("id")
         .and_then(as_string)
@@ -411,11 +412,14 @@ mod tests {
         path
     }
 
-
     fn write_pair(dir: &Path, slug: &str, id: &str, telemetry: &str, meta: Option<&str>) {
         let sessions = dir.join("projects").join(slug).join("sessions");
         fs::create_dir_all(&sessions).unwrap();
-        fs::write(sessions.join(format!("{id}.jsonl.telemetry.json")), telemetry).unwrap();
+        fs::write(
+            sessions.join(format!("{id}.jsonl.telemetry.json")),
+            telemetry,
+        )
+        .unwrap();
         if let Some(meta) = meta {
             fs::write(sessions.join(format!("{id}.jsonl.meta")), meta).unwrap();
         }
