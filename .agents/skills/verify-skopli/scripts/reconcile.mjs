@@ -4,7 +4,7 @@
 // cached_tokens as cache read), messages (input, cache_read, cache_creation) and responses
 // (input_tokens minus input_tokens_details.cached_tokens, cached_tokens as cache read). Lines
 // tagged aborted are summed separately because the harness never saw them.
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 import { parseArgs } from "./cli.mjs";
@@ -67,7 +67,15 @@ const { readUsage, rollup } = await import(pathToFileURL(join(root, "dist/index.
 const gateway = lines.filter((l) => !l.aborted).reduce((acc, l) => add(acc, fromLine(l)), zero());
 const aborted = lines.filter((l) => l.aborted).reduce((acc, l) => add(acc, fromLine(l)), zero());
 
-const result = await readUsage({ home, cwd: home, env: {}, harnesses: [harness], tz: "UTC" });
+const env = {};
+for (const [name, sub] of [
+  ["APPDATA", "Roaming"],
+  ["LOCALAPPDATA", "Local"],
+]) {
+  const path = join(home, "AppData", sub);
+  if (existsSync(path)) env[name] = path;
+}
+const result = await readUsage({ home, cwd: home, env, harnesses: [harness], tz: "UTC" });
 const skopli = add(zero(), rollup(result.events, { by: "harness" })[0]?.tokens ?? {});
 const delta = Object.fromEntries(Object.keys(skopli).map((k) => [k, skopli[k] - gateway[k]]));
 const agree = Object.values(delta).every((d) => d === 0);

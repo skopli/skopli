@@ -306,7 +306,10 @@ describe("proxy", () => {
   });
   it("retries a refused upstream connection before answering 502", async () => {
     const late = createServer((_req, res) => res.end("{}"));
-    const port = (upstream.address() as AddressInfo).port + 1000;
+    const probe = createServer();
+    await new Promise<void>((r) => probe.listen(0, "127.0.0.1", () => r()));
+    const port = (probe.address() as AddressInfo).port;
+    await new Promise<void>((r) => probe.close(() => r()));
     const gateway = await listen(
       createGateway(new URL(`http://127.0.0.1:${port}`), { quiet: true }),
     );

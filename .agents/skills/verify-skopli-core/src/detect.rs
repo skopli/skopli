@@ -350,6 +350,7 @@ pub const DEFAULT_ROOTS: &[(&str, &str, &str)] = &[
     ("PRIME_AGENT_SESSION_DIR", "", ".prime/agent/sessions"),
     ("QWEN_DATA_DIR", "", ".qwen"),
     ("REASONIX_HOME", "", ".reasonix"),
+    ("APPDATA", "reasonix", ".reasonix"),
     ("ZCODE_DATA_DIR", "", ".zcode"),
     ("ZED_DATA_DIR", "", ".local/share/zed"),
 ];

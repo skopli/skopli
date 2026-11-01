@@ -29,7 +29,13 @@ export const replayCase = async (caseId, dir = join(root, "golden", caseId)) => 
   };
   if (manifest.cwd) options.cwd = at(manifest.cwd);
 
-  const relativize = (s) => s.replaceAll(input, "").replace(/(^|\s)\/+/g, "$1");
+  // Strip the input dir and write the rest with "/" so an id reads the same on every OS.
+  const relativize = (s) =>
+    s
+      .split(input)
+      .map((part, i) => (i === 0 ? part : part.replace(/^[^\s"]*/, (m) => m.replaceAll("\\", "/"))))
+      .join("")
+      .replace(/(^|\s)\/+/g, "$1");
   const key = (e) => [e.timestamp, e.sessionId, e.messageId, e.model].join("\0");
   const result = await readUsage(options);
   const events = result.events

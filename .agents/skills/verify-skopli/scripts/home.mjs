@@ -15,11 +15,16 @@ if (!statSync(dir, { throwIfNoEntry: false })?.isDirectory()) {
 }
 
 const root = resolve(fileURLToPath(import.meta.url), "../../../../..");
-const { detectHarnesses, readUsage } = await import(pathToFileURL(join(root, "dist/index.js")).href);
+const { detectHarnesses, readUsage } = await import(
+  pathToFileURL(join(root, "dist/index.js")).href
+);
 // A Windows home carries its own AppData tree; point APPDATA and LOCALAPPDATA
 // at it the way the OS does so AppData-rooted detectors resolve inside the home.
 const env = {};
-for (const [name, sub] of [["APPDATA", "Roaming"], ["LOCALAPPDATA", "Local"]]) {
+for (const [name, sub] of [
+  ["APPDATA", "Roaming"],
+  ["LOCALAPPDATA", "Local"],
+]) {
   const path = join(dir, "AppData", sub);
   if (existsSync(path)) env[name] = path;
 }
