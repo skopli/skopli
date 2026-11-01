@@ -1,7 +1,7 @@
 #!/usr/bin/env node
-import { mkdirSync, statSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, statSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 
 const [home, outFlag, outDir] = process.argv.slice(2);
 if (!home || outFlag !== "--out" || !outDir) {
@@ -15,8 +15,15 @@ if (!statSync(dir, { throwIfNoEntry: false })?.isDirectory()) {
 }
 
 const root = resolve(fileURLToPath(import.meta.url), "../../../../..");
-const { detectHarnesses, readUsage } = await import(join(root, "dist/index.js"));
-const options = { home: dir, env: {}, cwd: dir };
+const { detectHarnesses, readUsage } = await import(pathToFileURL(join(root, "dist/index.js")).href);
+// A Windows home carries its own AppData tree; point APPDATA and LOCALAPPDATA
+// at it the way the OS does so AppData-rooted detectors resolve inside the home.
+const env = {};
+for (const [name, sub] of [["APPDATA", "Roaming"], ["LOCALAPPDATA", "Local"]]) {
+  const path = join(dir, "AppData", sub);
+  if (existsSync(path)) env[name] = path;
+}
+const options = { home: dir, env, cwd: dir };
 const detected = detectHarnesses(options);
 const result = await readUsage({ ...options, tz: "UTC" });
 const sessions = (events) => new Set(events.map((e) => `${e.harness}\0${e.sessionId}`)).size;

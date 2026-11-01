@@ -6,6 +6,7 @@
 // tagged aborted are summed separately because the harness never saw them.
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
+import { pathToFileURL } from "node:url";
 import { parseArgs } from "./cli.mjs";
 import { root } from "./replay.mjs";
 
@@ -62,7 +63,7 @@ if (dryRun) {
   console.log(JSON.stringify({ home, harness, log, gatewayLines: lines.length }, null, 2));
   process.exit(0);
 }
-const { readUsage, rollup } = await import(join(root, "dist/index.js"));
+const { readUsage, rollup } = await import(pathToFileURL(join(root, "dist/index.js")).href);
 const gateway = lines.filter((l) => !l.aborted).reduce((acc, l) => add(acc, fromLine(l)), zero());
 const aborted = lines.filter((l) => l.aborted).reduce((acc, l) => add(acc, fromLine(l)), zero());
 

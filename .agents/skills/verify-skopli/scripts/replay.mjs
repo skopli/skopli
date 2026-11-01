@@ -2,7 +2,7 @@
 // normalise the output the way the expected files store it (used by golden.mjs and promote.mjs).
 import { readFileSync } from "node:fs";
 import { isAbsolute, join, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 
 export const root = resolve(fileURLToPath(import.meta.url), "../../../../..");
 
@@ -14,7 +14,7 @@ export const canonical = (v) =>
   );
 
 export const replayCase = async (caseId, dir = join(root, "golden", caseId)) => {
-  const { readUsage, rollup } = await import(join(root, "dist/index.js"));
+  const { readUsage, rollup } = await import(pathToFileURL(join(root, "dist/index.js")).href);
   const input = join(dir, "input");
   const manifest = JSON.parse(readFileSync(join(dir, "input-manifest.json"), "utf8"));
 
