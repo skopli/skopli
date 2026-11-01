@@ -82,6 +82,7 @@ pub const MARKERS: &[Marker] = &[
     file("kilo", ".local/share/kilo/kilo.db"),
     file("goose", ".local/share/goose/sessions/sessions.db"),
     file("goose", ".local/share/Block/goose/sessions/sessions.db"),
+    file("goose", "AppData/Roaming/Block/goose/data/sessions/sessions.db"),
     file(
         "goose",
         "Library/Application Support/goose/sessions/sessions.db",
@@ -176,6 +177,7 @@ pub const MARKERS: &[Marker] = &[
     file("deepseek", ".dsh/w1/session.v4.jsonl.zstd"),
     file("deepseek", ".dsh/w1/a.db"),
     file("reasonix", ".reasonix/projects/p1/s1.acp.json"),
+    file("reasonix", ".reasonix/projects/p1/s1.jsonl.telemetry.json"),
     file("kiro", ".kiro/data.sqlite3"),
     file("kiro", ".local/share/amazon-q/data.sqlite3"),
     file("kiro", "Library/Application Support/amazon-q/data.sqlite3"),
@@ -383,6 +385,10 @@ pub const SIBLING_ROOTS: &[(&str, &str)] = &[
     (
         ".local/share/goose/sessions/sessions.db",
         ".local/share/Block/goose/sessions/sessions.db",
+    ),
+    (
+        ".local/share/goose/sessions/sessions.db",
+        "AppData/Roaming/Block/goose/data/sessions/sessions.db",
     ),
     (".kiro/data.sqlite3", ".local/share/amazon-q/data.sqlite3"),
     (

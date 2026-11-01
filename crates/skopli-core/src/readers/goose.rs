@@ -20,14 +20,16 @@ impl Reader for GooseReader {
     }
 
     fn read(&self, ctx: &ReaderContext) -> ReaderResult {
-        let paths = goose_db_paths(ctx.env("GOOSE_PATH_ROOT"), ctx.home());
+        let paths = goose_db_paths(ctx.env("GOOSE_PATH_ROOT"), ctx.env("APPDATA"), ctx.home());
         read_goose(&paths)
     }
 }
 
 /// Resolve the goose database paths. `GOOSE_PATH_ROOT` is a single path (never
-/// comma-split).
-pub fn goose_db_paths(override_val: Option<&str>, home: &Path) -> Vec<PathBuf> {
+/// comma-split). On Windows goose writes under `%APPDATA%\Block\goose\data`,
+/// so that root is tried when `APPDATA` is set and as `AppData/Roaming` under
+/// the home.
+pub fn goose_db_paths(override_val: Option<&str>, appdata: Option<&str>, home: &Path) -> Vec<PathBuf> {
     if let Some(v) = override_val
         && !v.trim().is_empty()
     {
@@ -38,7 +40,7 @@ pub fn goose_db_paths(override_val: Option<&str>, home: &Path) -> Vec<PathBuf> {
                 .join("sessions.db"),
         ];
     }
-    vec![
+    let mut paths = vec![
         home.join(".local")
             .join("share")
             .join("goose")
@@ -55,7 +57,23 @@ pub fn goose_db_paths(override_val: Option<&str>, home: &Path) -> Vec<PathBuf> {
             .join("goose")
             .join("sessions")
             .join("sessions.db"),
-    ]
+        windows_sessions_db(&home.join("AppData").join("Roaming")),
+    ];
+    if let Some(v) = appdata
+        && !v.trim().is_empty()
+    {
+        paths.push(windows_sessions_db(Path::new(v.trim())));
+    }
+    paths
+}
+
+fn windows_sessions_db(roaming: &Path) -> PathBuf {
+    roaming
+        .join("Block")
+        .join("goose")
+        .join("data")
+        .join("sessions")
+        .join("sessions.db")
 }
 
 /// Resolve a `created_at` cell to an ISO string: a string is reparsed as a
@@ -207,5 +225,51 @@ pub fn read_goose(db_paths: &[PathBuf]) -> ReaderResult {
         events,
         skipped,
         warnings,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::readers::shared::test_home;
+
+    #[test]
+    fn default_paths_include_the_windows_roaming_store() {
+        let home = test_home();
+        let paths = goose_db_paths(None, None, &home);
+        assert_eq!(paths.len(), 4);
+        assert_eq!(
+            paths[3],
+            home.join("AppData")
+                .join("Roaming")
+                .join("Block")
+                .join("goose")
+                .join("data")
+                .join("sessions")
+                .join("sessions.db")
+        );
+    }
+
+    #[test]
+    fn appdata_adds_its_own_roaming_store() {
+        let home = test_home();
+        let paths = goose_db_paths(None, Some("D:/Roaming"), &home);
+        assert_eq!(paths.len(), 5);
+        assert_eq!(
+            paths[4],
+            Path::new("D:/Roaming")
+                .join("Block")
+                .join("goose")
+                .join("data")
+                .join("sessions")
+                .join("sessions.db")
+        );
+    }
+
+    #[test]
+    fn override_wins_over_every_default() {
+        let paths = goose_db_paths(Some("/opt/goose"), Some("D:/Roaming"), &test_home());
+        assert_eq!(paths.len(), 1);
+        assert!(paths[0].ends_with(Path::new("data").join("sessions").join("sessions.db")));
     }
 }

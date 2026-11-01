@@ -245,11 +245,17 @@ function gooseDbPaths(resolver: PathResolver): string[] {
     return [join(override.trim(), "data", "sessions", "sessions.db")];
   }
   const home = resolver.home();
-  return [
+  const paths = [
     join(home, ".local", "share", "goose", "sessions", "sessions.db"),
     join(home, "Library", "Application Support", "goose", "sessions", "sessions.db"),
     join(home, ".local", "share", "Block", "goose", "sessions", "sessions.db"),
+    join(home, "AppData", "Roaming", "Block", "goose", "data", "sessions", "sessions.db"),
   ];
+  const appData = resolver.env("APPDATA");
+  if (appData !== undefined && appData.trim() !== "") {
+    paths.push(join(appData.trim(), "Block", "goose", "data", "sessions", "sessions.db"));
+  }
+  return paths;
 }
 
 function grokHome(resolver: PathResolver): string {
@@ -665,8 +671,14 @@ export function detectHarnesses(resolver: PathResolver = defaultPathResolver): D
       supported.push("deepseek");
     }
   }
-  if (hasFileWithSuffix(reasonixSessionsGlobRoot(resolver), ".acp.json")) {
-    supported.push("reasonix");
+  {
+    const root = reasonixSessionsGlobRoot(resolver);
+    if (
+      hasFileWithSuffix(root, ".acp.json") ||
+      hasFileWithSuffix(root, ".jsonl.telemetry.json")
+    ) {
+      supported.push("reasonix");
+    }
   }
   if (kiroDbPaths(resolver).some((path) => existsSync(path))) supported.push("kiro");
   if (

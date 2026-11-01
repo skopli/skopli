@@ -701,3 +701,50 @@ describe("detectHarnesses fx roots", () => {
     }
   });
 });
+
+// Windows goose writes its store under %APPDATA%\Block\goose\data; the Linux
+// and macOS roots stay as they were.
+describe("detectHarnesses goose Windows roots", () => {
+  it("resolves APPDATA to <appdata>/Block/goose/data/sessions/sessions.db", () => {
+    const home = makeHome();
+    const appData = mkdtempSync(join(tmpdir(), "skopli-appdata-"));
+    try {
+      mkdirSync(join(appData, "Block", "goose", "data", "sessions"), { recursive: true });
+      writeFileSync(join(appData, "Block", "goose", "data", "sessions", "sessions.db"), "");
+      const resolver = createPathResolver({ home, env: { APPDATA: appData } });
+      expect(detectHarnesses(resolver).supported).toContain("goose");
+    } finally {
+      rmSync(home, { recursive: true, force: true });
+      rmSync(appData, { recursive: true, force: true });
+    }
+  });
+
+  it("resolves <home>/AppData/Roaming/Block/goose/data without APPDATA", () => {
+    const home = makeHome();
+    try {
+      const sessions = join(home, "AppData", "Roaming", "Block", "goose", "data", "sessions");
+      mkdirSync(sessions, { recursive: true });
+      writeFileSync(join(sessions, "sessions.db"), "");
+      expect(detectHarnesses(createPathResolver({ home, env: {} })).supported).toContain("goose");
+    } finally {
+      rmSync(home, { recursive: true, force: true });
+    }
+  });
+});
+
+// Reasonix 2.56 replaced the `.acp.json` sidecar with `<id>.jsonl.telemetry.json`.
+describe("detectHarnesses reasonix telemetry sidecar", () => {
+  it("detects a projects tree that holds only .jsonl.telemetry.json sidecars", () => {
+    const home = makeHome();
+    try {
+      const sessions = join(home, ".reasonix", "projects", "p1", "sessions");
+      mkdirSync(sessions, { recursive: true });
+      writeFileSync(join(sessions, "s1.jsonl.telemetry.json"), "{}");
+      expect(detectHarnesses(createPathResolver({ home, env: {} })).supported).toContain(
+        "reasonix",
+      );
+    } finally {
+      rmSync(home, { recursive: true, force: true });
+    }
+  });
+});
