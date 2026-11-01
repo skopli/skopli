@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "harness": "trae",
+  "case": "anthropic-messages",
+  "cwd": ".",
+  "options": {
+    "harnesses": [
+      "trae"
+    ],
+    "tz": "UTC"
+  },
+  "rollups": [
+    "model",
+    "day",
+    "harness"
+  ]
+}
