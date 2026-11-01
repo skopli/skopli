@@ -76,6 +76,20 @@ use crate::types::{TokenCounts, UsageEvent};
 /// therefore read; usage that exists is usage. A snapshot may also carry an
 /// `incidents[]` array recording completeness incidents; when non-empty it draws
 /// one informational warning naming the session, but no usage is skipped.
+///
+/// fx 0.0.16 and later also write an append-only session log at
+/// `~/.fx/sessions/v2/<session_id>/log.jsonl`, one JSON record per line with
+/// `seq`, `ts` (epoch milliseconds), `kind` and, for `kind: "set"`, a `key` and
+/// `value`. The `usage` key restates the session's cumulative main-agent token
+/// sums (`input_tokens`, `output_tokens`, nullable `cache_read_tokens`,
+/// `cache_write_tokens`, `reasoning_tokens`), so the last `usage` record of a
+/// log is the session's usage and yields one event with `message_id`
+/// `{session_id}:usage`, the model from the `prefs` record, the workspace from
+/// `session_created` and the title from the `title` record. A log without a
+/// `usage` record is a session that never completed a turn and is silent. A
+/// line that is not a JSON object, or a `usage` record whose counters are not
+/// u64 integers (null is honored for the three optional ones), is skipped with a
+/// `{path}:{line}` diagnostic.
 pub struct FxReader;
 
 impl Reader for FxReader {
@@ -90,6 +104,7 @@ impl Reader for FxReader {
 
 const HARNESS: &str = "fx";
 const SIDECAR_FILE: &str = "usage-v2.json";
+const V2_LOG_FILE: &str = "log.jsonl";
 
 /// Resolve the fx sessions directory, `<home>/.fx/sessions`. The profile root
 /// (`.fx`) is a fixed home-relative constant on every OS with no environment
@@ -330,6 +345,84 @@ fn skip(label: &str, skipped: &mut Vec<String>, warnings: &mut Vec<ReaderWarning
 /// The immediate subdirectory names of `dir`, sorted. Unreadable directories
 /// and non-directory entries are ignored. Enumeration stays at depth one so a
 /// deeper nested file cannot masquerade as a session or shift ordinals.
+/// Read one v2 session log; `None` when the session has no usage yet or its
+/// usage record is malformed (which is also a diagnostic).
+fn read_v2_log(
+    file: &Path,
+    session_id: &str,
+    skipped: &mut Vec<String>,
+    warnings: &mut Vec<ReaderWarning>,
+) -> Option<UsageEvent> {
+    let content = std::fs::read_to_string(file).ok()?;
+    let label = |line: usize| format!("{}:{line}", file.display());
+    let mut model = None;
+    let mut title = None;
+    let mut workspace = None;
+    let mut usage = None;
+    for (index, line) in content.lines().enumerate() {
+        if line.trim().is_empty() {
+            continue;
+        }
+        let record = serde_json::from_str::<Value>(line).ok().filter(is_record);
+        let Some(record) = record else {
+            skip(&label(index + 1), skipped, warnings);
+            continue;
+        };
+        let value = record.get("value");
+        match (
+            record.get("kind").and_then(Value::as_str),
+            record.get("key").and_then(Value::as_str),
+        ) {
+            (Some("session_created"), _) => workspace = record.get("workspace").and_then(as_string),
+            (Some("set"), Some("prefs")) => {
+                model = value.and_then(|v| v.get("model")).and_then(as_string);
+            }
+            (Some("set"), Some("title")) => title = value.and_then(as_string),
+            (Some("set"), Some("usage")) => match v2_usage(&record) {
+                Some(snapshot) => usage = Some(snapshot),
+                None => skip(&label(index + 1), skipped, warnings),
+            },
+            _ => {}
+        }
+    }
+    let (tokens, timestamp) = usage?;
+    Some(UsageEvent {
+        harness: HARNESS.to_owned(),
+        timestamp,
+        session_id: session_id.to_owned(),
+        message_id: format!("{session_id}:usage"),
+        turn: false,
+        subagent: false,
+        model: model.unwrap_or_default(),
+        tokens,
+        calls: None,
+        cost_usd: None,
+        workspace,
+        title,
+    })
+}
+
+/// The token counts and ISO timestamp of one v2 `usage` record, `None` when a
+/// required counter is not a u64, an optional one is populated with a non-u64,
+/// or `ts` is not a number.
+fn v2_usage(record: &Value) -> Option<(TokenCounts, String)> {
+    let value = record.get("value").filter(|v| is_record(v))?;
+    let optional = |key: &str| optional_u64(value.get(key)).ok().map(|v| v.unwrap_or(0));
+    let tokens = TokenCounts {
+        input: required_u64(value.get("input_tokens"))?,
+        output: required_u64(value.get("output_tokens"))?,
+        cache_read: optional("cache_read_tokens")?,
+        cache_write: optional("cache_write_tokens")?,
+        cache_write1h: None,
+        reasoning: optional("reasoning_tokens")?,
+    };
+    let timestamp = record
+        .get("ts")
+        .filter(|ts| ts.is_number())
+        .and_then(parse_timestamp_to_iso)?;
+    Some((tokens, timestamp))
+}
+
 fn immediate_session_dirs(dir: &Path) -> Vec<String> {
     let mut names: Vec<String> = match std::fs::read_dir(dir) {
         Ok(entries) => entries
@@ -371,6 +464,14 @@ pub fn read_fx(sessions_dir: &Path) -> ReaderResult {
             &mut skipped,
             &mut warnings,
         ));
+    }
+
+    let v2 = sessions_dir.join("v2");
+    for name in immediate_session_dirs(&v2) {
+        let log = v2.join(&name).join(V2_LOG_FILE);
+        if log.is_file() {
+            events.extend(read_v2_log(&log, &name, &mut skipped, &mut warnings));
+        }
     }
 
     ReaderResult {
@@ -959,6 +1060,85 @@ mod tests {
             format!("{session_id}:openai/gpt-5.4")
         );
         assert!(expected.ends_with("usage-v2.json"));
+        fs::remove_dir_all(&dir).ok();
+    }
+
+    fn write_v2_log(sessions: &Path, session_id: &str, lines: &[&str]) {
+        let dir = sessions.join("v2").join(session_id);
+        fs::create_dir_all(&dir).unwrap();
+        fs::write(dir.join(V2_LOG_FILE), lines.join("\n") + "\n").unwrap();
+    }
+
+    const V2_CREATED: &str = r#"{"v":1,"seq":1,"ts":1793564111921,"kind":"session_created","id":"vi5FAUzM30R7","workspace":"/work/p-limit","role":"root","host":"ask","crc":"d019f95a"}"#;
+    const V2_PREFS: &str = r#"{"v":1,"seq":2,"ts":1793564075976,"kind":"set","key":"prefs","value":{"provider":{"name":"local","binding":"845ca1b6"},"model":"qwen","effort":"auto","fast_mode":false},"crc":"97be1ae5"}"#;
+    const V2_USAGE: &str = r#"{"v":1,"seq":5,"ts":1793564111920,"kind":"set","key":"usage","value":{"input_tokens":9016,"output_tokens":17,"cache_read_tokens":null,"cache_write_tokens":null,"reasoning_tokens":null},"crc":"d7666434"}"#;
+    const V2_TITLE: &str = r#"{"v":1,"seq":12,"ts":1793564111923,"kind":"set","key":"title","value":"What does index.js in this project export? Answer","crc":"1ad98e57"}"#;
+
+    #[test]
+    fn v2_log_yields_one_event_per_session_from_the_usage_snapshot() {
+        let dir = scratch_dir("v2-log");
+        let sessions = dir.join("sessions");
+        write_v2_log(
+            &sessions,
+            "vi5FAUzM30R7",
+            &[V2_CREATED, V2_PREFS, V2_USAGE, V2_TITLE],
+        );
+        let result = read_fx(&sessions);
+        assert!(result.skipped.is_empty(), "{:?}", result.skipped);
+        assert_eq!(result.events.len(), 1);
+        let event = &result.events[0];
+        assert_eq!(event.session_id, "vi5FAUzM30R7");
+        assert_eq!(event.message_id, "vi5FAUzM30R7:usage");
+        assert_eq!(event.model, "qwen");
+        assert_eq!(event.timestamp, "2026-11-01T20:15:11.920Z");
+        assert_eq!(event.tokens.input, 9016);
+        assert_eq!(event.tokens.output, 17);
+        assert_eq!(event.tokens.cache_read, 0);
+        assert_eq!(event.tokens.cache_write, 0);
+        assert_eq!(event.tokens.reasoning, 0);
+        assert_eq!(event.calls, None);
+        assert_eq!(event.workspace.as_deref(), Some("/work/p-limit"));
+        assert_eq!(
+            event.title.as_deref(),
+            Some("What does index.js in this project export? Answer")
+        );
+        fs::remove_dir_all(&dir).ok();
+    }
+
+    #[test]
+    fn v2_log_without_a_usage_snapshot_is_silent() {
+        let dir = scratch_dir("v2-no-usage");
+        let sessions = dir.join("sessions");
+        write_v2_log(&sessions, "vi5FAUzM30R7", &[V2_CREATED, V2_PREFS]);
+        let result = read_fx(&sessions);
+        assert!(result.events.is_empty());
+        assert!(result.skipped.is_empty());
+        fs::remove_dir_all(&dir).ok();
+    }
+
+    #[test]
+    fn v2_log_malformed_usage_or_line_is_a_diagnostic() {
+        let dir = scratch_dir("v2-malformed");
+        let sessions = dir.join("sessions");
+        let bad_usage = r#"{"v":1,"seq":5,"ts":1793564111920,"kind":"set","key":"usage","value":{"input_tokens":"9016","output_tokens":17},"crc":"00000000"}"#;
+        write_v2_log(
+            &sessions,
+            "vi5FAUzM30R7",
+            &[V2_CREATED, "not json", bad_usage],
+        );
+        let result = read_fx(&sessions);
+        assert!(result.events.is_empty());
+        assert_eq!(result.skipped.len(), 2, "{:?}", result.skipped);
+        assert!(
+            result.skipped[0].ends_with("log.jsonl:2"),
+            "{}",
+            result.skipped[0]
+        );
+        assert!(
+            result.skipped[1].ends_with("log.jsonl:3"),
+            "{}",
+            result.skipped[1]
+        );
         fs::remove_dir_all(&dir).ok();
     }
 }

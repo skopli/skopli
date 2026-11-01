@@ -450,7 +450,8 @@ function reasonixSessionsGlobRoot(resolver: PathResolver): string {
 // %LOCALAPPDATA%, macOS ~/Library/Application Support, Linux $XDG_DATA_HOME or
 // ~/.local/share) read for in-place upgrades.
 // fx (vercel-labs/fx) persists per-session usage at
-// ~/.fx/sessions/<session_id>/usage-v2.json. The profile root constant is
+// ~/.fx/sessions/<session_id>/usage-v2.json and, from 0.0.16, session logs at
+// ~/.fx/sessions/v2/<session_id>/log.jsonl. The profile root constant is
 // ".fx" joined to the OS home with no environment override, so the sessions
 // directory resolves from home only.
 function fxSessionsRoot(resolver: PathResolver): string {
@@ -668,7 +669,11 @@ export function detectHarnesses(resolver: PathResolver = defaultPathResolver): D
     supported.push("reasonix");
   }
   if (kiroDbPaths(resolver).some((path) => existsSync(path))) supported.push("kiro");
-  if (hasImmediateChildFile(fxSessionsRoot(resolver), "usage-v2.json")) supported.push("fx");
+  if (
+    hasImmediateChildFile(fxSessionsRoot(resolver), "usage-v2.json") ||
+    hasImmediateChildFile(join(fxSessionsRoot(resolver), "v2"), "log.jsonl")
+  )
+    supported.push("fx");
 
   const home = resolver.home();
   const unsupported: string[] = [];

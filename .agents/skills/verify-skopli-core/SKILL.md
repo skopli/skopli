@@ -213,9 +213,9 @@ The `codebuddy` reader shares the claude parser, so both claude breaks also fail
 Four tests live in `tests/detect.rs`; the marker table and the two detector bridges live in `src/detect.rs`, and `ts-detect.mjs` runs `detectHarnesses` from `src/detect.ts` over a batch of homes in one Node process.
 The Rust side is `skopli_wire::read::detect`, the entry the facades call, which marks a harness supported when its reader yields an event.
 
-`layouts_detect_as_the_marker_table_says` enumerates home layouts over the 81 markers in `MARKERS`, each a directory or file `src/detect.ts` probes under the home with an empty environment and the home as working directory, tagged with the harness it speaks for or with the unsupported product it names.
+`layouts_detect_as_the_marker_table_says` enumerates home layouts over the 82 markers in `MARKERS`, each a directory or file `src/detect.ts` probes under the home with an empty environment and the home as working directory, tagged with the harness it speaks for or with the unsupported product it names.
 Every root the detector spells relative to the home is a row, whichever operating system it serves: the VS Code `globalStorage` task root of each extension under `.config/Code`, `Library/Application Support/Code`, `.vscode-server/data` and `AppData/Roaming/Code`, the kiro database under `.kiro`, `.local/share/amazon-q` and `Library/Application Support/amazon-q`, and the Windows `AppData` roots of Cursor and Crush next to their Linux ones.
-The layouts are the empty home, every single marker, every pair of markers and all markers at once: 3,323 homes.
+The layouts are the empty home, every single marker, every pair of markers and all markers at once: 3,405 homes.
 The TypeScript detector is run twice over all of them and must return the same answer (a pure function of the layout), and each answer must be exactly the harnesses and products the present markers speak for.
 The single-marker layouts establish that no two harnesses claim the same marker; `pi` (`.pi/agent/sessions`) and `kimchi` (`.config/kimchi/harness/sessions`) are distinct markers, which pins the decision that kimchi does not claim pi's session root.
 Marker files are one empty line, so a reader opening one meets a real, empty record stream.

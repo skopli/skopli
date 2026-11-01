@@ -636,6 +636,21 @@ describe("detectHarnesses fx roots", () => {
     }
   });
 
+  it("detects a ~/.fx/sessions/v2/<id>/log.jsonl session log", () => {
+    const home = makeHome();
+    try {
+      const resolver = createPathResolver({ home, env: {} });
+      const session = join(home, ".fx", "sessions", "v2", "vi5FAUzM30R7");
+      mkdirSync(session, { recursive: true });
+      writeFileSync(join(session, "lock"), "");
+      expect(detectHarnesses(resolver).supported).not.toContain("fx");
+      writeFileSync(join(session, "log.jsonl"), "");
+      expect(detectHarnesses(resolver).supported).toContain("fx");
+    } finally {
+      rmSync(home, { recursive: true, force: true });
+    }
+  });
+
   it("is absent when the sessions directory has no sidecar", () => {
     const home = makeHome();
     try {
