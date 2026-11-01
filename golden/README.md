@@ -95,8 +95,8 @@ A hand-shaped fixture with no real neighbour stays until a real capture exists; 
 | qwen | openai-chat | captured | real multi-turn session, see the case README | this case |
 | reasonix | basic | not captured | reader gap: the installed harness writes `.reasonix/stats/<date>.jsonl` rows while the reader targets `.reasonix/projects/...` | none; this fixture stays until a real capture exists |
 | roo | basic | not captured | capture layout gap: the CLI writes `.vscode-mock/global-storage/tasks/<id>/` while the reader roots at the editor extension's `globalStorage`; relocated by hand the reader yields 2 events | none; this fixture stays until a real capture exists |
-| trae | basic | not captured | hand-shaped trajectory JSON, kept until the openai-chat shape is captured for real | trae/anthropic-messages |
-| trae | anthropic-messages | captured | real four-run capture, see the case README | this case |
+| trae | basic | not captured | hand-shaped trajectory JSON with the default `trajectory_<YYYYMMDD_HHMMSS>.json` names, which the real case (named by --trajectory-file) does not pin | trae/anthropic-messages |
+| trae | anthropic-messages | captured | real four-run capture, see the case README; reader gap filed there: naive local timestamps are booked as UTC | this case |
 | zcode | jsonl-basic | not captured | no CLI binary; the CLI package is buildable but was not built | none; this fixture stays until a real capture exists |
 | zed | basic | not captured | editor application; no headless agent mode with a configurable endpoint | none; this fixture stays until a real capture exists |
 
