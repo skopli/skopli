@@ -105,7 +105,8 @@ pub fn opencode_roots(
 
 /// Resolve the MiMo Code data roots. `MIMOCODE_HOME` is an absolute home whose
 /// data dir is `<home>/data`; otherwise the XDG data dir (`<xdgData>/mimocode`,
-/// with `LOCALAPPDATA` as the Windows XDG-data fallback), else
+/// with `LOCALAPPDATA` as the Windows XDG-data fallback, tried before the
+/// `<home>/.local/share/mimocode` dir the Windows build still writes), else
 /// `<home>/.local/share/mimocode`.
 pub fn mimocode_roots(
     mimocode_home: Option<&str>,
@@ -119,10 +120,11 @@ pub fn mimocode_roots(
     if let Some(v) = xdg_data_home.filter(|v| !v.is_empty()) {
         return vec![PathBuf::from(v).join("mimocode")];
     }
+    let default = home.join(".local").join("share").join("mimocode");
     if let Some(v) = local_app_data.filter(|v| !v.is_empty()) {
-        return vec![PathBuf::from(v).join("mimocode")];
+        return vec![PathBuf::from(v).join("mimocode"), default];
     }
-    vec![home.join(".local").join("share").join("mimocode")]
+    vec![default]
 }
 
 /// Resolve the Command Code data roots: the XDG data dir
@@ -805,7 +807,13 @@ mod tests {
     #[test]
     fn mimocode_local_app_data_windows_fallback() {
         let roots = mimocode_roots(None, None, Some("/local"), &test_home());
-        assert_eq!(roots, vec![PathBuf::from("/local").join("mimocode")]);
+        assert_eq!(
+            roots,
+            vec![
+                PathBuf::from("/local").join("mimocode"),
+                test_home().join(".local").join("share").join("mimocode"),
+            ]
+        );
     }
 
     #[test]

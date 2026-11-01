@@ -29,7 +29,11 @@ impl Reader for GooseReader {
 /// comma-split). On Windows goose writes under `%APPDATA%\Block\goose\data`,
 /// so that root is tried when `APPDATA` is set and as `AppData/Roaming` under
 /// the home.
-pub fn goose_db_paths(override_val: Option<&str>, appdata: Option<&str>, home: &Path) -> Vec<PathBuf> {
+pub fn goose_db_paths(
+    override_val: Option<&str>,
+    appdata: Option<&str>,
+    home: &Path,
+) -> Vec<PathBuf> {
     if let Some(v) = override_val
         && !v.trim().is_empty()
     {
@@ -86,6 +90,17 @@ fn created_at_iso(value: &Value) -> Option<String> {
 }
 
 /// Read all goose usage events.
+/// Newer goose builds add `cache_read_tokens` and `cache_write_tokens` (plus
+/// their `accumulated_` forms) to `sessions` and count them inside
+/// `input_tokens`; older databases have neither column.
+fn accumulated_or(row: &Value, column: &str) -> f64 {
+    row.get(format!("accumulated_{column}"))
+        .and_then(finite_number)
+        .or_else(|| row.get(column).and_then(finite_number))
+        .unwrap_or(0.0)
+        .max(0.0)
+}
+
 pub fn read_goose(db_paths: &[PathBuf]) -> ReaderResult {
     let mut events: Vec<UsageEvent> = Vec::new();
     let mut skipped: Vec<String> = Vec::new();
@@ -109,10 +124,7 @@ pub fn read_goose(db_paths: &[PathBuf]) -> ReaderResult {
         };
         let rows = match query_rows(
             &conn,
-            "SELECT id, model_config_json, provider_name, created_at, total_tokens, \
-             input_tokens, output_tokens, accumulated_total_tokens, \
-             accumulated_input_tokens, accumulated_output_tokens FROM sessions \
-             WHERE model_config_json IS NOT NULL AND TRIM(model_config_json) != ''",
+            "SELECT * FROM sessions              WHERE model_config_json IS NOT NULL AND TRIM(model_config_json) != ''",
         ) {
             Ok(r) => r,
             Err(e) => {
@@ -170,7 +182,9 @@ pub fn read_goose(db_paths: &[PathBuf]) -> ReaderResult {
                 .get("accumulated_output_tokens")
                 .and_then(finite_number)
                 .or_else(|| row.get("output_tokens").and_then(finite_number));
-            let safe_input = input.unwrap_or(0.0).max(0.0);
+            let cache_read = accumulated_or(row, "cache_read_tokens");
+            let cache_write = accumulated_or(row, "cache_write_tokens");
+            let safe_input = (input.unwrap_or(0.0) - cache_read - cache_write).max(0.0);
             let safe_output = output.unwrap_or(0.0).max(0.0);
             let total = row
                 .get("accumulated_total_tokens")
@@ -209,10 +223,11 @@ pub fn read_goose(db_paths: &[PathBuf]) -> ReaderResult {
                 tokens: TokenCounts {
                     input: safe_input as u64,
                     output: safe_output as u64,
-                    cache_read: 0,
-                    cache_write: 0,
+                    cache_read: cache_read as u64,
+                    cache_write: cache_write as u64,
                     cache_write1h: None,
-                    reasoning: (total - safe_input - safe_output).max(0.0) as u64,
+                    reasoning: (total - safe_input - safe_output - cache_read - cache_write)
+                        .max(0.0) as u64,
                 },
                 calls: None,
                 cost_usd: None,
@@ -231,7 +246,34 @@ pub fn read_goose(db_paths: &[PathBuf]) -> ReaderResult {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::readers::shared::scratch_dir;
     use crate::readers::shared::test_home;
+    use rusqlite::Connection;
+
+    #[test]
+    fn session_cache_columns_split_the_cache_inclusive_input() {
+        let dir = scratch_dir("goose-cache");
+        let db = dir.join("sessions.db");
+        let conn = Connection::open(&db).unwrap();
+        conn.execute_batch(
+            "CREATE TABLE sessions (id TEXT, model_config_json TEXT, provider_name TEXT,              created_at TEXT, total_tokens INTEGER, input_tokens INTEGER, output_tokens INTEGER,              cache_read_tokens INTEGER, cache_write_tokens INTEGER,              accumulated_total_tokens INTEGER, accumulated_input_tokens INTEGER,              accumulated_output_tokens INTEGER, accumulated_cache_read_tokens INTEGER,              accumulated_cache_write_tokens INTEGER);
+             INSERT INTO sessions VALUES ('20261101_1', '{\"model_name\":\"qwen\"}', 'anthropic',              '2026-11-01 22:05:30', 13101, 13090, 11, 9163, 3927, 13101, 13090, 11, 9163, 3927);",
+        )
+        .unwrap();
+        let result = read_goose(&[db]);
+        assert_eq!(result.events.len(), 1);
+        let tokens = &result.events[0].tokens;
+        assert_eq!(
+            (
+                tokens.input,
+                tokens.output,
+                tokens.cache_read,
+                tokens.cache_write
+            ),
+            (0, 11, 9163, 3927)
+        );
+        let _ = std::fs::remove_dir_all(dir);
+    }
 
     #[test]
     fn default_paths_include_the_windows_roaming_store() {

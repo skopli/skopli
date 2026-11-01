@@ -188,6 +188,19 @@ describe("detectHarnesses mimocode roots", () => {
     }
   });
 
+  it("keeps the <home>/.local/share/mimocode store when LOCALAPPDATA is set", () => {
+    const home = makeHome();
+    const local = mkdtempSync(join(tmpdir(), "skopli-mimo-local-"));
+    try {
+      mkdirSync(join(home, ".local", "share", "mimocode", "storage"), { recursive: true });
+      const resolver = createPathResolver({ home, env: { LOCALAPPDATA: local } });
+      expect(detectHarnesses(resolver).supported).toContain("mimocode");
+    } finally {
+      rmSync(home, { recursive: true, force: true });
+      rmSync(local, { recursive: true, force: true });
+    }
+  });
+
   it("resolves XDG_DATA_HOME to <xdg>/mimocode/storage", () => {
     const home = makeHome();
     const xdg = mkdtempSync(join(tmpdir(), "skopli-mimo-xdg-"));

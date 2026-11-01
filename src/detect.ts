@@ -359,9 +359,10 @@ function mimocodeRoots(resolver: PathResolver): string[] {
   if (home !== undefined && home !== "") return [join(home, "data")];
   const xdg = resolver.env("XDG_DATA_HOME");
   if (xdg !== undefined && xdg !== "") return [join(xdg, "mimocode")];
+  const fallback = join(resolver.home(), ".local", "share", "mimocode");
   const local = resolver.env("LOCALAPPDATA");
-  if (local !== undefined && local !== "") return [join(local, "mimocode")];
-  return [join(resolver.home(), ".local", "share", "mimocode")];
+  if (local !== undefined && local !== "") return [join(local, "mimocode"), fallback];
+  return [fallback];
 }
 
 // Command Code resolves the XDG data dir first, then the per-OS data dirs used
@@ -673,10 +674,7 @@ export function detectHarnesses(resolver: PathResolver = defaultPathResolver): D
   }
   {
     const root = reasonixSessionsGlobRoot(resolver);
-    if (
-      hasFileWithSuffix(root, ".acp.json") ||
-      hasFileWithSuffix(root, ".jsonl.telemetry.json")
-    ) {
+    if (hasFileWithSuffix(root, ".acp.json") || hasFileWithSuffix(root, ".jsonl.telemetry.json")) {
       supported.push("reasonix");
     }
   }
