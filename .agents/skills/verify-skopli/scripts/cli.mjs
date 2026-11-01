@@ -14,15 +14,16 @@ export const parseArgs = (help, valued = [], flags = []) => {
   const isValue = (i) => valued.includes(argv[i - 1]);
   const unknown = argv.filter((a, i) => a.startsWith("--") && !known.has(a) && !isValue(i));
   if (unknown.length) usage(`unknown option ${unknown.join(" ")}`);
-  const many = (flag) =>
-    argv.flatMap((a, i) => (a === flag && i + 1 < argv.length ? [argv[i + 1]] : []));
+  const many = (name) =>
+    argv.flatMap((a, i) => (a === name && i + 1 < argv.length ? [argv[i + 1]] : []));
+  const flag = (name) => argv.includes(name);
   return {
     positional: argv.filter((a, i) => !a.startsWith("--") && !isValue(i)),
     many,
-    one: (flag, fallback) => many(flag)[0] ?? fallback,
-    flag: (name) => argv.includes(name),
-    dryRun: argv.includes("--dry-run"),
-    log: argv.includes("--quiet") ? () => {} : (line) => console.error(line),
+    one: (name, fallback) => many(name)[0] ?? fallback,
+    flag,
+    dryRun: flag("--dry-run"),
+    log: flag("--quiet") ? () => {} : (line) => console.error(line),
     usage,
   };
 };

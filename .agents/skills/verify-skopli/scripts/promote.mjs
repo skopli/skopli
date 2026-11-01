@@ -10,9 +10,10 @@
 // After copying, every written file is checked: no redaction source may survive in its bytes
 // (zstd files are checked decompressed), git must not ignore it, and a non-text file must carry
 // an explicit binary attribute so checkin never applies eol conversion to it. Any hit exits 1.
-// The manifest points `home` (or `cwd` with --cwd, or the named env var at <rel>) at input/, expected-events.json
-// and expected-rollup.json come from the repository's own readers through replay.mjs, and
-// README.md records provenance. Prints the resulting totals as JSON on stdout.
+// The manifest points `home` (or `cwd` with --cwd, or the named env var at <rel>) at
+// input/, expected-events.json and expected-rollup.json come from the repository's own
+// readers through replay.mjs, and README.md records provenance. Prints the resulting
+// totals as JSON on stdout.
 import { spawnSync } from "node:child_process";
 import {
   copyFileSync,
@@ -45,7 +46,8 @@ check has passed.
                         encoded, longest source first (repeatable)
   --env NAME=<rel>      point the manifest env var at input/<rel> instead of home
   --cwd                 point the manifest cwd at input/ instead of home, for a
-                        project-local store such as trae's trajectories/
+                        project-local store such as trae's trajectories/; not
+                        with --env
   --gateway <text>      README: gateway description
   --server <text>       README: server description
   --model <text>        README: model description
@@ -73,6 +75,7 @@ const stores = many("--store");
 if (!captureHome || !caseId?.includes("/") || stores.length === 0) {
   usage("promote: <capture-home>, <harness>/<case> and at least one --store are required");
 }
+if (flag("--cwd") && many("--env").length) usage("promote: --cwd and --env are exclusive");
 const missing = stores.filter((rel) => !existsSync(join(captureHome, rel)));
 if (missing.length) {
   usage(`promote: store not found under ${captureHome}: ${missing.join(", ")}`);
@@ -225,14 +228,6 @@ for (const rel of stores) {
   log(`promote: ${rel} -> ${placed(join(input, redact(rel)))}`);
   copyTree(join(captureHome, rel), join(input, redact(rel)));
 }
-if (dryRun) {
-  console.log(
-    JSON.stringify({ case: caseId, dir: relative(root, dir), rules, files: planned }, null, 2),
-  );
-  process.exit(0);
-}
-verifyWritten();
-
 const env = many("--env").map(pair);
 const manifest = {
   schema_version: 1,
@@ -242,6 +237,18 @@ const manifest = {
   options: { harnesses: [harness], tz: "UTC" },
   rollups: ["model", "day", "harness"],
 };
+if (dryRun) {
+  console.log(
+    JSON.stringify(
+      { case: caseId, dir: relative(root, dir), rules, files: planned, manifest },
+      null,
+      2,
+    ),
+  );
+  process.exit(0);
+}
+verifyWritten();
+
 writeFileSync(join(stage, "input-manifest.json"), `${JSON.stringify(manifest, null, 2)}\n`);
 
 const { events, by, result, relativize } = await replayCase(caseId, stage);

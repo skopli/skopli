@@ -49,6 +49,30 @@ describe("script command lines", () => {
     expect(existsSync(join(root, "golden", "promote-dry-run"))).toBe(false);
   });
 
+  it("promote --cwd points the manifest cwd at input and refuses --env", () => {
+    const home = mkdtempSync(join(tmpdir(), "promote-cwd-"));
+    mkdirSync(join(home, "trajectories"), { recursive: true });
+    writeFileSync(join(home, "trajectories", "t.json"), "{}");
+    const plan = (...extra: string[]) =>
+      run(
+        "promote.mjs",
+        home,
+        "promote-cwd/case",
+        "--store",
+        "trajectories",
+        "--dry-run",
+        ...extra,
+      );
+    const manifestOf = (stdout: string) =>
+      (JSON.parse(stdout) as { manifest: Record<string, unknown> }).manifest;
+    expect(manifestOf(plan().stdout)).toMatchObject({ home: "." });
+    expect(manifestOf(plan("--cwd").stdout)).toMatchObject({ cwd: "." });
+    expect(manifestOf(plan("--cwd").stdout)).not.toHaveProperty("home");
+    const both = plan("--cwd", "--env", "X=trajectories");
+    expect(both.status).toBe(2);
+    expect(both.stderr).toContain("--cwd and --env are exclusive");
+  });
+
   it("promote keeps the existing case when a store is missing or a file fails redaction", () => {
     const home = mkdtempSync(join(tmpdir(), "promote-keep-"));
     mkdirSync(join(home, "store"));
