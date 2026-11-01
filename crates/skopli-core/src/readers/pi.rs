@@ -274,6 +274,10 @@ fn read_pi_root_into(
             let cache_write = usage_rec
                 .and_then(|u| u.get("cacheWrite"))
                 .and_then(finite_number);
+            let reasoning = usage_rec
+                .and_then(|u| u.get("reasoning"))
+                .and_then(finite_number)
+                .unwrap_or(0.0);
 
             let (model, id, input, output, cache_read, cache_write) =
                 match (model, id, input, output, cache_read, cache_write) {
@@ -308,7 +312,7 @@ fn read_pi_root_into(
                     cache_read: cache_read.max(0.0) as u64,
                     cache_write: cache_write.max(0.0) as u64,
                     cache_write1h: None,
-                    reasoning: 0,
+                    reasoning: reasoning.max(0.0) as u64,
                 },
                 calls: None,
                 cost_usd: None,
@@ -414,6 +418,39 @@ mod tests {
             ),
         ];
         fs::write(dir.join(file), lines.join("\n")).unwrap();
+    }
+
+    #[test]
+    fn kimchi_usage_reasoning_reaches_the_event() {
+        let home = scratch_dir("kimchi-reasoning");
+        let dir = home.join(".config/kimchi/harness/sessions");
+        fs::create_dir_all(&dir).unwrap();
+        fs::write(
+            dir.join("s.jsonl"),
+            concat!(
+                "{\"type\":\"session\",\"id\":\"s-1\"}
+",
+                "{\"type\":\"message\",\"message\":{\"role\":\"user\"}}
+",
+                "{\"type\":\"message\",\"id\":\"m-1\",\"timestamp\":\"2026-11-01T22:22:33.000Z\",",
+                "\"message\":{\"role\":\"assistant\",\"model\":\"qwen\",\"usage\":{\"input\":17472,",
+                "\"output\":16,\"cacheRead\":3,\"cacheWrite\":0,\"reasoning\":5,\"totalTokens\":17491,",
+                "\"cost\":{\"input\":0,\"output\":0,\"cacheRead\":0,\"cacheWrite\":0,\"total\":0}}}}
+"
+            ),
+        )
+        .unwrap();
+        let result = KimchiReader.read(&ReaderContext::new(&home));
+        let tokens = &result.events[0].tokens;
+        assert_eq!(
+            (
+                tokens.input,
+                tokens.output,
+                tokens.cache_read,
+                tokens.reasoning
+            ),
+            (17472, 16, 3, 5)
+        );
     }
 
     #[test]
