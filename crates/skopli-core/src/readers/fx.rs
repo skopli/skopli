@@ -344,9 +344,6 @@ fn skip(label: &str, skipped: &mut Vec<String>, warnings: &mut Vec<ReaderWarning
     skipped.push(label.to_owned());
 }
 
-/// The immediate subdirectory names of `dir`, sorted. Unreadable directories
-/// and non-directory entries are ignored. Enumeration stays at depth one so a
-/// deeper nested file cannot masquerade as a session or shift ordinals.
 /// Read one v2 session log into at most one event. The log restates the
 /// session's cumulative usage after every turn, so the last valid `usage`
 /// record in file order wins (`seq` is not consulted) and summing records
@@ -430,6 +427,9 @@ fn v2_usage(record: &Value) -> Option<(TokenCounts, String)> {
     Some((tokens, timestamp))
 }
 
+/// The immediate subdirectory names of `dir`, sorted. Unreadable directories
+/// and non-directory entries are ignored. Enumeration stays at depth one so a
+/// deeper nested file cannot masquerade as a session or shift ordinals.
 fn immediate_session_dirs(dir: &Path) -> Vec<String> {
     let mut names: Vec<String> = match std::fs::read_dir(dir) {
         Ok(entries) => entries
@@ -1182,6 +1182,54 @@ mod tests {
             result.skipped[0]
         );
         assert_eq!(result.warnings.len(), 1);
+        fs::remove_dir_all(&dir).ok();
+    }
+
+    #[test]
+    fn sidecar_and_v2_sessions_in_one_profile_both_yield_events() {
+        let dir = scratch_dir("mixed-layouts");
+        let sessions = dir.join("sessions");
+        write_sidecar(
+            &sessions,
+            "1770000000000-1770000000000000000-a1b2c3d4e5f60718",
+            serde_json::json!({
+                "schema_version": 1,
+                "billing": "complete",
+                "total_cost": 0.03,
+                "input_tokens": 20,
+                "output_tokens": 8,
+                "cache_read_tokens": 4,
+                "cache_write_tokens": 2,
+                "reasoning_tokens": 4,
+                "request_count": 1,
+                "models": [{
+                    "model": "openai/gpt-5.4",
+                    "total_cost": 0.03,
+                    "input_tokens": 20,
+                    "output_tokens": 8,
+                    "cache_read_tokens": 4,
+                    "cache_write_tokens": 2,
+                    "reasoning_tokens": 4,
+                    "request_count": 1
+                }]
+            }),
+        );
+        write_v2_log(&sessions, "vi5FAUzM30R7", &[V2_CREATED, V2_PREFS, V2_USAGE]);
+        let result = read_fx(&sessions);
+        assert!(result.skipped.is_empty(), "{:?}", result.skipped);
+        let mut ids: Vec<&str> = result
+            .events
+            .iter()
+            .map(|e| e.session_id.as_str())
+            .collect();
+        ids.sort_unstable();
+        assert_eq!(
+            ids,
+            [
+                "1770000000000-1770000000000000000-a1b2c3d4e5f60718",
+                "vi5FAUzM30R7"
+            ]
+        );
         fs::remove_dir_all(&dir).ok();
     }
 
