@@ -278,6 +278,10 @@ fn read_pi_root_into(
                 .and_then(|u| u.get("reasoning"))
                 .and_then(finite_number)
                 .unwrap_or(0.0);
+            let cache_write1h = usage_rec
+                .and_then(|u| u.get("cacheWrite1h"))
+                .and_then(finite_number)
+                .map(|n| n.max(0.0) as u64);
 
             let (model, id, input, output, cache_read, cache_write) =
                 match (model, id, input, output, cache_read, cache_write) {
@@ -311,7 +315,7 @@ fn read_pi_root_into(
                     output: output.max(0.0) as u64,
                     cache_read: cache_read.max(0.0) as u64,
                     cache_write: cache_write.max(0.0) as u64,
-                    cache_write1h: None,
+                    cache_write1h,
                     reasoning: reasoning.max(0.0) as u64,
                 },
                 calls: None,
@@ -434,7 +438,7 @@ mod tests {
 ",
                 "{\"type\":\"message\",\"id\":\"m-1\",\"timestamp\":\"2026-11-01T22:22:33.000Z\",",
                 "\"message\":{\"role\":\"assistant\",\"model\":\"qwen\",\"usage\":{\"input\":17472,",
-                "\"output\":16,\"cacheRead\":3,\"cacheWrite\":0,\"reasoning\":5,\"totalTokens\":17491,",
+                "\"output\":16,\"cacheRead\":3,\"cacheWrite\":0,\"cacheWrite1h\":2,\"reasoning\":5,\"totalTokens\":17491,",
                 "\"cost\":{\"input\":0,\"output\":0,\"cacheRead\":0,\"cacheWrite\":0,\"total\":0}}}}
 "
             ),
@@ -447,9 +451,10 @@ mod tests {
                 tokens.input,
                 tokens.output,
                 tokens.cache_read,
-                tokens.reasoning
+                tokens.reasoning,
+                tokens.cache_write1h
             ),
-            (17472, 16, 3, 5)
+            (17472, 16, 3, 5, Some(2))
         );
     }
 

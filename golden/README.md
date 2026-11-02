@@ -64,7 +64,7 @@ A hand-shaped fixture with no real neighbour stays until a real capture exists; 
 | goose | openai-chat | captured | real multi-turn session, see the case README | this case |
 | goose | openai-chat-windows | captured | real multi-turn session, see the case README; Windows store `AppData/Roaming/Block/goose/data/sessions/sessions.db` | this case |
 | grok | anthropic-messages | captured | real multi-turn session, see the case README | this case |
-| grok | basic | captured, not promoted | `params.update.usage.reasoningTokens` moves the reader's `input` by the whole call; needs a red-first reader fix against the real file | grok/openai-chat, grok/anthropic-messages |
+| grok | basic | captured, not promoted | `inputTokens` includes `cachedReadTokens` on every real record, so the reader always splits them; `totalTokens` only decides whether `reasoningTokens` sits inside `outputTokens` | grok/openai-chat, grok/anthropic-messages |
 | grok | openai-chat | captured | real multi-turn session, see the case README | this case |
 | hermes | multi-home | captured, not promoted | the store is `.hermes/state.db` and is not isolated per session; promoting `.hermes/sessions` reads 0 events | hermes/openai-chat |
 | hermes | openai-chat | captured | real multi-turn session, see the case README; the store is `.hermes/state.db` | this case |

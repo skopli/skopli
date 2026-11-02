@@ -75,6 +75,7 @@
       "tokens": {
         "cacheRead": 7509,
         "cacheWrite": 10003,
+        "cacheWrite1h": 0,
         "input": 0,
         "output": 17,
         "reasoning": 0
@@ -91,6 +92,7 @@
       "tokens": {
         "cacheRead": 17507,
         "cacheWrite": 15,
+        "cacheWrite1h": 0,
         "input": 0,
         "output": 33,
         "reasoning": 0
@@ -107,6 +109,7 @@
       "tokens": {
         "cacheRead": 17508,
         "cacheWrite": 15,
+        "cacheWrite1h": 0,
         "input": 0,
         "output": 88,
         "reasoning": 0
@@ -123,6 +126,7 @@
       "tokens": {
         "cacheRead": 17508,
         "cacheWrite": 13,
+        "cacheWrite1h": 0,
         "input": 0,
         "output": 19,
         "reasoning": 0

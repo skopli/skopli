@@ -9,7 +9,8 @@
           "output": 157,
           "cacheRead": 60032,
           "cacheWrite": 10046,
-          "reasoning": 0
+          "reasoning": 0,
+          "cacheWrite1h": 0
         },
         "events": 8,
         "turns": 8,
@@ -24,7 +25,8 @@
           "output": 157,
           "cacheRead": 60032,
           "cacheWrite": 10046,
-          "reasoning": 0
+          "reasoning": 0,
+          "cacheWrite1h": 0
         },
         "events": 8,
         "turns": 8,
@@ -39,7 +41,8 @@
           "output": 157,
           "cacheRead": 60032,
           "cacheWrite": 10046,
-          "reasoning": 0
+          "reasoning": 0,
+          "cacheWrite1h": 0
         },
         "events": 8,
         "turns": 8,

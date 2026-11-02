@@ -280,6 +280,26 @@ const IGNORED_BY_DESIGN: &[(&str, &str, &str)] = &[
         "dollar cost per counter, not a token count",
     ),
     (
+        "codex",
+        "payload.usage.",
+        "the token_usage_record restates the token_count event's last_token_usage, which is read",
+    ),
+    (
+        "codex",
+        "payload.turn_token_usage.",
+        "the token_usage_record restates the token_count event's last_token_usage, which is read",
+    ),
+    (
+        "codex",
+        "payload.thread_token_usage.",
+        "the token_usage_record restates the token_count event's total_token_usage, which is read",
+    ),
+    (
+        "codex",
+        "user_input_order",
+        "the user message's position in the thread, not a token count",
+    ),
+    (
         "grok",
         "params.update._meta.promptIndex",
         "the prompt's position in the session, not a token count",
