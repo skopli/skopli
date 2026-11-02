@@ -11,3 +11,5 @@ Real capture of a multi-turn session, promoted from the harness home directory w
 - Redaction: user name, home directory, project path, host name and placeholder API keys replaced; path slugs renamed to match; SQLite text columns rewritten in place and the database checkpointed and vacuumed.
 - Events 4, sessions 4, diagnostics 0, skipped 0.
 - Totals: input 0, output 0, cache read 0, cache write 0, reasoning 0.
+- Every assistant message in `kilo.db` carries kilo's `UnknownError` (`text part ... not found`) and zero tokens: kilo 7.8.18 stores no usage on the Responses wire, so the four events pin the reader's handling of errored, usage-less rows, and a reconcile against the gateway log differs by the full amount.
+- The case stays as the Responses-wire contract until kilo records Responses usage and the case is recaptured.

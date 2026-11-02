@@ -76,7 +76,7 @@ A hand-shaped fixture with no real neighbour stays until a real capture exists; 
 | kilo | anthropic-messages | captured | real multi-turn session, see the case README | this case |
 | kilo | basic | not captured | hand-shaped `kilo.db` | kilo/openai-chat, kilo/openai-responses, kilo/anthropic-messages |
 | kilo | openai-chat | captured | real multi-turn session, see the case README | this case |
-| kilo | openai-responses | captured | real multi-turn session, see the case README | this case |
+| kilo | openai-responses | captured | harness records no usage on this wire (every turn ended in a kilo error), see the case README | this case |
 | kilocode | basic | not captured | editor extension only; the reader reads the extension's `globalStorage` tasks. The standalone `kilo` CLI is a different harness | none; this fixture stays until a real capture exists |
 | kimchi | anthropic-messages | captured | real multi-turn session, see the case README | this case |
 | kimchi | basic | captured, not promoted | the config directory mixes the store with binaries and the Responses gateway log was not captured; `message.usage.reasoning` is read as reasoning and `usage.cost.*` is dollar cost, ignored by design | kimchi/openai-chat, kimchi/openai-responses, kimchi/anthropic-messages |
