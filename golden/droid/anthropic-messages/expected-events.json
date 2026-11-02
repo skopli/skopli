@@ -1,0 +1,23 @@
+{
+  "schema_version": 1,
+  "events": [
+    {
+      "harness": "droid",
+      "messageId": "24e8f875-b554-4681-a74e-d08659efa42d",
+      "model": "qwen-0",
+      "sessionId": "24e8f875-b554-4681-a74e-d08659efa42d",
+      "subagent": false,
+      "timestamp": "2026-10-25T14:11:40.042Z",
+      "tokens": {
+        "cacheRead": 28290,
+        "cacheWrite": 9297,
+        "input": 0,
+        "output": 361,
+        "reasoning": 0
+      },
+      "turn": false
+    }
+  ],
+  "diagnostics": [],
+  "skipped": {}
+}

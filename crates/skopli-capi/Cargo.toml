@@ -7,7 +7,7 @@ homepage.workspace = true
 documentation.workspace = true
 repository.workspace = true
 license.workspace = true
-description = "C ABI for skopli: read, roll up, and price AI coding-agent session logs"
+description = "C ABI for Skopli: read, roll up, and price AI coding-agent session logs"
 
 [lib]
 name = "skopli"

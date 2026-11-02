@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "harness": "codebuddy",
+  "case": "openai-chat",
+  "home": ".",
+  "options": {
+    "harnesses": [
+      "codebuddy"
+    ],
+    "tz": "UTC"
+  },
+  "rollups": [
+    "model",
+    "day",
+    "harness"
+  ]
+}

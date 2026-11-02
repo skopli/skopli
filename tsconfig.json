@@ -11,9 +11,10 @@
     "noImplicitOverride": true,
     "resolveJsonModule": true,
     "allowImportingTsExtensions": true,
+    "allowJs": true,
     "rewriteRelativeImportExtensions": true,
     "skipLibCheck": true,
     "noEmit": true
   },
-  "include": ["src/**/*.ts", "test/**/*.ts"]
+  "include": ["src/**/*.ts", "test/**/*.ts", ".agents/skills/verify-skopli/scripts/*.ts"]
 }

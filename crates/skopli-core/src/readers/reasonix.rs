@@ -5,22 +5,25 @@ use serde_json::Value;
 
 use super::reader::{Reader, ReaderContext};
 use super::shared::{
-    ReaderResult, ReaderWarning, as_string, date_parse_ms, dir_exists, file_stem_name,
-    finite_number, is_record, list_files, normalize_workspace, read_json,
+    ReaderResult, ReaderWarning, as_string, date_parse_ms, dir_exists, file_stem_name, is_record,
+    list_files, normalize_workspace, optional_cell, parse_timestamp_to_iso, read_json,
+    read_jsonl_lines, required_cell,
 };
 use crate::types::{TokenCounts, UsageEvent};
 
 /// The Reasonix reader wired into the harness registry. Reasonix (a Go
 /// DeepSeek-native agent, `esengine/DeepSeek-Reasonix`) keeps its session
 /// transcript in `<home>/projects/<slug>/sessions/<id>.jsonl`, but that
-/// transcript and its `.events.jsonl` event log carry no token usage. The one
-/// durable local usage store is the ACP metadata sidecar `<id>.acp.json`, which
-/// records the session's model, working directory, and a cumulative usage total
-/// (`status.cumulative`) for the whole session. The reader emits one event per
-/// sidecar, deduped by session id (the latest `updatedAt` wins) so an
-/// in-place-rewritten sidecar is never double counted. The home is `~/.reasonix`
-/// on Unix and `%APPDATA%\reasonix` on Windows, overridable through
-/// `REASONIX_HOME`.
+/// transcript and its `.events.jsonl` event log carry no token usage. Current
+/// builds append one row per request to the `<home>/stats/<date>.jsonl` ledger
+/// (`cache_miss` + `cache_hit` = `prompt`, `completion`, optional `reasoning`),
+/// which is the one per-request store and is read when present, one event per
+/// row keyed by the ledger's day. Without it the durable usage store is the
+/// per-session sidecar (`<id>.acp.json`, or `<id>.jsonl.telemetry.json` +
+/// `<id>.jsonl.meta`), whose cumulative total the reader emits as one event per
+/// session id (the latest `updatedAt` wins) so an in-place-rewritten sidecar is
+/// never double counted. The home is `~/.reasonix` on Unix and
+/// `%APPDATA%\reasonix` on Windows, overridable through `REASONIX_HOME`.
 pub struct ReasonixReader;
 
 impl Reader for ReasonixReader {
@@ -52,26 +55,6 @@ pub fn reasonix_home(override_dir: Option<&str>, appdata: Option<&str>, home: &P
         return PathBuf::from(v).join("reasonix");
     }
     home.join(".reasonix")
-}
-
-/// A required token cell (`promptTokens`/`completionTokens` are always written
-/// on a `status.cumulative`). The cell must be a non-negative finite number; an
-/// absent, `null`, or invalid cell marks the sidecar malformed.
-fn required_cell(value: Option<&Value>) -> Option<u64> {
-    match value {
-        None | Some(Value::Null) => None,
-        Some(v) => finite_number(v).filter(|n| *n >= 0.0).map(|n| n as u64),
-    }
-}
-
-/// An optional token cell (`cacheHitTokens`/`cacheMissTokens`/`reasoningTokens`).
-/// An absent or `null` cell is `0`; a populated cell that is not a non-negative
-/// finite number marks the sidecar malformed.
-fn optional_cell(value: Option<&Value>) -> Option<u64> {
-    match value {
-        None | Some(Value::Null) => Some(0),
-        Some(v) => finite_number(v).filter(|n| *n >= 0.0).map(|n| n as u64),
-    }
 }
 
 /// The outcome of parsing a `status.cumulative` usage map.
@@ -152,11 +135,7 @@ fn read_sidecar(
     let parsed = match read_json(file) {
         Some(v) if is_record(&v) => v,
         _ => {
-            let loc = file.to_owned();
-            warnings.push(ReaderWarning {
-                message: format!("skipping malformed {HARNESS} file {loc}\n"),
-            });
-            skipped.push(loc);
+            skip_malformed(file, skipped, warnings);
             return None;
         }
     };
@@ -165,11 +144,7 @@ fn read_sidecar(
         UsageOutcome::Counts(t) => t,
         UsageOutcome::Zero => return None,
         UsageOutcome::Malformed => {
-            let loc = file.to_owned();
-            warnings.push(ReaderWarning {
-                message: format!("skipping malformed {HARNESS} file {loc}\n"),
-            });
-            skipped.push(loc);
+            skip_malformed(file, skipped, warnings);
             return None;
         }
     };
@@ -180,31 +155,19 @@ fn read_sidecar(
         Some(raw) => match date_parse_ms(raw.trim()) {
             Some(ms) => ms,
             None => {
-                let loc = file.to_owned();
-                warnings.push(ReaderWarning {
-                    message: format!("skipping malformed {HARNESS} file {loc}\n"),
-                });
-                skipped.push(loc);
+                skip_malformed(file, skipped, warnings);
                 return None;
             }
         },
         None => {
-            let loc = file.to_owned();
-            warnings.push(ReaderWarning {
-                message: format!("skipping malformed {HARNESS} file {loc}\n"),
-            });
-            skipped.push(loc);
+            skip_malformed(file, skipped, warnings);
             return None;
         }
     };
     let timestamp = match crate::time::to_iso_string(updated_at_ms) {
         Some(ts) => ts,
         None => {
-            let loc = file.to_owned();
-            warnings.push(ReaderWarning {
-                message: format!("skipping malformed {HARNESS} file {loc}\n"),
-            });
-            skipped.push(loc);
+            skip_malformed(file, skipped, warnings);
             return None;
         }
     };
@@ -242,14 +205,190 @@ fn read_sidecar(
     })
 }
 
-/// Read all Reasonix usage events reachable from `home`. Walks
-/// `<home>/projects/*/sessions/*.acp.json`, emitting one cumulative event per
-/// session id. When two sidecars share a session id (e.g. a recovery-branch
-/// twin), the one with the later `updatedAt` wins.
+const TELEMETRY_SUFFIX: &str = ".jsonl.telemetry.json";
+const META_SUFFIX: &str = ".jsonl.meta";
+
+fn skip_malformed(file: &str, skipped: &mut Vec<String>, warnings: &mut Vec<ReaderWarning>) {
+    warnings.push(ReaderWarning {
+        message: format!("skipping malformed {HARNESS} file {file}\n"),
+    });
+    skipped.push(file.to_owned());
+}
+
+/// Reasonix 2.56 replaced the `.acp.json` sidecar with two files beside the
+/// transcript: `<id>.jsonl.telemetry.json` (`usage` carries the same cells as
+/// `status.cumulative`) and `<id>.jsonl.meta` (`id`, `model`, `updated_at`,
+/// `preview`). The pair is one candidate; a telemetry file whose meta is
+/// missing or unparseable is malformed.
+fn read_telemetry(
+    file: &str,
+    skipped: &mut Vec<String>,
+    warnings: &mut Vec<ReaderWarning>,
+) -> Option<Candidate> {
+    let telemetry = match read_json(file) {
+        Some(v) if is_record(&v) => v,
+        _ => {
+            skip_malformed(file, skipped, warnings);
+            return None;
+        }
+    };
+    let usage = telemetry.get("usage")?;
+    let tokens = match parse_cumulative(usage) {
+        UsageOutcome::Counts(t) => t,
+        UsageOutcome::Zero => return None,
+        UsageOutcome::Malformed => {
+            skip_malformed(file, skipped, warnings);
+            return None;
+        }
+    };
+    let stem = file.strip_suffix(TELEMETRY_SUFFIX).unwrap_or(file);
+    let meta = match read_json(&format!("{stem}{META_SUFFIX}")) {
+        Some(v) if is_record(&v) => v,
+        _ => {
+            skip_malformed(file, skipped, warnings);
+            return None;
+        }
+    };
+    let updated_at_ms = meta
+        .get("updated_at")
+        .and_then(as_string)
+        .and_then(|raw| date_parse_ms(raw.trim()));
+    let (updated_at_ms, timestamp) =
+        match updated_at_ms.and_then(|ms| crate::time::to_iso_string(ms).map(|ts| (ms, ts))) {
+            Some(pair) => pair,
+            None => {
+                skip_malformed(file, skipped, warnings);
+                return None;
+            }
+        };
+    let session_id = meta
+        .get("id")
+        .and_then(as_string)
+        .filter(|s| !s.trim().is_empty())
+        .unwrap_or_else(|| super::shared::basename(stem));
+    let model = meta
+        .get("model")
+        .and_then(as_string)
+        .filter(|m| !m.trim().is_empty())
+        .unwrap_or_else(|| UNKNOWN_MODEL.to_owned());
+    let title = meta
+        .get("preview")
+        .and_then(as_string)
+        .filter(|t| !t.trim().is_empty());
+    Some(Candidate {
+        event: UsageEvent {
+            harness: HARNESS.to_owned(),
+            timestamp,
+            session_id,
+            message_id: file.to_owned(),
+            turn: true,
+            subagent: false,
+            model,
+            tokens,
+            calls: None,
+            cost_usd: None,
+            workspace: None,
+            title,
+        },
+        updated_at_ms,
+    })
+}
+
+/// One event per usage row of a `<home>/stats/<date>.jsonl` ledger. A row is a
+/// request (`prompt` = `cache_hit` + `cache_miss`, `completion`, optional
+/// `reasoning` inside the completion); `{"turn":true}` rows are turn markers
+/// and carry nothing. The rows name no session, so the file date is the session
+/// id and the row location is the message id.
+fn read_stats(
+    file: &str,
+    skipped: &mut Vec<String>,
+    warnings: &mut Vec<ReaderWarning>,
+) -> Vec<UsageEvent> {
+    let mut events = Vec::new();
+    let Some(lines) = read_jsonl_lines(file, skipped, warnings) else {
+        return events;
+    };
+    let session_id = file_stem_name(file);
+    for line in &lines {
+        let row = &line.value;
+        if row.get("turn").and_then(Value::as_bool) == Some(true) {
+            continue;
+        }
+        let loc = format!("{file}:{}", line.index + 1);
+        let cells = [
+            required_cell(row.get("cache_miss")),
+            required_cell(row.get("cache_hit")),
+            required_cell(row.get("completion")),
+            optional_cell(row.get("reasoning")),
+        ];
+        let timestamp = row.get("ts").and_then(parse_timestamp_to_iso);
+        let (
+            [
+                Some(input),
+                Some(cache_read),
+                Some(completion),
+                Some(reasoning),
+            ],
+            Some(timestamp),
+        ) = (cells, timestamp)
+        else {
+            skip_malformed(&loc, skipped, warnings);
+            continue;
+        };
+        events.push(UsageEvent {
+            harness: HARNESS.to_owned(),
+            timestamp,
+            session_id: session_id.clone(),
+            message_id: loc,
+            turn: true,
+            subagent: false,
+            model: row
+                .get("model")
+                .and_then(as_string)
+                .filter(|m| !m.trim().is_empty())
+                .unwrap_or_else(|| UNKNOWN_MODEL.to_owned()),
+            tokens: TokenCounts {
+                input,
+                output: completion.saturating_sub(reasoning),
+                cache_read,
+                cache_write: 0,
+                cache_write1h: None,
+                reasoning,
+            },
+            calls: None,
+            cost_usd: None,
+            workspace: None,
+            title: None,
+        });
+    }
+    events
+}
+
+/// Read all Reasonix usage events reachable from `home`. A home with at least
+/// one `stats/*.jsonl` ledger (the condition detection uses) is read from the
+/// ledgers alone (one event per request), as the project sidecars of such a
+/// build hold only each session's last request.
+/// Otherwise the reader walks
+/// `<home>/projects/*/sessions/`, reading `*.acp.json` sidecars and the
+/// `*.jsonl.telemetry.json` + `*.jsonl.meta` pairs newer builds write, emitting
+/// one cumulative event per session id. When two sidecars share a session id
+/// (e.g. a recovery-branch twin), the one with the later `updatedAt` wins.
 pub fn read_reasonix(home: &Path) -> ReaderResult {
     let mut skipped: Vec<String> = Vec::new();
     let mut warnings: Vec<ReaderWarning> = Vec::new();
 
+    let ledgers = list_files(&home.join("stats"), |name| name.ends_with(".jsonl"));
+    if !ledgers.is_empty() {
+        let mut events = Vec::new();
+        for file in &ledgers {
+            events.extend(read_stats(file, &mut skipped, &mut warnings));
+        }
+        return ReaderResult {
+            events,
+            skipped,
+            warnings,
+        };
+    }
     let projects = home.join("projects");
     if !dir_exists(&projects) {
         return ReaderResult {
@@ -259,11 +398,17 @@ pub fn read_reasonix(home: &Path) -> ReaderResult {
         };
     }
 
-    let files = list_files(&projects, |name| name.ends_with(".acp.json"));
+    let files = list_files(&projects, |name| {
+        name.ends_with(".acp.json") || name.ends_with(TELEMETRY_SUFFIX)
+    });
     let mut by_session: HashMap<String, Candidate> = HashMap::new();
     let mut order: Vec<String> = Vec::new();
     for file in &files {
-        let candidate = match read_sidecar(file, &mut skipped, &mut warnings) {
+        let candidate = match if file.ends_with(TELEMETRY_SUFFIX) {
+            read_telemetry(file, &mut skipped, &mut warnings)
+        } else {
+            read_sidecar(file, &mut skipped, &mut warnings)
+        } {
             Some(c) => c,
             None => continue,
         };
@@ -295,15 +440,90 @@ pub fn read_reasonix(home: &Path) -> ReaderResult {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::readers::shared::{scratch_dir, test_home};
     use std::fs;
 
-    fn home() -> PathBuf {
-        PathBuf::from("/home/u")
+    const STATS: &str = concat!(
+        r#"{"ts":"2026-10-25T12:23:06.9936797Z","model":"qwen/qwen","source":"cli","prompt":6206,"completion":62,"cache_hit":3,"cache_miss":6203,"total":6268,"requests":1}"#,
+        "\n",
+        r#"{"ts":"2026-10-25T12:23:07.007497757Z","source":"cli","turn":true}"#,
+        "\n",
+        r#"{"ts":"2026-10-25T12:23:12.937156518Z","model":"qwen/qwen","source":"cli","prompt":6940,"completion":15,"cache_hit":6267,"cache_miss":673,"total":6955,"requests":1,"reasoning":5}"#,
+        "\n"
+    );
+
+    fn stats_home(rows: &str) -> PathBuf {
+        let home = scratch_dir("reasonix-stats");
+        fs::create_dir_all(home.join("stats")).unwrap();
+        fs::write(home.join("stats").join("2026-10-25.jsonl"), rows).unwrap();
+        home
+    }
+
+    #[test]
+    fn stats_ledger_yields_one_event_per_request() {
+        let home = stats_home(STATS);
+        let r = read_reasonix(&home);
+        assert_eq!(r.events.len(), 2);
+        let e = &r.events[0];
+        assert_eq!(e.session_id, "2026-10-25");
+        assert_eq!(e.timestamp, "2026-10-25T12:23:06.993Z");
+        assert_eq!(e.model, "qwen/qwen");
+        assert_eq!(
+            (e.tokens.input, e.tokens.cache_read, e.tokens.output),
+            (6203, 3, 62)
+        );
+        assert_eq!(
+            (r.events[1].tokens.output, r.events[1].tokens.reasoning),
+            (10, 5)
+        );
+        assert!(r.warnings.is_empty());
+    }
+
+    #[test]
+    fn stats_ledger_wins_over_project_sidecars() {
+        let home = stats_home(STATS);
+        let sessions = home.join("projects").join("p").join("sessions");
+        fs::create_dir_all(&sessions).unwrap();
+        fs::write(
+            sessions.join("s1.acp.json"),
+            r#"{"sessionId":"s1","model":"m","updatedAt":"2026-10-25T12:30:00Z","status":{"cumulative":{"promptTokens":99,"completionTokens":9,"cacheHitTokens":0,"cacheMissTokens":99}}}"#,
+        )
+        .unwrap();
+        let r = read_reasonix(&home);
+        assert_eq!(r.events.len(), 2);
+        assert!(r.events.iter().all(|e| e.session_id == "2026-10-25"));
+    }
+
+    #[test]
+    fn empty_stats_dir_falls_back_to_project_sidecars() {
+        let home = scratch_dir("reasonix-empty-stats");
+        fs::create_dir_all(home.join("stats")).unwrap();
+        write_sidecar(
+            &home,
+            "p",
+            "s1",
+            r#"{"sessionId":"s1","model":"m","updatedAt":"2026-10-25T12:30:00Z","status":{"cumulative":{"promptTokens":99,"completionTokens":9,"cacheHitTokens":0,"cacheMissTokens":99}}}"#,
+        );
+        let r = read_reasonix(&home);
+        assert_eq!(r.events.len(), 1);
+        assert_eq!(r.events[0].session_id, "s1");
+    }
+
+    #[test]
+    fn stats_row_with_bad_cell_is_skipped_with_a_warning() {
+        let home = stats_home(&STATS.replace("\"cache_miss\":673", "\"cache_miss\":\"x\""));
+        let r = read_reasonix(&home);
+        assert_eq!(r.events.len(), 1);
+        assert_eq!(r.skipped.len(), 1);
+        assert!(r.skipped[0].ends_with("2026-10-25.jsonl:3"));
     }
 
     #[test]
     fn default_home_resolves_dot_reasonix() {
-        assert_eq!(reasonix_home(None, None, &home()), home().join(".reasonix"));
+        assert_eq!(
+            reasonix_home(None, None, &test_home()),
+            test_home().join(".reasonix")
+        );
     }
 
     #[test]
@@ -312,7 +532,7 @@ mod tests {
             reasonix_home(
                 Some("/custom/rx"),
                 Some("C:\\Users\\u\\AppData\\Roaming"),
-                &home()
+                &test_home()
             ),
             PathBuf::from("/custom/rx")
         );
@@ -321,22 +541,9 @@ mod tests {
     #[test]
     fn appdata_selects_windows_home() {
         assert_eq!(
-            reasonix_home(None, Some("C:\\Users\\u\\AppData\\Roaming"), &home()),
+            reasonix_home(None, Some("C:\\Users\\u\\AppData\\Roaming"), &test_home()),
             PathBuf::from("C:\\Users\\u\\AppData\\Roaming").join("reasonix")
         );
-    }
-
-    fn tmp_dir(tag: &str) -> PathBuf {
-        let base = std::env::temp_dir().join(format!(
-            "skopli-reasonix-test-{tag}-{}-{}",
-            std::process::id(),
-            std::time::SystemTime::now()
-                .duration_since(std::time::UNIX_EPOCH)
-                .unwrap()
-                .as_nanos()
-        ));
-        fs::create_dir_all(&base).unwrap();
-        base
     }
 
     fn write_sidecar(dir: &Path, slug: &str, id: &str, body: &str) -> PathBuf {
@@ -347,9 +554,90 @@ mod tests {
         path
     }
 
+    fn write_pair(dir: &Path, slug: &str, id: &str, telemetry: &str, meta: Option<&str>) {
+        let sessions = dir.join("projects").join(slug).join("sessions");
+        fs::create_dir_all(&sessions).unwrap();
+        fs::write(
+            sessions.join(format!("{id}.jsonl.telemetry.json")),
+            telemetry,
+        )
+        .unwrap();
+        if let Some(meta) = meta {
+            fs::write(sessions.join(format!("{id}.jsonl.meta")), meta).unwrap();
+        }
+    }
+
+    // The shape Reasonix 2.56.1 wrote on Windows: usage in the telemetry
+    // sidecar, identity and timestamps in the meta file, no .acp.json.
+    #[test]
+    fn telemetry_and_meta_pair_yields_one_event() {
+        let dir = scratch_dir("telemetry");
+        write_pair(
+            &dir,
+            "c--users-u-proj",
+            "20261101-211432.883022900-qwen",
+            r#"{"version":1,"usage":{"promptTokens":7477,"completionTokens":30,"reasoningTokens":0,"cacheHitTokens":3,"cacheMissTokens":7474,"requestCount":1}}"#,
+            Some(
+                r#"{"id":"20261101-211432.883022900-qwen","created_at":"2026-11-01T21:14:32.9124106Z","updated_at":"2026-11-01T21:15:03.8429271Z","model":"llama/qwen","turns":1,"preview":"What does index.js export?"}"#,
+            ),
+        );
+        let result = read_reasonix(&dir);
+        assert!(result.warnings.is_empty());
+        assert_eq!(result.events.len(), 1);
+        let e = &result.events[0];
+        assert_eq!(e.session_id, "20261101-211432.883022900-qwen");
+        assert_eq!(e.model, "llama/qwen");
+        assert_eq!(e.timestamp, "2026-11-01T21:15:03.842Z");
+        assert_eq!(e.tokens.input, 7474);
+        assert_eq!(e.tokens.output, 30);
+        assert_eq!(e.tokens.cache_read, 3);
+        assert_eq!(e.tokens.cache_write, 0);
+        assert_eq!(e.title.as_deref(), Some("What does index.js export?"));
+        fs::remove_dir_all(&dir).ok();
+    }
+
+    #[test]
+    fn telemetry_without_meta_is_malformed() {
+        let dir = scratch_dir("telemetry-no-meta");
+        write_pair(
+            &dir,
+            "p",
+            "s1",
+            r#"{"version":1,"usage":{"promptTokens":10,"completionTokens":5,"cacheMissTokens":10}}"#,
+            None,
+        );
+        let result = read_reasonix(&dir);
+        assert!(result.events.is_empty());
+        assert_eq!(result.skipped.len(), 1);
+        assert_eq!(result.warnings.len(), 1);
+        fs::remove_dir_all(&dir).ok();
+    }
+
+    #[test]
+    fn telemetry_and_acp_for_one_session_keep_the_latest() {
+        let dir = scratch_dir("telemetry-vs-acp");
+        write_sidecar(
+            &dir,
+            "p",
+            "s1",
+            r#"{"sessionId":"s1","model":"old","updatedAt":"2026-08-01T10:00:00Z","status":{"cumulative":{"promptTokens":100,"completionTokens":50,"cacheMissTokens":100}}}"#,
+        );
+        write_pair(
+            &dir,
+            "p",
+            "s1",
+            r#"{"version":1,"usage":{"promptTokens":10,"completionTokens":5,"cacheMissTokens":10}}"#,
+            Some(r#"{"id":"s1","model":"new","updated_at":"2026-08-02T10:00:00Z"}"#),
+        );
+        let events = read_reasonix(&dir).events;
+        assert_eq!(events.len(), 1);
+        assert_eq!(events[0].model, "new");
+        assert_eq!(events[0].tokens.input, 10);
+        fs::remove_dir_all(&dir).ok();
+    }
     #[test]
     fn empty_home_yields_no_events_then_reads_after_sidecar_appears() {
-        let dir = tmp_dir("presence");
+        let dir = scratch_dir("presence");
         assert!(read_reasonix(&dir).events.is_empty());
         write_sidecar(
             &dir,
@@ -376,7 +664,7 @@ mod tests {
 
     #[test]
     fn absent_cache_split_yields_zero_input() {
-        let dir = tmp_dir("no-split");
+        let dir = scratch_dir("no-split");
         write_sidecar(
             &dir,
             "-p",
@@ -396,7 +684,7 @@ mod tests {
 
     #[test]
     fn estimated_sessions_are_included() {
-        let dir = tmp_dir("estimated");
+        let dir = scratch_dir("estimated");
         write_sidecar(
             &dir,
             "-p",
@@ -411,7 +699,7 @@ mod tests {
 
     #[test]
     fn reasoning_exceeding_completion_is_malformed() {
-        let dir = tmp_dir("reasoning-gt-completion");
+        let dir = scratch_dir("reasoning-gt-completion");
         let file = write_sidecar(
             &dir,
             "-p",
@@ -434,7 +722,7 @@ mod tests {
 
     #[test]
     fn latest_updated_at_wins_for_same_session_id() {
-        let dir = tmp_dir("dedup");
+        let dir = scratch_dir("dedup");
         write_sidecar(
             &dir,
             "-p",
@@ -458,7 +746,7 @@ mod tests {
         // `2026-08-03T09:00:00+02:00` (07:00:00Z) is chronologically EARLIER
         // than `2026-08-03T08:30:00Z`, yet its raw string sorts LATER as text.
         // The winner must be the later instant (the `Z` snapshot).
-        let dir = tmp_dir("dedup-offset");
+        let dir = scratch_dir("dedup-offset");
         write_sidecar(
             &dir,
             "-p",
@@ -486,7 +774,7 @@ mod tests {
 
     #[test]
     fn missing_or_malformed_updated_at_is_malformed() {
-        let dir = tmp_dir("bad-updated-at");
+        let dir = scratch_dir("bad-updated-at");
         let missing = write_sidecar(
             &dir,
             "-p",
@@ -520,7 +808,7 @@ mod tests {
 
     #[test]
     fn sidecar_without_status_yields_nothing() {
-        let dir = tmp_dir("no-status");
+        let dir = scratch_dir("no-status");
         write_sidecar(
             &dir,
             "-p",
@@ -535,7 +823,7 @@ mod tests {
 
     #[test]
     fn zero_token_total_is_dropped() {
-        let dir = tmp_dir("zero");
+        let dir = scratch_dir("zero");
         write_sidecar(
             &dir,
             "-p",
@@ -548,7 +836,7 @@ mod tests {
 
     #[test]
     fn missing_required_cell_is_malformed() {
-        let dir = tmp_dir("required");
+        let dir = scratch_dir("required");
         let file = write_sidecar(
             &dir,
             "-p",
@@ -568,7 +856,7 @@ mod tests {
 
     #[test]
     fn transcript_jsonl_is_not_read() {
-        let dir = tmp_dir("transcript");
+        let dir = scratch_dir("transcript");
         let sessions = dir.join("projects").join("-p").join("sessions");
         fs::create_dir_all(&sessions).unwrap();
         fs::write(

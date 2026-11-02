@@ -1,8 +1,17 @@
-//! Shared conformance-harness support: the structural comparator and number
-//! equality per the structural-parity contract. Used by both the conformance
-//! test and the comparator self-test.
+//! Shared conformance-harness support: the structural comparator per the
+//! structural-parity contract, and the repository root the gold lives under.
+
+use std::path::{Path, PathBuf};
 
 use serde_json::Value;
+
+pub fn repo_root() -> PathBuf {
+    Path::new(env!("CARGO_MANIFEST_DIR"))
+        .parent()
+        .and_then(Path::parent)
+        .expect("repo root")
+        .to_path_buf()
+}
 
 /// Structural equality per the structural-parity contract. Returns `Ok(())` on match,
 /// or `Err(path)` describing the first mismatch.

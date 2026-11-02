@@ -1,7 +1,7 @@
 {
   "name": "skopli",
   "version": "0.1.0",
-  "description": "Read real AI coding-agent usage (tokens, sessions, calls) from local harness state, aggregate it, and price it against market catalogs like OpenRouter and LiteLLM.",
+  "description": "Read AI coding-agent usage (tokens, sessions, turns, calls) from local harness state, roll it up, and price it against the OpenRouter, LiteLLM, and models.dev catalogs.",
   "keywords": [
     "agent",
     "ai",
@@ -48,10 +48,10 @@
     "build:native": "napi build --platform --release -o native --js index.cjs --package skopli-node --manifest-path crates/skopli-node/Cargo.toml",
     "build": "napi build --platform --release -o native --js index.cjs --package skopli-node --manifest-path crates/skopli-node/Cargo.toml && pnpm run clean && tsc -p tsconfig.build.json",
     "prepare": "pnpm run clean && tsc -p tsconfig.build.json",
-    "lint": "oxlint",
+    "lint": "oxlint && node scripts/check-prose.mjs",
     "format": "oxfmt --check .",
     "format:write": "oxfmt .",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsc --noEmit && pnpm -r run typecheck",
     "test": "vitest run",
     "sync": "node scripts/sync-generated.mjs",
     "check": "pnpm run lint && pnpm run format && pnpm run typecheck && pnpm run test && pnpm run sync --check"
@@ -61,6 +61,7 @@
     "@types/node": "^26.1.2",
     "oxfmt": "^0.62.0",
     "oxlint": "^1.77.0",
+    "playwright-core": "1.63.0",
     "typescript": "^7.0.2",
     "vitest": "^4.1.10"
   },

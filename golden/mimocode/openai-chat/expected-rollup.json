@@ -1,0 +1,50 @@
+{
+  "schema_version": 1,
+  "by": {
+    "model": [
+      {
+        "key": "llama/qwen",
+        "tokens": {
+          "input": 47528,
+          "output": 297,
+          "cacheRead": 88380,
+          "cacheWrite": 0,
+          "reasoning": 0
+        },
+        "events": 8,
+        "turns": 8,
+        "calls": 8
+      }
+    ],
+    "day": [
+      {
+        "key": "2026-10-25",
+        "tokens": {
+          "input": 47528,
+          "output": 297,
+          "cacheRead": 88380,
+          "cacheWrite": 0,
+          "reasoning": 0
+        },
+        "events": 8,
+        "turns": 8,
+        "calls": 8
+      }
+    ],
+    "harness": [
+      {
+        "key": "mimocode",
+        "tokens": {
+          "input": 47528,
+          "output": 297,
+          "cacheRead": 88380,
+          "cacheWrite": 0,
+          "reasoning": 0
+        },
+        "events": 8,
+        "turns": 8,
+        "calls": 8
+      }
+    ]
+  }
+}

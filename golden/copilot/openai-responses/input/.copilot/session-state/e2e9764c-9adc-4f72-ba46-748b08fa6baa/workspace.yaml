@@ -1,0 +1,13 @@
+id: e2e9764c-9adc-4f72-ba46-748b08fa6baa
+cwd: /home/user/project
+git_root: /home/user/project
+repository: example/project
+host_type: github
+branch: main
+client_name: github/cli
+name: Read index.js and explain in two sentences what the default export pLimit does.
+user_named: false
+summary_count: 0
+fork_count: 0
+created_at: 2026-10-25T14:05:59.144Z
+updated_at: 2026-10-25T14:06:01.703Z

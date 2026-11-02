@@ -18,15 +18,15 @@ private let workQueue = DispatchQueue(
     attributes: .concurrent
 )
 
-private func encode<T: Encodable>(_ value: T) throws -> Data {
+func encode<T: Encodable>(_ value: T) throws -> Data {
     do {
         return try encoder.encode(value)
     } catch {
-        throw SkopliError.invalidArgument("encoding options: \(error)")
+        throw SkopliError.invalidArgument("encoding input: \(error)")
     }
 }
 
-private func decode<T: Decodable>(_ type: T.Type, from data: Data) throws -> T {
+func decode<T: Decodable>(_ type: T.Type, from data: Data) throws -> T {
     do {
         return try decoder.decode(type, from: data)
     } catch {

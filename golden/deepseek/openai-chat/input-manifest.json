@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "harness": "deepseek",
+  "case": "openai-chat",
+  "home": ".",
+  "options": {
+    "harnesses": [
+      "deepseek"
+    ],
+    "tz": "UTC"
+  },
+  "rollups": [
+    "model",
+    "day",
+    "harness"
+  ]
+}

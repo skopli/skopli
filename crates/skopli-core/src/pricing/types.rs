@@ -61,6 +61,16 @@ impl ModelPrice {
             tier_mode: None,
         }
     }
+
+    /// The context tiers, empty for a flat price.
+    pub fn tiers(&self) -> &[PriceTier] {
+        self.tiers.as_deref().unwrap_or(&[])
+    }
+
+    /// Whether the price changes with context size.
+    pub fn is_tiered(&self) -> bool {
+        !self.tiers().is_empty()
+    }
 }
 
 /// A single loaded catalog: a source name, its fetch time (`None` for

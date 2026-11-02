@@ -19,15 +19,11 @@
 //! facade re-raises it into the typed `InvalidArgumentError` / `CatalogError`
 //! hierarchy. Keeping one native exception leaves the Rust side idiom-free.
 
-mod parse;
-mod pipeline;
-mod pricing_opts;
-mod wire;
-
 use pyo3::create_exception;
 use pyo3::exceptions::PyException;
 use pyo3::prelude::*;
 use serde_json::Value;
+use skopli_wire::{parse, pipeline, pricing_opts, read, wire};
 
 mod modules;
 
@@ -90,7 +86,7 @@ fn detect_harnesses(py: Python<'_>, options_json: &str) -> PyResult<String> {
     let opts = options_json.to_owned();
     py.detach(move || {
         let value = parse_json(&opts)?;
-        to_json(&pipeline::detect(&value))
+        to_json(&read::detect(&value))
     })
     .into_py_err(py)
 }
@@ -103,8 +99,8 @@ fn read_usage(py: Python<'_>, options_json: &str) -> PyResult<String> {
     let opts = options_json.to_owned();
     py.detach(move || {
         let value = parse_json(&opts)?;
-        let options = pipeline::parse_read_options(&value).map_err(DomainError::invalid)?;
-        to_json(&pipeline::read_usage(&options))
+        let options = read::parse_read_options(&value).map_err(DomainError::invalid)?;
+        to_json(&read::read_usage(&options))
     })
     .into_py_err(py)
 }

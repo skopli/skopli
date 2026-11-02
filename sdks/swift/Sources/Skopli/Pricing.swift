@@ -280,12 +280,7 @@ public final class Pricing: @unchecked Sendable {
         lock.lock()
         defer { lock.unlock() }
         let handle = try ensureFresh()
-        let out = try Ffi.catalogInfo(handle)
-        do {
-            return try JSONDecoder().decode([CatalogInfo].self, from: out)
-        } catch {
-            throw SkopliError.internalError("decoding catalog info: \(error)")
-        }
+        return try decode([CatalogInfo].self, from: try Ffi.catalogInfo(handle))
     }
 
     /// Price a set of pre-aggregated rollups, returning each rollup with its
@@ -295,18 +290,8 @@ public final class Pricing: @unchecked Sendable {
         lock.lock()
         defer { lock.unlock() }
         let handle = try ensureFresh()
-        let rollupsData: Data
-        do {
-            rollupsData = try JSONEncoder().encode(rollups)
-        } catch {
-            throw SkopliError.invalidArgument("encoding rollups: \(error)")
-        }
-        let out = try Ffi.priceRollups(handle, rollups: rollupsData)
-        do {
-            return try JSONDecoder().decode([PricedRollup].self, from: out)
-        } catch {
-            throw SkopliError.internalError("decoding priced rollups: \(error)")
-        }
+        let out = try Ffi.priceRollups(handle, rollups: try encode(rollups))
+        return try decode([PricedRollup].self, from: out)
     }
 
     /// Async `priceRollups`, running the sync primitive off-thread.
@@ -321,11 +306,7 @@ public final class Pricing: @unchecked Sendable {
         defer { lock.unlock() }
         let handle = try ensureFresh()
         let out = try Ffi.lookupModel(handle, model: Data(model.utf8))
-        do {
-            return try JSONDecoder().decode(PriceLookup.self, from: out)
-        } catch {
-            throw SkopliError.internalError("decoding lookup: \(error)")
-        }
+        return try decode(PriceLookup.self, from: out)
     }
 
     /// Async `lookupModel`, running the sync primitive off-thread.
@@ -341,20 +322,10 @@ public final class Pricing: @unchecked Sendable {
         lock.lock()
         defer { lock.unlock() }
         let handle = try ensureFresh()
-        let eventsData: Data
-        let optsData: Data
-        do {
-            eventsData = try JSONEncoder().encode(events)
-            optsData = try JSONEncoder().encode(RollupOptions(by: by, tz: tz, blockMs: blockMs))
-        } catch {
-            throw SkopliError.invalidArgument("encoding price-events input: \(error)")
-        }
+        let eventsData = try encode(events)
+        let optsData = try encode(RollupOptions(by: by, tz: tz, blockMs: blockMs))
         let out = try Ffi.priceEvents(handle, events: eventsData, opts: optsData)
-        do {
-            return try JSONDecoder().decode([PricedRollup].self, from: out)
-        } catch {
-            throw SkopliError.internalError("decoding priced events: \(error)")
-        }
+        return try decode([PricedRollup].self, from: out)
     }
 
     /// Async `priceEvents`, running the sync primitive off-thread.
@@ -419,13 +390,7 @@ public final class Pricing: @unchecked Sendable {
                 catalogs: catalogs,
                 builtinSources: false
             )
-            let optsData: Data
-            do {
-                optsData = try JSONEncoder().encode(native)
-            } catch {
-                throw SkopliError.invalidArgument("encoding pricing options: \(error)")
-            }
-            let next = try Ffi.pricingNew(optsData)
+            let next = try Ffi.pricingNew(try encode(native))
             let previous = handle
             handle = next
             loadedAt = Int64((context.now().timeIntervalSince1970 * 1000).rounded())

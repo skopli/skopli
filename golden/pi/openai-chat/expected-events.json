@@ -1,0 +1,87 @@
+{
+  "schema_version": 1,
+  "events": [
+    {
+      "harness": "pi",
+      "messageId": "3726f3e6",
+      "model": "qwen",
+      "sessionId": "01a17383-ae5e-72e6-be24-ce0f33eeeeae",
+      "subagent": false,
+      "timestamp": "2026-10-25T14:43:06.606Z",
+      "tokens": {
+        "cacheRead": 3,
+        "cacheWrite": 0,
+        "input": 1612,
+        "output": 20,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "pi",
+      "messageId": "ed9b013e",
+      "model": "qwen",
+      "sessionId": "01a17383-ae5e-72e6-be24-ce0f33eeeeae",
+      "subagent": false,
+      "timestamp": "2026-10-25T14:43:23.421Z",
+      "tokens": {
+        "cacheRead": 1634,
+        "cacheWrite": 0,
+        "input": 943,
+        "output": 82,
+        "reasoning": 0
+      },
+      "turn": false
+    },
+    {
+      "harness": "pi",
+      "messageId": "582d9c26",
+      "model": "qwen",
+      "sessionId": "01a17383-ae5e-72e6-be24-ce0f33eeeeae",
+      "subagent": false,
+      "timestamp": "2026-10-25T14:43:26.126Z",
+      "tokens": {
+        "cacheRead": 2658,
+        "cacheWrite": 0,
+        "input": 28,
+        "output": 34,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "pi",
+      "messageId": "55f17570",
+      "model": "qwen",
+      "sessionId": "01a17383-ae5e-72e6-be24-ce0f33eeeeae",
+      "subagent": false,
+      "timestamp": "2026-10-25T14:43:28.612Z",
+      "tokens": {
+        "cacheRead": 2719,
+        "cacheWrite": 0,
+        "input": 29,
+        "output": 47,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "pi",
+      "messageId": "dbcb4526",
+      "model": "qwen",
+      "sessionId": "01a17383-ae5e-72e6-be24-ce0f33eeeeae",
+      "subagent": false,
+      "timestamp": "2026-10-25T14:43:30.892Z",
+      "tokens": {
+        "cacheRead": 2794,
+        "cacheWrite": 0,
+        "input": 29,
+        "output": 40,
+        "reasoning": 0
+      },
+      "turn": true
+    }
+  ],
+  "diagnostics": [],
+  "skipped": {}
+}

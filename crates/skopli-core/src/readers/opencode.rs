@@ -14,9 +14,9 @@ use super::sqlite_store::{
 use crate::time::to_iso_string;
 use crate::types::{TokenCounts, UsageEvent};
 
-/// The opencode reader wired into the harness registry. It reads both lanes the
-/// TS `readOpencode` does: every `opencode*.db` SQLite store (authoritative)
-/// first, then the legacy JSON store, with a per-harness message-id dedup so a
+/// The opencode reader wired into the harness registry. It reads both lanes:
+/// every `opencode*.db` SQLite store (authoritative) first, then the legacy
+/// JSON store, with a per-harness message-id dedup so a
 /// mid-migration mirror is not counted twice.
 pub struct OpencodeReader;
 
@@ -57,29 +57,7 @@ impl Reader for MimocodeReader {
     }
 }
 
-/// The Command Code reader wired into the harness registry. Command Code is an
-/// opencode fork storing the same message format under the `commandcode` app
-/// dir, so it shares the opencode logic; only the roots differ (the XDG data
-/// dir `<xdgData>/commandcode`, else the per-OS data dirs used by Command Code
-/// for `commandcode`).
-pub struct CommandcodeReader;
-
-impl Reader for CommandcodeReader {
-    fn harness_id(&self) -> &'static str {
-        "commandcode"
-    }
-
-    fn read(&self, ctx: &ReaderContext) -> ReaderResult {
-        let roots = commandcode_roots(
-            ctx.env("XDG_DATA_HOME"),
-            ctx.env("LOCALAPPDATA"),
-            ctx.home(),
-        );
-        read_opencode(&roots, "commandcode")
-    }
-}
-
-/// Resolve the opencode data roots. Faithful port of `opencodeRoots`.
+/// Resolve the opencode data roots.
 pub fn opencode_roots(
     data_dir: Option<&str>,
     xdg_data_home: Option<&str>,
@@ -105,7 +83,8 @@ pub fn opencode_roots(
 
 /// Resolve the MiMo Code data roots. `MIMOCODE_HOME` is an absolute home whose
 /// data dir is `<home>/data`; otherwise the XDG data dir (`<xdgData>/mimocode`,
-/// with `LOCALAPPDATA` as the Windows XDG-data fallback), else
+/// with `LOCALAPPDATA` as the Windows XDG-data fallback, tried before the
+/// `<home>/.local/share/mimocode` dir the Windows build still writes), else
 /// `<home>/.local/share/mimocode`.
 pub fn mimocode_roots(
     mimocode_home: Option<&str>,
@@ -119,35 +98,11 @@ pub fn mimocode_roots(
     if let Some(v) = xdg_data_home.filter(|v| !v.is_empty()) {
         return vec![PathBuf::from(v).join("mimocode")];
     }
+    let default = home.join(".local").join("share").join("mimocode");
     if let Some(v) = local_app_data.filter(|v| !v.is_empty()) {
-        return vec![PathBuf::from(v).join("mimocode")];
+        return vec![PathBuf::from(v).join("mimocode"), default];
     }
-    vec![home.join(".local").join("share").join("mimocode")]
-}
-
-/// Resolve the Command Code data roots: the XDG data dir
-/// (`<xdgData>/commandcode`), else the per-OS data dirs used by Command Code
-/// (Linux `~/.local/share/commandcode`, macOS `~/Library/Application
-/// Support/CommandCode`, and the Windows `%LOCALAPPDATA%\commandcode`
-/// candidate).
-pub fn commandcode_roots(
-    xdg_data_home: Option<&str>,
-    local_app_data: Option<&str>,
-    home: &Path,
-) -> Vec<PathBuf> {
-    if let Some(v) = xdg_data_home.filter(|v| !v.is_empty()) {
-        return vec![PathBuf::from(v).join("commandcode")];
-    }
-    let mut roots = vec![
-        home.join(".local").join("share").join("commandcode"),
-        home.join("Library")
-            .join("Application Support")
-            .join("CommandCode"),
-    ];
-    if let Some(v) = local_app_data.filter(|v| !v.is_empty()) {
-        roots.push(PathBuf::from(v).join("commandcode"));
-    }
-    roots
+    vec![default]
 }
 
 #[derive(Clone, Default)]
@@ -162,7 +117,6 @@ struct SessionScan {
     meta: HashMap<String, SessionMeta>,
 }
 
-/// Faithful port of `scanSessions`.
 fn scan_sessions(
     root: &Path,
     harness: &str,
@@ -230,9 +184,8 @@ struct ParsedMessage {
     malformed: bool,
 }
 
-/// Faithful port of `parseMessage`. `authoritative_created` mirrors the TS
-/// optional param: when `Some`, it overrides the `time.created` lookup (the
-/// SQLite lane passes the `time_created` column through here).
+/// `authoritative_created`, when `Some`, overrides the `time.created` lookup (the SQLite lane passes the
+/// `time_created` column through here).
 fn parse_message(
     raw: &Value,
     harness: &str,
@@ -348,7 +301,6 @@ fn parse_message(
     }
 }
 
-/// Faithful port of `readJsonStore`.
 fn read_json_store(root: &Path, harness: &str) -> ReaderResult {
     let mut events: Vec<UsageEvent> = Vec::new();
     let mut skipped: Vec<String> = Vec::new();
@@ -432,9 +384,8 @@ fn read_json_store(root: &Path, harness: &str) -> ReaderResult {
     }
 }
 
-/// Read the per-session metadata table from a `.db`. Faithful port of
-/// `readDbSessionMeta`: only present columns are selected, an id-less schema
-/// yields empty meta.
+/// Read the per-session metadata table from a `.db`. Only present columns are
+/// selected, an id-less schema yields empty meta.
 fn read_db_session_meta(db_path: &str) -> HashMap<String, SessionMeta> {
     let mut meta = HashMap::new();
     let conn = match open_readonly(db_path) {
@@ -490,7 +441,7 @@ fn read_db_session_meta(db_path: &str) -> HashMap<String, SessionMeta> {
 }
 
 /// Enrich a v2 (`session_message`) row's data object with the row's role +
-/// model split, mirroring the TS `enriched` construction.
+/// model split.
 fn enrich_v2(raw: &Value, message_id: &str, row_role: Option<&str>) -> Value {
     let mut obj = match raw {
         Value::Object(map) => map.clone(),
@@ -529,9 +480,8 @@ fn enrich_v2(raw: &Value, message_id: &str, row_role: Option<&str>) -> Value {
 }
 
 /// Read one opencode `.db`, running both the v1 (`message`) and v2
-/// (`session_message`) queries and merging their sessions. Faithful port of
-/// `readDbRows`. Returns `Err` only when BOTH queries fail to open/run (the TS
-/// `stores.length === 0` throw).
+/// (`session_message`) queries and merging their sessions. Returns `Err` only
+/// when BOTH queries fail to open/run.
 fn read_db_rows(db_path: &str, harness: &str) -> Result<ReaderResult, ()> {
     let session_meta = read_db_session_meta(db_path);
     let malformed_label = format!("{harness} message");
@@ -665,15 +615,25 @@ fn read_db_rows(db_path: &str, harness: &str) -> Result<ReaderResult, ()> {
     })
 }
 
-/// List the `opencode.db` / `opencode-*.db` files directly under `root`, sorted.
-/// Faithful port of the inline `dbPaths` reader in `readOpencode`.
-fn opencode_db_paths(root: &Path) -> Vec<PathBuf> {
+/// List the `.db` files directly under `root`, sorted: `opencode.db` / `opencode-*.db`
+/// (the shared schema name) plus the fork's own `<harness>.db` / `<harness>-*.db`
+/// (`mimocode.db`), which is what current forks write.
+fn db_paths(root: &Path, harness: &str) -> Vec<PathBuf> {
+    let stems = ["opencode", harness];
     let mut paths: Vec<PathBuf> = Vec::new();
     if let Ok(entries) = std::fs::read_dir(root) {
         for entry in entries.flatten() {
             let name = entry.file_name().to_string_lossy().into_owned();
-            let matches = name == "opencode.db"
-                || (name.starts_with("opencode-") && name.ends_with(".db") && name.len() > 12);
+            let Some(stem) = name.strip_suffix(".db") else {
+                continue;
+            };
+            let matches = stems.iter().any(|s| {
+                stem == *s
+                    || stem
+                        .strip_prefix(s)
+                        .and_then(|r| r.strip_prefix('-'))
+                        .is_some_and(|r| !r.is_empty())
+            });
             if matches {
                 paths.push(entry.path());
             }
@@ -685,7 +645,6 @@ fn opencode_db_paths(root: &Path) -> Vec<PathBuf> {
 
 /// Read all opencode usage events: every `.db` across every root first (so
 /// authoritative db rows win the message-id dedup), then the legacy JSON store.
-/// Faithful port of `readOpencode`.
 pub fn read_opencode(roots: &[PathBuf], harness: &str) -> ReaderResult {
     let mut events: Vec<UsageEvent> = Vec::new();
     let mut skipped: Vec<String> = Vec::new();
@@ -709,7 +668,7 @@ pub fn read_opencode(roots: &[PathBuf], harness: &str) -> ReaderResult {
     };
 
     for root in roots {
-        for db_path in opencode_db_paths(root) {
+        for db_path in db_paths(root, harness) {
             let db_str = db_path.to_string_lossy().into_owned();
             match read_db_rows(&db_str, harness) {
                 Ok(result) => merge(result, &mut skipped, &mut warnings, &mut events, &mut seen),
@@ -741,20 +700,43 @@ pub fn read_opencode(roots: &[PathBuf], harness: &str) -> ReaderResult {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::readers::shared::test_home;
 
-    fn home() -> PathBuf {
-        PathBuf::from("/home/u")
+    #[test]
+    fn db_paths_use_the_harness_name() {
+        let root = crate::readers::shared::scratch_dir("db-paths");
+        for name in [
+            "opencode.db",
+            "opencode-2.db",
+            "mimocode.db",
+            "mimocode-.db",
+            "x.db",
+        ] {
+            std::fs::write(root.join(name), b"").unwrap();
+        }
+        let names = |h: &str| {
+            db_paths(&root, h)
+                .iter()
+                .map(|p| p.file_name().unwrap().to_string_lossy().into_owned())
+                .collect::<Vec<_>>()
+        };
+        assert_eq!(names("opencode"), vec!["opencode-2.db", "opencode.db"]);
+        assert_eq!(
+            names("mimocode"),
+            vec!["mimocode.db", "opencode-2.db", "opencode.db"]
+        );
+        std::fs::remove_dir_all(&root).unwrap();
     }
 
     #[test]
     fn mimocode_home_appends_data() {
-        let roots = mimocode_roots(Some("/custom/mimo"), None, None, &home());
+        let roots = mimocode_roots(Some("/custom/mimo"), None, None, &test_home());
         assert_eq!(roots, vec![PathBuf::from("/custom/mimo").join("data")]);
     }
 
     #[test]
     fn mimocode_xdg_data_home_appends_app_dir() {
-        let roots = mimocode_roots(None, Some("/xdg/data"), None, &home());
+        let roots = mimocode_roots(None, Some("/xdg/data"), None, &test_home());
         assert_eq!(roots, vec![PathBuf::from("/xdg/data").join("mimocode")]);
     }
 
@@ -764,96 +746,44 @@ mod tests {
             Some("/custom/mimo"),
             Some("/xdg/data"),
             Some("/local"),
-            &home(),
+            &test_home(),
         );
         assert_eq!(roots, vec![PathBuf::from("/custom/mimo").join("data")]);
     }
 
     #[test]
     fn mimocode_xdg_wins_over_local_app_data() {
-        let roots = mimocode_roots(None, Some("/xdg/data"), Some("/local"), &home());
+        let roots = mimocode_roots(None, Some("/xdg/data"), Some("/local"), &test_home());
         assert_eq!(roots, vec![PathBuf::from("/xdg/data").join("mimocode")]);
     }
 
     #[test]
     fn mimocode_local_app_data_windows_fallback() {
-        let roots = mimocode_roots(None, None, Some("/local"), &home());
-        assert_eq!(roots, vec![PathBuf::from("/local").join("mimocode")]);
+        let roots = mimocode_roots(None, None, Some("/local"), &test_home());
+        assert_eq!(
+            roots,
+            vec![
+                PathBuf::from("/local").join("mimocode"),
+                test_home().join(".local").join("share").join("mimocode"),
+            ]
+        );
     }
 
     #[test]
     fn mimocode_default_home_without_overrides() {
-        let roots = mimocode_roots(None, None, None, &home());
+        let roots = mimocode_roots(None, None, None, &test_home());
         assert_eq!(
             roots,
-            vec![home().join(".local").join("share").join("mimocode")]
+            vec![test_home().join(".local").join("share").join("mimocode")]
         );
     }
 
     #[test]
     fn mimocode_empty_overrides_fall_through_to_default() {
-        let roots = mimocode_roots(Some(""), Some(""), Some(""), &home());
+        let roots = mimocode_roots(Some(""), Some(""), Some(""), &test_home());
         assert_eq!(
             roots,
-            vec![home().join(".local").join("share").join("mimocode")]
-        );
-    }
-
-    #[test]
-    fn commandcode_xdg_data_home_appends_app_dir() {
-        let roots = commandcode_roots(Some("/xdg/data"), None, &home());
-        assert_eq!(roots, vec![PathBuf::from("/xdg/data").join("commandcode")]);
-    }
-
-    #[test]
-    fn commandcode_xdg_wins_over_local_app_data() {
-        let roots = commandcode_roots(Some("/xdg/data"), Some("/local"), &home());
-        assert_eq!(roots, vec![PathBuf::from("/xdg/data").join("commandcode")]);
-    }
-
-    #[test]
-    fn commandcode_default_candidates_include_all_os_dirs() {
-        let roots = commandcode_roots(None, Some("/local"), &home());
-        assert_eq!(
-            roots,
-            vec![
-                home().join(".local").join("share").join("commandcode"),
-                home()
-                    .join("Library")
-                    .join("Application Support")
-                    .join("CommandCode"),
-                PathBuf::from("/local").join("commandcode"),
-            ]
-        );
-    }
-
-    #[test]
-    fn commandcode_default_without_local_app_data() {
-        let roots = commandcode_roots(None, None, &home());
-        assert_eq!(
-            roots,
-            vec![
-                home().join(".local").join("share").join("commandcode"),
-                home()
-                    .join("Library")
-                    .join("Application Support")
-                    .join("CommandCode"),
-            ]
-        );
-    }
-
-    #[test]
-    fn commandcode_empty_xdg_falls_through_to_default() {
-        let roots = commandcode_roots(Some(""), None, &home());
-        assert_eq!(
-            roots,
-            vec![
-                home().join(".local").join("share").join("commandcode"),
-                home()
-                    .join("Library")
-                    .join("Application Support")
-                    .join("CommandCode"),
-            ]
+            vec![test_home().join(".local").join("share").join("mimocode")]
         );
     }
 }

@@ -3,7 +3,7 @@
   "harness": "kimchi",
   "case": "basic",
   "env": {
-    "KIMCHI_CONFIG_PATH": "kimchi"
+    "KIMCHI_CODING_AGENT_DIR": "kimchi/agent"
   },
   "options": {
     "harnesses": [

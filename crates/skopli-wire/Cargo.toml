@@ -7,7 +7,7 @@ homepage.workspace = true
 documentation.workspace = true
 repository.workspace = true
 license.workspace = true
-description = "JSON wire types shared by the skopli language bindings"
+description = "JSON wire types shared by the Skopli language bindings"
 
 [dependencies]
 skopli-core = { workspace = true }

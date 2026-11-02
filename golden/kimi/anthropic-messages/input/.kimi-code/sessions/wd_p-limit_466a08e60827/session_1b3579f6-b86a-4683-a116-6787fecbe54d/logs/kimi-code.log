@@ -1,0 +1,3 @@
+2026-11-01T21:09:06.992Z INFO  llm config  turnStep=0.1 provider=anthropic model=qwen modelAlias=llama/qwen thinkingEffort=off systemPromptChars=10714 toolCount=24
+2026-11-01T21:09:06.993Z INFO  llm request  turnStep=0.1
+2026-11-01T21:09:15.980Z INFO  llm response  turnStep=0.1 ttftMs=1233 streamDurationMs=7751 outputTokens=163 requestBuildMs=2 serverFirstTokenMs=1231 serverDecodeMs=7751 clientConsumeMs=0 clientBlockedMs=232

@@ -29,6 +29,11 @@
       "name": "garbage",
       "stamp": "not-a-timestamp",
       "epochMs": null
+    },
+    {
+      "name": "trailing-characters-after-offset",
+      "stamp": "2026-08-01T00:00:00+00:00garbage",
+      "epochMs": null
     }
   ],
   "write": [

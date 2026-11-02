@@ -1,0 +1,71 @@
+{
+  "schema_version": 1,
+  "events": [
+    {
+      "harness": "jcode",
+      "messageId": "message_1792931136512_13850591069867887707",
+      "model": "qwen",
+      "sessionId": "session_dog_1792931121187_14922ea1540b1f7e",
+      "subagent": false,
+      "timestamp": "2026-10-25T12:25:36.512Z",
+      "tokens": {
+        "cacheRead": 15521,
+        "cacheWrite": 0,
+        "input": 175,
+        "output": 105,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "jcode",
+      "messageId": "message_1792931144817_12427869212846845972",
+      "model": "qwen",
+      "sessionId": "session_dog_1792931121187_14922ea1540b1f7e",
+      "subagent": false,
+      "timestamp": "2026-10-25T12:25:44.817Z",
+      "tokens": {
+        "cacheRead": 15800,
+        "cacheWrite": 0,
+        "input": 54,
+        "output": 62,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "jcode",
+      "messageId": "message_1792931152399_1435011863618789885",
+      "model": "qwen",
+      "sessionId": "session_dog_1792931121187_14922ea1540b1f7e",
+      "subagent": false,
+      "timestamp": "2026-10-25T12:25:52.399Z",
+      "tokens": {
+        "cacheRead": 15915,
+        "cacheWrite": 0,
+        "input": 55,
+        "output": 72,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "jcode",
+      "messageId": "message_1792931160632_1036857673202684075",
+      "model": "qwen",
+      "sessionId": "session_dog_1792931121187_14922ea1540b1f7e",
+      "subagent": false,
+      "timestamp": "2026-10-25T12:26:00.632Z",
+      "tokens": {
+        "cacheRead": 16041,
+        "cacheWrite": 0,
+        "input": 55,
+        "output": 84,
+        "reasoning": 0
+      },
+      "turn": true
+    }
+  ],
+  "diagnostics": [],
+  "skipped": {}
+}

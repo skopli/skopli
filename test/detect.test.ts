@@ -188,6 +188,19 @@ describe("detectHarnesses mimocode roots", () => {
     }
   });
 
+  it("keeps the <home>/.local/share/mimocode store when LOCALAPPDATA is set", () => {
+    const home = makeHome();
+    const local = mkdtempSync(join(tmpdir(), "skopli-mimo-local-"));
+    try {
+      mkdirSync(join(home, ".local", "share", "mimocode", "storage"), { recursive: true });
+      const resolver = createPathResolver({ home, env: { LOCALAPPDATA: local } });
+      expect(detectHarnesses(resolver).supported).toContain("mimocode");
+    } finally {
+      rmSync(home, { recursive: true, force: true });
+      rmSync(local, { recursive: true, force: true });
+    }
+  });
+
   it("resolves XDG_DATA_HOME to <xdg>/mimocode/storage", () => {
     const home = makeHome();
     const xdg = mkdtempSync(join(tmpdir(), "skopli-mimo-xdg-"));
@@ -195,6 +208,21 @@ describe("detectHarnesses mimocode roots", () => {
       mkdirSync(join(xdg, "mimocode", "storage"), { recursive: true });
       const resolver = createPathResolver({ home, env: { XDG_DATA_HOME: xdg } });
       expect(detectHarnesses(resolver).supported).toContain("mimocode");
+    } finally {
+      rmSync(home, { recursive: true, force: true });
+      rmSync(xdg, { recursive: true, force: true });
+    }
+  });
+
+  it("detects a database-only root named after the fork", () => {
+    const home = makeHome();
+    const xdg = mkdtempSync(join(tmpdir(), "skopli-mimo-db-"));
+    try {
+      mkdirSync(join(xdg, "mimocode"), { recursive: true });
+      writeFileSync(join(xdg, "mimocode", "mimocode.db"), "");
+      const resolver = createPathResolver({ home, env: { XDG_DATA_HOME: xdg } });
+      expect(detectHarnesses(resolver).supported).toContain("mimocode");
+      expect(detectHarnesses(resolver).supported).not.toContain("opencode");
     } finally {
       rmSync(home, { recursive: true, force: true });
       rmSync(xdg, { recursive: true, force: true });
@@ -235,64 +263,16 @@ describe("detectHarnesses mimocode roots", () => {
   });
 });
 
-// Command Code is an opencode fork under the `commandcode` app dir.
-// XDG_DATA_HOME resolves to <xdg>/commandcode, and the default candidate set
-// covers the per-OS data dirs used by Command Code plus the Windows LOCALAPPDATA
-// candidate; detection keys on a `storage/` subdir.
+// Command Code keeps one transcript per session under ~/.commandcode/projects/
+// <cwd-slug>/<session-uuid>.jsonl; detection keys on the `projects/` dir.
 
 describe("detectHarnesses commandcode roots", () => {
-  it("resolves XDG_DATA_HOME to <xdg>/commandcode/storage", () => {
-    const home = makeHome();
-    const xdg = mkdtempSync(join(tmpdir(), "skopli-cc-xdg-"));
-    try {
-      mkdirSync(join(xdg, "commandcode", "storage"), { recursive: true });
-      const resolver = createPathResolver({ home, env: { XDG_DATA_HOME: xdg } });
-      expect(detectHarnesses(resolver).supported).toContain("commandcode");
-    } finally {
-      rmSync(home, { recursive: true, force: true });
-      rmSync(xdg, { recursive: true, force: true });
-    }
-  });
-
-  it("prefers XDG_DATA_HOME over the default per-OS candidates", () => {
-    const home = makeHome();
-    const xdg = mkdtempSync(join(tmpdir(), "skopli-cc-xdg-win-"));
-    try {
-      // Only the default macOS candidate exists: XDG wins so nothing resolves.
-      mkdirSync(join(home, "Library", "Application Support", "CommandCode", "storage"), {
-        recursive: true,
-      });
-      const resolver = createPathResolver({ home, env: { XDG_DATA_HOME: xdg } });
-      expect(detectHarnesses(resolver).supported).not.toContain("commandcode");
-      // Now the XDG candidate exists too and resolution succeeds.
-      mkdirSync(join(xdg, "commandcode", "storage"), { recursive: true });
-      expect(detectHarnesses(resolver).supported).toContain("commandcode");
-    } finally {
-      rmSync(home, { recursive: true, force: true });
-      rmSync(xdg, { recursive: true, force: true });
-    }
-  });
-
-  it("resolves the LOCALAPPDATA candidate <local>/commandcode/storage", () => {
-    const home = makeHome();
-    const local = mkdtempSync(join(tmpdir(), "skopli-cc-local-"));
-    try {
-      mkdirSync(join(local, "commandcode", "storage"), { recursive: true });
-      const resolver = createPathResolver({ home, env: { LOCALAPPDATA: local } });
-      expect(detectHarnesses(resolver).supported).toContain("commandcode");
-    } finally {
-      rmSync(home, { recursive: true, force: true });
-      rmSync(local, { recursive: true, force: true });
-    }
-  });
-
-  it("resolves the default macOS candidate ~/Library/Application Support/CommandCode", () => {
+  it("detects ~/.commandcode/projects", () => {
     const home = makeHome();
     try {
-      mkdirSync(join(home, "Library", "Application Support", "CommandCode", "storage"), {
-        recursive: true,
-      });
       const resolver = createPathResolver({ home, env: {} });
+      expect(detectHarnesses(resolver).supported).not.toContain("commandcode");
+      mkdirSync(join(home, ".commandcode", "projects"), { recursive: true });
       expect(detectHarnesses(resolver).supported).toContain("commandcode");
     } finally {
       rmSync(home, { recursive: true, force: true });
@@ -434,6 +414,21 @@ describe("detectHarnesses deepseek roots", () => {
     }
   });
 
+  it("detects a versioned compressed event log", () => {
+    const home = makeHome();
+    const dsh = mkdtempSync(join(tmpdir(), "skopli-dsh-v4-"));
+    try {
+      const sessionDir = join(dsh, "sessions", "--proj--", "session-1");
+      mkdirSync(sessionDir, { recursive: true });
+      writeFileSync(join(sessionDir, "session.v4.jsonl.zstd"), "");
+      const resolver = createPathResolver({ home, env: { DSH_HOME: dsh } });
+      expect(detectHarnesses(resolver).supported).toContain("deepseek");
+    } finally {
+      rmSync(home, { recursive: true, force: true });
+      rmSync(dsh, { recursive: true, force: true });
+    }
+  });
+
   it("still detects the JSONL event-log backend", () => {
     const home = makeHome();
     const dsh = mkdtempSync(join(tmpdir(), "skopli-dsh-jsonl-"));
@@ -456,6 +451,52 @@ describe("detectHarnesses deepseek roots", () => {
 // $XDG_DATA_HOME or ~/.local/share). Detection is the observable surface for the
 // private path resolver, so each test creates one resolved store and asserts
 // kiro is detected there and nowhere by default.
+
+describe("detectHarnesses copilot roots", () => {
+  it("detects a session-state events log without an OTel export", () => {
+    const home = makeHome();
+    try {
+      const resolver = createPathResolver({ home, env: {} });
+      expect(detectHarnesses(resolver).supported).not.toContain("copilot");
+      const sessionDir = join(home, ".copilot", "session-state", "sess-1");
+      mkdirSync(sessionDir, { recursive: true });
+      writeFileSync(join(sessionDir, "events.jsonl"), "");
+      expect(detectHarnesses(resolver).supported).toContain("copilot");
+    } finally {
+      rmSync(home, { recursive: true, force: true });
+    }
+  });
+});
+
+describe("detectHarnesses kimchi roots", () => {
+  it("does not claim pi's session root", () => {
+    const home = makeHome();
+    try {
+      const piSessions = join(home, ".pi", "agent", "sessions", "--proj--");
+      mkdirSync(piSessions, { recursive: true });
+      writeFileSync(join(piSessions, "s.jsonl"), "");
+      const resolver = createPathResolver({ home, env: {} });
+      const supported = detectHarnesses(resolver).supported;
+      expect(supported).toContain("pi");
+      expect(supported).not.toContain("kimchi");
+    } finally {
+      rmSync(home, { recursive: true, force: true });
+    }
+  });
+
+  it("detects the harness session root under the kimchi config dir", () => {
+    const home = makeHome();
+    try {
+      const sessions = join(home, ".config", "kimchi", "harness", "sessions", "--proj--");
+      mkdirSync(sessions, { recursive: true });
+      writeFileSync(join(sessions, "s.jsonl"), "");
+      const resolver = createPathResolver({ home, env: {} });
+      expect(detectHarnesses(resolver).supported).toContain("kimchi");
+    } finally {
+      rmSync(home, { recursive: true, force: true });
+    }
+  });
+});
 
 describe("detectHarnesses kiro roots", () => {
   it("is absent when no store exists", () => {
@@ -560,6 +601,21 @@ describe("detectHarnesses fx roots", () => {
     }
   });
 
+  it("detects a ~/.fx/sessions/v2/<id>/log.jsonl session log", () => {
+    const home = makeHome();
+    try {
+      const resolver = createPathResolver({ home, env: {} });
+      const session = join(home, ".fx", "sessions", "v2", "vi5FAUzM30R7");
+      mkdirSync(session, { recursive: true });
+      writeFileSync(join(session, "lock"), "");
+      expect(detectHarnesses(resolver).supported).not.toContain("fx");
+      writeFileSync(join(session, "log.jsonl"), "");
+      expect(detectHarnesses(resolver).supported).toContain("fx");
+    } finally {
+      rmSync(home, { recursive: true, force: true });
+    }
+  });
+
   it("is absent when the sessions directory has no sidecar", () => {
     const home = makeHome();
     try {
@@ -605,6 +661,66 @@ describe("detectHarnesses fx roots", () => {
       );
       mkdirSync(join(session, "usage-v2.json"), { recursive: true });
       expect(detectHarnesses(resolver).supported).not.toContain("fx");
+    } finally {
+      rmSync(home, { recursive: true, force: true });
+    }
+  });
+});
+
+// Windows goose writes its store under %APPDATA%\Block\goose\data; the Linux
+// and macOS roots stay as they were.
+describe("detectHarnesses goose Windows roots", () => {
+  it("resolves APPDATA to <appdata>/Block/goose/data/sessions/sessions.db", () => {
+    const home = makeHome();
+    const appData = mkdtempSync(join(tmpdir(), "skopli-appdata-"));
+    try {
+      mkdirSync(join(appData, "Block", "goose", "data", "sessions"), { recursive: true });
+      writeFileSync(join(appData, "Block", "goose", "data", "sessions", "sessions.db"), "");
+      const resolver = createPathResolver({ home, env: { APPDATA: appData } });
+      expect(detectHarnesses(resolver).supported).toContain("goose");
+    } finally {
+      rmSync(home, { recursive: true, force: true });
+      rmSync(appData, { recursive: true, force: true });
+    }
+  });
+
+  it("resolves <home>/AppData/Roaming/Block/goose/data without APPDATA", () => {
+    const home = makeHome();
+    try {
+      const sessions = join(home, "AppData", "Roaming", "Block", "goose", "data", "sessions");
+      mkdirSync(sessions, { recursive: true });
+      writeFileSync(join(sessions, "sessions.db"), "");
+      expect(detectHarnesses(createPathResolver({ home, env: {} })).supported).toContain("goose");
+    } finally {
+      rmSync(home, { recursive: true, force: true });
+    }
+  });
+});
+
+// Reasonix 2.56 replaced the `.acp.json` sidecar with `<id>.jsonl.telemetry.json`.
+describe("detectHarnesses reasonix telemetry sidecar", () => {
+  it("detects a projects tree that holds only .jsonl.telemetry.json sidecars", () => {
+    const home = makeHome();
+    try {
+      const sessions = join(home, ".reasonix", "projects", "p1", "sessions");
+      mkdirSync(sessions, { recursive: true });
+      writeFileSync(join(sessions, "s1.jsonl.telemetry.json"), "{}");
+      expect(detectHarnesses(createPathResolver({ home, env: {} })).supported).toContain(
+        "reasonix",
+      );
+    } finally {
+      rmSync(home, { recursive: true, force: true });
+    }
+  });
+
+  it("detects a home whose only usage store is the stats ledger", () => {
+    const home = makeHome();
+    try {
+      mkdirSync(join(home, ".reasonix", "stats"), { recursive: true });
+      writeFileSync(join(home, ".reasonix", "stats", "2026-10-25.jsonl"), "");
+      expect(detectHarnesses(createPathResolver({ home, env: {} })).supported).toContain(
+        "reasonix",
+      );
     } finally {
       rmSync(home, { recursive: true, force: true });
     }

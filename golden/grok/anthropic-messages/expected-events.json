@@ -1,0 +1,71 @@
+{
+  "schema_version": 1,
+  "events": [
+    {
+      "harness": "grok",
+      "messageId": "grok:01a198d5-90e9-7111-9b01-4e80a9baf936:0",
+      "model": "qwen",
+      "sessionId": "01a198d5-90e9-7111-9b01-4e80a9baf936",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:39:51.499Z",
+      "tokens": {
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "input": 1305,
+        "output": 0,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "grok",
+      "messageId": ".grok/sessions/%2Fhome%2Fuser%2Fproject/01a198d7-1066-7b71-b0fc-17f3632bbe06/updates.jsonl:2",
+      "model": "qwen",
+      "sessionId": "01a198d7-1066-7b71-b0fc-17f3632bbe06",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:40:18.924Z",
+      "tokens": {
+        "cacheRead": 7654,
+        "cacheWrite": 4196,
+        "input": 4196,
+        "output": 151,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "grok",
+      "messageId": ".grok/sessions/%2Fhome%2Fuser%2Fproject/01a198d7-7aa9-7eb1-add5-bd481b752cdd/updates.jsonl:2",
+      "model": "qwen",
+      "sessionId": "01a198d7-7aa9-7eb1-add5-bd481b752cdd",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:40:41.179Z",
+      "tokens": {
+        "cacheRead": 7656,
+        "cacheWrite": 4192,
+        "input": 4192,
+        "output": 36,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "grok",
+      "messageId": ".grok/sessions/%2Fhome%2Fuser%2Fproject/01a198d7-cd86-76b0-9977-e6bd16b03f95/updates.jsonl:2",
+      "model": "qwen",
+      "sessionId": "01a198d7-cd86-76b0-9977-e6bd16b03f95",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:41:04.801Z",
+      "tokens": {
+        "cacheRead": 7655,
+        "cacheWrite": 4195,
+        "input": 4195,
+        "output": 95,
+        "reasoning": 0
+      },
+      "turn": true
+    }
+  ],
+  "diagnostics": [],
+  "skipped": {}
+}

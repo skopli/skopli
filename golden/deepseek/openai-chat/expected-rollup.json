@@ -1,0 +1,50 @@
+{
+  "schema_version": 1,
+  "by": {
+    "model": [
+      {
+        "key": "qwen",
+        "tokens": {
+          "input": 5500,
+          "output": 140,
+          "cacheRead": 16522,
+          "cacheWrite": 0,
+          "reasoning": 0
+        },
+        "events": 4,
+        "turns": 4,
+        "calls": 4
+      }
+    ],
+    "day": [
+      {
+        "key": "2026-10-25",
+        "tokens": {
+          "input": 5500,
+          "output": 140,
+          "cacheRead": 16522,
+          "cacheWrite": 0,
+          "reasoning": 0
+        },
+        "events": 4,
+        "turns": 4,
+        "calls": 4
+      }
+    ],
+    "harness": [
+      {
+        "key": "deepseek",
+        "tokens": {
+          "input": 5500,
+          "output": 140,
+          "cacheRead": 16522,
+          "cacheWrite": 0,
+          "reasoning": 0
+        },
+        "events": 4,
+        "turns": 4,
+        "calls": 4
+      }
+    ]
+  }
+}

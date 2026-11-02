@@ -128,13 +128,14 @@ Buttons are 44px tall.
 The primary is paper text on an ink fill, the quiet variant a 1px border in `rule-strong`.
 Code panes share one background (`paper-2`), a 1px rule and a small uppercase caption row.
 Language tabs persist the choice in `localStorage` and switch every tab set on the page.
-Page actions (copy, view as Markdown, open in an assistant) are bordered 44px controls under the title.
+Page actions are one split control under the title: a quiet `Copy page` button joined to a 44px chevron that opens a flat `paper` menu with a 1px `rule-strong` border and 44px rows.
 Brand marks are 16px `currentColor` SVGs in `ink-2`, vendored unmodified; a harness without a mark gets a blank 16px spacer so names stay aligned.
 
 ## Do's and Don'ts
 
 - Do show real output from the repository's fixtures and say where the numbers come from.
-- Do keep `priced: false` visible. A miss is a result.
+- Do keep `priced: false` visible.
+  A miss is a result.
 - Don't invent testimonials, adoption figures or benchmarks.
 - Don't add eyebrows, numbered section labels or repeated subtitles.
 - Don't use the em dash in copy.

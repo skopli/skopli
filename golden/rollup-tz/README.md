@@ -1,10 +1,8 @@
 # Timezone day-bucketing conformance fixtures
 
-Shared gold for `rollup(by: "day", tz)`: the calendar date an event's timestamp
-maps to depends on the requested IANA zone, DST transitions included. This
-fixture pins that mapping so any consumer that buckets a non-UTC day wrong fails
-against shared gold. The Rust core and every language facade (which reaches the
-same core over the C ABI) consume it the same way.
+Shared gold for `rollup(by: "day", tz)`: the calendar date an event's timestamp maps to depends on the requested IANA zone, DST transitions included.
+This fixture pins that mapping so any consumer that buckets a non-UTC day wrong fails against shared gold.
+The Rust core and every language facade (which reaches the same core over the C ABI) consume it the same way.
 
 ## `cases.json`
 
@@ -12,12 +10,10 @@ An array of cases, each:
 
 - `name`: a stable case identifier.
 - `tz`: the IANA zone passed as the rollup `tz` option.
-- `timestamps`: the ISO-8601 timestamps of the events to roll up by day. A
-  consumer synthesizes one usage event per timestamp (the other event fields are
-  irrelevant to day bucketing) and rolls them up with `{ by: "day", tz }`.
-- `expected`: the resulting day buckets, one entry per calendar date, each with
-  its `key` (`YYYY-MM-DD`) and `events` count. Buckets are sorted ascending by
-  `key`, matching the rollup output order.
+- `timestamps`: the ISO-8601 timestamps of the events to roll up by day.
+  A consumer synthesizes one usage event per timestamp (the other event fields are irrelevant to day bucketing) and rolls them up with `{ by: "day", tz }`.
+- `expected`: the resulting day buckets, one entry per calendar date, each with its `key` (`YYYY-MM-DD`) and `events` count.
+  Buckets are sorted ascending by `key`, matching the rollup output order.
 
 ## The cases
 

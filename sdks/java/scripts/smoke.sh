@@ -6,8 +6,7 @@
 # that has Gradle.
 #
 # Prereqs:
-#   - JDK 22+ on PATH (FFM is stable since 22). Temurin 25 is the dev toolchain:
-#       export PATH="/c/Program Files/Eclipse Adoptium/jdk-25.0.4.7-hotspot/bin:$PATH"
+#   - JDK 22+ on PATH (FFM is stable since 22).
 #   - The skopli cdylib built at target/release (cargo build --release -p skopli-capi).
 set -euo pipefail
 

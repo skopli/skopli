@@ -64,11 +64,7 @@ public final class Skopli {
         String eventsJson = eventsToJson(events);
         String optsJson = Json.write(options.toWire());
         String out = Ffi.rollup(eventsJson, optsJson);
-        List<Rollup> result = new ArrayList<>();
-        for (Object r : Wire.asArray(Json.parse(out))) {
-            result.add(Rollup.fromWire(Wire.asObject(r)));
-        }
-        return List.copyOf(result);
+        return Wire.objects(Json.parse(out), Rollup::fromWire);
     }
 
     /** Compute the USD cost of a token bundle under a flat/tiered price. */

@@ -1,7 +1,6 @@
 package com.skopli;
 
 import com.skopli.internal.Wire;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -15,10 +14,6 @@ public record Detection(List<Harness> supported, List<Harness> unsupported) {
     }
 
     private static List<Harness> harnesses(Object arr) {
-        List<Harness> out = new ArrayList<>();
-        for (Object v : Wire.asArray(arr)) {
-            out.add(Harness.fromId(Wire.asString(v)));
-        }
-        return List.copyOf(out);
+        return Wire.list(arr, v -> Harness.fromId(Wire.asString(v)));
     }
 }

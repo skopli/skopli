@@ -9,8 +9,9 @@ import java.util.Optional;
 /**
  * Options for {@link Skopli#readUsage}. Carries the {home, env} path seam
  * plus the harness allow-list and date/tz/subagent filters. {@code since}/
- * {@code until} are date strings ({@code YYYY-MM-DD} = UTC midnight, or ISO);
- * an unparseable value raises {@link InvalidArgumentException}.
+ * {@code until} are date strings ({@code YYYY-MM-DD} is midnight in {@code tz},
+ * the system timezone when absent, or ISO); an unparseable value raises
+ * {@link InvalidArgumentException}.
  */
 public record ReadUsageOptions(
         Optional<String> home,

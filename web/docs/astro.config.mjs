@@ -1,27 +1,48 @@
 import mdx from "@astrojs/mdx";
 import { codeThemes } from "@skopli/ui/langs";
+import { project } from "@skopli/ui/project";
 import sitemap from "@astrojs/sitemap";
 import { defineConfig } from "astro/config";
 import { writeFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
+import * as pagefind from "pagefind";
+import { BASE, SITE } from "./src/nav.ts";
 
-const rootRedirect = () => ({
-  name: "root-redirect",
+const base = `${BASE}/`;
+
+const failOn = (errors) => {
+  if (errors.length) throw new Error(errors.join("\n"));
+};
+
+const hostRoot = () => ({
+  name: "host-root",
   hooks: {
     "astro:build:done": async ({ dir }) => {
-      const html =
-        '<!doctype html><meta charset="utf-8"><meta http-equiv="refresh" content="0; url=/skopli/"><title>Skopli docs</title><a href="/skopli/">Skopli docs</a>';
-      await writeFile(fileURLToPath(new URL("../index.html", dir)), html);
+      const host = new URL("../", dir);
+      const files = {
+        "index.html": `<!doctype html><meta charset="utf-8"><meta http-equiv="refresh" content="0; url=${base}"><title>${project.docsName}</title><a href="${base}">${project.docsName}</a>`,
+        "robots.txt": `User-agent: *\nAllow: /\n\nSitemap: ${SITE}${base}sitemap-index.xml\n`,
+      };
+      for (const [name, body] of Object.entries(files)) {
+        await writeFile(new URL(name, host), body);
+      }
+      const { errors, index } = await pagefind.createIndex();
+      failOn(errors);
+      failOn((await index.addDirectory({ path: fileURLToPath(host) })).errors);
+      failOn(
+        (await index.writeFiles({ outputPath: fileURLToPath(new URL("pagefind/", dir)) })).errors,
+      );
+      await pagefind.close();
     },
   },
 });
 
 export default defineConfig({
-  site: "https://docs.skopli.com",
-  base: "/skopli/",
-  outDir: "./dist/skopli",
+  site: SITE,
+  base,
+  outDir: `./dist${BASE}`,
   trailingSlash: "always",
-  integrations: [mdx(), sitemap(), rootRedirect()],
+  integrations: [mdx(), sitemap(), hostRoot()],
   markdown: {
     shikiConfig: {
       themes: codeThemes,

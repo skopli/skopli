@@ -1,0 +1,79 @@
+{
+  "schema_version": 1,
+  "events": [
+    {
+      "harness": "opencode",
+      "messageId": "msg_1735f2119001qwxOPE7sKMli1y",
+      "model": "llama/qwen",
+      "sessionId": "ses_e8ca0e0e6ffekxYrI0eQJsNCb4",
+      "subagent": false,
+      "timestamp": "2026-10-25T14:02:56.666Z",
+      "title": "New session - 2026-10-25T14:02:56.154Z",
+      "tokens": {
+        "cacheRead": 3204,
+        "cacheWrite": 0,
+        "input": 3671,
+        "output": 28,
+        "reasoning": 0
+      },
+      "turn": true,
+      "workspace": "/home/user/project"
+    },
+    {
+      "harness": "opencode",
+      "messageId": "msg_1735f9827001s73LclyUIEgGpF",
+      "model": "llama/qwen",
+      "sessionId": "ses_e8ca0e0e6ffekxYrI0eQJsNCb4",
+      "subagent": false,
+      "timestamp": "2026-10-25T14:03:27.143Z",
+      "title": "New session - 2026-10-25T14:02:56.154Z",
+      "tokens": {
+        "cacheRead": 6873,
+        "cacheWrite": 0,
+        "input": 25,
+        "output": 182,
+        "reasoning": 0
+      },
+      "turn": true,
+      "workspace": "/home/user/project"
+    },
+    {
+      "harness": "opencode",
+      "messageId": "msg_1735fd1e9001I7tbaP8RUKkxwR",
+      "model": "llama/qwen",
+      "sessionId": "ses_e8ca0e0e6ffekxYrI0eQJsNCb4",
+      "subagent": false,
+      "timestamp": "2026-10-25T14:03:41.929Z",
+      "title": "New session - 2026-10-25T14:02:56.154Z",
+      "tokens": {
+        "cacheRead": 6896,
+        "cacheWrite": 0,
+        "input": 26,
+        "output": 42,
+        "reasoning": 0
+      },
+      "turn": true,
+      "workspace": "/home/user/project"
+    },
+    {
+      "harness": "opencode",
+      "messageId": "msg_1735fe72d001J3C5jAzDKzL28A",
+      "model": "llama/qwen",
+      "sessionId": "ses_e8ca0e0e6ffekxYrI0eQJsNCb4",
+      "subagent": false,
+      "timestamp": "2026-10-25T14:03:47.373Z",
+      "title": "New session - 2026-10-25T14:02:56.154Z",
+      "tokens": {
+        "cacheRead": 6920,
+        "cacheWrite": 0,
+        "input": 27,
+        "output": 35,
+        "reasoning": 0
+      },
+      "turn": true,
+      "workspace": "/home/user/project"
+    }
+  ],
+  "diagnostics": [],
+  "skipped": {}
+}

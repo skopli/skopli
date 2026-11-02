@@ -1,5 +1,16 @@
 {
-  "diagnostics": [],
+  "diagnostics": [
+    {
+      "severity": "warning",
+      "message": "naive timestamps, no usable anchor in trajectories/trajectory_20260801_100000.json",
+      "harness": "trae"
+    },
+    {
+      "severity": "warning",
+      "message": "naive timestamps, no usable anchor in trajectories/trajectory_20260802_090000.json",
+      "harness": "trae"
+    }
+  ],
   "events": [
     {
       "harness": "trae",

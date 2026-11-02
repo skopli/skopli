@@ -1,0 +1,71 @@
+{
+  "schema_version": 1,
+  "events": [
+    {
+      "harness": "kilo",
+      "messageId": "msg_1736cadf6001HfKo72T8JgrBfp",
+      "model": "qwen",
+      "sessionId": "ses_e8c935c3bffeuKLBzJfaFKirDg",
+      "subagent": false,
+      "timestamp": "2026-10-25T14:17:44.694Z",
+      "tokens": {
+        "cacheRead": 2233,
+        "cacheWrite": 13410,
+        "input": 0,
+        "output": 119,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "kilo",
+      "messageId": "msg_1736e8d75001Hz49BX9UZVxCQ5",
+      "model": "qwen",
+      "sessionId": "ses_e8c935c3bffeuKLBzJfaFKirDg",
+      "subagent": false,
+      "timestamp": "2026-10-25T14:19:47.445Z",
+      "tokens": {
+        "cacheRead": 15761,
+        "cacheWrite": 88,
+        "input": 0,
+        "output": 22,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "kilo",
+      "messageId": "msg_1736eb0fd0019KQSbe6EB6dWxh",
+      "model": "qwen",
+      "sessionId": "ses_e8c935c3bffeuKLBzJfaFKirDg",
+      "subagent": false,
+      "timestamp": "2026-10-25T14:19:56.541Z",
+      "tokens": {
+        "cacheRead": 15870,
+        "cacheWrite": 89,
+        "input": 0,
+        "output": 50,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "kilo",
+      "messageId": "msg_1736ee52f001R5yR1tqnBNPo1v",
+      "model": "qwen",
+      "sessionId": "ses_e8c935c3bffeuKLBzJfaFKirDg",
+      "subagent": false,
+      "timestamp": "2026-10-25T14:20:09.903Z",
+      "tokens": {
+        "cacheRead": 16008,
+        "cacheWrite": 90,
+        "input": 0,
+        "output": 35,
+        "reasoning": 0
+      },
+      "turn": true
+    }
+  ],
+  "diagnostics": [],
+  "skipped": {}
+}

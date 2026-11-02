@@ -1,10 +1,14 @@
 package com.skopli;
 
 import com.skopli.internal.Cache;
+import com.skopli.internal.Ffi;
+import com.skopli.json.Json;
+import java.io.IOException;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.List;
 import java.util.Optional;
@@ -70,7 +74,7 @@ public final class Sources {
             HttpResponse<byte[]> response = client.send(request, HttpResponse.BodyHandlers.ofByteArray());
             int status = response.statusCode();
             if (status < 200 || status >= 300) {
-                throw new java.io.IOException(url + " responded " + status);
+                throw new IOException(url + " responded " + status);
             }
             return response.body();
         };
@@ -83,12 +87,8 @@ public final class Sources {
             String cacheName = cacheFileName(name);
             long now = ctx.clock().nowMillis();
             Cache.Cached cached = Cache.load(ctx.cacheDir(), cacheName, ctx.ttlMs(), now);
-            // A cache payload that parses to zero prices is unusable, same as no
-            // cache. Validation goes through the core parser via a native probe,
-            // never a facade-side reimplementation of the source parsers.
             Catalog fromCache = null;
-            if (cached != null
-                    && com.skopli.internal.Ffi.probeModelCount(name, format, cached.payload()) > 0) {
+            if (cached != null && Ffi.probeModelCount(name, format, cached.payload()) > 0) {
                 fromCache = Catalog.raw(name, cached.fetchedAt(), format, cached.payload());
             }
             boolean cacheFresh = cached != null && !cached.stale() && !ctx.refresh();
@@ -104,15 +104,11 @@ public final class Sources {
             Object payload;
             try {
                 byte[] bytes = ctx.fetch().get().fetch(url);
-                payload = com.skopli.json.Json.parse(new String(bytes, java.nio.charset.StandardCharsets.UTF_8));
+                payload = Json.parse(new String(bytes, StandardCharsets.UTF_8));
             } catch (Exception e) {
-                // A fetch failure (transport, non-2xx, or invalid JSON) serves the
-                // stale/prior cached catalog without touching the cache file.
                 return Optional.ofNullable(fromCache);
             }
-            // A fetched payload that parses to zero prices is treated as a fetch
-            // failure: never write the cache, serve the stale catalog if usable.
-            if (com.skopli.internal.Ffi.probeModelCount(name, format, payload) == 0) {
+            if (Ffi.probeModelCount(name, format, payload) == 0) {
                 return Optional.ofNullable(fromCache);
             }
             String fetchedAt = Cache.store(ctx.cacheDir(), cacheName, payload, now);

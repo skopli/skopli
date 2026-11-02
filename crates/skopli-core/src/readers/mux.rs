@@ -24,7 +24,7 @@ impl Reader for MuxReader {
     }
 }
 
-/// Resolve the mux sessions root. Faithful port of `muxSessionsRoot`.
+/// Resolve the mux sessions root.
 pub fn mux_sessions_root(override_dir: Option<&str>, home: &Path) -> PathBuf {
     if let Some(v) = override_dir
         && !v.is_empty()
@@ -34,7 +34,7 @@ pub fn mux_sessions_root(override_dir: Option<&str>, home: &Path) -> PathBuf {
     home.join(".mux").join("sessions")
 }
 
-/// Faithful port of `bucketTokens`: `max(0, finite(value.tokens) ?? 0)`.
+/// `max(0, finite(value.tokens) ?? 0)`.
 fn bucket_tokens(value: Option<&Value>) -> u64 {
     let value = match value {
         Some(v) if is_record(v) => v,
@@ -47,7 +47,7 @@ fn bucket_tokens(value: Option<&Value>) -> u64 {
         .max(0.0) as u64
 }
 
-/// Read all mux usage events. Faithful port of `readMux`.
+/// Read all mux usage events.
 pub fn read_mux(root: &Path) -> ReaderResult {
     let mut events: Vec<UsageEvent> = Vec::new();
     let mut skipped: Vec<String> = Vec::new();

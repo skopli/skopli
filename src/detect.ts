@@ -217,6 +217,10 @@ function copilotOtelRoot(resolver: PathResolver): string {
   return join(resolver.home(), ".copilot", "otel");
 }
 
+function copilotSessionStateRoot(resolver: PathResolver): string {
+  return join(resolver.home(), ".copilot", "session-state");
+}
+
 function codexRoot(resolver: PathResolver): string {
   const override = resolver.env("CODEX_HOME");
   if (override !== undefined && override !== "") return override;
@@ -241,11 +245,17 @@ function gooseDbPaths(resolver: PathResolver): string[] {
     return [join(override.trim(), "data", "sessions", "sessions.db")];
   }
   const home = resolver.home();
-  return [
+  const paths = [
     join(home, ".local", "share", "goose", "sessions", "sessions.db"),
     join(home, "Library", "Application Support", "goose", "sessions", "sessions.db"),
     join(home, ".local", "share", "Block", "goose", "sessions", "sessions.db"),
+    join(home, "AppData", "Roaming", "Block", "goose", "data", "sessions", "sessions.db"),
   ];
+  const appData = resolver.env("APPDATA");
+  if (appData !== undefined && appData.trim() !== "") {
+    paths.push(join(appData.trim(), "Block", "goose", "data", "sessions", "sessions.db"));
+  }
+  return paths;
 }
 
 function grokHome(resolver: PathResolver): string {
@@ -349,24 +359,16 @@ function mimocodeRoots(resolver: PathResolver): string[] {
   if (home !== undefined && home !== "") return [join(home, "data")];
   const xdg = resolver.env("XDG_DATA_HOME");
   if (xdg !== undefined && xdg !== "") return [join(xdg, "mimocode")];
+  const fallback = join(resolver.home(), ".local", "share", "mimocode");
   const local = resolver.env("LOCALAPPDATA");
-  if (local !== undefined && local !== "") return [join(local, "mimocode")];
-  return [join(resolver.home(), ".local", "share", "mimocode")];
+  if (local !== undefined && local !== "") return [join(local, "mimocode"), fallback];
+  return [fallback];
 }
 
-// Command Code resolves the XDG data dir first, then the per-OS data dirs used
-// by Command Code (Linux ~/.local/share/commandcode, macOS ~/Library/
-// Application Support/CommandCode, Windows %LOCALAPPDATA%\commandcode).
-function commandcodeRoots(resolver: PathResolver): string[] {
-  const xdg = resolver.env("XDG_DATA_HOME");
-  if (xdg !== undefined && xdg !== "") return [join(xdg, "commandcode")];
-  const roots = [
-    join(resolver.home(), ".local", "share", "commandcode"),
-    join(resolver.home(), "Library", "Application Support", "CommandCode"),
-  ];
-  const local = resolver.env("LOCALAPPDATA");
-  if (local !== undefined && local !== "") roots.push(join(local, "commandcode"));
-  return roots;
+// Command Code keeps one transcript per session under ~/.commandcode/projects/
+// <cwd-slug>/<session-uuid>.jsonl; the root is derived from HOME alone.
+function commandcodeProjectsRoot(resolver: PathResolver): string {
+  return join(resolver.home(), ".commandcode", "projects");
 }
 
 function piSessionsRoot(resolver: PathResolver): string {
@@ -401,14 +403,9 @@ function gajaeSessionsRoots(resolver: PathResolver): string[] {
 }
 
 function kimchiSessionsRoots(resolver: PathResolver): string[] {
-  const configPath = resolver.env("KIMCHI_CONFIG_PATH");
-  if (configPath !== undefined && configPath !== "") {
-    return [join(configPath, "agent", "sessions")];
-  }
-  return [
-    join(resolver.home(), ".config", "kimchi", "agent", "sessions"),
-    join(resolver.home(), ".pi", "agent", "sessions"),
-  ];
+  const agentDir = resolver.env("KIMCHI_CODING_AGENT_DIR");
+  if (agentDir !== undefined && agentDir !== "") return [join(agentDir, "sessions")];
+  return [join(resolver.home(), ".config", "kimchi", "harness", "sessions")];
 }
 
 function qwenProjectsRoot(resolver: PathResolver): string {
@@ -427,18 +424,23 @@ function traeTrajectoriesRoot(resolver: PathResolver): string | undefined {
   return join(cwd, "trajectories");
 }
 
+// `session.jsonl`, `session.v4.jsonl`, and their `.zstd` forms.
+function isDeepseekSessionLog(name: string): boolean {
+  return /^session(\.v\d+)?\.jsonl(\.zstd)?$/.test(name);
+}
+
 function deepseekRoot(resolver: PathResolver): string {
   const override = resolver.env("DSH_HOME");
   if (override !== undefined && override !== "") return override;
   return join(resolver.home(), ".dsh");
 }
 
-function reasonixSessionsGlobRoot(resolver: PathResolver): string {
+function reasonixHome(resolver: PathResolver): string {
   const override = resolver.env("REASONIX_HOME");
-  if (override !== undefined && override !== "") return join(override, "projects");
+  if (override !== undefined && override !== "") return override;
   const appData = resolver.env("APPDATA");
-  if (appData !== undefined && appData !== "") return join(appData, "reasonix", "projects");
-  return join(resolver.home(), ".reasonix", "projects");
+  if (appData !== undefined && appData !== "") return join(appData, "reasonix");
+  return join(resolver.home(), ".reasonix");
 }
 
 // Kiro CLI writes the current build's store at ~/.kiro/data.sqlite3, with the
@@ -446,7 +448,8 @@ function reasonixSessionsGlobRoot(resolver: PathResolver): string {
 // %LOCALAPPDATA%, macOS ~/Library/Application Support, Linux $XDG_DATA_HOME or
 // ~/.local/share) read for in-place upgrades.
 // fx (vercel-labs/fx) persists per-session usage at
-// ~/.fx/sessions/<session_id>/usage-v2.json. The profile root constant is
+// ~/.fx/sessions/<session_id>/usage-v2.json and, from 0.0.16, session logs at
+// ~/.fx/sessions/v2/<session_id>/log.jsonl. The profile root constant is
 // ".fx" joined to the OS home with no environment override, so the sessions
 // directory resolves from home only.
 function fxSessionsRoot(resolver: PathResolver): string {
@@ -529,11 +532,17 @@ function crushDetected(home: string, resolver: PathResolver): boolean {
   return candidates.some((dir) => existsSync(join(dir, "projects.json")));
 }
 
-function hasOpencodeDatabase(root: string): boolean {
+// Forks keep the opencode schema: the store is `opencode.db` or, in current forks, `<app>.db`.
+function hasDatabase(root: string, app: string): boolean {
+  const stems = ["opencode", app];
   try {
-    return readdirSync(root).some(
-      (name) => name === "opencode.db" || /^opencode-.+\.db$/.test(name),
-    );
+    return readdirSync(root).some((name) => {
+      if (!name.endsWith(".db")) return false;
+      const stem = name.slice(0, -3);
+      return stems.some(
+        (s) => stem === s || (stem.startsWith(`${s}-`) && stem.length > s.length + 1),
+      );
+    });
   } catch {
     return false;
   }
@@ -546,25 +555,19 @@ export function detectHarnesses(resolver: PathResolver = defaultPathResolver): D
   }
   if (
     opencodeRoots(resolver).some(
-      (root) => dirExists(join(root, "storage")) || hasOpencodeDatabase(root),
+      (root) => dirExists(join(root, "storage")) || hasDatabase(root, "opencode"),
     )
   ) {
     supported.push("opencode");
   }
   if (
     mimocodeRoots(resolver).some(
-      (root) => dirExists(join(root, "storage")) || hasOpencodeDatabase(root),
+      (root) => dirExists(join(root, "storage")) || hasDatabase(root, "mimocode"),
     )
   ) {
     supported.push("mimocode");
   }
-  if (
-    commandcodeRoots(resolver).some(
-      (root) => dirExists(join(root, "storage")) || hasOpencodeDatabase(root),
-    )
-  ) {
-    supported.push("commandcode");
-  }
+  if (dirExists(commandcodeProjectsRoot(resolver))) supported.push("commandcode");
   if (
     dirExists(join(codexRoot(resolver), "sessions")) ||
     dirExists(join(codexRoot(resolver), "archived_sessions"))
@@ -572,7 +575,12 @@ export function detectHarnesses(resolver: PathResolver = defaultPathResolver): D
     supported.push("codex");
   }
   if (dirExists(join(geminiRoot(resolver), "tmp"))) supported.push("gemini");
-  if (existsSync(copilotOtelRoot(resolver))) supported.push("copilot");
+  if (
+    existsSync(copilotOtelRoot(resolver)) ||
+    listFiles(copilotSessionStateRoot(resolver), (name) => name === "events.jsonl").length > 0
+  ) {
+    supported.push("copilot");
+  }
   if (dirExists(ampThreadsRoot(resolver))) supported.push("amp");
   if (dirExists(droidSessionsRoot(resolver))) supported.push("droid");
   if (dirExists(qwenProjectsRoot(resolver))) supported.push("qwen");
@@ -640,8 +648,7 @@ export function detectHarnesses(resolver: PathResolver = defaultPathResolver): D
       listFiles(
         root,
         (name) =>
-          name === "session.jsonl" ||
-          name === "session.jsonl.zstd" ||
+          isDeepseekSessionLog(name) ||
           name.endsWith(".db") ||
           name.endsWith(".sqlite") ||
           name.endsWith(".sqlite3"),
@@ -650,11 +657,23 @@ export function detectHarnesses(resolver: PathResolver = defaultPathResolver): D
       supported.push("deepseek");
     }
   }
-  if (hasFileWithSuffix(reasonixSessionsGlobRoot(resolver), ".acp.json")) {
-    supported.push("reasonix");
+  {
+    const home = reasonixHome(resolver);
+    const projects = join(home, "projects");
+    if (
+      hasFileWithSuffix(join(home, "stats"), ".jsonl") ||
+      hasFileWithSuffix(projects, ".acp.json") ||
+      hasFileWithSuffix(projects, ".jsonl.telemetry.json")
+    ) {
+      supported.push("reasonix");
+    }
   }
   if (kiroDbPaths(resolver).some((path) => existsSync(path))) supported.push("kiro");
-  if (hasImmediateChildFile(fxSessionsRoot(resolver), "usage-v2.json")) supported.push("fx");
+  if (
+    hasImmediateChildFile(fxSessionsRoot(resolver), "usage-v2.json") ||
+    hasImmediateChildFile(join(fxSessionsRoot(resolver), "v2"), "log.jsonl")
+  )
+    supported.push("fx");
 
   const home = resolver.home();
   const unsupported: string[] = [];

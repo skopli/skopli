@@ -38,14 +38,19 @@ public sealed record ReadUsageOptions : PathOptions
     /// <summary>Exclusive upper bound (a <c>YYYY-MM-DD</c> or ISO timestamp).</summary>
     public string? Until { get; init; }
 
-    /// <summary>Timezone for date-only bounds and day bucketing (default UTC).</summary>
+    /// <summary>IANA timezone for date-only bounds and day bucketing (null is the system timezone).</summary>
     public string? Tz { get; init; }
 
     /// <summary>Whether to include or exclude subagent events (default include).</summary>
     public SubagentMode Subagents { get; init; } = SubagentMode.Include;
 }
 
-/// <summary>Options for <c>Rollup</c> / event pricing - the grouping dimension and tz.</summary>
+/// <summary>
+/// Options for <c>Rollup</c> / event pricing: the grouping dimension, the IANA timezone for
+/// day keys and block starts (null is the system timezone), and the billing-block width.
+/// A block start floors to the local hour for widths of an hour or more and to the width
+/// itself below an hour.
+/// </summary>
 public sealed record RollupOptions
 {
     /// <summary>The default billing-block width (five hours) for <see cref="RollupBy.Block"/>.</summary>

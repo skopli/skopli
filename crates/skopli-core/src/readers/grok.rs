@@ -5,8 +5,9 @@ use serde_json::Value;
 
 use super::reader::{Reader, ReaderContext};
 use super::shared::{
-    JsonlLine, ReaderResult, ReaderWarning, as_string, epoch_to_iso, file_mtime_iso, finite_number,
-    is_record, list_files, parent_dir_name, read_json, read_jsonl_lines, reparse_iso,
+    JsonlLine, ReaderResult, ReaderWarning, as_string, dirname, epoch_to_iso, file_mtime_iso,
+    finite_number, is_record, list_files, parent_dir_name, read_json, read_jsonl_lines,
+    reparse_iso,
 };
 use crate::types::{TokenCounts, UsageEvent};
 
@@ -24,7 +25,7 @@ impl Reader for GrokReader {
     }
 }
 
-/// Resolve the grok home. Faithful port of `grokHome`.
+/// Resolve the grok home.
 pub fn grok_home(override_dir: Option<&str>, home: &Path) -> PathBuf {
     if let Some(v) = override_dir
         && !v.is_empty()
@@ -36,7 +37,6 @@ pub fn grok_home(override_dir: Option<&str>, home: &Path) -> PathBuf {
 
 const UNKNOWN_MODEL: &str = "grok-unknown";
 
-/// Faithful port of `getPath`.
 fn get_path<'a>(value: &'a Value, path: &[&str]) -> Option<&'a Value> {
     let mut current = value;
     for key in path {
@@ -48,7 +48,6 @@ fn get_path<'a>(value: &'a Value, path: &[&str]) -> Option<&'a Value> {
     Some(current)
 }
 
-/// Faithful port of `firstString`.
 fn first_string(value: &Value, paths: &[&[&str]]) -> Option<String> {
     for path in paths {
         if let Some(found) = get_path(value, path).and_then(as_string)
@@ -60,7 +59,6 @@ fn first_string(value: &Value, paths: &[&[&str]]) -> Option<String> {
     None
 }
 
-/// Faithful port of `timestampFrom`.
 fn timestamp_from(value: &Value, fallback: &str) -> String {
     if let Some(from_epoch) = epoch_to_iso(value) {
         return from_epoch;
@@ -73,7 +71,6 @@ fn timestamp_from(value: &Value, fallback: &str) -> String {
     fallback.to_owned()
 }
 
-/// Faithful port of `legacyModel`.
 fn legacy_model(value: &Value) -> Option<String> {
     first_string(
         value,
@@ -88,7 +85,6 @@ fn legacy_model(value: &Value) -> Option<String> {
     )
 }
 
-/// Faithful port of `legacyTotal`.
 fn legacy_total(value: &Value) -> Option<f64> {
     for path in [
         &["params", "_meta", "totalTokens"][..],
@@ -105,7 +101,6 @@ fn legacy_total(value: &Value) -> Option<f64> {
     None
 }
 
-/// Faithful port of `legacyTimestamp`.
 fn legacy_timestamp(value: &Value, fallback: &str) -> String {
     for path in [
         &["params", "_meta", "agentTimestampMs"][..],
@@ -124,7 +119,6 @@ fn legacy_timestamp(value: &Value, fallback: &str) -> String {
     fallback.to_owned()
 }
 
-/// Faithful port of `pickAlias`.
 fn pick_alias(value: &Value, keys: &[&str]) -> f64 {
     for key in keys {
         if let Some(found) = value.get(*key).and_then(finite_number) {
@@ -134,7 +128,6 @@ fn pick_alias(value: &Value, keys: &[&str]) -> f64 {
     0.0
 }
 
-/// Faithful port of `legacyUsageTokens`.
 fn legacy_usage_tokens(value: &Value) -> Option<TokenCounts> {
     let usage = get_path(value, &["params", "update", "usage"])?;
     if !is_record(usage) {
@@ -174,17 +167,13 @@ fn legacy_usage_tokens(value: &Value) -> Option<TokenCounts> {
         .get("totalTokens")
         .and_then(finite_number)
         .or_else(|| usage.get("total_tokens").and_then(finite_number));
-    let inclusive = match reported_total {
+    let reasoning_inside_output = match reported_total {
         None => true,
         Some(t) => t.max(0.0) == input + output,
     };
     Some(TokenCounts {
-        input: if inclusive {
-            (input - cache_read).max(0.0) as u64
-        } else {
-            input as u64
-        },
-        output: if inclusive {
+        input: (input - cache_read).max(0.0) as u64,
+        output: if reasoning_inside_output {
             (output - reasoning).max(0.0) as u64
         } else {
             output as u64
@@ -207,7 +196,6 @@ fn input_only(amount: u64) -> TokenCounts {
     }
 }
 
-/// Faithful port of `signalsEffectiveTotal`.
 fn signals_effective_total(value: &Value) -> f64 {
     let before = value
         .get("totalTokensBeforeCompaction")
@@ -229,7 +217,6 @@ fn signals_effective_total(value: &Value) -> f64 {
     }
 }
 
-/// Faithful port of `signalsModel`.
 fn signals_model(value: &Value) -> Option<String> {
     if let Some(primary) = value.get("primaryModelId").and_then(as_string)
         && !primary.trim().is_empty()
@@ -255,7 +242,6 @@ struct ActiveTurn {
     has_usage: bool,
 }
 
-/// Faithful port of `readLegacySession`.
 fn read_legacy_session(
     file: &str,
     skipped: &mut Vec<String>,
@@ -432,7 +418,6 @@ fn open_turn(
     turn
 }
 
-/// Faithful port of `appendSignalsReconciliation`.
 fn append_signals_reconciliation(
     updates_file: &str,
     session_id: &str,
@@ -478,20 +463,11 @@ fn append_signals_reconciliation(
     });
 }
 
-fn dirname(path: &str) -> String {
-    let normalized = path.replace('\\', "/");
-    match normalized.rfind('/') {
-        Some(i) => normalized[..i].to_owned(),
-        None => String::new(),
-    }
-}
-
 struct UnifiedEntry {
     event: UsageEvent,
     key: String,
 }
 
-/// Faithful port of `unifiedIdentity`.
 fn unified_identity(record: &Value) -> String {
     let ctx = record.get("ctx").filter(|c| is_record(c));
     for source in [Some(record), ctx].into_iter().flatten() {
@@ -506,7 +482,6 @@ fn unified_identity(record: &Value) -> String {
     format!("row:{}", serde_json::to_string(record).unwrap_or_default())
 }
 
-/// Faithful port of `readUnifiedLog`.
 fn read_unified_log(
     file: &str,
     skipped: &mut Vec<String>,
@@ -626,7 +601,7 @@ fn read_unified_log(
     out
 }
 
-/// Read all grok usage events. Faithful port of `readGrok`.
+/// Read all grok usage events.
 pub fn read_grok(home: &Path) -> ReaderResult {
     let mut skipped: Vec<String> = Vec::new();
     let mut warnings: Vec<ReaderWarning> = Vec::new();
@@ -659,5 +634,30 @@ pub fn read_grok(home: &Path) -> ReaderResult {
         events,
         skipped,
         warnings,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::legacy_usage_tokens;
+
+    #[test]
+    fn reasoning_outside_output_keeps_the_cache_read_split() {
+        let record: serde_json::Value = serde_json::from_str(concat!(
+            "{\"method\":\"session/update\",\"params\":{\"update\":{\"sessionUpdate\":\"usage\",",
+            "\"usage\":{\"inputTokens\":11849,\"outputTokens\":43,\"totalTokens\":11897,",
+            "\"cachedReadTokens\":7654,\"cacheCreationTokens\":0,\"reasoningTokens\":5}}}}"
+        ))
+        .unwrap();
+        let tokens = legacy_usage_tokens(&record).unwrap();
+        assert_eq!(
+            (
+                tokens.input,
+                tokens.output,
+                tokens.cache_read,
+                tokens.reasoning
+            ),
+            (4195, 43, 7654, 5)
+        );
     }
 }

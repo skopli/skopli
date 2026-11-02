@@ -265,7 +265,7 @@ def _probe_prices(entry: dict[str, Any]) -> int:
     """
     opts = {
         "mode": "calculate",
-        "builtin_sources": False,
+        "builtinSources": False,
         "catalogs": [entry],
     }
     try:
@@ -485,7 +485,7 @@ class _PricingLoader:
                 loaded.append(catalog)
         if loaded:
             opts["catalogs"] = loaded
-        opts["builtin_sources"] = False
+        opts["builtinSources"] = False
         try:
             native = _skopli.Pricing(json.dumps(opts))
         except _NativeError as err:
@@ -602,7 +602,7 @@ def create_pricing(
     """Build a :class:`Pricing` engine with the full built-in pricing lifecycle.
 
     The facade owns fetching and the on-disk cache; the native core does
-    matching + costing only and never touches the network (``builtin_sources``
+    matching + costing only and never touches the network (``builtinSources``
     is always sent as ``False`` on the wire, the direct-core seam contract).
 
     Options mirror the TS ``createPricing``:

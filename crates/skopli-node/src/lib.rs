@@ -14,17 +14,13 @@
 //! is not here (it stays a synchronous dir-probe in TS); `rollup` / `costUsd` /
 //! `defaultCacheDir` / `supportedHarnesses` are synchronous.
 
-mod parse;
-mod pipeline;
-mod pricing_opts;
-mod wire;
-
 use std::sync::Arc;
 
 use napi::bindgen_prelude::*;
 use napi::{Env, Task};
 use napi_derive::napi;
 use serde_json::Value;
+use skopli_wire::{parse, pipeline, pricing_opts, read, wire};
 
 /// Parse a JSON string argument into a `serde_json::Value`, mapping a parse
 /// failure to a JS `Error`.
@@ -51,7 +47,7 @@ fn domain<T>(r: std::result::Result<T, String>) -> Result<T> {
 /// (still-TS) harness to the TS reader layer.
 #[napi(js_name = "supportedHarnesses")]
 pub fn supported_harnesses() -> Vec<String> {
-    pipeline::supported_harnesses()
+    read::supported_harnesses()
 }
 
 /// The default on-disk pricing cache directory (platform-specific layout).
@@ -95,7 +91,7 @@ impl Task for ReadHarnessTask {
     type JsValue = String;
 
     fn compute(&mut self) -> Result<Self::Output> {
-        Ok(pipeline::read_harness(&self.harness, &self.options))
+        Ok(read::read_harness(&self.harness, &self.options))
     }
 
     fn resolve(&mut self, _env: Env, output: Self::Output) -> Result<Self::JsValue> {
@@ -156,8 +152,8 @@ impl Task for PricingTask {
 
 #[napi]
 impl JsPricing {
-    /// Build a pricing engine. `options_json` is
-    /// `{ mode?, overrides?, catalogs? }` (see `pricing_opts`).
+    /// Build a pricing engine from the `create_pricing` options JSON; the
+    /// grammar is `skopli_wire::pricing_opts`.
     #[napi(constructor)]
     pub fn new(options_json: String) -> Result<Self> {
         let options = parse_json(&options_json)?;

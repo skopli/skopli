@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "harness": "reasonix",
+  "case": "anthropic-messages",
+  "home": ".",
+  "options": {
+    "harnesses": [
+      "reasonix"
+    ],
+    "tz": "UTC"
+  },
+  "rollups": [
+    "model",
+    "day",
+    "harness"
+  ]
+}

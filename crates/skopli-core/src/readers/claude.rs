@@ -4,8 +4,8 @@ use serde_json::Value;
 
 use super::reader::{Reader, ReaderContext};
 use super::shared::{
-    ReaderResult, ReaderWarning, as_string, dir_exists, finite_number, is_record, list_files,
-    normalize_workspace, read_jsonl_lines,
+    EpochUnit, ReaderResult, ReaderWarning, as_string, dir_exists, epoch_to_iso_unit,
+    finite_number, is_record, list_files, normalize_workspace, read_jsonl_lines,
 };
 use crate::types::{TokenCounts, UsageEvent};
 
@@ -26,12 +26,10 @@ impl Reader for ClaudeReader {
     }
 }
 
-/// Resolve claude data roots. Faithful port of `claudeRoots` in
-/// src/readers/claude.ts: `CLAUDE_CONFIG_DIR` (comma-split, trimmed, non-empty
-/// parts) wins; otherwise the two default `~/.claude` locations.
+/// Resolve claude data roots. `CLAUDE_CONFIG_DIR` (comma-split, trimmed,
+/// non-empty parts) wins; otherwise the two default `~/.claude` locations.
 ///
-/// `env` returns the value of an environment variable (empty string treated as
-/// unset by the caller, matching the TS PathResolver), `home` is the home dir.
+/// `config_dir` is the `CLAUDE_CONFIG_DIR` override, `home` is the home dir.
 pub fn claude_roots(config_dir: Option<&str>, home: &Path) -> Vec<PathBuf> {
     if let Some(override_val) = config_dir
         && !override_val.is_empty()
@@ -46,10 +44,21 @@ pub fn claude_roots(config_dir: Option<&str>, home: &Path) -> Vec<PathBuf> {
     vec![home.join(".claude"), home.join(".config").join("claude")]
 }
 
+/// The row kind: Claude Code writes it as `type`; CodeBuddy writes
+/// `type: "message"` and keeps the role in a top-level `role`, and writes a
+/// tool-call step as `type: "function_call"`, an assistant row with that
+/// request's usage and no `role`.
+fn row_role(line: &Value) -> Option<&str> {
+    match line.get("type").and_then(Value::as_str) {
+        Some("message") => line.get("role").and_then(Value::as_str),
+        Some("function_call") => Some("assistant"),
+        other => other,
+    }
+}
+
 /// True when a `user`-type line represents a human turn (not a tool result).
-/// Faithful port of `isHumanUserLine`.
 fn is_human_user_line(line: &Value) -> bool {
-    if line.get("type").and_then(Value::as_str) != Some("user") {
+    if row_role(line) != Some("user") {
         return false;
     }
     let message = match line.get("message") {
@@ -80,7 +89,6 @@ struct ParseOutcome {
 }
 
 /// Parse a single JSONL value into an optional event + role + malformed flag.
-/// Faithful port of `parseLine` in src/readers/claude.ts.
 fn parse_line(
     parsed: &Value,
     file: &str,
@@ -102,7 +110,7 @@ fn parse_line(
             malformed: false,
         };
     }
-    if parsed.get("type").and_then(Value::as_str) != Some("assistant") {
+    if row_role(parsed) != Some("assistant") {
         return ParseOutcome {
             event: None,
             role: LineRole::Other,
@@ -129,7 +137,11 @@ fn parse_line(
             };
         }
     };
-    let model = message.get("model").and_then(as_string_val);
+    let provider_data = parsed.get("providerData").filter(|p| is_record(p));
+    let model = message
+        .get("model")
+        .or_else(|| provider_data.and_then(|p| p.get("model")))
+        .and_then(as_string_val);
     // "<synthetic>" marks locally fabricated assistant rows with no API usage
     if model.as_deref() == Some("<synthetic>") {
         return ParseOutcome {
@@ -138,7 +150,11 @@ fn parse_line(
             malformed: false,
         };
     }
-    let timestamp = parsed.get("timestamp").and_then(as_string_val);
+    // Claude Code writes an ISO string, CodeBuddy an epoch in milliseconds.
+    let timestamp = parsed.get("timestamp").and_then(|t| match t {
+        Value::Number(_) => epoch_to_iso_unit(t, EpochUnit::Ms),
+        _ => as_string_val(t),
+    });
     let input = usage.get("input_tokens").and_then(finite_val);
     let output = usage.get("output_tokens").and_then(finite_val);
     // present-but-not-finite -> None (malformed); absent -> Some(0)
@@ -169,12 +185,25 @@ fn parse_line(
                 };
             }
         };
+    // When the provider answered in OpenAI chat shape, CodeBuddy copies
+    // `prompt_tokens` (which includes the cached prefix) into `input_tokens`;
+    // the raw usage kept next to it says so, and the cached part is booked once.
+    let openai_source = provider_data
+        .and_then(|p| p.get("rawUsage"))
+        .filter(|r| is_record(r))
+        .is_some_and(|r| r.get("prompt_tokens").is_some());
+    let input = if openai_source {
+        (input - cache_read).max(0.0)
+    } else {
+        input
+    };
 
     let message_id = message
         .get("id")
         .and_then(as_string_val)
         .or_else(|| parsed.get("requestId").and_then(as_string_val))
         .or_else(|| parsed.get("uuid").and_then(as_string_val))
+        .or_else(|| parsed.get("id").and_then(as_string_val))
         .unwrap_or_else(|| format!("{file}:{index}"));
 
     let cost_usd = parsed.get("costUSD").and_then(finite_number);
@@ -219,13 +248,12 @@ fn finite_val(v: &Value) -> Option<f64> {
     finite_number(v)
 }
 
-/// Read all Claude-Code-style transcript usage events from the given roots.
-/// Faithful port of `readClaude` in src/readers/claude.ts: for each root, walk
-/// `projects/`, read each `.jsonl`, track user->assistant turn state, warn+skip
-/// malformed assistant records, and dedup globally per-harness on `messageId`
-/// (first occurrence wins). `harness` parameterizes the emitted event's harness
-/// literal so CodeBuddy Code (a Claude Code transcript clone) can reuse this
-/// reader by swapping its home dir and id.
+/// Read all Claude-Code-style transcript usage events from the given roots. For
+/// each root, walk `projects/`, read each `.jsonl`, track user->assistant turn
+/// state, warn+skip malformed assistant records, and dedup globally per-harness
+/// on `messageId` (first occurrence wins). `harness` parameterizes the emitted
+/// event's harness literal so CodeBuddy Code (a Claude Code transcript clone)
+/// can reuse this reader by swapping its home dir and id.
 pub fn read_claude_transcripts(roots: &[PathBuf], harness: &str) -> ReaderResult {
     let mut events: Vec<UsageEvent> = Vec::new();
     let mut skipped: Vec<String> = Vec::new();

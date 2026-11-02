@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "harness": "kilo",
+  "case": "anthropic-messages",
+  "home": ".",
+  "options": {
+    "harnesses": [
+      "kilo"
+    ],
+    "tz": "UTC"
+  },
+  "rollups": [
+    "model",
+    "day",
+    "harness"
+  ]
+}

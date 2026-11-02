@@ -1,0 +1,97 @@
+{
+  "schema_version": 1,
+  "events": [
+    {
+      "harness": "opencode",
+      "messageId": "msg_1730757dc0013TiCVqvsNzaAgE",
+      "model": "llama/qwen",
+      "sessionId": "ses_e8cf8a9dcffeISWlUyJwnW5ADB",
+      "subagent": false,
+      "timestamp": "2026-10-25T12:27:03.516Z",
+      "title": "Explain pLimit in two sentences from index.js",
+      "tokens": {
+        "cacheRead": 5,
+        "cacheWrite": 7218,
+        "input": 0,
+        "output": 44,
+        "reasoning": 0
+      },
+      "turn": true,
+      "workspace": "/home/user/project"
+    },
+    {
+      "harness": "opencode",
+      "messageId": "msg_17307fddf001LqNDW6SulB7lVS",
+      "model": "llama/qwen",
+      "sessionId": "ses_e8cf8a9dcffeISWlUyJwnW5ADB",
+      "subagent": false,
+      "timestamp": "2026-10-25T12:27:46.015Z",
+      "title": "Explain pLimit in two sentences from index.js",
+      "tokens": {
+        "cacheRead": 7266,
+        "cacheWrite": 35,
+        "input": 0,
+        "output": 20,
+        "reasoning": 0
+      },
+      "turn": false,
+      "workspace": "/home/user/project"
+    },
+    {
+      "harness": "opencode",
+      "messageId": "msg_173080b49001b0WjUL0hiyDMro",
+      "model": "llama/qwen",
+      "sessionId": "ses_e8cf8a9dcffeISWlUyJwnW5ADB",
+      "subagent": false,
+      "timestamp": "2026-10-25T12:27:49.449Z",
+      "title": "Explain pLimit in two sentences from index.js",
+      "tokens": {
+        "cacheRead": 7320,
+        "cacheWrite": 28,
+        "input": 0,
+        "output": 24,
+        "reasoning": 0
+      },
+      "turn": true,
+      "workspace": "/home/user/project"
+    },
+    {
+      "harness": "opencode",
+      "messageId": "msg_173081fe7001epzRMoM07UAnsV",
+      "model": "llama/qwen",
+      "sessionId": "ses_e8cf8a9dcffeISWlUyJwnW5ADB",
+      "subagent": false,
+      "timestamp": "2026-10-25T12:27:54.727Z",
+      "title": "Explain pLimit in two sentences from index.js",
+      "tokens": {
+        "cacheRead": 7371,
+        "cacheWrite": 29,
+        "input": 0,
+        "output": 33,
+        "reasoning": 0
+      },
+      "turn": true,
+      "workspace": "/home/user/project"
+    },
+    {
+      "harness": "opencode",
+      "messageId": "msg_17308310d001KihwF4EV3aU1My",
+      "model": "llama/qwen",
+      "sessionId": "ses_e8cf8a9dcffeISWlUyJwnW5ADB",
+      "subagent": false,
+      "timestamp": "2026-10-25T12:27:59.118Z",
+      "title": "Explain pLimit in two sentences from index.js",
+      "tokens": {
+        "cacheRead": 7432,
+        "cacheWrite": 30,
+        "input": 0,
+        "output": 24,
+        "reasoning": 0
+      },
+      "turn": true,
+      "workspace": "/home/user/project"
+    }
+  ],
+  "diagnostics": [],
+  "skipped": {}
+}

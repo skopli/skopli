@@ -39,22 +39,19 @@ cargo build -p skopli-capi --release
 ```
 
 The default `libskopli` opens no socket.
-The `net` cargo feature adds built-in catalog fetching for bare-C consumers.
+The `net` cargo feature adds built-in catalog fetching for C consumers.
 
 ## Test
 
-The local gate has three parts.
+The local gate has two parts.
 The Rust format, lint, and test commands come first.
-`pnpm run check` runs oxlint, oxfmt, tsc, vitest, and the generated-file check.
-The two zero-diff scripts compare `skopli.h` against cbindgen and the C# P/Invoke layer against csbindgen.
+`pnpm run check` runs oxlint, the prose rules in [`scripts/check-prose.mjs`](https://github.com/skopli/skopli/blob/main/scripts/check-prose.mjs) (no em dash in any tracked text and one sentence per line in Markdown paragraphs; captured harness input under [`golden/`](https://github.com/skopli/skopli/tree/main/golden/) and third-party notices are exempt), oxfmt, tsc over the facade, the shared UI package and both sites, vitest, and the generated-file check.
 
 ```sh
 cargo fmt --all -- --check
 cargo clippy --workspace --exclude skopli --all-targets -- -D warnings
 cargo test --workspace --exclude skopli
 pnpm run check
-bash scripts/check-capi-header.sh
-bash scripts/check-csharp-bindings.sh
 ```
 
 CI runs the same commands across a Rust matrix (1.88, 1.89, stable) and a Node addon matrix, plus both site builds, the Python, Go, and .NET facades on Ubuntu, macOS, and Windows, Ruby and Java on Ubuntu and macOS, and Swift on macOS.
@@ -64,11 +61,14 @@ A change to an `expected-*.json` file is a documented behavior change.
 Say why in the commit message.
 [`golden/README.md`](https://github.com/skopli/skopli/blob/main/golden/README.md) describes the corpus layout and how to add a case.
 
-Three files are generated, each from a source elsewhere in the repository, and `pnpm run sync --check` (part of `pnpm run check`) fails when a copy drifts:
+Five files carry generated content, each block from a source elsewhere in the repository, and `pnpm run sync --check` (part of `pnpm run check`) fails when a copy drifts:
 
 - the install table in [`README.md`](https://github.com/skopli/skopli/blob/main/README.md), from [`web/ui/src/quickstart.ts`](https://github.com/skopli/skopli/blob/main/web/ui/src/quickstart.ts)
+- the supported-harness table in [`README.md`](https://github.com/skopli/skopli/blob/main/README.md), from [`web/ui/src/harnesses.ts`](https://github.com/skopli/skopli/blob/main/web/ui/src/harnesses.ts) (names, ids and which rows carry a logo from [`assets/logos/`](https://github.com/skopli/skopli/tree/main/assets/logos/))
 - the supported-harness list in [`llms.txt`](https://github.com/skopli/skopli/blob/main/llms.txt), from [`golden/registry/ids.json`](https://github.com/skopli/skopli/blob/main/golden/registry/ids.json)
 - the docs copy of this page, from [`CONTRIBUTING.md`](https://github.com/skopli/skopli/blob/main/CONTRIBUTING.md)
+- the C header [`crates/skopli-capi/include/skopli.h`](https://github.com/skopli/skopli/blob/main/crates/skopli-capi/include/skopli.h), from the crate's `extern "C"` surface through cbindgen
+- the C# P/Invoke layer [`sdks/csharp/Skopli/Native/NativeMethods.g.cs`](https://github.com/skopli/skopli/blob/main/sdks/csharp/Skopli/Native/NativeMethods.g.cs), from the same surface through csbindgen
 
 Edit the source and run `pnpm run sync`.
 On the docs copy, every backticked path that exists in the repository becomes a link to the file on GitHub.
@@ -88,7 +88,7 @@ The links change the table widths, so that copy is excluded from oxfmt.
 
 Readers never touch the network.
 A field the harness does not record is `0`, and a timestamp that cannot be parsed is a diagnostic, not an epoch-0 event.
-A reader estimates tokens only when the harness stores none, and the harness table then labels it estimated (Kiro today).
+A reader estimates tokens only when the harness stores none, and [`README.md`](https://github.com/skopli/skopli/blob/main/README.md), [`llms.txt`](https://github.com/skopli/skopli/blob/main/llms.txt), and the docs then state the estimate for that harness (Kiro today).
 
 ## Add a pricing source
 
@@ -106,9 +106,10 @@ Built-in catalogs live in [`crates/skopli-core/src/pricing/sources.rs`](https://
 
 ## Pull requests
 
-- Branch from `main`. Every change lands through a pull request.
+- Branch from `main`.
+  Every change lands through a pull request.
 - The PR title is a Conventional Commit (`feat(web): ...`, `fix(core): ...`) and the PR carries one independently releasable change.
-- CI must be green, including the zero-diff and generated-file checks above.
+- CI must be green, including the generated-file check above.
 - Docs and marketing copy state only what the code does: no benchmarks, adoption numbers, or testimonials.
 
 ## Releases

@@ -10,8 +10,10 @@ Catalogs key them differently again.
 ## The ladder
 
 1. **Exact name.** `gpt-5` matches `gpt-5`.
-2. **Prefix strip.** Each shorter suffix of a slash-separated path: `openai/gpt-5` tries `gpt-5`. Vendor route prefixes are stripped too: `us.anthropic.claude-...` tries `anthropic.claude-...` (also `eu.`, `apac.`, `global.`).
-3. **Family aliases.** Patterns that reduce a vendor-decorated name to its family: Bedrock's `anthropic.claude-sonnet-4-5-20250929-v1:0` becomes `claude-sonnet-4.5`. Platforms that resell a model line under their own route name reduce the same way, so such names price as the underlying model.
+2. **Prefix strip.** Each shorter suffix of a slash-separated path: `openai/gpt-5` tries `gpt-5`.
+   Vendor route prefixes are stripped too: `us.anthropic.claude-...` tries `anthropic.claude-...` (also `eu.`, `apac.`, `global.`).
+3. **Family aliases.** Patterns that reduce a vendor-decorated name to its family: Bedrock's `anthropic.claude-sonnet-4-5-20250929-v1:0` becomes `claude-sonnet-4.5`.
+   Platforms that resell a model line under their own route name reduce the same way, so such names price as the underlying model.
 4. **Separator and date normalization.** `claude-sonnet-4.5`, `claude-sonnet-4-5` and `claude-sonnet-4-5-20250929` are tried as one family.
 5. **Provider-prefixed family forms.** OpenRouter keys Claude models as `anthropic/claude-*`, so `claude-opus-4.6` also tries `anthropic/claude-opus-4.6`.
 6. **Alias table.** A hand-maintained map for names the mechanical rules miss.

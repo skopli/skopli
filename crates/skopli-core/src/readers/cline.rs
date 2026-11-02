@@ -5,8 +5,8 @@ use serde_json::Value;
 
 use super::reader::{Reader, ReaderContext};
 use super::shared::{
-    ReaderResult, ReaderWarning, as_string, basename, dir_exists, file_mtime_iso, is_record,
-    list_files, parse_timestamp_to_iso, read_json,
+    ReaderResult, ReaderWarning, as_string, basename, dir_exists, dirname, file_mtime_iso,
+    is_record, list_files, parse_timestamp_to_iso, read_json,
 };
 use super::vscode_ext::{numeric, read_vscode_ext, vscode_task_roots};
 use crate::types::{TokenCounts, UsageEvent};
@@ -14,7 +14,7 @@ use crate::types::{TokenCounts, UsageEvent};
 /// The cline reader wired into the harness registry. cline ships two lanes: a
 /// VS Code extension task store (`saoudrizwan.claude-dev`) and a CLI session
 /// store; the extension store is authoritative and suppresses the matching CLI
-/// mirror wholesale. Faithful port of `readCline` in roo-cline-kilo.ts.
+/// mirror wholesale.
 pub struct ClineReader;
 
 impl Reader for ClineReader {
@@ -34,15 +34,14 @@ impl Reader for ClineReader {
     }
 }
 
-/// Resolve the cline VS Code extension task roots. Faithful port of
-/// `clineTaskRoots` -> `vscodeTaskRoots("cline")`.
+/// Resolve the cline VS Code extension task roots.
 pub fn cline_task_roots(app_data: Option<&str>, home: &Path) -> Vec<PathBuf> {
     vscode_task_roots(app_data, home, &["saoudrizwan.claude-dev", "tasks"])
 }
 
-/// Resolve the cline CLI session roots. Faithful port of `clineCliSessionRoots`:
-/// `CLINE_SESSION_DATA_DIR` -> `CLINE_DATA_DIR/sessions` -> `CLINE_DIR/data/sessions`
-/// -> `~/.cline/data/sessions` (first non-empty override wins).
+/// Resolve the cline CLI session roots. `CLINE_SESSION_DATA_DIR` ->
+/// `CLINE_DATA_DIR/sessions` -> `CLINE_DIR/data/sessions` ->
+/// `~/.cline/data/sessions` (first non-empty override wins).
 pub fn cline_cli_session_roots(
     session_data_dir: Option<&str>,
     data_dir: Option<&str>,
@@ -70,8 +69,7 @@ pub fn cline_cli_session_roots(
     vec![home.join(".cline").join("data").join("sessions")]
 }
 
-/// Faithful port of `isHumanPrompt`: an array content with at least one `text`
-/// block and no `tool_result` block.
+/// An array content with at least one `text` block and no `tool_result` block.
 fn is_human_prompt(content: Option<&Value>) -> bool {
     let content = match content {
         Some(Value::Array(a)) => a,
@@ -91,7 +89,7 @@ fn is_human_prompt(content: Option<&Value>) -> bool {
     has_text
 }
 
-/// Read the cline CLI session lane. Faithful port of `readClineCli`.
+/// Read the cline CLI session lane.
 fn read_cline_cli(
     roots: &[PathBuf],
     seen: &mut HashSet<String>,
@@ -251,18 +249,9 @@ fn read_cline_cli(
     }
 }
 
-/// The parent directory path (node `dirname`), `/`-normalized.
-fn dirname(path: &str) -> String {
-    let normalized = path.replace('\\', "/");
-    match normalized.rfind('/') {
-        Some(i) => normalized[..i].to_owned(),
-        None => String::new(),
-    }
-}
-
-/// Read all cline usage events. Faithful port of `readCline`: the extension
-/// store is authoritative (any session it emits suppresses the matching CLI
-/// mirror wholesale, and `seen` catches within-store duplicates).
+/// Read all cline usage events. The extension store is authoritative (any
+/// session it emits suppresses the matching CLI mirror wholesale, and `seen`
+/// catches within-store duplicates).
 pub fn read_cline(ext_roots: &[PathBuf], cli_roots: &[PathBuf]) -> ReaderResult {
     let mut seen: HashSet<String> = HashSet::new();
     let mut covered_sessions: HashSet<String> = HashSet::new();

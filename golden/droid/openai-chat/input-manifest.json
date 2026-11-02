@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "harness": "droid",
+  "case": "openai-chat",
+  "home": ".",
+  "options": {
+    "harnesses": [
+      "droid"
+    ],
+    "tz": "UTC"
+  },
+  "rollups": [
+    "model",
+    "day",
+    "harness"
+  ]
+}

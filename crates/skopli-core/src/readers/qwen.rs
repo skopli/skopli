@@ -25,7 +25,7 @@ impl Reader for QwenReader {
     }
 }
 
-/// Resolve the qwen projects root. Faithful port of `qwenProjectsRoot`.
+/// Resolve the qwen projects root.
 pub fn qwen_projects_root(override_dir: Option<&str>, home: &Path) -> PathBuf {
     if let Some(v) = override_dir
         && !v.is_empty()
@@ -35,8 +35,7 @@ pub fn qwen_projects_root(override_dir: Option<&str>, home: &Path) -> PathBuf {
     home.join(".qwen").join("projects")
 }
 
-/// Faithful port of `sessionId(raw, file)`: prefer `raw.sessionId`, else
-/// `<grandparent dir name>-<file stem>`.
+/// Prefer `raw.sessionId`, else `<grandparent dir name>-<file stem>`.
 fn session_id(raw: &Value, file: &str) -> String {
     raw.get("sessionId").and_then(as_string).unwrap_or_else(|| {
         let grandparent = parent_dir_name_full(file);
@@ -73,7 +72,7 @@ struct QwenMessage {
     session_id: String,
 }
 
-/// Read all qwen usage events. Faithful port of `readQwen`.
+/// Read all qwen usage events.
 pub fn read_qwen(root: &Path) -> ReaderResult {
     let mut events: Vec<UsageEvent> = Vec::new();
     let mut skipped: Vec<String> = Vec::new();
@@ -149,7 +148,7 @@ fn parse_message(
         Some("assistant") => {}
         _ => return None,
     }
-    let usage = value.get("usageMetadata").unwrap_or(&Value::Null);
+    let usage = value.get("usageMetadata")?;
     let tokens = parse_gemini_tokens(usage, &QWEN_TOKEN_FIELDS);
     let tokens = match tokens {
         Some(t) => t,
@@ -191,4 +190,39 @@ fn parse_message(
             title: None,
         }),
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::super::shared::scratch_dir;
+    use super::*;
+    use std::fs;
+
+    #[test]
+    fn assistant_record_without_usage_is_skipped_silently() {
+        let root = scratch_dir("qwen-no-usage");
+        let chats = root.join("proj").join("chats");
+        fs::create_dir_all(&chats).unwrap();
+        fs::write(
+            chats.join("s.jsonl"),
+            concat!(
+                r#"{"type":"user","sessionId":"s","timestamp":"2026-10-18T18:17:00.000Z"}"#,
+                "\n",
+                r#"{"type":"assistant","sessionId":"s","timestamp":"2026-10-18T18:17:29.419Z","model":"qwen","message":{"role":"model","parts":[{"text":"To determine"}]}}"#,
+                "\n",
+                r#"{"type":"assistant","sessionId":"s","timestamp":"2026-10-18T18:17:30.000Z","model":"qwen","usageMetadata":{"promptTokenCount":"bad"}}"#,
+                "\n",
+            ),
+        )
+        .unwrap();
+        let result = read_qwen(&root);
+        fs::remove_dir_all(&root).ok();
+        assert!(result.events.is_empty());
+        assert_eq!(result.skipped.len(), 1);
+        assert!(
+            result.skipped[0].ends_with("s.jsonl:3"),
+            "{:?}",
+            result.skipped
+        );
+    }
 }

@@ -1,0 +1,71 @@
+{
+  "schema_version": 1,
+  "events": [
+    {
+      "harness": "omp",
+      "messageId": "0231fb9a",
+      "model": "qwen",
+      "sessionId": "01a17306-73ec-7334-9d8c-9d8a1c0b18f3",
+      "subagent": false,
+      "timestamp": "2026-10-25T12:26:44.754Z",
+      "tokens": {
+        "cacheRead": 3,
+        "cacheWrite": 7560,
+        "input": 0,
+        "output": 73,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "omp",
+      "messageId": "5d8fa719",
+      "model": "qwen",
+      "sessionId": "01a17306-73ec-7334-9d8c-9d8a1c0b18f3",
+      "subagent": false,
+      "timestamp": "2026-10-25T12:26:48.300Z",
+      "tokens": {
+        "cacheRead": 7635,
+        "cacheWrite": 28,
+        "input": 0,
+        "output": 33,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "omp",
+      "messageId": "046a67c4",
+      "model": "qwen",
+      "sessionId": "01a17306-73ec-7334-9d8c-9d8a1c0b18f3",
+      "subagent": false,
+      "timestamp": "2026-10-25T12:26:51.949Z",
+      "tokens": {
+        "cacheRead": 7695,
+        "cacheWrite": 29,
+        "input": 0,
+        "output": 37,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "omp",
+      "messageId": "d32f80e6",
+      "model": "qwen",
+      "sessionId": "01a17306-73ec-7334-9d8c-9d8a1c0b18f3",
+      "subagent": false,
+      "timestamp": "2026-10-25T12:26:56.450Z",
+      "tokens": {
+        "cacheRead": 7760,
+        "cacheWrite": 29,
+        "input": 0,
+        "output": 52,
+        "reasoning": 0
+      },
+      "turn": true
+    }
+  ],
+  "diagnostics": [],
+  "skipped": {}
+}

@@ -1,7 +1,5 @@
 #!/usr/bin/env bash
 # Assert the committed jextract bindings match a fresh regeneration (zero diff).
-# Mirrors scripts/check-capi-header.sh for the C header. Run in CI after any C
-# ABI change to catch a stale committed binding.
 set -euo pipefail
 
 here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"

@@ -6,9 +6,10 @@ import java.util.Objects;
 import java.util.Optional;
 
 /** Options for {@link Skopli#rollup} / {@link Pricing#priceEvents}: the
- * grouping dimension, an optional IANA timezone for day bucketing and
- * block-start hour flooring (the system timezone when absent), and an
- * optional billing-block width for {@link RollupBy#BLOCK}. */
+ * grouping dimension, an optional IANA timezone for day keys and block starts
+ * (the system timezone when absent), and an optional billing-block width for
+ * {@link RollupBy#BLOCK}. A block start floors to the local hour for widths of
+ * an hour or more and to the width itself below an hour. */
 public record RollupOptions(RollupBy by, Optional<String> tz, Optional<Long> blockMs) {
 
     /** The default billing-block width (five hours) for {@link RollupBy#BLOCK}. */

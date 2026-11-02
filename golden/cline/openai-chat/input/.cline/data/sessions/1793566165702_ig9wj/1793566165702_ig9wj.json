@@ -1,0 +1,45 @@
+{
+  "version": 1,
+  "session_id": "1793566165702_ig9wj",
+  "source": "cli",
+  "pid": 8592,
+  "started_at": "2026-11-01T20:49:25.705Z",
+  "status": "running",
+  "interactive": false,
+  "provider": "openai-compatible",
+  "model": "qwen",
+  "cwd": "/home/user/project",
+  "workspace_root": "/home/user/project",
+  "enable_tools": true,
+  "enable_spawn": false,
+  "enable_teams": false,
+  "prompt": "What does index.js export? One sentence.",
+  "metadata": {
+    "sessionHistoryOrigin": {
+      "mode": "user",
+      "version": "3.0.74"
+    },
+    "git": {
+      "url": "https://github.com/sindresorhus/p-limit",
+      "branch": "main"
+    },
+    "checkpoint": {
+      "latest": {
+        "ref": "a8a6fbec4e0e866d6d779b10889bb4f5567e70eb",
+        "createdAt": 1793566166924,
+        "runCount": 1,
+        "kind": "commit"
+      },
+      "history": [
+        {
+          "ref": "a8a6fbec4e0e866d6d779b10889bb4f5567e70eb",
+          "createdAt": 1793566166924,
+          "runCount": 1,
+          "kind": "commit"
+        }
+      ]
+    },
+    "title": "What does index.js export? One sentence."
+  },
+  "messages_path": "/home/user\\.cline\\data\\sessions\\1793566165702_ig9wj\\1793566165702_ig9wj.messages.json"
+}

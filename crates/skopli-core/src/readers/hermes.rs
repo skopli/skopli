@@ -12,8 +12,7 @@ use crate::types::{TokenCounts, UsageEvent};
 
 /// The hermes reader wired into the harness registry. It reads one or more
 /// `state.db` files across the resolved homes (root + per-profile), preferring
-/// per-(session,model) rows and falling back to session totals. Faithful port
-/// of `readHermes`.
+/// per-(session,model) rows and falling back to session totals.
 pub struct HermesReader;
 
 impl Reader for HermesReader {
@@ -28,7 +27,7 @@ impl Reader for HermesReader {
     }
 }
 
-/// Resolve the hermes home directories. Faithful port of `hermesHomes`.
+/// Resolve the hermes home directories.
 pub fn hermes_homes(override_val: Option<&str>, home: &Path) -> Vec<PathBuf> {
     if let Some(v) = override_val
         && !v.is_empty()
@@ -43,10 +42,10 @@ pub fn hermes_homes(override_val: Option<&str>, home: &Path) -> Vec<PathBuf> {
     vec![home.join(".hermes")]
 }
 
-/// Derive the `state.db` paths from resolved homes. Faithful port of
-/// `hermesDbPaths`: a home already inside `profiles/` isolates to that profile;
-/// otherwise the home's own `state.db` plus every `profiles/*/state.db`. Order
-/// is preserved and duplicates removed (first occurrence wins).
+/// Derive the `state.db` paths from resolved homes. A home already inside
+/// `profiles/` isolates to that profile; otherwise the home's own `state.db`
+/// plus every `profiles/*/state.db`. Order is preserved and duplicates removed
+/// (first occurrence wins).
 pub fn hermes_db_paths(homes: &[PathBuf]) -> Vec<PathBuf> {
     let mut paths: Vec<PathBuf> = Vec::new();
     for home in homes {
@@ -68,7 +67,7 @@ pub fn hermes_db_paths(homes: &[PathBuf]) -> Vec<PathBuf> {
             paths.extend(children);
         }
     }
-    // dedup preserving first-occurrence order (mirrors `[...new Set(paths)]`).
+    // dedup preserving first-occurrence order
     let mut seen: HashSet<PathBuf> = HashSet::new();
     paths
         .into_iter()
@@ -114,8 +113,7 @@ struct HermesRow {
     reasoning: u64,
 }
 
-/// Decode a query row into a `HermesRow`, or `None`. Faithful port of
-/// `decodeRow`.
+/// Decode a query row into a `HermesRow`, or `None`.
 fn decode_row(fields: &Value) -> Option<HermesRow> {
     let session_id = fields
         .get("session_id")
@@ -159,7 +157,7 @@ fn has_tokens(row: &HermesRow) -> bool {
         || row.reasoning > 0
 }
 
-/// Build a `UsageEvent` from a row. Faithful port of `buildEvent`.
+/// Build a `UsageEvent` from a row.
 fn build_event(
     row: &HermesRow,
     db_path: &str,
@@ -206,7 +204,7 @@ fn build_event(
     })
 }
 
-/// Read all hermes usage events. Faithful port of `readHermes`.
+/// Read all hermes usage events.
 pub fn read_hermes(db_paths: &[PathBuf]) -> ReaderResult {
     let mut events: Vec<UsageEvent> = Vec::new();
     let mut skipped: Vec<String> = Vec::new();
@@ -330,7 +328,6 @@ pub fn read_hermes(db_paths: &[PathBuf]) -> ReaderResult {
 }
 
 /// Open a hermes database read-only, warning + recording a skip on failure.
-/// Mirrors the TS `withDatabase` open-failure path.
 fn open_db(
     db_path: &str,
     skipped: &mut Vec<String>,

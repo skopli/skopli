@@ -6,7 +6,7 @@
 //! All three delegate to the gold-tested typed core engine
 //! (`skopli_core::rollup::rollup`, `Pricing::price_events`,
 //! `Pricing::price_rollups`) and only serialize the typed results to the wire
-//! JSON shapes — the bit-exact `usd` summation lives in the core, not here.
+//! JSON shapes. The bit-exact `usd` summation lives in the core, not here.
 
 use serde_json::Value;
 use skopli_core::pricing::Pricing;

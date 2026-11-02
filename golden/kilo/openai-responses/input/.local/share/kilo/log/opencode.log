@@ -1,0 +1,103 @@
+timestamp=2026-11-01T21:02:33.048Z level=INFO run=2eacc655 message=loading path="/home/user\\.config\\kilo\\config.json"
+timestamp=2026-11-01T21:02:33.049Z level=INFO run=2eacc655 message=loading path="/home/user\\.config\\kilo\\kilo.json"
+timestamp=2026-11-01T21:02:33.053Z level=INFO run=2eacc655 message=loading path="/home/user\\.config\\kilo\\kilo.jsonc"
+timestamp=2026-11-01T21:02:33.054Z level=INFO run=2eacc655 message=loading path="/home/user\\.config\\kilo\\opencode.json"
+timestamp=2026-11-01T21:02:33.054Z level=INFO run=2eacc655 message=loading path="/home/user\\.config\\kilo\\opencode.jsonc"
+timestamp=2026-11-01T21:02:33.061Z level=INFO run=2eacc655 message="creating instance" directory="/home/user/project"
+timestamp=2026-11-01T21:02:33.062Z level=INFO run=2eacc655 message=fromDirectory directory="/home/user/project"
+timestamp=2026-11-01T21:02:33.282Z level=INFO run=2eacc655 message=loading path=/home/user/.config/kilo/kilo.json
+timestamp=2026-11-01T21:02:33.480Z level=INFO run=2eacc655 message="running migration" index=0
+timestamp=2026-11-01T21:02:33.492Z level=INFO run=2eacc655 message="running migration" index=1
+timestamp=2026-11-01T21:02:33.499Z level=INFO run=2eacc655 message="all LSPs are disabled"
+timestamp=2026-11-01T21:02:33.499Z level=INFO run=2eacc655 message="all formatters are disabled"
+timestamp=2026-11-01T21:02:33.499Z level=INFO run=2eacc655 message=init
+timestamp=2026-11-01T21:02:33.738Z level=INFO run=2eacc655 message=created id=ses_e67142ef5ffeY5Z5ftNcKM0Dlr slug=mighty-island version=7.8.18 projectID=3275b18cfacef348b95dbf5b9ac76d21dfa5d4ec directory="/home/user/project" path="" workspaceID=undefined parentID=undefined title="New session - 2026-11-01T21:02:33.738Z" agent=undefined model=undefined metadata=undefined permission="[{\"permission\":\"question\",\"pattern\":\"*\",\"action\":\"deny\"},{\"permission\":\"suggest\",\"pattern\":\"*\",\"action\":\"deny\"},{\"permission\":\"plan_enter\",\"pattern\":\"*\",\"action\":\"deny\"},{\"permission\":\"plan_exit\",\"pattern\":\"*\",\"action\":\"deny\"}]" cost=0 tokens.input=0 tokens.output=0 tokens.reasoning=0 tokens.cache.read=0 tokens.cache.write=0 time.created=1793566953738 time.updated=1793566953738
+timestamp=2026-11-01T21:02:36.562Z level=INFO run=2eacc655 message="event connected"
+timestamp=2026-11-01T21:02:36.744Z level=INFO run=2eacc655 message="downloading ripgrep" url=https://github.com/BurntSushi/ripgrep/releases/download/15.1.0/ripgrep-15.1.0-x86_64-pc-windows-msvc.zip
+timestamp=2026-11-01T21:02:36.765Z level=INFO run=2eacc655 message="watcher backend" directory="/home/user/project" platform=win32 backend=windows
+timestamp=2026-11-01T21:02:36.771Z level=INFO run=2eacc655 message="project copy refresh started" projectID=3275b18cfacef348b95dbf5b9ac76d21dfa5d4ec
+timestamp=2026-11-01T21:02:37.135Z level=INFO run=2eacc655 message="project copy refresh done" projectID=3275b18cfacef348b95dbf5b9ac76d21dfa5d4ec updated=[] removed=[]
+timestamp=2026-11-01T21:02:37.232Z level=INFO run=2eacc655 message="booting location services" directory="/home/user/project" workspaceID=undefined
+timestamp=2026-11-01T21:02:37.276Z level=INFO run=2eacc655 message=loop session.id=ses_e67142ef5ffeY5Z5ftNcKM0Dlr step=0
+timestamp=2026-11-01T21:02:38.393Z level=INFO run=2eacc655 message=initialized
+timestamp=2026-11-01T21:02:39.010Z level=INFO run=2eacc655 message=tracking hash=6d37f424b8558935f23bd8774ddedf4d81ae3ce4 cwd="/home/user/project" git="/home/user\\.local\\share\\kilo\\snapshot\\3275b18cfacef348b95dbf5b9ac76d21dfa5d4ec\\27f5cd2e87f311b7d6e6e4a133330aca93334370"
+timestamp=2026-11-01T21:02:39.061Z level=INFO run=2eacc655 message="shell tool using shell" shell="C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.EXE"
+timestamp=2026-11-01T21:02:39.085Z level=INFO run=2eacc655 message=init count=1
+timestamp=2026-11-01T21:02:39.103Z level=INFO run=2eacc655 message=process session.id=ses_e67142ef5ffeY5Z5ftNcKM0Dlr messageID=msg_198ebe12e001dkkDQ0vUrCkzbe
+timestamp=2026-11-01T21:02:39.108Z level=INFO run=2eacc655 message=stream providerID=llama modelID=qwen session.id=ses_e67142ef5ffeY5Z5ftNcKM0Dlr small=false agent=code mode=primary
+timestamp=2026-11-01T21:02:39.115Z level=INFO run=2eacc655 message="llm runtime selected" llm.runtime=ai-sdk llm.provider=llama llm.model=qwen
+timestamp=2026-11-01T21:03:33.991Z level=INFO run=2eacc655 message=cleanup prune=7.days
+timestamp=2026-11-01T21:03:50.960Z level=INFO run=22d7d52c message=loading path="/home/user\\.config\\kilo\\config.json"
+timestamp=2026-11-01T21:03:50.961Z level=INFO run=22d7d52c message=loading path="/home/user\\.config\\kilo\\kilo.json"
+timestamp=2026-11-01T21:03:50.965Z level=INFO run=22d7d52c message=loading path="/home/user\\.config\\kilo\\kilo.jsonc"
+timestamp=2026-11-01T21:03:50.966Z level=INFO run=22d7d52c message=loading path="/home/user\\.config\\kilo\\opencode.json"
+timestamp=2026-11-01T21:03:50.966Z level=INFO run=22d7d52c message=loading path="/home/user\\.config\\kilo\\opencode.jsonc"
+timestamp=2026-11-01T21:03:50.974Z level=INFO run=22d7d52c message="creating instance" directory="/home/user/project"
+timestamp=2026-11-01T21:03:50.974Z level=INFO run=22d7d52c message=fromDirectory directory="/home/user/project"
+timestamp=2026-11-01T21:03:51.184Z level=INFO run=22d7d52c message=loading path=/home/user/.config/kilo/kilo.json
+timestamp=2026-11-01T21:03:51.342Z level=INFO run=22d7d52c message="all LSPs are disabled"
+timestamp=2026-11-01T21:03:51.343Z level=INFO run=22d7d52c message="all formatters are disabled"
+timestamp=2026-11-01T21:03:51.343Z level=INFO run=22d7d52c message=init
+timestamp=2026-11-01T21:03:51.569Z level=INFO run=22d7d52c message=created id=ses_e6712feefffePTlm977pUOWWQ8 slug=quick-panda version=7.8.18 projectID=3275b18cfacef348b95dbf5b9ac76d21dfa5d4ec directory="/home/user/project" path="" workspaceID=undefined parentID=undefined title="New session - 2026-11-01T21:03:51.568Z" agent=undefined model=undefined metadata=undefined permission="[{\"permission\":\"question\",\"pattern\":\"*\",\"action\":\"deny\"},{\"permission\":\"suggest\",\"pattern\":\"*\",\"action\":\"deny\"},{\"permission\":\"plan_enter\",\"pattern\":\"*\",\"action\":\"deny\"},{\"permission\":\"plan_exit\",\"pattern\":\"*\",\"action\":\"deny\"}]" cost=0 tokens.input=0 tokens.output=0 tokens.reasoning=0 tokens.cache.read=0 tokens.cache.write=0 time.created=1793567031568 time.updated=1793567031568
+timestamp=2026-11-01T21:03:54.363Z level=INFO run=22d7d52c message="event connected"
+timestamp=2026-11-01T21:03:54.545Z level=INFO run=22d7d52c message="watcher backend" directory="/home/user/project" platform=win32 backend=windows
+timestamp=2026-11-01T21:03:54.552Z level=INFO run=22d7d52c message="project copy refresh started" projectID=3275b18cfacef348b95dbf5b9ac76d21dfa5d4ec
+timestamp=2026-11-01T21:03:54.913Z level=INFO run=22d7d52c message="project copy refresh done" projectID=3275b18cfacef348b95dbf5b9ac76d21dfa5d4ec updated=[] removed=[]
+timestamp=2026-11-01T21:03:55.027Z level=INFO run=22d7d52c message="booting location services" directory="/home/user/project" workspaceID=undefined
+timestamp=2026-11-01T21:03:55.072Z level=INFO run=22d7d52c message=loop session.id=ses_e6712feefffePTlm977pUOWWQ8 step=0
+timestamp=2026-11-01T21:03:55.861Z level=INFO run=22d7d52c message=tracking hash=6d37f424b8558935f23bd8774ddedf4d81ae3ce4 cwd="/home/user/project" git="/home/user\\.local\\share\\kilo\\snapshot\\3275b18cfacef348b95dbf5b9ac76d21dfa5d4ec\\27f5cd2e87f311b7d6e6e4a133330aca93334370"
+timestamp=2026-11-01T21:03:55.903Z level=INFO run=22d7d52c message="shell tool using shell" shell="C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.EXE"
+timestamp=2026-11-01T21:03:55.924Z level=INFO run=22d7d52c message=init count=1
+timestamp=2026-11-01T21:03:55.939Z level=INFO run=22d7d52c message=process session.id=ses_e6712feefffePTlm977pUOWWQ8 messageID=msg_198ed1113001lc8b13FUOyL0xH
+timestamp=2026-11-01T21:03:55.944Z level=INFO run=22d7d52c message=stream providerID=llama modelID=qwen session.id=ses_e6712feefffePTlm977pUOWWQ8 small=false agent=code mode=primary
+timestamp=2026-11-01T21:03:55.950Z level=INFO run=22d7d52c message="llm runtime selected" llm.runtime=ai-sdk llm.provider=llama llm.model=qwen
+timestamp=2026-11-01T21:03:59.485Z level=INFO run=ad44b16e message=loading path="/home/user\\.config\\kilo\\config.json"
+timestamp=2026-11-01T21:03:59.485Z level=INFO run=ad44b16e message=loading path="/home/user\\.config\\kilo\\kilo.json"
+timestamp=2026-11-01T21:03:59.490Z level=INFO run=ad44b16e message=loading path="/home/user\\.config\\kilo\\kilo.jsonc"
+timestamp=2026-11-01T21:03:59.491Z level=INFO run=ad44b16e message=loading path="/home/user\\.config\\kilo\\opencode.json"
+timestamp=2026-11-01T21:03:59.491Z level=INFO run=ad44b16e message=loading path="/home/user\\.config\\kilo\\opencode.jsonc"
+timestamp=2026-11-01T21:03:59.499Z level=INFO run=ad44b16e message="creating instance" directory="/home/user/project"
+timestamp=2026-11-01T21:03:59.500Z level=INFO run=ad44b16e message=fromDirectory directory="/home/user/project"
+timestamp=2026-11-01T21:03:59.686Z level=INFO run=ad44b16e message=loading path=/home/user/.config/kilo/kilo.json
+timestamp=2026-11-01T21:03:59.886Z level=INFO run=ad44b16e message="all LSPs are disabled"
+timestamp=2026-11-01T21:03:59.886Z level=INFO run=ad44b16e message="all formatters are disabled"
+timestamp=2026-11-01T21:03:59.886Z level=INFO run=ad44b16e message=init
+timestamp=2026-11-01T21:04:00.111Z level=INFO run=ad44b16e message=created id=ses_e6712dd90ffeKDkDdKwwqOaZV4 slug=eager-planet version=7.8.18 projectID=3275b18cfacef348b95dbf5b9ac76d21dfa5d4ec directory="/home/user/project" path="" workspaceID=undefined parentID=undefined title="New session - 2026-11-01T21:04:00.111Z" agent=undefined model=undefined metadata=undefined permission="[{\"permission\":\"question\",\"pattern\":\"*\",\"action\":\"deny\"},{\"permission\":\"suggest\",\"pattern\":\"*\",\"action\":\"deny\"},{\"permission\":\"plan_enter\",\"pattern\":\"*\",\"action\":\"deny\"},{\"permission\":\"plan_exit\",\"pattern\":\"*\",\"action\":\"deny\"}]" cost=0 tokens.input=0 tokens.output=0 tokens.reasoning=0 tokens.cache.read=0 tokens.cache.write=0 time.created=1793567040111 time.updated=1793567040111
+timestamp=2026-11-01T21:04:02.847Z level=INFO run=ad44b16e message="event connected"
+timestamp=2026-11-01T21:04:03.044Z level=INFO run=ad44b16e message="watcher backend" directory="/home/user/project" platform=win32 backend=windows
+timestamp=2026-11-01T21:04:03.058Z level=INFO run=ad44b16e message="project copy refresh started" projectID=3275b18cfacef348b95dbf5b9ac76d21dfa5d4ec
+timestamp=2026-11-01T21:04:03.510Z level=INFO run=ad44b16e message="project copy refresh done" projectID=3275b18cfacef348b95dbf5b9ac76d21dfa5d4ec updated=[] removed=[]
+timestamp=2026-11-01T21:04:03.594Z level=INFO run=ad44b16e message="booting location services" directory="/home/user/project" workspaceID=undefined
+timestamp=2026-11-01T21:04:03.644Z level=INFO run=ad44b16e message=loop session.id=ses_e6712dd90ffeKDkDdKwwqOaZV4 step=0
+timestamp=2026-11-01T21:04:04.568Z level=INFO run=ad44b16e message=tracking hash=6d37f424b8558935f23bd8774ddedf4d81ae3ce4 cwd="/home/user/project" git="/home/user\\.local\\share\\kilo\\snapshot\\3275b18cfacef348b95dbf5b9ac76d21dfa5d4ec\\27f5cd2e87f311b7d6e6e4a133330aca93334370"
+timestamp=2026-11-01T21:04:04.609Z level=INFO run=ad44b16e message="shell tool using shell" shell="C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.EXE"
+timestamp=2026-11-01T21:04:04.627Z level=INFO run=ad44b16e message=init count=1
+timestamp=2026-11-01T21:04:04.642Z level=INFO run=ad44b16e message=process session.id=ses_e6712dd90ffeKDkDdKwwqOaZV4 messageID=msg_198ed3318001zkMBLwZQcxoUQU
+timestamp=2026-11-01T21:04:04.646Z level=INFO run=ad44b16e message=stream providerID=llama modelID=qwen session.id=ses_e6712dd90ffeKDkDdKwwqOaZV4 small=false agent=code mode=primary
+timestamp=2026-11-01T21:04:04.652Z level=INFO run=ad44b16e message="llm runtime selected" llm.runtime=ai-sdk llm.provider=llama llm.model=qwen
+timestamp=2026-11-01T21:04:05.806Z level=ERROR run=ad44b16e message=process session.id=ses_e6712dd90ffeKDkDdKwwqOaZV4 messageID=msg_198ed3318001zkMBLwZQcxoUQU error="text part msg_tjqgp9Nh3uhQEcZGbNgFpB3WivwshkDj not found" stack=undefined
+timestamp=2026-11-01T21:04:05.960Z level=INFO run=ad44b16e message="disposing instance" directory="/home/user/project"
+timestamp=2026-11-01T21:04:07.791Z level=INFO run=d2c11c6b message=loading path="/home/user\\.config\\kilo\\config.json"
+timestamp=2026-11-01T21:04:07.791Z level=INFO run=d2c11c6b message=loading path="/home/user\\.config\\kilo\\kilo.json"
+timestamp=2026-11-01T21:04:07.797Z level=INFO run=d2c11c6b message=loading path="/home/user\\.config\\kilo\\kilo.jsonc"
+timestamp=2026-11-01T21:04:07.798Z level=INFO run=d2c11c6b message=loading path="/home/user\\.config\\kilo\\opencode.json"
+timestamp=2026-11-01T21:04:07.798Z level=INFO run=d2c11c6b message=loading path="/home/user\\.config\\kilo\\opencode.jsonc"
+timestamp=2026-11-01T21:04:07.806Z level=INFO run=d2c11c6b message="creating instance" directory="/home/user/project"
+timestamp=2026-11-01T21:04:07.807Z level=INFO run=d2c11c6b message=fromDirectory directory="/home/user/project"
+timestamp=2026-11-01T21:04:07.992Z level=INFO run=d2c11c6b message=loading path=/home/user/.config/kilo/kilo.json
+timestamp=2026-11-01T21:04:08.203Z level=INFO run=d2c11c6b message="all LSPs are disabled"
+timestamp=2026-11-01T21:04:08.203Z level=INFO run=d2c11c6b message="all formatters are disabled"
+timestamp=2026-11-01T21:04:08.203Z level=INFO run=d2c11c6b message=init
+timestamp=2026-11-01T21:04:08.442Z level=INFO run=d2c11c6b message=created id=ses_e6712bd05fferg1tYIC2cbGgXW slug=misty-wizard version=7.8.18 projectID=3275b18cfacef348b95dbf5b9ac76d21dfa5d4ec directory="/home/user/project" path="" workspaceID=undefined parentID=undefined title="New session - 2026-11-01T21:04:08.442Z" agent=undefined model=undefined metadata=undefined permission="[{\"permission\":\"question\",\"pattern\":\"*\",\"action\":\"deny\"},{\"permission\":\"suggest\",\"pattern\":\"*\",\"action\":\"deny\"},{\"permission\":\"plan_enter\",\"pattern\":\"*\",\"action\":\"deny\"},{\"permission\":\"plan_exit\",\"pattern\":\"*\",\"action\":\"deny\"}]" cost=0 tokens.input=0 tokens.output=0 tokens.reasoning=0 tokens.cache.read=0 tokens.cache.write=0 time.created=1793567048442 time.updated=1793567048442
+timestamp=2026-11-01T21:04:11.223Z level=INFO run=d2c11c6b message="event connected"
+timestamp=2026-11-01T21:04:11.411Z level=INFO run=d2c11c6b message="watcher backend" directory="/home/user/project" platform=win32 backend=windows
+timestamp=2026-11-01T21:04:11.424Z level=INFO run=d2c11c6b message="project copy refresh started" projectID=3275b18cfacef348b95dbf5b9ac76d21dfa5d4ec
+timestamp=2026-11-01T21:04:11.777Z level=INFO run=d2c11c6b message="project copy refresh done" projectID=3275b18cfacef348b95dbf5b9ac76d21dfa5d4ec updated=[] removed=[]
+timestamp=2026-11-01T21:04:11.883Z level=INFO run=d2c11c6b message="booting location services" directory="/home/user/project" workspaceID=undefined
+timestamp=2026-11-01T21:04:11.928Z level=INFO run=d2c11c6b message=loop session.id=ses_e6712bd05fferg1tYIC2cbGgXW step=0
+timestamp=2026-11-01T21:04:12.738Z level=INFO run=d2c11c6b message=tracking hash=6d37f424b8558935f23bd8774ddedf4d81ae3ce4 cwd="/home/user/project" git="/home/user\\.local\\share\\kilo\\snapshot\\3275b18cfacef348b95dbf5b9ac76d21dfa5d4ec\\27f5cd2e87f311b7d6e6e4a133330aca93334370"
+timestamp=2026-11-01T21:04:12.780Z level=INFO run=d2c11c6b message="shell tool using shell" shell="C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.EXE"
+timestamp=2026-11-01T21:04:12.799Z level=INFO run=d2c11c6b message=init count=1
+timestamp=2026-11-01T21:04:12.815Z level=INFO run=d2c11c6b message=process session.id=ses_e6712bd05fferg1tYIC2cbGgXW messageID=msg_198ed53090017zhZpgwku55FDM
+timestamp=2026-11-01T21:04:12.819Z level=INFO run=d2c11c6b message=stream providerID=llama modelID=qwen session.id=ses_e6712bd05fferg1tYIC2cbGgXW small=false agent=code mode=primary
+timestamp=2026-11-01T21:04:12.825Z level=INFO run=d2c11c6b message="llm runtime selected" llm.runtime=ai-sdk llm.provider=llama llm.model=qwen

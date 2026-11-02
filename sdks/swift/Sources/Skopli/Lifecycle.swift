@@ -34,8 +34,8 @@ let fetchTimeout: TimeInterval = 10
 /// transport errors throw so the caller falls back to a stale cache.
 @usableFromInline let defaultFetch: @Sendable (URL) throws -> Data = { url in
     let semaphore = DispatchSemaphore(value: 0)
-    var result: Result<Data, Error> = .failure(
-        SkopliError.internalError("fetch produced no result"))
+    nonisolated(unsafe) var result: Result<Data, Error> =
+        .failure(SkopliError.internalError("fetch produced no result"))
     var request = URLRequest(url: url)
     request.timeoutInterval = fetchTimeout
     let task = URLSession.shared.dataTask(with: request) { data, response, error in

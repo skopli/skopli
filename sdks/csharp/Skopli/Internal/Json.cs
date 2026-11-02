@@ -30,8 +30,6 @@ internal static class Json
 
     internal static string Serialize(JsonNode node) => node.ToJsonString(Options);
 
-    // -- enum <-> wire string ------------------------------------------------
-
     internal static string RollupByWire(RollupBy by) => by switch
     {
         RollupBy.Model => "model",
@@ -50,8 +48,6 @@ internal static class Json
         PricingMode.Display => "display",
         _ => throw new InvalidArgumentException($"unknown pricing mode: {mode}"),
     };
-
-    // -- priced-group pricing union -----------------------------------------
 
     /// <summary>
     /// Parse a <c>PricedEventGroup[]</c> JSON array into <see cref="PricedRollup"/>s.

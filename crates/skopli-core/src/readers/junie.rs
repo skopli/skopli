@@ -10,8 +10,7 @@ use super::shared::{
 };
 use crate::types::{TokenCounts, UsageEvent};
 
-/// The junie reader wired into the harness registry. Faithful port of
-/// `readJunie` in src/readers/junie.ts.
+/// The junie reader wired into the harness registry.
 pub struct JunieReader;
 
 impl Reader for JunieReader {
@@ -25,8 +24,8 @@ impl Reader for JunieReader {
     }
 }
 
-/// Resolve the junie sessions root. Faithful port of `junieSessionsRoot`:
-/// `JUNIE_SESSIONS_DIR` wins; else `~/.junie/sessions`.
+/// Resolve the junie sessions root. `JUNIE_SESSIONS_DIR` wins; else
+/// `~/.junie/sessions`.
 pub fn junie_sessions_root(override_dir: Option<&str>, home: &Path) -> PathBuf {
     if let Some(override_val) = override_dir
         && !override_val.is_empty()
@@ -44,7 +43,6 @@ const SKIP_EVENT_KINDS: [&str; 3] = [
     "AgentPatchCreatedEvent",
 ];
 
-/// Faithful port of `topLevelKind`.
 fn top_level_kind(record: &Value) -> Option<String> {
     let kind = record.get("kind").and_then(as_string)?;
     if kind.trim().is_empty() {
@@ -54,8 +52,7 @@ fn top_level_kind(record: &Value) -> Option<String> {
     }
 }
 
-/// Faithful port of `parsedEventKind`: prefer top-level `kind`, fall back to
-/// `event.agentEvent.kind`.
+/// Prefer top-level `kind`, fall back to `event.agentEvent.kind`.
 fn parsed_event_kind(record: &Value) -> Option<String> {
     if let Some(top) = top_level_kind(record) {
         return Some(top);
@@ -71,7 +68,7 @@ fn parsed_event_kind(record: &Value) -> Option<String> {
     agent_event.get("kind").and_then(as_string)
 }
 
-/// Faithful port of `pick` in junie.ts: the first finite key, clamped `>= 0`.
+/// The first finite key, clamped `>= 0`.
 fn pick(value: &Value, keys: &[&str]) -> u64 {
     for key in keys {
         if let Some(found) = value.get(*key).and_then(finite_number) {
@@ -81,7 +78,6 @@ fn pick(value: &Value, keys: &[&str]) -> u64 {
     0
 }
 
-/// Faithful port of `usageTokens` in junie.ts.
 fn usage_tokens(value: &Value) -> Option<TokenCounts> {
     let tokens = TokenCounts {
         input: pick(value, &["inputTokens", "input"]),
@@ -116,7 +112,7 @@ struct Row {
     key: String,
 }
 
-/// Read all junie usage events. Faithful port of `readJunie`.
+/// Read all junie usage events.
 pub fn read_junie(root: &Path) -> ReaderResult {
     let mut events: Vec<UsageEvent> = Vec::new();
     let mut skipped: Vec<String> = Vec::new();

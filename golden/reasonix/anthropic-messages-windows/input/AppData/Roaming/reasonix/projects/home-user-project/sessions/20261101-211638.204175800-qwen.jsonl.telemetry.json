@@ -1,0 +1,1 @@
+{"version":1,"usage":{"promptTokens":15101,"completionTokens":73,"reasoningTokens":0,"cacheHitTokens":14941,"cacheMissTokens":160,"requestCount":2,"sources":{"executor":{"requestCount":2}},"coldStart":{"promptTokens":7487,"cacheHitTokens":7452,"cacheMissTokens":35}}}

@@ -5,7 +5,7 @@ use serde_json::Value;
 use super::reader::{Reader, ReaderContext};
 use super::shared::{
     ReaderResult, ReaderWarning, as_number, as_string, basename, dir_exists, file_mtime_iso,
-    is_record, list_files, read_jsonl_lines,
+    is_record, list_files, number_text, read_jsonl_lines,
 };
 use crate::types::{TokenCounts, UsageEvent};
 
@@ -23,8 +23,7 @@ impl Reader for CodexReader {
     }
 }
 
-/// Resolve the codex data root. Faithful port of `codexRoot`: `CODEX_HOME`
-/// override wins, else `~/.codex`.
+/// Resolve the codex data root. `CODEX_HOME` override wins, else `~/.codex`.
 pub fn codex_root(config_home: Option<&str>, home: &Path) -> PathBuf {
     if let Some(override_val) = config_home
         && !override_val.is_empty()
@@ -34,10 +33,8 @@ pub fn codex_root(config_home: Option<&str>, home: &Path) -> PathBuf {
     home.join(".codex")
 }
 
-/// Internal cumulative token snapshot in raw (pre-split) form. Mirrors the TS
-/// `TokenCounts` used inside codex.ts before `splitReasoning`. Values stay
-/// signed f64 so intermediate deltas can be negative before clamping, exactly
-/// like the JS number arithmetic.
+/// Internal cumulative token snapshot in raw (pre-split) form. Values stay
+/// signed f64 so intermediate deltas can be negative before clamping.
 #[derive(Clone, Copy)]
 struct RawCounts {
     input: f64,
@@ -47,7 +44,6 @@ struct RawCounts {
     reasoning: f64,
 }
 
-/// Faithful port of `usageCounts`.
 fn usage_counts(value: &Value) -> Option<RawCounts> {
     if !is_record(value) {
         return None;
@@ -72,7 +68,6 @@ fn usage_counts(value: &Value) -> Option<RawCounts> {
 }
 
 /// codex output_tokens includes reasoning; split the overlap at emission time.
-/// Faithful port of `splitReasoning`.
 fn split_reasoning(tokens: RawCounts) -> RawCounts {
     let reasoning = tokens.reasoning.max(0.0).min(tokens.output.max(0.0));
     RawCounts {
@@ -82,7 +77,6 @@ fn split_reasoning(tokens: RawCounts) -> RawCounts {
     }
 }
 
-/// Faithful port of `tokenCountUsage`.
 fn token_count_usage(payload: &Value) -> (Option<RawCounts>, Option<RawCounts>) {
     let info = match payload.get("info") {
         Some(i) if is_record(i) => i,
@@ -128,7 +122,6 @@ fn delta(current: &RawCounts, previous: &RawCounts) -> RawCounts {
     }
 }
 
-/// Faithful port of `isUserInput`.
 fn is_user_input(line: &Value, payload: &Value) -> bool {
     if line.get("type").and_then(Value::as_str) == Some("event_msg")
         && payload.get("type").and_then(Value::as_str) == Some("user_message")
@@ -151,32 +144,21 @@ struct Pending {
     model: String,
 }
 
-/// Snapshot of usage json for replay-key hashing (mirrors JSON.stringify of the
-/// preferred snapshot).
+/// Snapshot of usage json for replay-key hashing.
 fn snapshot_json(t: &RawCounts) -> String {
-    // codex.ts hashes `JSON.stringify(totals ?? last)` where the object is the
-    // *raw* {input,output,cacheRead,cacheWrite,reasoning} TokenCounts. Preserve
-    // the TS key order and integer formatting.
+    // Message ids hash the JSON of the raw {input,output,cacheRead,cacheWrite,
+    // reasoning} object; key order and integer formatting must stay fixed so
+    // ids stay stable across releases.
     format!(
         "{{\"input\":{},\"output\":{},\"cacheRead\":{},\"cacheWrite\":{},\"reasoning\":{}}}",
-        fmt_num(t.input),
-        fmt_num(t.output),
-        fmt_num(t.cache_read),
-        fmt_num(t.cache_write),
-        fmt_num(t.reasoning),
+        number_text(t.input),
+        number_text(t.output),
+        number_text(t.cache_read),
+        number_text(t.cache_write),
+        number_text(t.reasoning),
     )
 }
 
-/// Format a number the way `JSON.stringify` would for these integer counters.
-fn fmt_num(n: f64) -> String {
-    if n.fract() == 0.0 && n.is_finite() {
-        format!("{}", n as i64)
-    } else {
-        format!("{n}")
-    }
-}
-
-/// Faithful port of `readSessionFile`.
 fn read_session_file(
     file: &str,
     events: &mut Vec<UsageEvent>,
@@ -338,7 +320,7 @@ fn read_session_file(
     }
 }
 
-/// Read all codex usage events from the given root. Faithful port of `readCodex`.
+/// Read all codex usage events from the given root.
 pub fn read_codex(root: &Path) -> ReaderResult {
     let mut events: Vec<UsageEvent> = Vec::new();
     let mut skipped: Vec<String> = Vec::new();

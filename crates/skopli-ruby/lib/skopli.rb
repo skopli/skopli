@@ -83,7 +83,7 @@ module Skopli
   # Build a Pricing engine with the full built-in pricing lifecycle.
   #
   # The facade owns fetching and the on-disk cache; the native core does
-  # matching + costing only and never touches the network (`builtin_sources` is
+  # matching + costing only and never touches the network (`builtinSources` is
   # always sent as false on the wire, the direct-core seam contract).
   #
   # Options mirror the TS `createPricing`:

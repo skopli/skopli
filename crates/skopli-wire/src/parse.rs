@@ -1,7 +1,7 @@
 //! JSON-boundary parsing shared by the direct-core bindings: reading the
 //! `{home, env}` path-override context, parsing `UsageEvent[]`/`TokenCounts`/
 //! `ModelPrice` from the camelCase wire shapes the facades send, and the default
-//! cache dir. Everything is `serde_json::Value` — no FFI types appear here.
+//! cache dir. Everything is `serde_json::Value`; no FFI types appear here.
 
 use serde_json::Value;
 use skopli_core::readers::reader::ReaderContext;

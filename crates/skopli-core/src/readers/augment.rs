@@ -25,7 +25,7 @@ impl Reader for AugmentReader {
     }
 }
 
-/// Resolve the augment sessions root. Faithful port of `augmentSessionsRoot`.
+/// Resolve the augment sessions root.
 pub fn augment_sessions_root(override_dir: Option<&str>, home: &Path) -> PathBuf {
     if let Some(v) = override_dir
         && !v.is_empty()
@@ -35,9 +35,9 @@ pub fn augment_sessions_root(override_dir: Option<&str>, home: &Path) -> PathBuf
     home.join(".augment").join("sessions")
 }
 
-/// Faithful port of `usageTokens`: each bucket is `max(0, finite ?? 0)`; input
-/// and cache buckets are independent (never subtracted). Returns `None` when all
-/// four token buckets are zero.
+/// Each bucket is `max(0, finite ?? 0)`; input and cache buckets are
+/// independent (never subtracted). Returns `None` when all four token buckets
+/// are zero.
 fn usage_tokens(value: &Value) -> Option<TokenCounts> {
     if !is_record(value) {
         return None;
@@ -64,9 +64,9 @@ fn usage_tokens(value: &Value) -> Option<TokenCounts> {
     Some(tokens)
 }
 
-/// Faithful port of `lastTokenUsage`: a turn may stream several usage-bearing
-/// nodes; the last non-empty one is the full total, so summing would
-/// double-count. Scans from the end, returns the first non-empty usage found.
+/// A turn may stream several usage-bearing nodes; the last non-empty one is the
+/// full total, so summing would double-count. Scans from the end, returns the
+/// first non-empty usage found.
 fn last_token_usage(nodes: Option<&Value>) -> Option<TokenCounts> {
     let arr = match nodes {
         Some(Value::Array(a)) => a,
@@ -83,7 +83,6 @@ fn last_token_usage(nodes: Option<&Value>) -> Option<TokenCounts> {
     None
 }
 
-/// Faithful port of `turnKey`.
 fn turn_key(session_id: &str, turn: &Value, index: usize) -> String {
     let exchange = turn.get("exchange").filter(|e| is_record(e));
     let request_id = exchange
@@ -94,8 +93,8 @@ fn turn_key(session_id: &str, turn: &Value, index: usize) -> String {
     {
         return format!("augment:{session_id}:req:{}", req.trim());
     }
-    // sequenceId may be any JSON scalar; TS stringifies non-strings via
-    // JSON.stringify and rejects "" and "null".
+    // sequenceId may be any JSON scalar; a non-string is used in its JSON text
+    // form, and "" is rejected.
     if let Some(sequence) = turn.get("sequenceId")
         && !sequence.is_null()
     {
@@ -110,7 +109,7 @@ fn turn_key(session_id: &str, turn: &Value, index: usize) -> String {
     format!("augment:{session_id}:turn:{index}")
 }
 
-/// Read all augment usage events. Faithful port of `readAugment`.
+/// Read all augment usage events.
 pub fn read_augment(root: &Path) -> ReaderResult {
     let mut events: Vec<UsageEvent> = Vec::new();
     let mut skipped: Vec<String> = Vec::new();

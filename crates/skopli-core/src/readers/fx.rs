@@ -3,79 +3,17 @@ use std::path::{Path, PathBuf};
 use serde_json::Value;
 
 use super::reader::{Reader, ReaderContext};
-use super::shared::{ReaderResult, ReaderWarning, as_string, is_record, parse_timestamp_to_iso};
+use super::shared::{
+    ReaderResult, ReaderWarning, as_string, is_record, parse_timestamp_to_iso, read_jsonl_lines,
+};
 use crate::types::{TokenCounts, UsageEvent};
 
-/// The fx.sh reader wired into the harness registry. fx (vercel-labs/fx) is a
-/// native coding agent that persists per-session usage at
-/// `~/.fx/sessions/<session_id>/usage-v2.json`. The profile root constant is
-/// `.fx`, joined to the OS home; there is no environment override that
-/// redirects it, so the root resolves from home only.
-///
-/// Discovery enumerates only the immediate session directories under
-/// `sessions/`, sorted, and inspects the single fixed `usage-v2.json` directly
-/// below each one. Files at any deeper nesting are ignored: fx writes exactly one
-/// sidecar per session directory, so a deterministic one-based ordinal over the
-/// sorted session directories is the diagnostic index.
-///
-/// Validation is scoped to the fields the reader consumes, not the full E11
-/// producer schema. Every other snapshot and model field (`first_sequence`,
-/// `billable_web_search_calls`, the snapshot totals, the duration/cursor/boolean
-/// fields, `pending`, `publication_backlog`, and so on) is intentionally not
-/// gated: strict full-schema validation would reject benign producer additions
-/// without improving usage correctness. A violation of a validated field skips
-/// that sidecar and yields one structured diagnostic against a
-/// `{path}:usage-v2:{ordinal}` identity. The validated fields are:
-///
-/// - The envelope is an object with exactly the three keys `schema_version`,
-///   `session_id`, and `snapshot`; `schema_version` is the integer 1;
-///   `session_id` is a non-empty string equal to the owning session directory
-///   name and a valid fx session id of the form `{ms}-{ns}-{16hex}` (decimal
-///   millis, decimal nanos, and exactly sixteen lowercase hex characters); and
-///   `snapshot` is an object.
-/// - The snapshot carries its own integer `schema_version` equal to 1, a
-///   `billing` string that is one of `complete` / `pending` / `incomplete` /
-///   `legacy`, and a `models` array. An empty `models` array is valid and records
-///   no usage without a diagnostic.
-/// - Every entry of `models[]` is an object with a non-blank `model` string and
-///   required u64 token counters `input_tokens`, `output_tokens`,
-///   `cache_read_tokens`, and `cache_write_tokens`, each a JSON integer in
-///   `0..=u64::MAX`. A required counter that is absent, null, negative,
-///   fractional, non-numeric, or above `u64::MAX` makes the whole sidecar
-///   malformed rather than coercing to zero. `reasoning_tokens` and
-///   `request_count` are optional: absent or null is honored (`legacy` snapshots
-///   write both as null, mapping to a zero reasoning count and an absent call
-///   count), but a populated value that is not a u64 integer is malformed.
-/// - The provider-qualified `model` names within one sidecar must be unique;
-///   duplicate names make the whole sidecar malformed, so the
-///   `{session_id}:{model}` identity below can never collide.
-///
-/// The token and cost figures are authoritative provider counts applied from AI
-/// Gateway billing records, not estimates. One event is emitted per entry of the
-/// snapshot's `models[]` array; each entry carries a provider-qualified model id
-/// (`provider/model`) which is stored as-is, matching the devin precedent, plus
-/// its own token counts, request count, and cost. The `message_id` is
-/// `{session_id}:{model}`, keyed on the provider-qualified model name rather than
-/// the array position, which is not evidenced as stable. E11 does not evidence
-/// that model names are unique within a snapshot, so the reader enforces it:
-/// duplicate model names make the sidecar malformed, keeping the identity
-/// collision-free rather than assuming the producer never repeats a row. The
-/// event timestamp derives from the session id's leading millisecond prefix.
-///
-/// Each sidecar is a cumulative whole-snapshot restatement of a session's usage,
-/// not an append: a later read of the same session supersedes the earlier one.
-/// Correctness across repeated reads therefore requires the consumer to replace
-/// prior events by `message_id`; the rollup layer sums events blindly, so
-/// re-reading a rewritten snapshot without message-id-keyed replacement would
-/// double-count. Keying `message_id` on the stable per-model identity is what
-/// makes that replacement well defined.
-///
-/// The `billing` enum describes reconciliation completeness of the saved window,
-/// not the validity of the aggregated per-model figures: the counts are already
-/// the authoritative applied totals in every state. All four states are
-/// therefore read; usage that exists is usage. A snapshot may also carry an
-/// `incidents[]` array recording completeness incidents; when non-empty it draws
-/// one informational warning naming the session, but no usage is skipped.
+/// fx persists usage in two stores under `~/.fx/sessions`: a cumulative
+/// `usage-v2.json` sidecar per session directory (one event per `models[]`
+/// entry, `message_id` `{session_id}:{model}` so a rewritten snapshot replaces
+/// its earlier events) and, from fx 0.0.16, an append-only
+/// `v2/<session_id>/log.jsonl` whose `usage` records restate the session's
+/// cumulative counters and are booked as the delta from the previous record.
 pub struct FxReader;
 
 impl Reader for FxReader {
@@ -90,29 +28,20 @@ impl Reader for FxReader {
 
 const HARNESS: &str = "fx";
 const SIDECAR_FILE: &str = "usage-v2.json";
+const V2_LOG_FILE: &str = "log.jsonl";
 
-/// Resolve the fx sessions directory, `<home>/.fx/sessions`. The profile root
-/// (`.fx`) is a fixed home-relative constant on every OS with no environment
-/// override, so the sessions directory resolves from home only.
 pub fn fx_sessions_dir(home: &Path) -> PathBuf {
     home.join(".fx").join("sessions")
 }
 
-/// The four billing states fx records; any other string is malformed.
 const BILLING_STATES: [&str; 4] = ["complete", "pending", "incomplete", "legacy"];
 
-/// A required u64 token counter. Returns the value only when it is a JSON integer
-/// in `0..=u64::MAX`; a value that is absent, null, negative, fractional,
-/// non-numeric, or above `u64::MAX` is `None`, which the caller treats as a
-/// malformed sidecar rather than coercing to zero.
 fn required_u64(value: Option<&Value>) -> Option<u64> {
     value?.as_u64()
 }
 
-/// An optional u64 counter with three outcomes: `Ok(Some)` for a valid u64
-/// integer, `Ok(None)` for an absent or null value (fx's honored optionality,
-/// as on `legacy` snapshots), and `Err(())` for a populated value that is not a
-/// u64 integer (malformed).
+/// `Ok(None)` for an absent or null counter, `Err(())` for a populated one
+/// that is not a u64.
 fn optional_u64(value: Option<&Value>) -> Result<Option<u64>, ()> {
     match value {
         None => Ok(None),
@@ -121,16 +50,11 @@ fn optional_u64(value: Option<&Value>) -> Result<Option<u64>, ()> {
     }
 }
 
-/// An optional finite cost. `null`, absent, or non-finite -> `None`. Cost is not
-/// a validated required field; a non-finite value simply carries no cost.
 fn optional_cost(value: Option<&Value>) -> Option<f64> {
     value?.as_f64().filter(|n| n.is_finite())
 }
 
-/// True when `id` is a valid fx session id: `{ms}-{ns}-{16hex}`, that is a
-/// decimal millisecond field, a decimal nanosecond field, and exactly sixteen
-/// lowercase hexadecimal characters, joined by single hyphens with no extra
-/// components. Both numeric fields must be non-empty runs of ASCII digits.
+/// `{ms}-{ns}-{16 lowercase hex}`.
 fn is_valid_session_id(id: &str) -> bool {
     let mut parts = id.split('-');
     let (Some(ms), Some(ns), Some(hex), None) =
@@ -146,24 +70,14 @@ fn is_valid_session_id(id: &str) -> bool {
     is_decimal(ms) && is_decimal(ns) && is_hex16
 }
 
-/// Derive the session timestamp from a validated session id's leading
-/// millisecond prefix. The caller has already confirmed the id shape, so the
-/// substring before the first `-` is the epoch-millisecond session start.
 fn timestamp_from_session_id(session_id: &str) -> Option<String> {
     let prefix = session_id.split('-').next()?;
     let ms: f64 = prefix.parse().ok()?;
     parse_timestamp_to_iso(&Value::from(ms))
 }
 
-/// Validate one `models[]` entry and build its event. Returns `Err(())` when the
-/// entry is not an object, the model id is absent or blank, a required u64 token
-/// counter is invalid, or an optional counter is populated with a non-u64 value.
-/// The provider-qualified model id is stored as-is, and also keys the
-/// `message_id` (`{session_id}:{model}`) so the identity is stable across
-/// snapshot rewrites rather than depending on array position, which is not
-/// evidenced as stable. Uniqueness of model names within one sidecar is enforced
-/// by the caller ([`validate_sidecar`]) rather than assumed, so the identity
-/// never collides.
+/// One event for a `models[]` entry, `Err(())` when a consumed field is
+/// invalid.
 fn model_event(entry: &Value, session_id: &str, timestamp: &str) -> Result<UsageEvent, ()> {
     if !is_record(entry) {
         return Err(());
@@ -203,29 +117,16 @@ fn model_event(entry: &Value, session_id: &str, timestamp: &str) -> Result<Usage
     })
 }
 
-/// The outcome of validating one sidecar: the events it yields and whether its
-/// snapshot carried a non-empty `incidents[]` array (an informational signal,
-/// not a skip).
 struct SidecarRead {
     events: Vec<UsageEvent>,
     has_incidents: bool,
 }
 
-/// Validate and read one `usage-v2.json` sidecar into events, or `Err(())` when
-/// the sidecar violates any of the fields the reader consumes. Validation is a
-/// scoped subset of the E11 producer schema, not the full schema: fields the
-/// reader does not consume are intentionally not gated. `dir_name` is the owning
-/// session directory name the envelope `session_id` must equal. Enforced:
-/// readable file and object JSON; an envelope with exactly the three keys
-/// `schema_version` / `session_id` / `snapshot`; outer `schema_version` == 1;
-/// `session_id` a non-empty string equal to `dir_name` and a valid fx session
-/// id; `snapshot` an object carrying its own `schema_version` == 1, a `billing`
-/// string among the four known states, and a `models` array. Every model entry
-/// is validated by [`model_event`], and model names must be unique within the
-/// sidecar (a duplicate provider-qualified name is malformed, keeping the
-/// `{session_id}:{model}` identity collision-free). An empty `models` array is
-/// valid and yields no events. A non-empty `incidents[]` is reported through
-/// `has_incidents`.
+/// Validate only the fields the reader consumes: an envelope of exactly
+/// `schema_version` / `session_id` / `snapshot`, `schema_version` 1 at both
+/// levels, a session id equal to `dir_name`, a known `billing` state and
+/// unique model names. Other producer fields are not gated, so benign
+/// additions do not reject the sidecar.
 fn validate_sidecar(file: &str, dir_name: &str) -> Result<SidecarRead, ()> {
     let content = std::fs::read_to_string(file).map_err(|_| ())?;
     let envelope: Value = serde_json::from_str(&content).map_err(|_| ())?;
@@ -276,12 +177,6 @@ fn validate_sidecar(file: &str, dir_name: &str) -> Result<SidecarRead, ()> {
     })
 }
 
-/// True when the snapshot carries a non-empty `incidents[]` array. `incidents`
-/// records completeness incidents that make the snapshot's completeness
-/// self-describing (E11); an absent or non-array `incidents` is optional and
-/// ignored. When present and non-empty, the caller emits an informational
-/// warning naming the session rather than skipping any usage: the per-model
-/// figures are still authoritative, the incidents only annotate reconciliation.
 fn has_incidents(snapshot: &serde_json::Map<String, Value>) -> bool {
     snapshot
         .get("incidents")
@@ -289,11 +184,8 @@ fn has_incidents(snapshot: &serde_json::Map<String, Value>) -> bool {
         .is_some_and(|incidents| !incidents.is_empty())
 }
 
-/// Read one `usage-v2.json` sidecar into events. A schema violation records a
-/// single structured diagnostic against `label` and yields no events. A valid
-/// sidecar whose snapshot carries a non-empty `incidents[]` array additionally
-/// pushes one informational warning naming the session; that warning does not
-/// skip any usage and is not added to `skipped`.
+/// A schema violation is one diagnostic against `label`; a non-empty
+/// `incidents[]` is one informational warning and skips nothing.
 fn read_sidecar(
     file: &str,
     dir_name: &str,
@@ -327,9 +219,133 @@ fn skip(label: &str, skipped: &mut Vec<String>, warnings: &mut Vec<ReaderWarning
     skipped.push(label.to_owned());
 }
 
-/// The immediate subdirectory names of `dir`, sorted. Unreadable directories
-/// and non-directory entries are ignored. Enumeration stays at depth one so a
-/// deeper nested file cannot masquerade as a session or shift ordinals.
+/// One event per `usage` record, holding the difference from the previous
+/// record in file order (a record whose counters fell is a fresh baseline, an
+/// unchanged restatement yields nothing); the last usage event before a
+/// `turn_committed` record is the turn's event. The model comes from the
+/// latest `prefs` record, the workspace and title from the session's final
+/// ones.
+fn read_v2_log(
+    file: &Path,
+    session_id: &str,
+    skipped: &mut Vec<String>,
+    warnings: &mut Vec<ReaderWarning>,
+) -> Vec<UsageEvent> {
+    let file = file.to_string_lossy();
+    let Some(lines) = read_jsonl_lines(&file, skipped, warnings) else {
+        return Vec::new();
+    };
+    let mut model = String::new();
+    let mut title = None;
+    let mut workspace = None;
+    let mut previous = TokenCounts::default();
+    let mut events: Vec<UsageEvent> = Vec::new();
+    let mut open_turn: Option<usize> = None;
+    for line in lines {
+        let label = || format!("{file}:{}", line.index + 1);
+        let record = &line.value;
+        if !is_record(record) {
+            skip(&label(), skipped, warnings);
+            continue;
+        }
+        let value = record.get("value");
+        match (
+            record.get("kind").and_then(Value::as_str),
+            record.get("key").and_then(Value::as_str),
+        ) {
+            (Some("session_created"), _) => workspace = record.get("workspace").and_then(as_string),
+            (Some("turn_committed"), _) => {
+                if let Some(index) = open_turn.take() {
+                    events[index].turn = true;
+                }
+            }
+            (Some("set"), Some("prefs")) => {
+                if let Some(m) = value.and_then(|v| v.get("model")).and_then(as_string) {
+                    model = m;
+                }
+            }
+            (Some("set"), Some("title")) => title = value.and_then(as_string),
+            (Some("set"), Some("usage")) => match v2_usage(record) {
+                Some((snapshot, timestamp)) => {
+                    let tokens = delta(&snapshot, &previous);
+                    previous = snapshot;
+                    if tokens == TokenCounts::default() {
+                        continue;
+                    }
+                    events.push(UsageEvent {
+                        harness: HARNESS.to_owned(),
+                        timestamp,
+                        session_id: session_id.to_owned(),
+                        message_id: format!("{session_id}:{}", line.index + 1),
+                        turn: false,
+                        subagent: false,
+                        model: model.clone(),
+                        tokens,
+                        calls: Some(1),
+                        cost_usd: None,
+                        workspace: None,
+                        title: None,
+                    });
+                    open_turn = Some(events.len() - 1);
+                }
+                None => skip(&label(), skipped, warnings),
+            },
+            _ => {}
+        }
+    }
+    for event in &mut events {
+        event.workspace = workspace.clone();
+        event.title = title.clone();
+    }
+    events
+}
+
+/// `snapshot` minus `previous` per counter, or `snapshot` itself when any
+/// counter went down.
+fn delta(snapshot: &TokenCounts, previous: &TokenCounts) -> TokenCounts {
+    let pairs = [
+        (snapshot.input, previous.input),
+        (snapshot.output, previous.output),
+        (snapshot.cache_read, previous.cache_read),
+        (snapshot.cache_write, previous.cache_write),
+        (snapshot.reasoning, previous.reasoning),
+    ];
+    if pairs.iter().any(|(now, before)| now < before) {
+        return snapshot.clone();
+    }
+    TokenCounts {
+        input: snapshot.input - previous.input,
+        output: snapshot.output - previous.output,
+        cache_read: snapshot.cache_read - previous.cache_read,
+        cache_write: snapshot.cache_write - previous.cache_write,
+        cache_write1h: None,
+        reasoning: snapshot.reasoning - previous.reasoning,
+    }
+}
+
+/// The token counts and ISO timestamp of one v2 `usage` record, `None` when a
+/// required counter is not a u64, an optional one is populated with a non-u64,
+/// or `ts` is not a number.
+fn v2_usage(record: &Value) -> Option<(TokenCounts, String)> {
+    let value = record.get("value").filter(|v| is_record(v))?;
+    let optional = |key: &str| optional_u64(value.get(key)).ok().map(|v| v.unwrap_or(0));
+    let tokens = TokenCounts {
+        input: required_u64(value.get("input_tokens"))?,
+        output: required_u64(value.get("output_tokens"))?,
+        cache_read: optional("cache_read_tokens")?,
+        cache_write: optional("cache_write_tokens")?,
+        cache_write1h: None,
+        reasoning: optional("reasoning_tokens")?,
+    };
+    let timestamp = record
+        .get("ts")
+        .filter(|ts| ts.is_number())
+        .and_then(parse_timestamp_to_iso)?;
+    Some((tokens, timestamp))
+}
+
+/// The immediate subdirectory names of `dir`, sorted; depth one, so a nested
+/// file cannot shift ordinals.
 fn immediate_session_dirs(dir: &Path) -> Vec<String> {
     let mut names: Vec<String> = match std::fs::read_dir(dir) {
         Ok(entries) => entries
@@ -343,13 +359,8 @@ fn immediate_session_dirs(dir: &Path) -> Vec<String> {
     names
 }
 
-/// Read all fx usage events from the sessions directory. Only the immediate
-/// session directories under `sessions/` are enumerated, sorted, and each one's
-/// single fixed `usage-v2.json` is inspected; deeper files are ignored. The
-/// `{path}:usage-v2:{ordinal}` diagnostic identity uses the sidecar file path,
-/// the `usage-v2` scope, and a one-based ordinal over the sorted session
-/// directories. A missing session directory or a directory without its sidecar
-/// yields no events and no diagnostics (absence is normal).
+/// Sidecar diagnostics are labelled `{path}:usage-v2:{ordinal}` over the
+/// sorted session directories; a missing directory or sidecar is silent.
 pub fn read_fx(sessions_dir: &Path) -> ReaderResult {
     let mut events: Vec<UsageEvent> = Vec::new();
     let mut skipped: Vec<String> = Vec::new();
@@ -373,6 +384,14 @@ pub fn read_fx(sessions_dir: &Path) -> ReaderResult {
         ));
     }
 
+    let v2 = sessions_dir.join("v2");
+    for name in immediate_session_dirs(&v2) {
+        let log = v2.join(&name).join(V2_LOG_FILE);
+        if log.is_file() {
+            events.extend(read_v2_log(&log, &name, &mut skipped, &mut warnings));
+        }
+    }
+
     ReaderResult {
         events,
         skipped,
@@ -383,17 +402,14 @@ pub fn read_fx(sessions_dir: &Path) -> ReaderResult {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::readers::shared::{scratch_dir, test_home};
     use std::fs;
-
-    fn home() -> PathBuf {
-        PathBuf::from("/home/u")
-    }
 
     #[test]
     fn sessions_dir_is_home_dot_fx_sessions() {
         assert_eq!(
-            fx_sessions_dir(&home()),
-            home().join(".fx").join("sessions")
+            fx_sessions_dir(&test_home()),
+            test_home().join(".fx").join("sessions")
         );
     }
 
@@ -429,19 +445,6 @@ mod tests {
         assert!(!is_valid_session_id("1770000000000-1-a1b2c3d4e5f6071g"));
     }
 
-    fn tmp_dir(tag: &str) -> PathBuf {
-        let base = std::env::temp_dir().join(format!(
-            "skopli-fx-test-{tag}-{}-{}",
-            std::process::id(),
-            std::time::SystemTime::now()
-                .duration_since(std::time::UNIX_EPOCH)
-                .unwrap()
-                .as_nanos()
-        ));
-        fs::create_dir_all(&base).unwrap();
-        base
-    }
-
     fn write_sidecar(sessions: &Path, session_id: &str, snapshot: Value) {
         let dir = sessions.join(session_id);
         fs::create_dir_all(&dir).unwrap();
@@ -455,7 +458,7 @@ mod tests {
 
     #[test]
     fn empty_sessions_dir_yields_no_events() {
-        let dir = tmp_dir("empty");
+        let dir = scratch_dir("empty");
         let sessions = dir.join("sessions");
         let result = read_fx(&sessions);
         assert!(result.events.is_empty());
@@ -466,7 +469,7 @@ mod tests {
 
     #[test]
     fn one_event_per_model_entry_with_real_tokens() {
-        let dir = tmp_dir("multi-model");
+        let dir = scratch_dir("multi-model");
         let sessions = dir.join("sessions");
         write_sidecar(
             &sessions,
@@ -537,7 +540,7 @@ mod tests {
 
     #[test]
     fn legacy_snapshot_reads_with_absent_reasoning_and_calls() {
-        let dir = tmp_dir("legacy");
+        let dir = scratch_dir("legacy");
         let sessions = dir.join("sessions");
         write_sidecar(
             &sessions,
@@ -575,7 +578,7 @@ mod tests {
 
     #[test]
     fn pending_billing_is_still_read() {
-        let dir = tmp_dir("pending");
+        let dir = scratch_dir("pending");
         let sessions = dir.join("sessions");
         write_sidecar(
             &sessions,
@@ -611,7 +614,7 @@ mod tests {
 
     #[test]
     fn unknown_schema_version_is_a_diagnostic() {
-        let dir = tmp_dir("bad-version");
+        let dir = scratch_dir("bad-version");
         let sessions = dir.join("sessions");
         let session_id = "1770000003000-1770000000000000003-d1b2c3d4e5f60718";
         let session_dir = sessions.join(session_id);
@@ -636,7 +639,7 @@ mod tests {
 
     #[test]
     fn malformed_json_is_a_diagnostic() {
-        let dir = tmp_dir("bad-json");
+        let dir = scratch_dir("bad-json");
         let sessions = dir.join("sessions");
         let session_dir = sessions.join("1770000004000-1770000000000000004-e1b2c3d4e5f60718");
         fs::create_dir_all(&session_dir).unwrap();
@@ -651,7 +654,7 @@ mod tests {
 
     #[test]
     fn empty_models_array_is_silent() {
-        let dir = tmp_dir("empty-models");
+        let dir = scratch_dir("empty-models");
         let sessions = dir.join("sessions");
         write_sidecar(
             &sessions,
@@ -678,7 +681,7 @@ mod tests {
 
     #[test]
     fn incomplete_billing_is_still_read() {
-        let dir = tmp_dir("incomplete");
+        let dir = scratch_dir("incomplete");
         let sessions = dir.join("sessions");
         write_sidecar(
             &sessions,
@@ -701,7 +704,7 @@ mod tests {
 
     #[test]
     fn non_empty_incidents_draw_an_informational_warning_without_skipping() {
-        let dir = tmp_dir("incidents");
+        let dir = scratch_dir("incidents");
         let sessions = dir.join("sessions");
         let session_id = "1770000007000-1770000000000000007-b2b2c3d4e5f60718";
         write_sidecar(
@@ -728,7 +731,7 @@ mod tests {
 
     #[test]
     fn empty_or_absent_incidents_are_silent() {
-        let dir = tmp_dir("incidents-empty");
+        let dir = scratch_dir("incidents-empty");
         let sessions = dir.join("sessions");
         write_sidecar(
             &sessions,
@@ -750,7 +753,7 @@ mod tests {
 
     #[test]
     fn duplicate_model_names_are_a_diagnostic() {
-        let dir = tmp_dir("duplicate-model");
+        let dir = scratch_dir("duplicate-model");
         let sessions = dir.join("sessions");
         write_sidecar(
             &sessions,
@@ -765,7 +768,7 @@ mod tests {
                 ]
             }),
         );
-        assert_only_diagnostic(&sessions);
+        assert_only_diagnostic(&sessions, "duplicate_model_names");
         fs::remove_dir_all(&dir).ok();
     }
 
@@ -796,91 +799,61 @@ mod tests {
         })
     }
 
-    fn assert_only_diagnostic(sessions: &Path) {
+    fn assert_only_diagnostic(sessions: &Path, case: &str) {
         let result = read_fx(sessions);
-        assert!(result.events.is_empty(), "expected no events");
-        assert_eq!(result.skipped.len(), 1, "expected one skipped sidecar");
-        assert_eq!(result.warnings.len(), 1, "expected one warning");
+        assert!(result.events.is_empty(), "{case}: expected no events");
+        assert_eq!(
+            result.skipped.len(),
+            1,
+            "{case}: expected one skipped sidecar"
+        );
+        assert_eq!(result.warnings.len(), 1, "{case}: expected one warning");
     }
 
     #[test]
-    fn missing_required_token_field_is_a_diagnostic() {
-        let dir = tmp_dir("missing-token");
-        let sessions = dir.join("sessions");
-        write_sidecar(
-            &sessions,
-            "1770000000000-1770000000000000000-a1b2c3d4e5f60718",
-            snapshot_with_model(|m| {
-                m.remove("input_tokens");
-            }),
-        );
-        assert_only_diagnostic(&sessions);
-        fs::remove_dir_all(&dir).ok();
-    }
-
-    #[test]
-    fn null_required_token_field_is_a_diagnostic() {
-        let dir = tmp_dir("null-token");
-        let sessions = dir.join("sessions");
-        write_sidecar(
-            &sessions,
-            "1770000000000-1770000000000000000-a1b2c3d4e5f60718",
-            snapshot_with_model(|m| {
-                m.insert("output_tokens".into(), Value::Null);
-            }),
-        );
-        assert_only_diagnostic(&sessions);
-        fs::remove_dir_all(&dir).ok();
-    }
-
-    #[test]
-    fn string_token_field_is_a_diagnostic() {
-        let dir = tmp_dir("string-token");
-        let sessions = dir.join("sessions");
-        write_sidecar(
-            &sessions,
-            "1770000000000-1770000000000000000-a1b2c3d4e5f60718",
-            snapshot_with_model(|m| {
-                m.insert("cache_read_tokens".into(), Value::from("12"));
-            }),
-        );
-        assert_only_diagnostic(&sessions);
-        fs::remove_dir_all(&dir).ok();
-    }
-
-    #[test]
-    fn negative_token_field_is_a_diagnostic() {
-        let dir = tmp_dir("negative-token");
-        let sessions = dir.join("sessions");
-        write_sidecar(
-            &sessions,
-            "1770000000000-1770000000000000000-a1b2c3d4e5f60718",
-            snapshot_with_model(|m| {
-                m.insert("cache_write_tokens".into(), Value::from(-1));
-            }),
-        );
-        assert_only_diagnostic(&sessions);
-        fs::remove_dir_all(&dir).ok();
-    }
-
-    #[test]
-    fn fractional_token_field_is_a_diagnostic() {
-        let dir = tmp_dir("fractional-token");
-        let sessions = dir.join("sessions");
-        write_sidecar(
-            &sessions,
-            "1770000000000-1770000000000000000-a1b2c3d4e5f60718",
-            snapshot_with_model(|m| {
-                m.insert("input_tokens".into(), Value::from(1.5));
-            }),
-        );
-        assert_only_diagnostic(&sessions);
-        fs::remove_dir_all(&dir).ok();
+    fn malformed_model_aggregates_are_a_diagnostic() {
+        // `None` removes the cell; `Some` overwrites it.
+        let cases = [
+            ("missing required token", "input_tokens", None),
+            ("null required token", "output_tokens", Some(Value::Null)),
+            ("string token", "cache_read_tokens", Some(Value::from("12"))),
+            (
+                "negative token",
+                "cache_write_tokens",
+                Some(Value::from(-1)),
+            ),
+            ("fractional token", "input_tokens", Some(Value::from(1.5))),
+            ("blank model name", "model", Some(Value::from("   "))),
+            ("missing model cell", "model", None),
+            (
+                "malformed request count",
+                "request_count",
+                Some(Value::from("many")),
+            ),
+        ];
+        for (name, field, replacement) in cases {
+            let dir = scratch_dir("bad-aggregate");
+            let sessions = dir.join("sessions");
+            write_sidecar(
+                &sessions,
+                "1770000000000-1770000000000000000-a1b2c3d4e5f60718",
+                snapshot_with_model(|m| match replacement {
+                    Some(v) => {
+                        m.insert(field.into(), v);
+                    }
+                    None => {
+                        m.remove(field);
+                    }
+                }),
+            );
+            assert_only_diagnostic(&sessions, name);
+            fs::remove_dir_all(&dir).ok();
+        }
     }
 
     #[test]
     fn overflowing_token_field_is_a_diagnostic() {
-        let dir = tmp_dir("overflow-token");
+        let dir = scratch_dir("overflow-token");
         let sessions = dir.join("sessions");
         let session_id = "1770000000000-1770000000000000000-a1b2c3d4e5f60718";
         let session_dir = sessions.join(session_id);
@@ -889,58 +862,13 @@ mod tests {
             r#"{{"schema_version":1,"session_id":"{session_id}","snapshot":{{"schema_version":1,"billing":"complete","total_cost":0.02,"models":[{{"model":"openai/gpt-5.4","total_cost":0.02,"input_tokens":18446744073709551616,"output_tokens":4,"cache_read_tokens":0,"cache_write_tokens":0,"reasoning_tokens":0,"request_count":1}}]}}}}"#
         );
         fs::write(session_dir.join(SIDECAR_FILE), raw).unwrap();
-        assert_only_diagnostic(&sessions);
-        fs::remove_dir_all(&dir).ok();
-    }
-
-    #[test]
-    fn blank_model_name_is_a_diagnostic() {
-        let dir = tmp_dir("blank-model");
-        let sessions = dir.join("sessions");
-        write_sidecar(
-            &sessions,
-            "1770000000000-1770000000000000000-a1b2c3d4e5f60718",
-            snapshot_with_model(|m| {
-                m.insert("model".into(), Value::from("   "));
-            }),
-        );
-        assert_only_diagnostic(&sessions);
-        fs::remove_dir_all(&dir).ok();
-    }
-
-    #[test]
-    fn missing_model_cell_is_a_diagnostic() {
-        let dir = tmp_dir("missing-model");
-        let sessions = dir.join("sessions");
-        write_sidecar(
-            &sessions,
-            "1770000000000-1770000000000000000-a1b2c3d4e5f60718",
-            snapshot_with_model(|m| {
-                m.remove("model");
-            }),
-        );
-        assert_only_diagnostic(&sessions);
-        fs::remove_dir_all(&dir).ok();
-    }
-
-    #[test]
-    fn malformed_request_count_is_a_diagnostic() {
-        let dir = tmp_dir("bad-request-count");
-        let sessions = dir.join("sessions");
-        write_sidecar(
-            &sessions,
-            "1770000000000-1770000000000000000-a1b2c3d4e5f60718",
-            snapshot_with_model(|m| {
-                m.insert("request_count".into(), Value::from("many"));
-            }),
-        );
-        assert_only_diagnostic(&sessions);
+        assert_only_diagnostic(&sessions, "overflowing_token_field");
         fs::remove_dir_all(&dir).ok();
     }
 
     #[test]
     fn extra_top_level_key_is_a_diagnostic() {
-        let dir = tmp_dir("extra-key");
+        let dir = scratch_dir("extra-key");
         let sessions = dir.join("sessions");
         let session_id = "1770000000000-1770000000000000000-a1b2c3d4e5f60718";
         let session_dir = sessions.join(session_id);
@@ -952,29 +880,13 @@ mod tests {
             "extra": true,
         });
         fs::write(session_dir.join(SIDECAR_FILE), envelope.to_string()).unwrap();
-        assert_only_diagnostic(&sessions);
-        fs::remove_dir_all(&dir).ok();
-    }
-
-    #[test]
-    fn missing_snapshot_schema_version_is_a_diagnostic() {
-        let dir = tmp_dir("no-inner-version");
-        let sessions = dir.join("sessions");
-        write_sidecar(
-            &sessions,
-            "1770000000000-1770000000000000000-a1b2c3d4e5f60718",
-            serde_json::json!({
-                "billing": "complete",
-                "models": []
-            }),
-        );
-        assert_only_diagnostic(&sessions);
+        assert_only_diagnostic(&sessions, "extra_top_level_key");
         fs::remove_dir_all(&dir).ok();
     }
 
     #[test]
     fn session_id_directory_mismatch_is_a_diagnostic() {
-        let dir = tmp_dir("dir-mismatch");
+        let dir = scratch_dir("dir-mismatch");
         let sessions = dir.join("sessions");
         let dir_name = "1770000000000-1770000000000000000-a1b2c3d4e5f60718";
         let session_dir = sessions.join(dir_name);
@@ -985,63 +897,50 @@ mod tests {
             "snapshot": { "schema_version": 1, "billing": "complete", "models": [] },
         });
         fs::write(session_dir.join(SIDECAR_FILE), envelope.to_string()).unwrap();
-        assert_only_diagnostic(&sessions);
+        assert_only_diagnostic(&sessions, "session_id_directory_mismatch");
         fs::remove_dir_all(&dir).ok();
     }
 
     #[test]
-    fn absent_models_is_a_diagnostic() {
-        let dir = tmp_dir("no-models");
-        let sessions = dir.join("sessions");
-        write_sidecar(
-            &sessions,
-            "1770000000000-1770000000000000000-a1b2c3d4e5f60718",
-            serde_json::json!({
-                "schema_version": 1,
-                "billing": "complete"
-            }),
-        );
-        assert_only_diagnostic(&sessions);
-        fs::remove_dir_all(&dir).ok();
-    }
-
-    #[test]
-    fn non_array_models_is_a_diagnostic() {
-        let dir = tmp_dir("models-not-array");
-        let sessions = dir.join("sessions");
-        write_sidecar(
-            &sessions,
-            "1770000000000-1770000000000000000-a1b2c3d4e5f60718",
-            serde_json::json!({
-                "schema_version": 1,
-                "billing": "complete",
-                "models": { "model": "openai/gpt-5.4" }
-            }),
-        );
-        assert_only_diagnostic(&sessions);
-        fs::remove_dir_all(&dir).ok();
-    }
-
-    #[test]
-    fn unknown_billing_is_a_diagnostic() {
-        let dir = tmp_dir("unknown-billing");
-        let sessions = dir.join("sessions");
-        write_sidecar(
-            &sessions,
-            "1770000000000-1770000000000000000-a1b2c3d4e5f60718",
-            serde_json::json!({
-                "schema_version": 1,
-                "billing": "mystery",
-                "models": []
-            }),
-        );
-        assert_only_diagnostic(&sessions);
-        fs::remove_dir_all(&dir).ok();
+    fn malformed_snapshots_are_a_diagnostic() {
+        let cases = [
+            (
+                "missing snapshot schema version",
+                serde_json::json!({ "billing": "complete", "models": [] }),
+            ),
+            (
+                "absent models",
+                serde_json::json!({ "schema_version": 1, "billing": "complete" }),
+            ),
+            (
+                "non-array models",
+                serde_json::json!({
+                    "schema_version": 1,
+                    "billing": "complete",
+                    "models": { "model": "openai/gpt-5.4" }
+                }),
+            ),
+            (
+                "unknown billing",
+                serde_json::json!({ "schema_version": 1, "billing": "mystery", "models": [] }),
+            ),
+        ];
+        for (name, snapshot) in cases {
+            let dir = scratch_dir("bad-snapshot");
+            let sessions = dir.join("sessions");
+            write_sidecar(
+                &sessions,
+                "1770000000000-1770000000000000000-a1b2c3d4e5f60718",
+                snapshot,
+            );
+            assert_only_diagnostic(&sessions, name);
+            fs::remove_dir_all(&dir).ok();
+        }
     }
 
     #[test]
     fn invalid_session_dir_name_is_a_diagnostic() {
-        let dir = tmp_dir("bad-dir-name");
+        let dir = scratch_dir("bad-dir-name");
         let sessions = dir.join("sessions");
         let dir_name = "not-a-valid-id";
         let session_dir = sessions.join(dir_name);
@@ -1052,13 +951,13 @@ mod tests {
             "snapshot": { "schema_version": 1, "billing": "complete", "models": [] },
         });
         fs::write(session_dir.join(SIDECAR_FILE), envelope.to_string()).unwrap();
-        assert_only_diagnostic(&sessions);
+        assert_only_diagnostic(&sessions, "invalid_session_dir_name");
         fs::remove_dir_all(&dir).ok();
     }
 
     #[test]
     fn nested_sidecar_is_ignored_and_does_not_shift_ordinals() {
-        let dir = tmp_dir("nested");
+        let dir = scratch_dir("nested");
         let sessions = dir.join("sessions");
         let session_id = "1770000000000-1770000000000000000-a1b2c3d4e5f60718";
         write_sidecar(&sessions, session_id, snapshot_with_model(|_| {}));
@@ -1079,6 +978,218 @@ mod tests {
             format!("{session_id}:openai/gpt-5.4")
         );
         assert!(expected.ends_with("usage-v2.json"));
+        fs::remove_dir_all(&dir).ok();
+    }
+
+    fn write_v2_log(sessions: &Path, session_id: &str, lines: &[&str]) {
+        let dir = sessions.join("v2").join(session_id);
+        fs::create_dir_all(&dir).unwrap();
+        fs::write(dir.join(V2_LOG_FILE), lines.join("\n") + "\n").unwrap();
+    }
+
+    const V2_CREATED: &str = r#"{"v":1,"seq":1,"ts":1793564111921,"kind":"session_created","id":"vi5FAUzM30R7","workspace":"/work/p-limit","role":"root","host":"ask","crc":"d019f95a"}"#;
+    const V2_PREFS: &str = r#"{"v":1,"seq":2,"ts":1793564075976,"kind":"set","key":"prefs","value":{"provider":{"name":"local","binding":"845ca1b6"},"model":"qwen","effort":"auto","fast_mode":false},"crc":"97be1ae5"}"#;
+    const V2_USAGE: &str = r#"{"v":1,"seq":5,"ts":1793564111920,"kind":"set","key":"usage","value":{"input_tokens":9016,"output_tokens":17,"cache_read_tokens":null,"cache_write_tokens":null,"reasoning_tokens":null},"crc":"d7666434"}"#;
+    const V2_COMMIT: &str =
+        r#"{"v":1,"seq":11,"ts":1793564111925,"kind":"turn_committed","turn":1,"crc":"b863673d"}"#;
+    const V2_TITLE: &str = r#"{"v":1,"seq":12,"ts":1793564111923,"kind":"set","key":"title","value":"What does index.js in this project export? Answer","crc":"1ad98e57"}"#;
+
+    #[test]
+    fn v2_log_yields_one_event_per_usage_record() {
+        let dir = scratch_dir("v2-log");
+        let sessions = dir.join("sessions");
+        write_v2_log(
+            &sessions,
+            "vi5FAUzM30R7",
+            &[V2_CREATED, V2_PREFS, V2_USAGE, V2_COMMIT, V2_TITLE],
+        );
+        let result = read_fx(&sessions);
+        assert!(result.skipped.is_empty(), "{:?}", result.skipped);
+        assert_eq!(result.events.len(), 1);
+        let event = &result.events[0];
+        assert_eq!(event.session_id, "vi5FAUzM30R7");
+        assert_eq!(event.message_id, "vi5FAUzM30R7:3");
+        assert_eq!(event.model, "qwen");
+        assert_eq!(event.timestamp, "2026-11-01T20:15:11.920Z");
+        assert_eq!(event.tokens.input, 9016);
+        assert_eq!(event.tokens.output, 17);
+        assert_eq!(event.tokens.cache_read, 0);
+        assert_eq!(event.tokens.cache_write, 0);
+        assert_eq!(event.tokens.reasoning, 0);
+        assert_eq!(event.calls, Some(1));
+        assert!(event.turn);
+        assert_eq!(event.workspace.as_deref(), Some("/work/p-limit"));
+        assert_eq!(
+            event.title.as_deref(),
+            Some("What does index.js in this project export? Answer")
+        );
+        fs::remove_dir_all(&dir).ok();
+    }
+
+    #[test]
+    fn v2_log_without_a_usage_snapshot_is_silent() {
+        let dir = scratch_dir("v2-no-usage");
+        let sessions = dir.join("sessions");
+        write_v2_log(&sessions, "vi5FAUzM30R7", &[V2_CREATED, V2_PREFS]);
+        let result = read_fx(&sessions);
+        assert!(result.events.is_empty());
+        assert!(result.skipped.is_empty());
+        fs::remove_dir_all(&dir).ok();
+    }
+
+    #[test]
+    fn v2_log_books_each_restatement_as_the_delta_from_the_previous_one() {
+        let dir = scratch_dir("v2-deltas");
+        let sessions = dir.join("sessions");
+        let later = r#"{"v":1,"seq":4,"ts":1793564125166,"kind":"set","key":"usage","value":{"input_tokens":36314,"output_tokens":99,"cache_read_tokens":null,"cache_write_tokens":null,"reasoning_tokens":null},"crc":"0a0a0a0a"}"#;
+        let reset = r#"{"v":1,"seq":6,"ts":1793564130000,"kind":"set","key":"usage","value":{"input_tokens":5,"output_tokens":1,"cache_read_tokens":null,"cache_write_tokens":null,"reasoning_tokens":null},"crc":"0b0b0b0b"}"#;
+        write_v2_log(
+            &sessions,
+            "vi5FAUzM30R7",
+            &[
+                V2_CREATED, V2_PREFS, V2_USAGE, later, V2_COMMIT, later, reset,
+            ],
+        );
+        let result = read_fx(&sessions);
+        assert!(result.skipped.is_empty(), "{:?}", result.skipped);
+        let got: Vec<(u64, u64, &str, bool)> = result
+            .events
+            .iter()
+            .map(|e| {
+                (
+                    e.tokens.input,
+                    e.tokens.output,
+                    e.timestamp.as_str(),
+                    e.turn,
+                )
+            })
+            .collect();
+        assert_eq!(
+            got,
+            [
+                (9016, 17, "2026-11-01T20:15:11.920Z", false),
+                (27298, 82, "2026-11-01T20:15:25.166Z", true),
+                (5, 1, "2026-11-01T20:15:30.000Z", false),
+            ]
+        );
+        assert!(result.events.iter().all(|e| e.calls == Some(1)));
+        fs::remove_dir_all(&dir).ok();
+    }
+
+    #[test]
+    fn v2_log_malformed_later_usage_keeps_the_earlier_events_and_warns() {
+        let dir = scratch_dir("v2-later-malformed");
+        let sessions = dir.join("sessions");
+        let bad_usage = r#"{"v":1,"seq":9,"ts":1793564125166,"kind":"set","key":"usage","value":{"input_tokens":"x","output_tokens":2},"crc":"00000000"}"#;
+        write_v2_log(
+            &sessions,
+            "vi5FAUzM30R7",
+            &[V2_CREATED, V2_PREFS, V2_USAGE, bad_usage],
+        );
+        let result = read_fx(&sessions);
+        assert_eq!(result.events.len(), 1);
+        assert_eq!(result.events[0].tokens.input, 9016);
+        assert_eq!(result.skipped.len(), 1, "{:?}", result.skipped);
+        assert!(
+            result.skipped[0].ends_with("log.jsonl:4"),
+            "{}",
+            result.skipped[0]
+        );
+        fs::remove_dir_all(&dir).ok();
+    }
+
+    #[test]
+    fn v2_log_that_is_not_utf8_is_a_skipped_file() {
+        let dir = scratch_dir("v2-not-utf8");
+        let sessions = dir.join("sessions");
+        write_v2_log(&sessions, "vi5FAUzM30R7", &[V2_CREATED, V2_PREFS, V2_USAGE]);
+        let log = sessions.join("v2").join("vi5FAUzM30R7").join(V2_LOG_FILE);
+        let mut bytes = fs::read(&log).unwrap();
+        bytes.extend_from_slice(b"\xff\xfe{\n");
+        fs::write(&log, bytes).unwrap();
+        let result = read_fx(&sessions);
+        assert!(result.events.is_empty());
+        assert_eq!(result.skipped.len(), 1, "{:?}", result.skipped);
+        assert!(
+            result.skipped[0].ends_with("log.jsonl"),
+            "{}",
+            result.skipped[0]
+        );
+        assert_eq!(result.warnings.len(), 1);
+        fs::remove_dir_all(&dir).ok();
+    }
+
+    #[test]
+    fn sidecar_and_v2_sessions_in_one_profile_both_yield_events() {
+        let dir = scratch_dir("mixed-layouts");
+        let sessions = dir.join("sessions");
+        write_sidecar(
+            &sessions,
+            "1770000000000-1770000000000000000-a1b2c3d4e5f60718",
+            serde_json::json!({
+                "schema_version": 1,
+                "billing": "complete",
+                "total_cost": 0.03,
+                "input_tokens": 20,
+                "output_tokens": 8,
+                "cache_read_tokens": 4,
+                "cache_write_tokens": 2,
+                "reasoning_tokens": 4,
+                "request_count": 1,
+                "models": [{
+                    "model": "openai/gpt-5.4",
+                    "total_cost": 0.03,
+                    "input_tokens": 20,
+                    "output_tokens": 8,
+                    "cache_read_tokens": 4,
+                    "cache_write_tokens": 2,
+                    "reasoning_tokens": 4,
+                    "request_count": 1
+                }]
+            }),
+        );
+        write_v2_log(&sessions, "vi5FAUzM30R7", &[V2_CREATED, V2_PREFS, V2_USAGE]);
+        let result = read_fx(&sessions);
+        assert!(result.skipped.is_empty(), "{:?}", result.skipped);
+        let mut ids: Vec<&str> = result
+            .events
+            .iter()
+            .map(|e| e.session_id.as_str())
+            .collect();
+        ids.sort_unstable();
+        assert_eq!(
+            ids,
+            [
+                "1770000000000-1770000000000000000-a1b2c3d4e5f60718",
+                "vi5FAUzM30R7"
+            ]
+        );
+        fs::remove_dir_all(&dir).ok();
+    }
+
+    #[test]
+    fn v2_log_malformed_usage_or_line_is_a_diagnostic() {
+        let dir = scratch_dir("v2-malformed");
+        let sessions = dir.join("sessions");
+        let bad_usage = r#"{"v":1,"seq":5,"ts":1793564111920,"kind":"set","key":"usage","value":{"input_tokens":"9016","output_tokens":17},"crc":"00000000"}"#;
+        write_v2_log(
+            &sessions,
+            "vi5FAUzM30R7",
+            &[V2_CREATED, "not json", bad_usage],
+        );
+        let result = read_fx(&sessions);
+        assert!(result.events.is_empty());
+        assert_eq!(result.skipped.len(), 2, "{:?}", result.skipped);
+        assert!(
+            result.skipped[0].ends_with("log.jsonl:2"),
+            "{}",
+            result.skipped[0]
+        );
+        assert!(
+            result.skipped[1].ends_with("log.jsonl:3"),
+            "{}",
+            result.skipped[1]
+        );
         fs::remove_dir_all(&dir).ok();
     }
 }

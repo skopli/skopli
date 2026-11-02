@@ -1,0 +1,71 @@
+{
+  "schema_version": 1,
+  "events": [
+    {
+      "harness": "qwen",
+      "messageId": ".qwen/projects/-home-user-project/chats/f433a57a-b547-457b-9891-daba547ee919.jsonl:5",
+      "model": "qwen",
+      "sessionId": "f433a57a-b547-457b-9891-daba547ee919",
+      "subagent": false,
+      "timestamp": "2026-10-25T12:24:47.995Z",
+      "tokens": {
+        "cacheRead": 5,
+        "cacheWrite": 0,
+        "input": 11685,
+        "output": 73,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "qwen",
+      "messageId": ".qwen/projects/-home-user-project/chats/f433a57a-b547-457b-9891-daba547ee919.jsonl:11",
+      "model": "qwen",
+      "sessionId": "f433a57a-b547-457b-9891-daba547ee919",
+      "subagent": false,
+      "timestamp": "2026-10-25T12:24:54.380Z",
+      "tokens": {
+        "cacheRead": 11609,
+        "cacheWrite": 0,
+        "input": 11785,
+        "output": 54,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "qwen",
+      "messageId": ".qwen/projects/-home-user-project/chats/f433a57a-b547-457b-9891-daba547ee919.jsonl:17",
+      "model": "qwen",
+      "sessionId": "f433a57a-b547-457b-9891-daba547ee919",
+      "subagent": false,
+      "timestamp": "2026-10-25T12:24:59.941Z",
+      "tokens": {
+        "cacheRead": 11707,
+        "cacheWrite": 0,
+        "input": 11867,
+        "output": 50,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "qwen",
+      "messageId": ".qwen/projects/-home-user-project/chats/f433a57a-b547-457b-9891-daba547ee919.jsonl:23",
+      "model": "qwen",
+      "sessionId": "f433a57a-b547-457b-9891-daba547ee919",
+      "subagent": false,
+      "timestamp": "2026-10-25T12:25:05.021Z",
+      "tokens": {
+        "cacheRead": 11788,
+        "cacheWrite": 0,
+        "input": 11945,
+        "output": 42,
+        "reasoning": 0
+      },
+      "turn": true
+    }
+  ],
+  "diagnostics": [],
+  "skipped": {}
+}

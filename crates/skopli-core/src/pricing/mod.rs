@@ -197,7 +197,7 @@ impl Pricing {
             let result = match_model(model, &catalog.prices, !is_override);
             match result {
                 match_model::MatchResult::Hit { key, price } => {
-                    let has_tiers = price.tiers.as_ref().map(|t| t.len()).unwrap_or(0) > 0;
+                    let is_tiered = price.is_tiered();
                     let hit = PriceHit {
                         model: model.to_owned(),
                         key,
@@ -208,7 +208,7 @@ impl Pricing {
                     // An override hit, or a tiered market hit, wins outright.
                     // A flat market hit is remembered but the search continues,
                     // so a later catalog can still supply a tiered price.
-                    if is_override || has_tiers {
+                    if is_override || is_tiered {
                         return PriceLookup::Hit(hit);
                     }
                     if flat.is_none() {
@@ -264,8 +264,7 @@ impl Pricing {
                         PricingMode::Auto => recorded.unwrap_or(calculated),
                         PricingMode::Calculate => calculated,
                     };
-                    let has_tiers = hit.price.tiers.as_ref().map(|t| t.len()).unwrap_or(0) > 0;
-                    let tier_exposed = has_tiers
+                    let tier_exposed = hit.price.is_tiered()
                         && (entry.events > 1 || entry.calls > 1)
                         && (self.mode == PricingMode::Calculate
                             || (self.mode == PricingMode::Auto && recorded.is_none()));
@@ -376,10 +375,8 @@ impl Pricing {
                 Some(group) if group.all_priced && group.hit.is_some() => {
                     let hit = group.hit.as_ref().unwrap();
                     let single = group.models.len() == 1;
-                    let tier_exposed = group.multi_call
-                        && single
-                        && hit.price.tiers.as_ref().map(|t| t.len()).unwrap_or(0) > 0
-                        && !display;
+                    let tier_exposed =
+                        group.multi_call && single && hit.price.is_tiered() && !display;
                     if single {
                         let model = group
                             .models

@@ -1,0 +1,50 @@
+{
+  "schema_version": 1,
+  "by": {
+    "model": [
+      {
+        "key": "models/qwen2.5-1.5b-instruct-q4_k_m.gguf",
+        "tokens": {
+          "input": 30293,
+          "output": 364,
+          "cacheRead": 89028,
+          "cacheWrite": 0,
+          "reasoning": 0
+        },
+        "events": 5,
+        "turns": 4,
+        "calls": 5
+      }
+    ],
+    "day": [
+      {
+        "key": "2026-10-25",
+        "tokens": {
+          "input": 30293,
+          "output": 364,
+          "cacheRead": 89028,
+          "cacheWrite": 0,
+          "reasoning": 0
+        },
+        "events": 5,
+        "turns": 4,
+        "calls": 5
+      }
+    ],
+    "harness": [
+      {
+        "key": "codebuddy",
+        "tokens": {
+          "input": 30293,
+          "output": 364,
+          "cacheRead": 89028,
+          "cacheWrite": 0,
+          "reasoning": 0
+        },
+        "events": 5,
+        "turns": 4,
+        "calls": 5
+      }
+    ]
+  }
+}

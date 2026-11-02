@@ -9,6 +9,7 @@
 
 require "json"
 require "minitest/autorun"
+require "minitest/mock"
 
 require "skopli"
 
@@ -440,6 +441,24 @@ class LifecycleConformanceTest < Minitest::Test
       assert_equal false, cached["stale"]
       assert_equal request["fetchedAtFetched"], cached["fetchedAt"]
     end
+  end
+
+  def test_create_pricing_sends_camel_case_builtin_sources
+    source, payload = builtin_source(lifecycle("request.json"))
+    sent = []
+    native_new = Skopli::NativePricing.method(:new)
+    recording = lambda do |opts_json|
+      sent << JSON.parse(opts_json)
+      native_new.call(opts_json)
+    end
+    Dir.mktmpdir do |dir|
+      Skopli::NativePricing.stub(:new, recording) do
+        Skopli.create_pricing(sources: [source], cache_dir: dir, fetch: ->(_url) { payload })
+      end
+    end
+
+    assert_equal [false, false], sent.map { |opts| opts["builtinSources"] }
+    refute sent.any? { |opts| opts.key?("builtin_sources") }
   end
 end
 

@@ -1,0 +1,75 @@
+{
+  "schema_version": 1,
+  "events": [
+    {
+      "harness": "reasonix",
+      "messageId": "AppData/Roaming/reasonix/projects/home-user-project/sessions/20261101-211634.294176000-qwen.jsonl.telemetry.json",
+      "model": "llama/qwen",
+      "sessionId": "20261101-211634.294176000-qwen",
+      "subagent": false,
+      "timestamp": "2026-11-01T21:16:36.893Z",
+      "title": "What does index.js export? One sentence.",
+      "tokens": {
+        "cacheRead": 7452,
+        "cacheWrite": 0,
+        "input": 25,
+        "output": 30,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "reasonix",
+      "messageId": "AppData/Roaming/reasonix/projects/home-user-project/sessions/20261101-211638.204175800-qwen.jsonl.telemetry.json",
+      "model": "llama/qwen",
+      "sessionId": "20261101-211638.204175800-qwen",
+      "subagent": false,
+      "timestamp": "2026-11-01T21:16:44.738Z",
+      "title": "What does index.js export? One sentence. Then name the test runner used in pa…",
+      "tokens": {
+        "cacheRead": 14941,
+        "cacheWrite": 0,
+        "input": 160,
+        "output": 73,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "reasonix",
+      "messageId": "AppData/Roaming/reasonix/projects/home-user-project/sessions/20261101-211646.607153400-qwen.jsonl.telemetry.json",
+      "model": "llama/qwen",
+      "sessionId": "20261101-211646.607153400-qwen",
+      "subagent": false,
+      "timestamp": "2026-11-01T21:16:58.822Z",
+      "title": "What does index.js export? One sentence. Then say in one sentence what the co…",
+      "tokens": {
+        "cacheRead": 7454,
+        "cacheWrite": 0,
+        "input": 34,
+        "output": 174,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "reasonix",
+      "messageId": "AppData/Roaming/reasonix/projects/home-user-project/sessions/20261101-211700.997040400-qwen.jsonl.telemetry.json",
+      "model": "llama/qwen",
+      "sessionId": "20261101-211700.997040400-qwen",
+      "subagent": false,
+      "timestamp": "2026-11-01T21:17:12.919Z",
+      "title": "What does index.js export? One sentence. Then list the files in the repositor…",
+      "tokens": {
+        "cacheRead": 14942,
+        "cacheWrite": 0,
+        "input": 148,
+        "output": 153,
+        "reasoning": 0
+      },
+      "turn": true
+    }
+  ],
+  "diagnostics": [],
+  "skipped": {}
+}
