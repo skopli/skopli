@@ -4,7 +4,7 @@ This guide records the external account configuration and credential maintenance
 It contains no secret values and is safe to keep under version control.
 
 This repository is currently LOCAL-ONLY.
-Every publish job in `.github/workflows/release.yml` is gated on the repo variable `PUBLISH_ENABLED == 'true'` and on a per-registry secret that does not exist, so nothing can publish until a real repository is deliberately configured.
+Every publish job in `.github/workflows/release.yml` is gated on the repo variable `PUBLISH_ENABLED == 'true'`, and each registry's trusted publisher is not yet configured, so nothing can publish until a real repository is deliberately configured.
 The GitHub release is always created as a draft; a human publishes it.
 
 The permanent home is a GitHub organization (`github.com/skopli`, falling back to `skopli-dev`), created before the first release.
@@ -87,7 +87,7 @@ npm view "skopli@$version" --json dist.attestations \
 
 ### PyPI
 
-Replace the `MATURIN_PYPI_TOKEN` upload with `pypa/gh-action-pypi-publish@release/v1` + `id-token: write`, or keep maturin upload with a project-scoped API token.
+The `publish-pypi` job uploads the maturin wheels and sdist with `pypa/gh-action-pypi-publish` + `id-token: write`; no API token is stored.
 Configure a "pending" trusted publisher on pypi.org before the first release (pending publishers allow the very first upload):
 
 | Field             | Value         |
@@ -122,7 +122,7 @@ Do not grant `change-owners`, `yank`, or `trusted-publishing`.
 ### RubyGems
 
 The gem is `skopli` (built from `crates/skopli-ruby`, rb-sys/magnus).
-Replace `gem push` + `RUBYGEMS_API_KEY` with `rubygems/release-gem@v1` + `id-token: write`.
+The `publish-rubygems` job runs `rubygems/configure-rubygems-credentials` + `id-token: write`, then `gem push`; no API key is stored.
 RubyGems trusted publishing supports a "pending" publisher for a gem name that has never been pushed - configure it before the first release with owner `skopli`, repository `skopli`, workflow `release.yml`.
 
 Decide before v1: source gem (compiles on `gem install`, current setup) vs precompiled native gems (rb-sys cross-gem matrix, multiplies the build matrix).
@@ -130,7 +130,7 @@ Decide before v1: source gem (compiles on `gem install`, current setup) vs preco
 ### NuGet
 
 The package is `Skopli` (`sdks/csharp/Skopli`).
-Replace the `NUGET_API_KEY` push with `NuGet/login@v1` (OIDC → one-hour temporary API key) followed by `dotnet nuget push`.
+The `publish-nuget` job runs `NuGet/login` (OIDC exchanged for a one-hour temporary API key) followed by `dotnet nuget push`; no API key is stored.
 Configure the trusted-publishing policy on nuget.org for owner `skopli`, repository `skopli`, workflow `release.yml`.
 A successful push still goes through nuget.org validation before listing.
 
@@ -185,14 +185,10 @@ Add a post-release smoke job that runs `swift build` against the fresh tag.
 
 ## Setting secrets
 
-Only needed for channels not yet migrated to OIDC.
+Only Maven Central, the one channel without OIDC, needs stored secrets.
 Let `gh` prompt so values do not enter shell history:
 
 ```sh
-gh secret set PYPI_TOKEN --repo skopli/skopli
-gh secret set CARGO_REGISTRY_TOKEN --repo skopli/skopli
-gh secret set RUBYGEMS_API_KEY --repo skopli/skopli
-gh secret set NUGET_API_KEY --repo skopli/skopli
 gh secret set MAVEN_CENTRAL_USERNAME --repo skopli/skopli
 gh secret set MAVEN_CENTRAL_PASSWORD --repo skopli/skopli
 gh secret set MAVEN_GPG_PASSPHRASE --repo skopli/skopli
