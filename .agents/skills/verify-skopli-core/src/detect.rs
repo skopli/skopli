@@ -61,11 +61,7 @@ pub const MARKERS: &[Marker] = &[
     dir("mimocode", ".local/share/mimocode/storage"),
     file("mimocode", ".local/share/mimocode/opencode.db"),
     file("mimocode", ".local/share/mimocode/mimocode.db"),
-    dir("commandcode", ".local/share/commandcode/storage"),
-    dir(
-        "commandcode",
-        "Library/Application Support/CommandCode/storage",
-    ),
+    dir("commandcode", ".commandcode/projects"),
     dir("codex", ".codex/sessions"),
     dir("codex", ".codex/archived_sessions"),
     dir("gemini", ".gemini/tmp"),
@@ -377,10 +373,6 @@ pub const SIBLING_ROOTS: &[(&str, &str)] = &[
     (
         ".config/CherryStudio/Data/cherrystudio.sqlite",
         "Library/Application Support/CherryStudio/Data/cherrystudio.sqlite",
-    ),
-    (
-        ".local/share/commandcode",
-        "Library/Application Support/CommandCode",
     ),
     (
         ".local/share/goose/sessions/sessions.db",

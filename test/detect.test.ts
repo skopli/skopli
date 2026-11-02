@@ -263,64 +263,16 @@ describe("detectHarnesses mimocode roots", () => {
   });
 });
 
-// Command Code is an opencode fork under the `commandcode` app dir.
-// XDG_DATA_HOME resolves to <xdg>/commandcode, and the default candidate set
-// covers the per-OS data dirs used by Command Code plus the Windows LOCALAPPDATA
-// candidate; detection keys on a `storage/` subdir.
+// Command Code keeps one transcript per session under ~/.commandcode/projects/
+// <cwd-slug>/<session-uuid>.jsonl; detection keys on the `projects/` dir.
 
 describe("detectHarnesses commandcode roots", () => {
-  it("resolves XDG_DATA_HOME to <xdg>/commandcode/storage", () => {
-    const home = makeHome();
-    const xdg = mkdtempSync(join(tmpdir(), "skopli-cc-xdg-"));
-    try {
-      mkdirSync(join(xdg, "commandcode", "storage"), { recursive: true });
-      const resolver = createPathResolver({ home, env: { XDG_DATA_HOME: xdg } });
-      expect(detectHarnesses(resolver).supported).toContain("commandcode");
-    } finally {
-      rmSync(home, { recursive: true, force: true });
-      rmSync(xdg, { recursive: true, force: true });
-    }
-  });
-
-  it("prefers XDG_DATA_HOME over the default per-OS candidates", () => {
-    const home = makeHome();
-    const xdg = mkdtempSync(join(tmpdir(), "skopli-cc-xdg-win-"));
-    try {
-      // Only the default macOS candidate exists: XDG wins so nothing resolves.
-      mkdirSync(join(home, "Library", "Application Support", "CommandCode", "storage"), {
-        recursive: true,
-      });
-      const resolver = createPathResolver({ home, env: { XDG_DATA_HOME: xdg } });
-      expect(detectHarnesses(resolver).supported).not.toContain("commandcode");
-      // Now the XDG candidate exists too and resolution succeeds.
-      mkdirSync(join(xdg, "commandcode", "storage"), { recursive: true });
-      expect(detectHarnesses(resolver).supported).toContain("commandcode");
-    } finally {
-      rmSync(home, { recursive: true, force: true });
-      rmSync(xdg, { recursive: true, force: true });
-    }
-  });
-
-  it("resolves the LOCALAPPDATA candidate <local>/commandcode/storage", () => {
-    const home = makeHome();
-    const local = mkdtempSync(join(tmpdir(), "skopli-cc-local-"));
-    try {
-      mkdirSync(join(local, "commandcode", "storage"), { recursive: true });
-      const resolver = createPathResolver({ home, env: { LOCALAPPDATA: local } });
-      expect(detectHarnesses(resolver).supported).toContain("commandcode");
-    } finally {
-      rmSync(home, { recursive: true, force: true });
-      rmSync(local, { recursive: true, force: true });
-    }
-  });
-
-  it("resolves the default macOS candidate ~/Library/Application Support/CommandCode", () => {
+  it("detects ~/.commandcode/projects", () => {
     const home = makeHome();
     try {
-      mkdirSync(join(home, "Library", "Application Support", "CommandCode", "storage"), {
-        recursive: true,
-      });
       const resolver = createPathResolver({ home, env: {} });
+      expect(detectHarnesses(resolver).supported).not.toContain("commandcode");
+      mkdirSync(join(home, ".commandcode", "projects"), { recursive: true });
       expect(detectHarnesses(resolver).supported).toContain("commandcode");
     } finally {
       rmSync(home, { recursive: true, force: true });

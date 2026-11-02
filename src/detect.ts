@@ -365,19 +365,10 @@ function mimocodeRoots(resolver: PathResolver): string[] {
   return [fallback];
 }
 
-// Command Code resolves the XDG data dir first, then the per-OS data dirs used
-// by Command Code (Linux ~/.local/share/commandcode, macOS ~/Library/
-// Application Support/CommandCode, Windows %LOCALAPPDATA%\commandcode).
-function commandcodeRoots(resolver: PathResolver): string[] {
-  const xdg = resolver.env("XDG_DATA_HOME");
-  if (xdg !== undefined && xdg !== "") return [join(xdg, "commandcode")];
-  const roots = [
-    join(resolver.home(), ".local", "share", "commandcode"),
-    join(resolver.home(), "Library", "Application Support", "CommandCode"),
-  ];
-  const local = resolver.env("LOCALAPPDATA");
-  if (local !== undefined && local !== "") roots.push(join(local, "commandcode"));
-  return roots;
+// Command Code keeps one transcript per session under ~/.commandcode/projects/
+// <cwd-slug>/<session-uuid>.jsonl; the root is derived from HOME alone.
+function commandcodeProjectsRoot(resolver: PathResolver): string {
+  return join(resolver.home(), ".commandcode", "projects");
 }
 
 function piSessionsRoot(resolver: PathResolver): string {
@@ -576,13 +567,7 @@ export function detectHarnesses(resolver: PathResolver = defaultPathResolver): D
   ) {
     supported.push("mimocode");
   }
-  if (
-    commandcodeRoots(resolver).some(
-      (root) => dirExists(join(root, "storage")) || hasDatabase(root, "commandcode"),
-    )
-  ) {
-    supported.push("commandcode");
-  }
+  if (dirExists(commandcodeProjectsRoot(resolver))) supported.push("commandcode");
   if (
     dirExists(join(codexRoot(resolver), "sessions")) ||
     dirExists(join(codexRoot(resolver), "archived_sessions"))

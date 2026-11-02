@@ -1,0 +1,92 @@
+{
+  "schema_version": 1,
+  "events": [
+    {
+      "harness": "commandcode",
+      "messageId": "a609c53f",
+      "model": "llama/qwen",
+      "sessionId": "2f9d7136-319c-4498-a007-aa6490b9c0d9",
+      "subagent": false,
+      "timestamp": "2026-11-02T19:25:42.425Z",
+      "tokens": {
+        "cacheRead": 6956,
+        "cacheWrite": 0,
+        "input": 7652,
+        "output": 18,
+        "reasoning": 0
+      },
+      "turn": true,
+      "workspace": "/home/user/project"
+    },
+    {
+      "harness": "commandcode",
+      "messageId": "0261f006",
+      "model": "llama/qwen",
+      "sessionId": "2f9d7136-319c-4498-a007-aa6490b9c0d9",
+      "subagent": false,
+      "timestamp": "2026-11-02T19:25:53.246Z",
+      "tokens": {
+        "cacheRead": 14625,
+        "cacheWrite": 0,
+        "input": 63,
+        "output": 51,
+        "reasoning": 0
+      },
+      "turn": true,
+      "workspace": "/home/user/project"
+    },
+    {
+      "harness": "commandcode",
+      "messageId": "efd75842",
+      "model": "llama/qwen",
+      "sessionId": "2f9d7136-319c-4498-a007-aa6490b9c0d9",
+      "subagent": false,
+      "timestamp": "2026-11-02T19:25:59.941Z",
+      "tokens": {
+        "cacheRead": 14738,
+        "cacheWrite": 0,
+        "input": 28,
+        "output": 41,
+        "reasoning": 0
+      },
+      "turn": true,
+      "workspace": "/home/user/project"
+    },
+    {
+      "harness": "commandcode",
+      "messageId": "5a2cd7f9",
+      "model": "llama/qwen",
+      "sessionId": "2f9d7136-319c-4498-a007-aa6490b9c0d9",
+      "subagent": false,
+      "timestamp": "2026-11-02T19:26:09.822Z",
+      "tokens": {
+        "cacheRead": 14806,
+        "cacheWrite": 0,
+        "input": 29,
+        "output": 48,
+        "reasoning": 0
+      },
+      "turn": true,
+      "workspace": "/home/user/project"
+    },
+    {
+      "harness": "commandcode",
+      "messageId": "3cdada64",
+      "model": "llama/qwen",
+      "sessionId": "2f9d7136-319c-4498-a007-aa6490b9c0d9",
+      "subagent": false,
+      "timestamp": "2026-11-02T19:26:21.553Z",
+      "tokens": {
+        "cacheRead": 14882,
+        "cacheWrite": 0,
+        "input": 29,
+        "output": 51,
+        "reasoning": 0
+      },
+      "turn": true,
+      "workspace": "/home/user/project"
+    }
+  ],
+  "diagnostics": [],
+  "skipped": {}
+}

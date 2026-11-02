@@ -57,28 +57,6 @@ impl Reader for MimocodeReader {
     }
 }
 
-/// The Command Code reader wired into the harness registry. Command Code is an
-/// opencode fork storing the same message format under the `commandcode` app
-/// dir, so it shares the opencode logic; only the roots differ (the XDG data
-/// dir `<xdgData>/commandcode`, else the per-OS data dirs used by Command Code
-/// for `commandcode`).
-pub struct CommandcodeReader;
-
-impl Reader for CommandcodeReader {
-    fn harness_id(&self) -> &'static str {
-        "commandcode"
-    }
-
-    fn read(&self, ctx: &ReaderContext) -> ReaderResult {
-        let roots = commandcode_roots(
-            ctx.env("XDG_DATA_HOME"),
-            ctx.env("LOCALAPPDATA"),
-            ctx.home(),
-        );
-        read_opencode(&roots, "commandcode")
-    }
-}
-
 /// Resolve the opencode data roots.
 pub fn opencode_roots(
     data_dir: Option<&str>,
@@ -125,31 +103,6 @@ pub fn mimocode_roots(
         return vec![PathBuf::from(v).join("mimocode"), default];
     }
     vec![default]
-}
-
-/// Resolve the Command Code data roots: the XDG data dir
-/// (`<xdgData>/commandcode`), else the per-OS data dirs used by Command Code
-/// (Linux `~/.local/share/commandcode`, macOS `~/Library/Application
-/// Support/CommandCode`, and the Windows `%LOCALAPPDATA%\commandcode`
-/// candidate).
-pub fn commandcode_roots(
-    xdg_data_home: Option<&str>,
-    local_app_data: Option<&str>,
-    home: &Path,
-) -> Vec<PathBuf> {
-    if let Some(v) = xdg_data_home.filter(|v| !v.is_empty()) {
-        return vec![PathBuf::from(v).join("commandcode")];
-    }
-    let mut roots = vec![
-        home.join(".local").join("share").join("commandcode"),
-        home.join("Library")
-            .join("Application Support")
-            .join("CommandCode"),
-    ];
-    if let Some(v) = local_app_data.filter(|v| !v.is_empty()) {
-        roots.push(PathBuf::from(v).join("commandcode"));
-    }
-    roots
 }
 
 #[derive(Clone, Default)]
@@ -831,64 +784,6 @@ mod tests {
         assert_eq!(
             roots,
             vec![test_home().join(".local").join("share").join("mimocode")]
-        );
-    }
-
-    #[test]
-    fn commandcode_xdg_data_home_appends_app_dir() {
-        let roots = commandcode_roots(Some("/xdg/data"), None, &test_home());
-        assert_eq!(roots, vec![PathBuf::from("/xdg/data").join("commandcode")]);
-    }
-
-    #[test]
-    fn commandcode_xdg_wins_over_local_app_data() {
-        let roots = commandcode_roots(Some("/xdg/data"), Some("/local"), &test_home());
-        assert_eq!(roots, vec![PathBuf::from("/xdg/data").join("commandcode")]);
-    }
-
-    #[test]
-    fn commandcode_default_candidates_include_all_os_dirs() {
-        let roots = commandcode_roots(None, Some("/local"), &test_home());
-        assert_eq!(
-            roots,
-            vec![
-                test_home().join(".local").join("share").join("commandcode"),
-                test_home()
-                    .join("Library")
-                    .join("Application Support")
-                    .join("CommandCode"),
-                PathBuf::from("/local").join("commandcode"),
-            ]
-        );
-    }
-
-    #[test]
-    fn commandcode_default_without_local_app_data() {
-        let roots = commandcode_roots(None, None, &test_home());
-        assert_eq!(
-            roots,
-            vec![
-                test_home().join(".local").join("share").join("commandcode"),
-                test_home()
-                    .join("Library")
-                    .join("Application Support")
-                    .join("CommandCode"),
-            ]
-        );
-    }
-
-    #[test]
-    fn commandcode_empty_xdg_falls_through_to_default() {
-        let roots = commandcode_roots(Some(""), None, &test_home());
-        assert_eq!(
-            roots,
-            vec![
-                test_home().join(".local").join("share").join("commandcode"),
-                test_home()
-                    .join("Library")
-                    .join("Application Support")
-                    .join("CommandCode"),
-            ]
         );
     }
 }
