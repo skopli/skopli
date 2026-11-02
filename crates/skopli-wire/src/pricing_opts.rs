@@ -5,11 +5,11 @@
 //!
 //! Seam split: a caller supplies pricing either as programmatic
 //! `overrides`, as pre-fetched `catalogs` (each a source name + optional
-//! fetchedAt + a prices map already in the core catalog grammar, OR a raw source
-//! payload plus its `format`), or as both. A facade that already loaded its
-//! override map as one of the `catalogs` names it with `overrideIndex`
-//! instead. `builtinSources`/`offline`/`maxCacheAgeMs`
-//! steer facade-side fetching, so they are accepted-and-ignored keys here (this
+//! fetchedAt + a prices map already in the core catalog grammar, OR a raw
+//! source payload plus its `format`), or as both. A facade that already
+//! loaded its override map as one of the `catalogs` names it with
+//! `overrideIndex` instead. `builtinSources`/`offline`/`maxCacheAgeMs` steer
+//! facade-side fetching, so they are accepted-and-ignored keys here (this
 //! crate never fetches).
 
 use serde_json::Value;
