@@ -7,8 +7,8 @@
 //! `overrides`, as pre-fetched `catalogs` (each a source name + optional
 //! fetchedAt + a prices map already in the core catalog grammar, OR a raw source
 //! payload plus its `format`), or as both. A facade that already loaded its
-//! override map as one of the `catalogs` (the TS facade does) names it with
-//! `overrideIndex` instead. `builtinSources`/`offline`/`maxCacheAgeMs`
+//! override map as one of the `catalogs` names it with `overrideIndex`
+//! instead. `builtinSources`/`offline`/`maxCacheAgeMs`
 //! steer facade-side fetching, so they are accepted-and-ignored keys here (this
 //! crate never fetches).
 
@@ -50,7 +50,7 @@ pub fn parse_pricing_parts(
     let mut override_index: Option<usize> = None;
 
     // Overrides become the highest-priority catalog (source "override", no
-    // fetchedAt), mirroring the TS createPricing which prepends the override map.
+    // fetchedAt), ahead of every supplied catalog.
     if let Some(overrides) = opts.get("overrides").and_then(Value::as_array)
         && !overrides.is_empty()
     {
