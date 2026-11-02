@@ -66,7 +66,10 @@ pub fn goose_db_paths(
     if let Some(v) = appdata
         && !v.trim().is_empty()
     {
-        paths.push(windows_sessions_db(Path::new(v.trim())));
+        let path = windows_sessions_db(Path::new(v.trim()));
+        if !paths.contains(&path) {
+            paths.push(path);
+        }
     }
     paths
 }
@@ -331,6 +334,14 @@ mod tests {
                 .join("sessions")
                 .join("sessions.db")
         );
+    }
+
+    #[test]
+    fn appdata_under_the_home_is_not_opened_twice() {
+        let home = test_home();
+        let roaming = home.join("AppData").join("Roaming");
+        let paths = goose_db_paths(None, roaming.to_str(), &home);
+        assert_eq!(paths.len(), 4);
     }
 
     #[test]
