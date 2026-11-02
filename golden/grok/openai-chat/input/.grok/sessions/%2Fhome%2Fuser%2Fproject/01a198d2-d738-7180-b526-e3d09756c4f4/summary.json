@@ -16,7 +16,7 @@
   "session_kind": "headless",
   "git_root_dir": "/home/user/project/",
   "git_remotes": [
-    "https://git-manager.devin.ai/proxy/github.com/sindresorhus/p-limit"
+    "https://github.com/sindresorhus/p-limit"
   ],
   "head_commit": "a8a6fbec4e0e866d6d779b10889bb4f5567e70eb",
   "head_branch": "main",

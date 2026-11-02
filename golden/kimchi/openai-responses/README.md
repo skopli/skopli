@@ -8,6 +8,6 @@ Real capture of a multi-turn session, promoted from the harness home directory w
 - Model: local model.
 - Cache numbers: server-reported.
 - Store paths: `.config/kimchi/harness/sessions`.
-- Redaction: user name, home directory, project path, host name and placeholder API keys replaced; path slugs renamed to match; SQLite text columns rewritten in place and the database checkpointed and vacuumed.
+- Redaction: user name, home directory, project path, host name and placeholder API keys replaced; path slugs renamed to match.
 - Events 4, sessions 4, diagnostics 0, skipped 0.
 - Totals: input 10013, output 175, cache read 59941, cache write 0, reasoning 0.

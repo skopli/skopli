@@ -12,3 +12,4 @@ Real capture of a multi-turn session, promoted from the harness home directory w
 - Events 4, sessions 4, diagnostics 0, skipped 0.
 - Totals: input 24427, output 204, cache read 22964, cache write 0, reasoning 0.
 - Grok records the four main requests only; three title requests of about 300 prompt tokens each reached the gateway and have no row.
+- Prompt and system text keep the capture rig's project and temp paths under the redacted profile (`C:/Users/user/harnesses/target/p-limit`, `C:/Users/user/AppData/Local/Temp`); they are conversation text, not stores the reader consumes.

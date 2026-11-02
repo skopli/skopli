@@ -16,6 +16,7 @@ The ground truth for this domain is the third-party applications' real files and
 ## Capture status
 
 Cases named after a wire shape (`<harness>/openai-chat`, `<harness>/anthropic-messages`, `<harness>/openai-responses`) are real captures.
+A `-windows` suffix on the shape (`goose/openai-chat-windows`) marks a real capture of the same shape on Windows whose on-disk layout differs from the Linux case; the case README names the operating system and the differing root or files.
 Each was a multi-turn session of the installed harness against a local `llama-server` behind the verification skill's usage gateway, promoted with `scripts/promote.mjs`, and its README names the gateway, server build, model, cache source and the redaction applied.
 Every other case is a hand-shaped fixture and is not captured; codex, grok, hermes, kimchi and kimi have hand-shaped fixtures that were captured but not promoted because the reader or the store needs a decision first, and now sit beside real wire-shape cases from the Windows run, and their rows say which.
 Where a real capture sits beside a hand-shaped fixture of the same harness, the real capture is authoritative for the harness's current on-disk shape; the hand-shaped fixture stays because it pins an older or alternative layout the reader still supports.

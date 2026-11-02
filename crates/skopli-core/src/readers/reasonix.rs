@@ -132,11 +132,7 @@ fn read_sidecar(
     let parsed = match read_json(file) {
         Some(v) if is_record(&v) => v,
         _ => {
-            let loc = file.to_owned();
-            warnings.push(ReaderWarning {
-                message: format!("skipping malformed {HARNESS} file {loc}\n"),
-            });
-            skipped.push(loc);
+            skip_malformed(file, skipped, warnings);
             return None;
         }
     };
@@ -145,11 +141,7 @@ fn read_sidecar(
         UsageOutcome::Counts(t) => t,
         UsageOutcome::Zero => return None,
         UsageOutcome::Malformed => {
-            let loc = file.to_owned();
-            warnings.push(ReaderWarning {
-                message: format!("skipping malformed {HARNESS} file {loc}\n"),
-            });
-            skipped.push(loc);
+            skip_malformed(file, skipped, warnings);
             return None;
         }
     };
@@ -160,31 +152,19 @@ fn read_sidecar(
         Some(raw) => match date_parse_ms(raw.trim()) {
             Some(ms) => ms,
             None => {
-                let loc = file.to_owned();
-                warnings.push(ReaderWarning {
-                    message: format!("skipping malformed {HARNESS} file {loc}\n"),
-                });
-                skipped.push(loc);
+                skip_malformed(file, skipped, warnings);
                 return None;
             }
         },
         None => {
-            let loc = file.to_owned();
-            warnings.push(ReaderWarning {
-                message: format!("skipping malformed {HARNESS} file {loc}\n"),
-            });
-            skipped.push(loc);
+            skip_malformed(file, skipped, warnings);
             return None;
         }
     };
     let timestamp = match crate::time::to_iso_string(updated_at_ms) {
         Some(ts) => ts,
         None => {
-            let loc = file.to_owned();
-            warnings.push(ReaderWarning {
-                message: format!("skipping malformed {HARNESS} file {loc}\n"),
-            });
-            skipped.push(loc);
+            skip_malformed(file, skipped, warnings);
             return None;
         }
     };

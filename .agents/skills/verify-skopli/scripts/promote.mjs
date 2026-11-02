@@ -94,8 +94,7 @@ const pair = (s) => {
 const dashed = (p) => p.replace(/^\/+/, "").replaceAll("/", "-");
 // The plain form wins when a variant collides with it (a source without "/" has
 // the same dash-joined form), so a Windows path keeps its path target.
-// Windows also spells a profile directory by its 8.3 alias (C:/Users/ADMINI~1 for
-// Administrator), which harnesses copy into temp paths; redact it with the long name.
+// Windows also spells a long profile directory by its 8.3 alias (ADMINI~1 for Administrator).
 const shortName = (from) => {
   const m = /^([A-Za-z]:[\\/]Users[\\/])([^\\/]{9,})$/.exec(from);
   return m ? [`${m[1]}${m[2].slice(0, 6).toUpperCase()}~1`] : [];
@@ -103,9 +102,9 @@ const shortName = (from) => {
 const rules = [
   ...many("--redact")
     .map(pair)
+    .flatMap(([from, to]) => [[from, to], ...shortName(from).map((alias) => [alias, to])])
     .flatMap(([from, to]) => [
       [from, to],
-      ...shortName(from).map((alias) => [alias, to]),
       [dashed(from), dashed(to)],
       [encodeURIComponent(from), encodeURIComponent(to)],
     ])
@@ -285,18 +284,19 @@ const totals = by.harness[0]?.tokens ?? {
   cacheWrite: 0,
   reasoning: 0,
 };
+const sqlite = planned.some((p) => /\.(db|sqlite3?)$/.test(p));
 const readme = [
   `# ${harness} / ${name}`,
   "",
   "Real capture of a multi-turn session, promoted from the harness home directory with the verification skill's promotion script.",
   "",
-  `- Wire shape: ${name}.`,
+  `- Wire shape: ${name.replace(/-(windows|macos)$/, "")}.`,
   `- Gateway: ${one("--gateway", "usage-rewriting gateway in front of a local llama-server")}.`,
   `- Server: ${one("--server", "llama-server")}.`,
   `- Model: ${one("--model", "local model")}.`,
   `- Cache numbers: ${one("--cache", "server-reported")}.`,
   `- Store paths: ${stores.map((s) => `\`${redact(s)}\``).join(", ")}.`,
-  `- Redaction: user name, home directory, project path, host name and placeholder API keys replaced; path slugs renamed to match; SQLite text columns rewritten in place and the database checkpointed and vacuumed.`,
+  `- Redaction: user name, home directory, project path, host name and placeholder API keys replaced; path slugs renamed to match${sqlite ? `; SQLite text columns rewritten in place and the database checkpointed and vacuumed` : ""}.`,
   `- Events ${events.length}, sessions ${new Set(events.map((e) => e.sessionId)).size}, diagnostics ${result.diagnostics.length}, skipped ${Object.values(result.skipped).flat().length}.`,
   `- Totals: input ${totals.input}, output ${totals.output}, cache read ${totals.cacheRead}, cache write ${totals.cacheWrite}, reasoning ${totals.reasoning}.`,
   ...many("--note").map((n) => `- ${n}`),

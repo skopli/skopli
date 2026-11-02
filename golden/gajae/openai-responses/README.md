@@ -8,6 +8,7 @@ Real capture of a multi-turn session, promoted from the harness home directory w
 - Model: local model.
 - Cache numbers: server-reported.
 - Store paths: `.gjc/agent/sessions`.
-- Redaction: user name, home directory, project path, host name and placeholder API keys replaced; path slugs renamed to match; SQLite text columns rewritten in place and the database checkpointed and vacuumed.
+- Redaction: user name, home directory, project path, host name and placeholder API keys replaced; path slugs renamed to match.
 - Events 4, sessions 4, diagnostics 0, skipped 0.
 - Totals: input 5906, output 270, cache read 42288, cache write 0, reasoning 0.
+- Prompt text keeps the capture rig's project path under the redacted profile (`C:/Users/user/harnesses/target/p-limit`); it is conversation text, not a store the reader consumes.

@@ -8,6 +8,6 @@ Real capture of a multi-turn session, promoted from the harness home directory w
 - Model: local model.
 - Cache numbers: server-reported.
 - Store paths: `.kimi-code/sessions`.
-- Redaction: user name, home directory, project path, host name and placeholder API keys replaced; path slugs renamed to match; SQLite text columns rewritten in place and the database checkpointed and vacuumed.
+- Redaction: user name, home directory, project path, host name and placeholder API keys replaced; path slugs renamed to match.
 - Events 4, sessions 4, diagnostics 0, skipped 0.
 - Totals: input 0, output 366, cache read 54492, cache write 662, reasoning 0.

@@ -2,7 +2,7 @@
 
 Real capture of a multi-turn session, promoted from the harness home directory with the verification skill's promotion script.
 
-- Wire shape: openai-chat-windows.
+- Wire shape: openai-chat.
 - Gateway: usage-rewriting gateway in front of a local llama-server.
 - Server: llama-server b11720 (Windows x64, CPU only), 2 slots, prompt cache on.
 - Model: local model.
