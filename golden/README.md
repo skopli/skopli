@@ -112,8 +112,10 @@ A hand-shaped fixture with no real neighbour stays until a real capture exists; 
 | prime | openai-responses | captured | real multi-turn session, see the case README | this case |
 | qwen | basic | not captured | hand-shaped single chat | qwen/openai-chat |
 | qwen | openai-chat | captured | real multi-turn session, see the case README | this case |
+| reasonix | anthropic-messages | captured | real multi-turn session, see the case README; Linux store `.reasonix/stats` ledger beside `.reasonix/projects` | this case |
 | reasonix | anthropic-messages-windows | captured | real multi-turn session, see the case README; Windows store `AppData/Roaming/reasonix/projects` with telemetry sidecars | this case |
-| reasonix | basic | not captured | reader gap: the installed harness writes `.reasonix/stats/<date>.jsonl` rows while the reader targets `.reasonix/projects/...` | reasonix/openai-chat-windows, reasonix/anthropic-messages-windows |
+| reasonix | basic | not captured | hand-shaped `.acp.json` sidecar set for a home without a `stats/` ledger; pins the one-event-per-session fallback | reasonix/openai-chat, reasonix/anthropic-messages |
+| reasonix | openai-chat | captured | real multi-turn session, see the case README; Linux store `.reasonix/stats` ledger beside `.reasonix/projects` | this case |
 | reasonix | openai-chat-windows | captured | real multi-turn session, see the case README; Windows store `AppData/Roaming/reasonix/projects` with telemetry sidecars | this case |
 | roo | basic | not captured | capture layout gap: the CLI writes `.vscode-mock/global-storage/tasks/<id>/` while the reader roots at the editor extension's `globalStorage`; relocated by hand the reader yields 2 events | none; this fixture stays until a real capture exists |
 | trae | anthropic-messages | captured | real four-run capture, see the case README; reader gap filed there: naive local timestamps are booked as UTC | this case |

@@ -1,0 +1,8 @@
+{"ts":"2026-11-02T19:41:05.792191248Z","model":"qwen/qwen","source":"cli","prompt":6175,"completion":58,"cache_hit":3,"cache_miss":6172,"total":6233,"requests":1,"usage_source":"executor","cost_complete":false,"display_complete":false,"display_status":"unavailable","cost_estimated":true,"incomplete_reason":"no_price"}
+{"ts":"2026-11-02T19:41:05.85118152Z","source":"cli","turn":true}
+{"ts":"2026-11-02T19:41:16.082495327Z","model":"qwen/qwen","source":"cli","prompt":6905,"completion":16,"cache_hit":6232,"cache_miss":673,"total":6921,"requests":1,"usage_source":"executor","cost_complete":false,"display_complete":false,"display_status":"unavailable","cost_estimated":true,"incomplete_reason":"no_price"}
+{"ts":"2026-11-02T19:41:16.099744728Z","source":"cli","turn":true}
+{"ts":"2026-11-02T19:41:27.728628401Z","model":"qwen/qwen","source":"cli","prompt":7680,"completion":39,"cache_hit":6920,"cache_miss":760,"total":7719,"requests":1,"usage_source":"executor","cost_complete":false,"display_complete":false,"display_status":"unavailable","cost_estimated":true,"incomplete_reason":"no_price"}
+{"ts":"2026-11-02T19:41:27.747621722Z","source":"cli","turn":true}
+{"ts":"2026-11-02T19:41:38.819072252Z","model":"qwen/qwen","source":"cli","prompt":8392,"completion":49,"cache_hit":7718,"cache_miss":674,"total":8441,"requests":1,"usage_source":"executor","cost_complete":false,"display_complete":false,"display_status":"unavailable","cost_estimated":true,"incomplete_reason":"no_price"}
+{"ts":"2026-11-02T19:41:38.838441605Z","source":"cli","turn":true}

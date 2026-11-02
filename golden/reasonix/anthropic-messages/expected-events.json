@@ -1,0 +1,71 @@
+{
+  "schema_version": 1,
+  "events": [
+    {
+      "harness": "reasonix",
+      "messageId": ".reasonix/stats/2026-11-02.jsonl:1",
+      "model": "qwen/qwen",
+      "sessionId": "2026-11-02",
+      "subagent": false,
+      "timestamp": "2026-11-02T19:41:43.677Z",
+      "tokens": {
+        "cacheRead": 6174,
+        "cacheWrite": 0,
+        "input": 1,
+        "output": 71,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "reasonix",
+      "messageId": ".reasonix/stats/2026-11-02.jsonl:3",
+      "model": "qwen/qwen",
+      "sessionId": "2026-11-02",
+      "subagent": false,
+      "timestamp": "2026-11-02T19:41:55.947Z",
+      "tokens": {
+        "cacheRead": 6245,
+        "cacheWrite": 0,
+        "input": 673,
+        "output": 75,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "reasonix",
+      "messageId": ".reasonix/stats/2026-11-02.jsonl:5",
+      "model": "qwen/qwen",
+      "sessionId": "2026-11-02",
+      "subagent": false,
+      "timestamp": "2026-11-02T19:42:14.878Z",
+      "tokens": {
+        "cacheRead": 6992,
+        "cacheWrite": 0,
+        "input": 760,
+        "output": 124,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "reasonix",
+      "messageId": ".reasonix/stats/2026-11-02.jsonl:7",
+      "model": "qwen/qwen",
+      "sessionId": "2026-11-02",
+      "subagent": false,
+      "timestamp": "2026-11-02T19:42:26.550Z",
+      "tokens": {
+        "cacheRead": 7875,
+        "cacheWrite": 0,
+        "input": 674,
+        "output": 53,
+        "reasoning": 0
+      },
+      "turn": true
+    }
+  ],
+  "diagnostics": [],
+  "skipped": {}
+}

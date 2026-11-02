@@ -6,21 +6,24 @@ use serde_json::Value;
 use super::reader::{Reader, ReaderContext};
 use super::shared::{
     ReaderResult, ReaderWarning, as_string, date_parse_ms, dir_exists, file_stem_name, is_record,
-    list_files, normalize_workspace, optional_cell, read_json, required_cell,
+    list_files, normalize_workspace, optional_cell, parse_timestamp_to_iso, read_json,
+    read_jsonl_lines, required_cell,
 };
 use crate::types::{TokenCounts, UsageEvent};
 
 /// The Reasonix reader wired into the harness registry. Reasonix (a Go
 /// DeepSeek-native agent, `esengine/DeepSeek-Reasonix`) keeps its session
 /// transcript in `<home>/projects/<slug>/sessions/<id>.jsonl`, but that
-/// transcript and its `.events.jsonl` event log carry no token usage. The one
-/// durable local usage store is the ACP metadata sidecar `<id>.acp.json`, which
-/// records the session's model, working directory, and a cumulative usage total
-/// (`status.cumulative`) for the whole session. The reader emits one event per
-/// sidecar, deduped by session id (the latest `updatedAt` wins) so an
-/// in-place-rewritten sidecar is never double counted. The home is `~/.reasonix`
-/// on Unix and `%APPDATA%\reasonix` on Windows, overridable through
-/// `REASONIX_HOME`.
+/// transcript and its `.events.jsonl` event log carry no token usage. Current
+/// builds append one row per request to the `<home>/stats/<date>.jsonl` ledger
+/// (`cache_miss` + `cache_hit` = `prompt`, `completion`, optional `reasoning`),
+/// which is the one per-request store and is read when present, one event per
+/// row keyed by the ledger's day. Without it the durable usage store is the
+/// per-session sidecar (`<id>.acp.json`, or `<id>.jsonl.telemetry.json` +
+/// `<id>.jsonl.meta`), whose cumulative total the reader emits as one event per
+/// session id (the latest `updatedAt` wins) so an in-place-rewritten sidecar is
+/// never double counted. The home is `~/.reasonix` on Unix and
+/// `%APPDATA%\reasonix` on Windows, overridable through `REASONIX_HOME`.
 pub struct ReasonixReader;
 
 impl Reader for ReasonixReader {
@@ -291,7 +294,80 @@ fn read_telemetry(
     })
 }
 
-/// Read all Reasonix usage events reachable from `home`. Walks
+/// One event per usage row of a `<home>/stats/<date>.jsonl` ledger. A row is a
+/// request (`prompt` = `cache_hit` + `cache_miss`, `completion`, optional
+/// `reasoning` inside the completion); `{"turn":true}` rows are turn markers
+/// and carry nothing. The rows name no session, so the file date is the session
+/// id and the row location is the message id.
+fn read_stats(
+    file: &str,
+    skipped: &mut Vec<String>,
+    warnings: &mut Vec<ReaderWarning>,
+) -> Vec<UsageEvent> {
+    let mut events = Vec::new();
+    let Some(lines) = read_jsonl_lines(file, skipped, warnings) else {
+        return events;
+    };
+    let session_id = file_stem_name(file);
+    for line in &lines {
+        let row = &line.value;
+        if row.get("turn").and_then(Value::as_bool) == Some(true) {
+            continue;
+        }
+        let loc = format!("{file}:{}", line.index + 1);
+        let cells = [
+            required_cell(row.get("cache_miss")),
+            required_cell(row.get("cache_hit")),
+            required_cell(row.get("completion")),
+            optional_cell(row.get("reasoning")),
+        ];
+        let timestamp = row.get("ts").and_then(parse_timestamp_to_iso);
+        let (
+            [
+                Some(input),
+                Some(cache_read),
+                Some(completion),
+                Some(reasoning),
+            ],
+            Some(timestamp),
+        ) = (cells, timestamp)
+        else {
+            skip_malformed(&loc, skipped, warnings);
+            continue;
+        };
+        events.push(UsageEvent {
+            harness: HARNESS.to_owned(),
+            timestamp,
+            session_id: session_id.clone(),
+            message_id: loc,
+            turn: true,
+            subagent: false,
+            model: row
+                .get("model")
+                .and_then(as_string)
+                .filter(|m| !m.trim().is_empty())
+                .unwrap_or_else(|| UNKNOWN_MODEL.to_owned()),
+            tokens: TokenCounts {
+                input,
+                output: completion.saturating_sub(reasoning),
+                cache_read,
+                cache_write: 0,
+                cache_write1h: None,
+                reasoning,
+            },
+            calls: None,
+            cost_usd: None,
+            workspace: None,
+            title: None,
+        });
+    }
+    events
+}
+
+/// Read all Reasonix usage events reachable from `home`. A home with a
+/// `stats/` ledger is read from that ledger alone (one event per request), as
+/// the project sidecars of such a build hold only each session's last request.
+/// Otherwise the reader walks
 /// `<home>/projects/*/sessions/`, reading `*.acp.json` sidecars and the
 /// `*.jsonl.telemetry.json` + `*.jsonl.meta` pairs newer builds write, emitting
 /// one cumulative event per session id. When two sidecars share a session id
@@ -300,6 +376,18 @@ pub fn read_reasonix(home: &Path) -> ReaderResult {
     let mut skipped: Vec<String> = Vec::new();
     let mut warnings: Vec<ReaderWarning> = Vec::new();
 
+    let stats = home.join("stats");
+    if dir_exists(&stats) {
+        let mut events = Vec::new();
+        for file in list_files(&stats, |name| name.ends_with(".jsonl")) {
+            events.extend(read_stats(&file, &mut skipped, &mut warnings));
+        }
+        return ReaderResult {
+            events,
+            skipped,
+            warnings,
+        };
+    }
     let projects = home.join("projects");
     if !dir_exists(&projects) {
         return ReaderResult {
@@ -353,6 +441,66 @@ mod tests {
     use super::*;
     use crate::readers::shared::{scratch_dir, test_home};
     use std::fs;
+
+    const STATS: &str = concat!(
+        r#"{"ts":"2026-10-25T12:23:06.9936797Z","model":"qwen/qwen","source":"cli","prompt":6206,"completion":62,"cache_hit":3,"cache_miss":6203,"total":6268,"requests":1}"#,
+        "\n",
+        r#"{"ts":"2026-10-25T12:23:07.007497757Z","source":"cli","turn":true}"#,
+        "\n",
+        r#"{"ts":"2026-10-25T12:23:12.937156518Z","model":"qwen/qwen","source":"cli","prompt":6940,"completion":15,"cache_hit":6267,"cache_miss":673,"total":6955,"requests":1,"reasoning":5}"#,
+        "\n"
+    );
+
+    fn stats_home(rows: &str) -> PathBuf {
+        let home = scratch_dir("reasonix-stats");
+        fs::create_dir_all(home.join("stats")).unwrap();
+        fs::write(home.join("stats").join("2026-10-25.jsonl"), rows).unwrap();
+        home
+    }
+
+    #[test]
+    fn stats_ledger_yields_one_event_per_request() {
+        let home = stats_home(STATS);
+        let r = read_reasonix(&home);
+        assert_eq!(r.events.len(), 2);
+        let e = &r.events[0];
+        assert_eq!(e.session_id, "2026-10-25");
+        assert_eq!(e.timestamp, "2026-10-25T12:23:06.993Z");
+        assert_eq!(e.model, "qwen/qwen");
+        assert_eq!(
+            (e.tokens.input, e.tokens.cache_read, e.tokens.output),
+            (6203, 3, 62)
+        );
+        assert_eq!(
+            (r.events[1].tokens.output, r.events[1].tokens.reasoning),
+            (10, 5)
+        );
+        assert!(r.warnings.is_empty());
+    }
+
+    #[test]
+    fn stats_ledger_wins_over_project_sidecars() {
+        let home = stats_home(STATS);
+        let sessions = home.join("projects").join("p").join("sessions");
+        fs::create_dir_all(&sessions).unwrap();
+        fs::write(
+            sessions.join("s1.acp.json"),
+            r#"{"sessionId":"s1","model":"m","updatedAt":"2026-10-25T12:30:00Z","status":{"cumulative":{"promptTokens":99,"completionTokens":9,"cacheHitTokens":0,"cacheMissTokens":99}}}"#,
+        )
+        .unwrap();
+        let r = read_reasonix(&home);
+        assert_eq!(r.events.len(), 2);
+        assert!(r.events.iter().all(|e| e.session_id == "2026-10-25"));
+    }
+
+    #[test]
+    fn stats_row_with_bad_cell_is_skipped_with_a_warning() {
+        let home = stats_home(&STATS.replace("\"cache_miss\":673", "\"cache_miss\":\"x\""));
+        let r = read_reasonix(&home);
+        assert_eq!(r.events.len(), 1);
+        assert_eq!(r.skipped.len(), 1);
+        assert!(r.skipped[0].ends_with("2026-10-25.jsonl:3"));
+    }
 
     #[test]
     fn default_home_resolves_dot_reasonix() {

@@ -712,4 +712,17 @@ describe("detectHarnesses reasonix telemetry sidecar", () => {
       rmSync(home, { recursive: true, force: true });
     }
   });
+
+  it("detects a home whose only usage store is the stats ledger", () => {
+    const home = makeHome();
+    try {
+      mkdirSync(join(home, ".reasonix", "stats"), { recursive: true });
+      writeFileSync(join(home, ".reasonix", "stats", "2026-10-25.jsonl"), "");
+      expect(detectHarnesses(createPathResolver({ home, env: {} })).supported).toContain(
+        "reasonix",
+      );
+    } finally {
+      rmSync(home, { recursive: true, force: true });
+    }
+  });
 });

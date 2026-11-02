@@ -435,12 +435,12 @@ function deepseekRoot(resolver: PathResolver): string {
   return join(resolver.home(), ".dsh");
 }
 
-function reasonixSessionsGlobRoot(resolver: PathResolver): string {
+function reasonixHome(resolver: PathResolver): string {
   const override = resolver.env("REASONIX_HOME");
-  if (override !== undefined && override !== "") return join(override, "projects");
+  if (override !== undefined && override !== "") return override;
   const appData = resolver.env("APPDATA");
-  if (appData !== undefined && appData !== "") return join(appData, "reasonix", "projects");
-  return join(resolver.home(), ".reasonix", "projects");
+  if (appData !== undefined && appData !== "") return join(appData, "reasonix");
+  return join(resolver.home(), ".reasonix");
 }
 
 // Kiro CLI writes the current build's store at ~/.kiro/data.sqlite3, with the
@@ -658,8 +658,13 @@ export function detectHarnesses(resolver: PathResolver = defaultPathResolver): D
     }
   }
   {
-    const root = reasonixSessionsGlobRoot(resolver);
-    if (hasFileWithSuffix(root, ".acp.json") || hasFileWithSuffix(root, ".jsonl.telemetry.json")) {
+    const home = reasonixHome(resolver);
+    const projects = join(home, "projects");
+    if (
+      hasFileWithSuffix(join(home, "stats"), ".jsonl") ||
+      hasFileWithSuffix(projects, ".acp.json") ||
+      hasFileWithSuffix(projects, ".jsonl.telemetry.json")
+    ) {
       supported.push("reasonix");
     }
   }

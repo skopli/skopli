@@ -267,6 +267,11 @@ const IGNORED_BY_DESIGN: &[(&str, &str, &str)] = &[
     ),
     (
         "reasonix",
+        "prompt=",
+        "the stats prompt total is split into cache_hit and cache_miss, which are read",
+    ),
+    (
+        "reasonix",
         "usage.coldStart.",
         "the first request's counts, restated inside the session totals, which are read",
     ),

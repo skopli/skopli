@@ -177,6 +177,7 @@ pub const MARKERS: &[Marker] = &[
     file("deepseek", ".dsh/w1/a.db"),
     file("reasonix", ".reasonix/projects/p1/s1.acp.json"),
     file("reasonix", ".reasonix/projects/p1/s1.jsonl.telemetry.json"),
+    file("reasonix", ".reasonix/stats/2026-10-25.jsonl"),
     file("kiro", ".kiro/data.sqlite3"),
     file("kiro", ".local/share/amazon-q/data.sqlite3"),
     file("kiro", "Library/Application Support/amazon-q/data.sqlite3"),
