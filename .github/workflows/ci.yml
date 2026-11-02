@@ -35,9 +35,26 @@ jobs:
           components: rustfmt, clippy
       # The ruby crate (skopli) needs a host Ruby for rb-sys; the `ruby` job covers it.
       - run: cargo fmt --all -- --check
-      - run: cargo fmt --all --manifest-path .agents/skills/verify-skopli-core/Cargo.toml -- --check
       - run: cargo clippy --workspace --exclude skopli --all-targets -- -D warnings
       - run: cargo test --workspace --exclude skopli
+
+  # The verify-skopli-core crate is its own workspace, so the rust job never sees it.
+  # Its detect tests run src/detect.ts and src/rollup.ts through Node 24.
+  verify-core:
+    name: verify-core
+    runs-on: ubuntu-latest
+    env:
+      MANIFEST: .agents/skills/verify-skopli-core/Cargo.toml
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: ./.github/actions/rust
+        with:
+          components: rustfmt, clippy
+          workspaces: .agents/skills/verify-skopli-core
+      - uses: ./.github/actions/node
+      - run: cargo fmt --all --manifest-path $MANIFEST -- --check
+      - run: cargo clippy --manifest-path $MANIFEST --all-targets -- -D warnings
+      - run: cargo test --release --manifest-path $MANIFEST
 
   typescript:
     name: typescript

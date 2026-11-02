@@ -10,6 +10,9 @@ inputs:
   targets:
     description: Comma-separated extra compilation targets.
     default: ""
+  workspaces:
+    description: Cargo workspace roots to cache, one per line; the repository root when empty.
+    default: ""
 runs:
   using: composite
   steps:
@@ -19,3 +22,5 @@ runs:
         components: ${{ inputs.components }}
         targets: ${{ inputs.targets }}
     - uses: Swatinem/rust-cache@49a0bdc70d2e1b713ca9e2869b211fcce03d3c1c # v2
+      with:
+        workspaces: ${{ inputs.workspaces }}
