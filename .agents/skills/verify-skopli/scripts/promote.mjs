@@ -4,7 +4,7 @@
 // SQLite databases (WAL checkpointed first, then VACUUMed). Each rule also applies in its
 // dash-joined (`-home-user`) and percent-encoded (`%2Fhome%2Fuser`) forms so project-slug
 // directory names stay consistent with the paths inside the files; longer sources apply first
-// so a short rule (`ubuntu=user`) cannot consume the path a longer rule names.
+// so a short rule (`alice=user`) cannot consume the path a longer rule names.
 // The case is built under .verify/promote/ and swapped into golden/ only once every check has
 // passed, so a bad argument or a failed check leaves the existing case untouched.
 // After copying, every written file is checked: no redaction source may survive in its bytes
