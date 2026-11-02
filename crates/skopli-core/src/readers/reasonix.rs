@@ -364,9 +364,10 @@ fn read_stats(
     events
 }
 
-/// Read all Reasonix usage events reachable from `home`. A home with a
-/// `stats/` ledger is read from that ledger alone (one event per request), as
-/// the project sidecars of such a build hold only each session's last request.
+/// Read all Reasonix usage events reachable from `home`. A home with at least
+/// one `stats/*.jsonl` ledger (the condition detection uses) is read from the
+/// ledgers alone (one event per request), as the project sidecars of such a
+/// build hold only each session's last request.
 /// Otherwise the reader walks
 /// `<home>/projects/*/sessions/`, reading `*.acp.json` sidecars and the
 /// `*.jsonl.telemetry.json` + `*.jsonl.meta` pairs newer builds write, emitting
@@ -376,11 +377,11 @@ pub fn read_reasonix(home: &Path) -> ReaderResult {
     let mut skipped: Vec<String> = Vec::new();
     let mut warnings: Vec<ReaderWarning> = Vec::new();
 
-    let stats = home.join("stats");
-    if dir_exists(&stats) {
+    let ledgers = list_files(&home.join("stats"), |name| name.ends_with(".jsonl"));
+    if !ledgers.is_empty() {
         let mut events = Vec::new();
-        for file in list_files(&stats, |name| name.ends_with(".jsonl")) {
-            events.extend(read_stats(&file, &mut skipped, &mut warnings));
+        for file in &ledgers {
+            events.extend(read_stats(file, &mut skipped, &mut warnings));
         }
         return ReaderResult {
             events,
@@ -491,6 +492,21 @@ mod tests {
         let r = read_reasonix(&home);
         assert_eq!(r.events.len(), 2);
         assert!(r.events.iter().all(|e| e.session_id == "2026-10-25"));
+    }
+
+    #[test]
+    fn empty_stats_dir_falls_back_to_project_sidecars() {
+        let home = scratch_dir("reasonix-empty-stats");
+        fs::create_dir_all(home.join("stats")).unwrap();
+        write_sidecar(
+            &home,
+            "p",
+            "s1",
+            r#"{"sessionId":"s1","model":"m","updatedAt":"2026-10-25T12:30:00Z","status":{"cumulative":{"promptTokens":99,"completionTokens":9,"cacheHitTokens":0,"cacheMissTokens":99}}}"#,
+        );
+        let r = read_reasonix(&home);
+        assert_eq!(r.events.len(), 1);
+        assert_eq!(r.events[0].session_id, "s1");
     }
 
     #[test]
