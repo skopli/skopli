@@ -39,7 +39,7 @@ jobs:
       - run: cargo test --workspace --exclude skopli
 
   # The verify-skopli-core crate is its own workspace, so the rust job never sees it.
-  # Its detect tests run src/detect.ts and src/rollup.ts through Node 24.
+  # Its detect and rollup tests run src/detect.ts and src/rollup.ts through Node 24.
   verify-core:
     name: verify-core
     runs-on: ubuntu-latest
