@@ -192,7 +192,12 @@ pub fn read_goose(db_paths: &[PathBuf]) -> ReaderResult {
                 .or_else(|| row.get("total_tokens").and_then(finite_number))
                 .unwrap_or(safe_input + safe_output)
                 .max(0.0);
-            if safe_input == 0.0 && safe_output == 0.0 && total == 0.0 {
+            if safe_input == 0.0
+                && safe_output == 0.0
+                && cache_read == 0.0
+                && cache_write == 0.0
+                && total == 0.0
+            {
                 continue;
             }
             let timestamp = match row.get("created_at").and_then(created_at_iso) {
@@ -249,6 +254,26 @@ mod tests {
     use crate::readers::shared::scratch_dir;
     use crate::readers::shared::test_home;
     use rusqlite::Connection;
+
+    #[test]
+    fn cached_only_session_with_null_totals_keeps_its_cache_read() {
+        let dir = scratch_dir("goose-cached-only");
+        let db = dir.join("sessions.db");
+        let conn = Connection::open(&db).unwrap();
+        conn.execute_batch(
+            "CREATE TABLE sessions (id TEXT, model_config_json TEXT, provider_name TEXT, created_at TEXT, total_tokens INTEGER, input_tokens INTEGER, output_tokens INTEGER, cache_read_tokens INTEGER, cache_write_tokens INTEGER);
+             INSERT INTO sessions VALUES ('20261101_2', '{\"model_name\":\"qwen\"}', 'anthropic', '2026-11-01 22:06:30', NULL, 9163, 0, 9163, 0);",
+        )
+        .unwrap();
+        let result = read_goose(&[db]);
+        assert_eq!(result.events.len(), 1);
+        let tokens = &result.events[0].tokens;
+        assert_eq!(
+            (tokens.input, tokens.output, tokens.cache_read),
+            (0, 0, 9163)
+        );
+        let _ = std::fs::remove_dir_all(dir);
+    }
 
     #[test]
     fn session_cache_columns_split_the_cache_inclusive_input() {
