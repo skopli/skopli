@@ -34,7 +34,8 @@ Every `Rollup` has `key`, `tokens`, `events`, `turns` and `calls`.
 ## Known limits
 
 - Kiro CLI token counts are estimates.
-- Reasonix and fx expose session-level rows only, so per-message `turn` and `calls` detail is unavailable.
+- fx, and Reasonix homes without a `stats/` ledger, expose session-level rows only, so per-message `turn` and `calls` detail is unavailable.
+- Trae Agent timestamps are local wall-clock time with no offset; when the trajectory's file mtime cannot anchor them (a copied or checked-out file) they are booked as UTC with a warning.
 - GitHub Copilot CLI records taken from its OTel export are assumed to report reasoning disjoint from output.
   If that export turns out to include it, reasoning would be counted twice for those records.
 - `priceRollups` on a tiered model can overbill when a rollup sums several events.

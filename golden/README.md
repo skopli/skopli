@@ -37,7 +37,7 @@ A hand-shaped fixture with no real neighbour stays until a real capture exists; 
 | codex | archived | not captured | hand-shaped archived-session layout; the codex/basic row gives the reader finding | codex/openai-responses |
 | codex | basic | captured, not promoted | the reader ignores `thread_token_usage.*` and `turn_token_usage.cache_write_input_tokens`, and that classification is still open | codex/openai-responses |
 | codex | openai-responses | captured | real multi-turn session, see the case README | this case |
-| commandcode | json-basic | not captured | reader gap: the installed harness writes `.commandcode/projects/<slug>/<uuid>.jsonl` with `usage.{inputTokens,outputTokens,cacheReadTokens,cacheWriteTokens}` while the reader targets `.local/share/commandcode` | none; this fixture stays until a real capture exists |
+| commandcode | openai-chat | captured | real multi-turn session, see the case README | this case |
 | copilot | anthropic-messages | captured | real multi-turn session, see the case README | this case |
 | copilot | basic | not captured | hand-shaped `otel.jsonl` export, a different store from the session-state events the installed harness writes | copilot/openai-chat, copilot/anthropic-messages, copilot/openai-responses |
 | copilot | openai-chat | captured | real multi-turn session, see the case README | this case |
