@@ -11,6 +11,7 @@
     "noImplicitOverride": true,
     "resolveJsonModule": true,
     "allowImportingTsExtensions": true,
+    "allowJs": true,
     "rewriteRelativeImportExtensions": true,
     "skipLibCheck": true,
     "noEmit": true
