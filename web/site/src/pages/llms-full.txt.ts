@@ -1,14 +1,14 @@
 import type { APIRoute } from "astro";
 import { harnessMd, quickstartMd } from "@skopli/ui/markdown";
 import { project } from "@skopli/ui/project";
-import { description, layers, rules, title } from "../content.ts";
+import { layers, rules, title } from "../content.ts";
 
 const plain = (html: string): string => html.replace(/<\/?code>/g, "`");
 
 const body = [
   `# ${title}`,
   "",
-  `> ${description}`,
+  `> ${project.description}`,
   "",
   "## Three layers, used separately or together",
   "",

@@ -1,12 +1,11 @@
 import type { APIRoute } from "astro";
 import { project } from "@skopli/ui/project";
-import { description } from "../content.ts";
 
 const { docs, github, site } = project;
 const body = [
   `# ${project.name}`,
   "",
-  `> ${description}`,
+  `> ${project.description}`,
   "",
   "Reading and rollups run offline against local files. Pricing is a separate step that fetches market catalogs by default, caches them for an hour, keeps pricing from that cache when the network is gone, and leaves unknown models as `priced: false` instead of guessing.",
   "",

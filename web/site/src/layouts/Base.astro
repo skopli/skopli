@@ -47,9 +47,10 @@ const jsonLd = [
       siteName={project.name}
       type="website"
       image={`${site}og.png`}
-      markdown={`${site}llms.txt`}
+      markdown={`${site}llms-full.txt`}
       {jsonLd}
     />
+    <link rel="alternate" type="text/markdown" href={`${site}llms.txt`} />
     <ThemeInit />
   </head>
   <body>
@@ -73,7 +74,7 @@ const jsonLd = [
         { label: "Docs", href: docs },
         { label: "GitHub", href: github },
         ...(published ? [{ label: "npm", href: "https://www.npmjs.com/package/skopli" }] : []),
-        { label: "llms.txt", href: `${docs}llms.txt` },
+        { label: "llms.txt", href: `${site}llms.txt` },
       ]}
     />
   </body>

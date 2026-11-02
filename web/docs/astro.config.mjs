@@ -1,5 +1,6 @@
 import mdx from "@astrojs/mdx";
 import { codeThemes } from "@skopli/ui/langs";
+import { project } from "@skopli/ui/project";
 import sitemap from "@astrojs/sitemap";
 import { defineConfig } from "astro/config";
 import { writeFile } from "node:fs/promises";
@@ -13,7 +14,7 @@ const hostRoot = () => ({
   hooks: {
     "astro:build:done": async ({ dir }) => {
       const files = {
-        "index.html": `<!doctype html><meta charset="utf-8"><meta http-equiv="refresh" content="0; url=${base}"><title>Skopli docs</title><a href="${base}">Skopli docs</a>`,
+        "index.html": `<!doctype html><meta charset="utf-8"><meta http-equiv="refresh" content="0; url=${base}"><title>${project.docsName}</title><a href="${base}">${project.docsName}</a>`,
         "robots.txt": `User-agent: *\nAllow: /\n\nSitemap: ${SITE}${base}sitemap-index.xml\n`,
       };
       for (const [name, body] of Object.entries(files)) {

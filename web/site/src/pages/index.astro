@@ -6,7 +6,7 @@ import { harnesses, label } from "@skopli/ui/harnesses";
 import { codeThemes, langs } from "@skopli/ui/langs";
 import { project } from "@skopli/ui/project";
 import { command, published, quickstarts, releaseNote } from "@skopli/ui/quickstart";
-import { description, layers, rules, title } from "../content.ts";
+import { layers, rules, title } from "../content.ts";
 import Base from "../layouts/Base.astro";
 
 const { docs, github } = project;
@@ -103,7 +103,7 @@ const outputNarrow = `[
 
 ---
 
-<Base title={title} description={description}>
+<Base title={title} description={project.description}>
   <section class="hero">
     <div class="wrap">
         <h1>Your coding agents already wrote the usage logs. Skopli reads them.</h1>

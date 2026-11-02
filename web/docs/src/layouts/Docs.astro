@@ -30,9 +30,8 @@ const next = index >= 0 && index < ordered.length - 1 ? ordered[index + 1] : und
 const toc = headings.filter((h) => h.depth === 2 || h.depth === 3);
 const canonical = `${SITE}${pagePath(slug)}`;
 const image = `${SITE}${ogPath(slug)}`;
-const siteName = "Skopli docs";
 const root = slug === "index";
-const { github, site } = project;
+const { docsName: siteName, github, site } = project;
 const org = { "@type": "Organization", name: project.name, url: site };
 const jsonLd = [
   {

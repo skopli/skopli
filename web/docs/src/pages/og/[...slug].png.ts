@@ -1,6 +1,7 @@
 import type { APIRoute, GetStaticPaths } from "astro";
 import { getCollection } from "astro:content";
 import { ogImage } from "@skopli/ui/og";
+import { project } from "@skopli/ui/project";
 import { SITE, pagePath } from "../../nav";
 
 export const getStaticPaths: GetStaticPaths = async () => {
@@ -11,7 +12,7 @@ export const getStaticPaths: GetStaticPaths = async () => {
 export const GET: APIRoute = async ({ props }) => {
   const { entry } = props;
   const png = await ogImage({
-    site: "Skopli docs",
+    site: project.docsName,
     title: entry.data.title,
     description: entry.data.description,
     url: `${SITE}${pagePath(entry.id)}`,
