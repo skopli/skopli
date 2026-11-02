@@ -1,7 +1,7 @@
 import { homedir } from "node:os";
 import { join } from "node:path";
 import { fromWire, native } from "../native.ts";
-import type { Rollup, RollupBy } from "../rollup.ts";
+import type { Rollup, RollupOptions } from "../rollup.ts";
 import type { TokenCounts, UsageEvent } from "../types.ts";
 import { liteLlmSource, modelsDevSource, openRouterSource } from "./sources.ts";
 import type {
@@ -56,10 +56,7 @@ export type CatalogInfo = {
   models: number;
 };
 
-export type PriceEventsOptions = {
-  by: RollupBy;
-  tz?: string;
-};
+export type PriceEventsOptions = RollupOptions;
 
 export type Pricing = {
   lookupModel(model: string): Promise<PriceLookup>;
@@ -331,7 +328,11 @@ export function createPricing(options: CreatePricingOptions = {}): Pricing {
     },
     async priceEvents(events, options) {
       const engine = await buildEngine();
-      const optionsJson = JSON.stringify({ by: options.by, tz: options.tz });
+      const optionsJson = JSON.stringify({
+        by: options.by,
+        tz: options.tz,
+        blockMs: options.blockMs,
+      });
       return fromWire<PricedEventGroup[]>(
         await engine.priceEvents(JSON.stringify(events), optionsJson),
       );

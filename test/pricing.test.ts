@@ -1556,6 +1556,22 @@ describe("priceEvents", () => {
       rmSync(dir, { recursive: true, force: true });
     }
   });
+
+  it('passes blockMs through so by: "block" groups match rollup', async () => {
+    const dir = tempDir();
+    try {
+      const events = [
+        claudeEvent(1_000, "s1"),
+        { ...claudeEvent(1_000, "s2"), timestamp: "2026-08-01T00:45:00.000Z" },
+      ];
+      const options = { by: "block", tz: "UTC", blockMs: 1_800_000 } as const;
+      const groups = await pricing(dir).priceEvents(events, options);
+      expect(groups.map((g) => g.key)).toEqual(rollup(events, options).map((r) => r.key));
+      expect(groups).toHaveLength(2);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
 });
 
 describe("lifecycle conformance (shared fixtures)", () => {

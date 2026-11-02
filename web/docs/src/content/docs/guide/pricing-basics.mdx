@@ -187,7 +187,7 @@ An explicit $0 in `overrides` is honored as a real price.
 
 `priceTokens(model, tokens)` prices one token bundle and returns the lookup plus `usd`.
 `priceRollups(rollups)` prices already-summed tokens, which is exact for flat-rate models.
-`priceEvents(events, { by, tz })` prices each event at its own context and then groups, which is the correct path for models with long-context tiers.
+`priceEvents(events, { by, tz, blockMs })` prices each event at its own context and then groups, which is the correct path for models with long-context tiers.
 [Rollups vs events](/skopli/pricing/rollups-vs-events/) explains the difference and the `tieredAggregate` flag.
 
 ## Modes
