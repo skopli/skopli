@@ -75,7 +75,7 @@ After configuring, lock token publishing:
 npm access set mfa=publish skopli
 ```
 
-With the bootstrap done there is no interim token: delete the `NPM_TOKEN` references from the publish job when converting it to OIDC, and never create one.
+With the bootstrap done there is no interim token: the publish job references no `NPM_TOKEN`; never create one.
 Verify provenance after every release:
 
 ```sh
