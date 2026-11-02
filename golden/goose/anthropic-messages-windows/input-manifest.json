@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "harness": "goose",
+  "case": "anthropic-messages-windows",
+  "home": ".",
+  "options": {
+    "harnesses": [
+      "goose"
+    ],
+    "tz": "UTC"
+  },
+  "rollups": [
+    "model",
+    "day",
+    "harness"
+  ]
+}

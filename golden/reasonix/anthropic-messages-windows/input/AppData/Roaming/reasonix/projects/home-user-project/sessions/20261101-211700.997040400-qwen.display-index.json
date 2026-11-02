@@ -1,0 +1,50 @@
+{
+  "schema_version": 1,
+  "revision": 2,
+  "revision_known": true,
+  "content_digest": "05920a708d87854dccf3447d452131557a6f69860c79e4462f41409d70060e92",
+  "transcript_size": 9399,
+  "message_count": 5,
+  "authored_turns": 1,
+  "entries": [
+    {
+      "index": 0,
+      "offset": 0,
+      "length": 4181,
+      "role": "system",
+      "authored_turn": 0
+    },
+    {
+      "index": 1,
+      "offset": 4181,
+      "length": 3576,
+      "role": "user",
+      "authored_turn": 1,
+      "starts_turn": true
+    },
+    {
+      "index": 2,
+      "offset": 7757,
+      "length": 195,
+      "role": "assistant",
+      "authored_turn": 1,
+      "has_tool_calls": true
+    },
+    {
+      "index": 3,
+      "offset": 7952,
+      "length": 768,
+      "role": "tool",
+      "authored_turn": 1,
+      "tool_result": true
+    },
+    {
+      "index": 4,
+      "offset": 8720,
+      "length": 679,
+      "role": "assistant",
+      "authored_turn": 1
+    }
+  ],
+  "updated_at": "2026-11-01T21:17:12.9089012Z"
+}

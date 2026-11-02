@@ -1,0 +1,3655 @@
+{
+  "schema_version": 1,
+  "events": [
+    {
+      "harness": "cline",
+      "messageId": "cline-cli:1793566165702_ig9wj:msg_OdZMAYhx",
+      "model": "openai-compatible/qwen",
+      "sessionId": "1793566165702_ig9wj",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:49:37.438Z",
+      "tokens": {
+        "cacheRead": 3,
+        "cacheWrite": 0,
+        "input": 3056,
+        "output": 12,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "cline",
+      "messageId": "cline-cli:1793566165702_ig9wj:msg_jtK3FHeP",
+      "model": "openai-compatible/qwen",
+      "sessionId": "1793566165702_ig9wj",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:49:39.665Z",
+      "tokens": {
+        "cacheRead": 3070,
+        "cacheWrite": 0,
+        "input": 54,
+        "output": 30,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "cline",
+      "messageId": "cline-cli:1793566165702_ig9wj:msg_YZrScnsL",
+      "model": "openai-compatible/qwen",
+      "sessionId": "1793566165702_ig9wj",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:49:41.360Z",
+      "tokens": {
+        "cacheRead": 3153,
+        "cacheWrite": 0,
+        "input": 54,
+        "output": 21,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "cline",
+      "messageId": "cline-cli:1793566165702_ig9wj:msg_lrDRT67O",
+      "model": "openai-compatible/qwen",
+      "sessionId": "1793566165702_ig9wj",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:49:42.940Z",
+      "tokens": {
+        "cacheRead": 3227,
+        "cacheWrite": 0,
+        "input": 54,
+        "output": 19,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "cline",
+      "messageId": "cline-cli:1793566165702_ig9wj:msg_U2mg6z5I",
+      "model": "openai-compatible/qwen",
+      "sessionId": "1793566165702_ig9wj",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:49:44.567Z",
+      "tokens": {
+        "cacheRead": 3299,
+        "cacheWrite": 0,
+        "input": 54,
+        "output": 19,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "cline",
+      "messageId": "cline-cli:1793566165702_ig9wj:msg_c_uFB9Vt",
+      "model": "openai-compatible/qwen",
+      "sessionId": "1793566165702_ig9wj",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:49:46.074Z",
+      "tokens": {
+        "cacheRead": 3371,
+        "cacheWrite": 0,
+        "input": 54,
+        "output": 19,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "cline",
+      "messageId": "cline-cli:1793566165702_ig9wj:msg_gmI_GWQu",
+      "model": "openai-compatible/qwen",
+      "sessionId": "1793566165702_ig9wj",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:49:47.681Z",
+      "tokens": {
+        "cacheRead": 3443,
+        "cacheWrite": 0,
+        "input": 54,
+        "output": 19,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "cline",
+      "messageId": "cline-cli:1793566165702_ig9wj:msg_W5WaKUh5",
+      "model": "openai-compatible/qwen",
+      "sessionId": "1793566165702_ig9wj",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:49:49.204Z",
+      "tokens": {
+        "cacheRead": 3515,
+        "cacheWrite": 0,
+        "input": 54,
+        "output": 19,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "cline",
+      "messageId": "cline-cli:1793566165702_ig9wj:msg_J6gzVcTC",
+      "model": "openai-compatible/qwen",
+      "sessionId": "1793566165702_ig9wj",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:49:50.766Z",
+      "tokens": {
+        "cacheRead": 3587,
+        "cacheWrite": 0,
+        "input": 54,
+        "output": 19,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "cline",
+      "messageId": "cline-cli:1793566165702_ig9wj:msg_0_VmmafZ",
+      "model": "openai-compatible/qwen",
+      "sessionId": "1793566165702_ig9wj",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:49:52.319Z",
+      "tokens": {
+        "cacheRead": 3659,
+        "cacheWrite": 0,
+        "input": 54,
+        "output": 19,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "cline",
+      "messageId": "cline-cli:1793566165702_ig9wj:msg_5MgJZJDe",
+      "model": "openai-compatible/qwen",
+      "sessionId": "1793566165702_ig9wj",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:49:53.944Z",
+      "tokens": {
+        "cacheRead": 3731,
+        "cacheWrite": 0,
+        "input": 54,
+        "output": 19,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "cline",
+      "messageId": "cline-cli:1793566165702_ig9wj:msg_IYHS5XTA",
+      "model": "openai-compatible/qwen",
+      "sessionId": "1793566165702_ig9wj",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:49:55.556Z",
+      "tokens": {
+        "cacheRead": 3803,
+        "cacheWrite": 0,
+        "input": 54,
+        "output": 19,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "cline",
+      "messageId": "cline-cli:1793566165702_ig9wj:msg_ZfM--YlM",
+      "model": "openai-compatible/qwen",
+      "sessionId": "1793566165702_ig9wj",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:49:57.119Z",
+      "tokens": {
+        "cacheRead": 3875,
+        "cacheWrite": 0,
+        "input": 54,
+        "output": 19,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "cline",
+      "messageId": "cline-cli:1793566165702_ig9wj:msg_cj2tJ6At",
+      "model": "openai-compatible/qwen",
+      "sessionId": "1793566165702_ig9wj",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:49:58.802Z",
+      "tokens": {
+        "cacheRead": 3947,
+        "cacheWrite": 0,
+        "input": 54,
+        "output": 19,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "cline",
+      "messageId": "cline-cli:1793566165702_ig9wj:msg_UWnpVQHD",
+      "model": "openai-compatible/qwen",
+      "sessionId": "1793566165702_ig9wj",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:50:00.425Z",
+      "tokens": {
+        "cacheRead": 4019,
+        "cacheWrite": 0,
+        "input": 54,
+        "output": 19,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "cline",
+      "messageId": "cline-cli:1793566165702_ig9wj:msg_DH1LV_Wo",
+      "model": "openai-compatible/qwen",
+      "sessionId": "1793566165702_ig9wj",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:50:02.061Z",
+      "tokens": {
+        "cacheRead": 4091,
+        "cacheWrite": 0,
+        "input": 54,
+        "output": 19,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "cline",
+      "messageId": "cline-cli:1793566165702_ig9wj:msg_Ib0IIRLg",
+      "model": "openai-compatible/qwen",
+      "sessionId": "1793566165702_ig9wj",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:50:03.755Z",
+      "tokens": {
+        "cacheRead": 4163,
+        "cacheWrite": 0,
+        "input": 54,
+        "output": 19,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "cline",
+      "messageId": "cline-cli:1793566165702_ig9wj:msg_7Qxs2S5I",
+      "model": "openai-compatible/qwen",
+      "sessionId": "1793566165702_ig9wj",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:50:05.458Z",
+      "tokens": {
+        "cacheRead": 4235,
+        "cacheWrite": 0,
+        "input": 54,
+        "output": 19,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "cline",
+      "messageId": "cline-cli:1793566165702_ig9wj:msg_Fr8woqoC",
+      "model": "openai-compatible/qwen",
+      "sessionId": "1793566165702_ig9wj",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:50:07.159Z",
+      "tokens": {
+        "cacheRead": 4307,
+        "cacheWrite": 0,
+        "input": 54,
+        "output": 19,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "cline",
+      "messageId": "cline-cli:1793566165702_ig9wj:msg_RcyQA9EY",
+      "model": "openai-compatible/qwen",
+      "sessionId": "1793566165702_ig9wj",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:50:08.878Z",
+      "tokens": {
+        "cacheRead": 4379,
+        "cacheWrite": 0,
+        "input": 54,
+        "output": 19,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "cline",
+      "messageId": "cline-cli:1793566165702_ig9wj:msg_cysL-hgE",
+      "model": "openai-compatible/qwen",
+      "sessionId": "1793566165702_ig9wj",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:50:10.687Z",
+      "tokens": {
+        "cacheRead": 4451,
+        "cacheWrite": 0,
+        "input": 54,
+        "output": 19,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "cline",
+      "messageId": "cline-cli:1793566165702_ig9wj:msg_-LrVAK9t",
+      "model": "openai-compatible/qwen",
+      "sessionId": "1793566165702_ig9wj",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:50:12.390Z",
+      "tokens": {
+        "cacheRead": 4523,
+        "cacheWrite": 0,
+        "input": 54,
+        "output": 19,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "cline",
+      "messageId": "cline-cli:1793566165702_ig9wj:msg_GAfbh__W",
+      "model": "openai-compatible/qwen",
+      "sessionId": "1793566165702_ig9wj",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:50:14.095Z",
+      "tokens": {
+        "cacheRead": 4595,
+        "cacheWrite": 0,
+        "input": 54,
+        "output": 19,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "cline",
+      "messageId": "cline-cli:1793566165702_ig9wj:msg_Fp-0eLEm",
+      "model": "openai-compatible/qwen",
+      "sessionId": "1793566165702_ig9wj",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:50:15.897Z",
+      "tokens": {
+        "cacheRead": 4667,
+        "cacheWrite": 0,
+        "input": 54,
+        "output": 19,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "cline",
+      "messageId": "cline-cli:1793566165702_ig9wj:msg_UZ1jQH1g",
+      "model": "openai-compatible/qwen",
+      "sessionId": "1793566165702_ig9wj",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:50:17.663Z",
+      "tokens": {
+        "cacheRead": 4739,
+        "cacheWrite": 0,
+        "input": 54,
+        "output": 19,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "cline",
+      "messageId": "cline-cli:1793566165702_ig9wj:msg_9yEKTyVV",
+      "model": "openai-compatible/qwen",
+      "sessionId": "1793566165702_ig9wj",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:50:19.425Z",
+      "tokens": {
+        "cacheRead": 4811,
+        "cacheWrite": 0,
+        "input": 54,
+        "output": 19,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "cline",
+      "messageId": "cline-cli:1793566165702_ig9wj:msg_3SGIOJdn",
+      "model": "openai-compatible/qwen",
+      "sessionId": "1793566165702_ig9wj",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:50:21.204Z",
+      "tokens": {
+        "cacheRead": 4883,
+        "cacheWrite": 0,
+        "input": 54,
+        "output": 19,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "cline",
+      "messageId": "cline-cli:1793566165702_ig9wj:msg_YSajeyL5",
+      "model": "openai-compatible/qwen",
+      "sessionId": "1793566165702_ig9wj",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:50:23.005Z",
+      "tokens": {
+        "cacheRead": 4955,
+        "cacheWrite": 0,
+        "input": 54,
+        "output": 19,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "cline",
+      "messageId": "cline-cli:1793566165702_ig9wj:msg_xFxkQKBi",
+      "model": "openai-compatible/qwen",
+      "sessionId": "1793566165702_ig9wj",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:50:24.779Z",
+      "tokens": {
+        "cacheRead": 5027,
+        "cacheWrite": 0,
+        "input": 54,
+        "output": 19,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "cline",
+      "messageId": "cline-cli:1793566165702_ig9wj:msg_YxXVRBrI",
+      "model": "openai-compatible/qwen",
+      "sessionId": "1793566165702_ig9wj",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:50:26.566Z",
+      "tokens": {
+        "cacheRead": 5099,
+        "cacheWrite": 0,
+        "input": 54,
+        "output": 19,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "cline",
+      "messageId": "cline-cli:1793566165702_ig9wj:msg__gdtZX9g",
+      "model": "openai-compatible/qwen",
+      "sessionId": "1793566165702_ig9wj",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:50:28.358Z",
+      "tokens": {
+        "cacheRead": 5171,
+        "cacheWrite": 0,
+        "input": 54,
+        "output": 19,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "cline",
+      "messageId": "cline-cli:1793566165702_ig9wj:msg_NKjItQrM",
+      "model": "openai-compatible/qwen",
+      "sessionId": "1793566165702_ig9wj",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:50:30.153Z",
+      "tokens": {
+        "cacheRead": 5243,
+        "cacheWrite": 0,
+        "input": 54,
+        "output": 19,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "cline",
+      "messageId": "cline-cli:1793566165702_ig9wj:msg_hvQdZKgt",
+      "model": "openai-compatible/qwen",
+      "sessionId": "1793566165702_ig9wj",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:50:31.974Z",
+      "tokens": {
+        "cacheRead": 5315,
+        "cacheWrite": 0,
+        "input": 54,
+        "output": 19,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "cline",
+      "messageId": "cline-cli:1793566165702_ig9wj:msg_2eWFekVc",
+      "model": "openai-compatible/qwen",
+      "sessionId": "1793566165702_ig9wj",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:50:33.868Z",
+      "tokens": {
+        "cacheRead": 5387,
+        "cacheWrite": 0,
+        "input": 54,
+        "output": 19,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "cline",
+      "messageId": "cline-cli:1793566165702_ig9wj:msg_lOr_gnHb",
+      "model": "openai-compatible/qwen",
+      "sessionId": "1793566165702_ig9wj",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:50:35.714Z",
+      "tokens": {
+        "cacheRead": 5459,
+        "cacheWrite": 0,
+        "input": 54,
+        "output": 19,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "cline",
+      "messageId": "cline-cli:1793566165702_ig9wj:msg_uzvMfWJD",
+      "model": "openai-compatible/qwen",
+      "sessionId": "1793566165702_ig9wj",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:50:37.642Z",
+      "tokens": {
+        "cacheRead": 5531,
+        "cacheWrite": 0,
+        "input": 54,
+        "output": 19,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "cline",
+      "messageId": "cline-cli:1793566165702_ig9wj:msg_KfrON0JY",
+      "model": "openai-compatible/qwen",
+      "sessionId": "1793566165702_ig9wj",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:50:39.721Z",
+      "tokens": {
+        "cacheRead": 5603,
+        "cacheWrite": 0,
+        "input": 54,
+        "output": 19,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "cline",
+      "messageId": "cline-cli:1793566165702_ig9wj:msg_hmy5Cugh",
+      "model": "openai-compatible/qwen",
+      "sessionId": "1793566165702_ig9wj",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:50:41.586Z",
+      "tokens": {
+        "cacheRead": 5675,
+        "cacheWrite": 0,
+        "input": 54,
+        "output": 19,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "cline",
+      "messageId": "cline-cli:1793566165702_ig9wj:msg_b-8vdgLW",
+      "model": "openai-compatible/qwen",
+      "sessionId": "1793566165702_ig9wj",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:50:43.510Z",
+      "tokens": {
+        "cacheRead": 5747,
+        "cacheWrite": 0,
+        "input": 54,
+        "output": 19,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "cline",
+      "messageId": "cline-cli:1793566165702_ig9wj:msg_UJWDqksU",
+      "model": "openai-compatible/qwen",
+      "sessionId": "1793566165702_ig9wj",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:50:45.408Z",
+      "tokens": {
+        "cacheRead": 5819,
+        "cacheWrite": 0,
+        "input": 54,
+        "output": 19,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "cline",
+      "messageId": "cline-cli:1793566165702_ig9wj:msg_hJbyvckI",
+      "model": "openai-compatible/qwen",
+      "sessionId": "1793566165702_ig9wj",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:50:47.350Z",
+      "tokens": {
+        "cacheRead": 5891,
+        "cacheWrite": 0,
+        "input": 54,
+        "output": 19,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "cline",
+      "messageId": "cline-cli:1793566165702_ig9wj:msg_dwQV1yfm",
+      "model": "openai-compatible/qwen",
+      "sessionId": "1793566165702_ig9wj",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:50:49.294Z",
+      "tokens": {
+        "cacheRead": 5963,
+        "cacheWrite": 0,
+        "input": 54,
+        "output": 19,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "cline",
+      "messageId": "cline-cli:1793566165702_ig9wj:msg_2fwQ54b1",
+      "model": "openai-compatible/qwen",
+      "sessionId": "1793566165702_ig9wj",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:50:51.267Z",
+      "tokens": {
+        "cacheRead": 6035,
+        "cacheWrite": 0,
+        "input": 54,
+        "output": 19,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "cline",
+      "messageId": "cline-cli:1793566165702_ig9wj:msg_QOPjXo8y",
+      "model": "openai-compatible/qwen",
+      "sessionId": "1793566165702_ig9wj",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:50:53.168Z",
+      "tokens": {
+        "cacheRead": 6107,
+        "cacheWrite": 0,
+        "input": 54,
+        "output": 19,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "cline",
+      "messageId": "cline-cli:1793566165702_ig9wj:msg_SRHmlEKt",
+      "model": "openai-compatible/qwen",
+      "sessionId": "1793566165702_ig9wj",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:50:55.186Z",
+      "tokens": {
+        "cacheRead": 6179,
+        "cacheWrite": 0,
+        "input": 54,
+        "output": 19,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "cline",
+      "messageId": "cline-cli:1793566165702_ig9wj:msg_goyHyipV",
+      "model": "openai-compatible/qwen",
+      "sessionId": "1793566165702_ig9wj",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:50:57.092Z",
+      "tokens": {
+        "cacheRead": 6251,
+        "cacheWrite": 0,
+        "input": 54,
+        "output": 19,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "cline",
+      "messageId": "cline-cli:1793566165702_ig9wj:msg_-QlLzHCy",
+      "model": "openai-compatible/qwen",
+      "sessionId": "1793566165702_ig9wj",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:50:59.035Z",
+      "tokens": {
+        "cacheRead": 6323,
+        "cacheWrite": 0,
+        "input": 54,
+        "output": 19,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "cline",
+      "messageId": "cline-cli:1793566165702_ig9wj:msg_TswzxrFa",
+      "model": "openai-compatible/qwen",
+      "sessionId": "1793566165702_ig9wj",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:51:01.054Z",
+      "tokens": {
+        "cacheRead": 6395,
+        "cacheWrite": 0,
+        "input": 54,
+        "output": 19,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "cline",
+      "messageId": "cline-cli:1793566165702_ig9wj:msg_irhHZBVR",
+      "model": "openai-compatible/qwen",
+      "sessionId": "1793566165702_ig9wj",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:51:03.061Z",
+      "tokens": {
+        "cacheRead": 6467,
+        "cacheWrite": 0,
+        "input": 54,
+        "output": 19,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "cline",
+      "messageId": "cline-cli:1793566165702_ig9wj:msg_dbscyFHM",
+      "model": "openai-compatible/qwen",
+      "sessionId": "1793566165702_ig9wj",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:51:05.063Z",
+      "tokens": {
+        "cacheRead": 6539,
+        "cacheWrite": 0,
+        "input": 54,
+        "output": 19,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "cline",
+      "messageId": "cline-cli:1793566165702_ig9wj:msg_JtjRgzS7",
+      "model": "openai-compatible/qwen",
+      "sessionId": "1793566165702_ig9wj",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:51:07.169Z",
+      "tokens": {
+        "cacheRead": 6611,
+        "cacheWrite": 0,
+        "input": 54,
+        "output": 19,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "cline",
+      "messageId": "cline-cli:1793566165702_ig9wj:msg_xnqzYL0c",
+      "model": "openai-compatible/qwen",
+      "sessionId": "1793566165702_ig9wj",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:51:09.256Z",
+      "tokens": {
+        "cacheRead": 6683,
+        "cacheWrite": 0,
+        "input": 54,
+        "output": 19,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "cline",
+      "messageId": "cline-cli:1793566165702_ig9wj:msg_6QtaJpkw",
+      "model": "openai-compatible/qwen",
+      "sessionId": "1793566165702_ig9wj",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:51:11.414Z",
+      "tokens": {
+        "cacheRead": 6755,
+        "cacheWrite": 0,
+        "input": 54,
+        "output": 19,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "cline",
+      "messageId": "cline-cli:1793566165702_ig9wj:msg_b1rDrv58",
+      "model": "openai-compatible/qwen",
+      "sessionId": "1793566165702_ig9wj",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:51:13.503Z",
+      "tokens": {
+        "cacheRead": 6827,
+        "cacheWrite": 0,
+        "input": 54,
+        "output": 19,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "cline",
+      "messageId": "cline-cli:1793566165702_ig9wj:msg_s-bdQ145",
+      "model": "openai-compatible/qwen",
+      "sessionId": "1793566165702_ig9wj",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:51:15.536Z",
+      "tokens": {
+        "cacheRead": 6899,
+        "cacheWrite": 0,
+        "input": 54,
+        "output": 19,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "cline",
+      "messageId": "cline-cli:1793566165702_ig9wj:msg_-nmGSznt",
+      "model": "openai-compatible/qwen",
+      "sessionId": "1793566165702_ig9wj",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:51:17.672Z",
+      "tokens": {
+        "cacheRead": 6971,
+        "cacheWrite": 0,
+        "input": 54,
+        "output": 19,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "cline",
+      "messageId": "cline-cli:1793566165702_ig9wj:msg_CoFebHS6",
+      "model": "openai-compatible/qwen",
+      "sessionId": "1793566165702_ig9wj",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:51:19.724Z",
+      "tokens": {
+        "cacheRead": 7043,
+        "cacheWrite": 0,
+        "input": 54,
+        "output": 19,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "cline",
+      "messageId": "cline-cli:1793566165702_ig9wj:msg_DbJYazqB",
+      "model": "openai-compatible/qwen",
+      "sessionId": "1793566165702_ig9wj",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:51:21.808Z",
+      "tokens": {
+        "cacheRead": 7115,
+        "cacheWrite": 0,
+        "input": 54,
+        "output": 19,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "cline",
+      "messageId": "cline-cli:1793566165702_ig9wj:msg_tE0fIML6",
+      "model": "openai-compatible/qwen",
+      "sessionId": "1793566165702_ig9wj",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:51:23.330Z",
+      "tokens": {
+        "cacheRead": 7187,
+        "cacheWrite": 0,
+        "input": 54,
+        "output": 19,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "cline",
+      "messageId": "cline-cli:1793566165702_ig9wj:msg_DsqdYW6P",
+      "model": "openai-compatible/qwen",
+      "sessionId": "1793566165702_ig9wj",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:51:24.691Z",
+      "tokens": {
+        "cacheRead": 7259,
+        "cacheWrite": 0,
+        "input": 54,
+        "output": 19,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "cline",
+      "messageId": "cline-cli:1793566165702_ig9wj:msg_c2JKNDyz",
+      "model": "openai-compatible/qwen",
+      "sessionId": "1793566165702_ig9wj",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:51:26.033Z",
+      "tokens": {
+        "cacheRead": 7331,
+        "cacheWrite": 0,
+        "input": 54,
+        "output": 19,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "cline",
+      "messageId": "cline-cli:1793566165702_ig9wj:msg_qorUphgK",
+      "model": "openai-compatible/qwen",
+      "sessionId": "1793566165702_ig9wj",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:51:27.418Z",
+      "tokens": {
+        "cacheRead": 7403,
+        "cacheWrite": 0,
+        "input": 54,
+        "output": 19,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "cline",
+      "messageId": "cline-cli:1793566165702_ig9wj:msg_udteGVuk",
+      "model": "openai-compatible/qwen",
+      "sessionId": "1793566165702_ig9wj",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:51:28.821Z",
+      "tokens": {
+        "cacheRead": 7475,
+        "cacheWrite": 0,
+        "input": 54,
+        "output": 19,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "cline",
+      "messageId": "cline-cli:1793566165702_ig9wj:msg_vRcvo7up",
+      "model": "openai-compatible/qwen",
+      "sessionId": "1793566165702_ig9wj",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:51:30.191Z",
+      "tokens": {
+        "cacheRead": 7547,
+        "cacheWrite": 0,
+        "input": 54,
+        "output": 19,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "cline",
+      "messageId": "cline-cli:1793566165702_ig9wj:msg_WqD2Brzm",
+      "model": "openai-compatible/qwen",
+      "sessionId": "1793566165702_ig9wj",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:51:31.576Z",
+      "tokens": {
+        "cacheRead": 7619,
+        "cacheWrite": 0,
+        "input": 54,
+        "output": 19,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "cline",
+      "messageId": "cline-cli:1793566165702_ig9wj:msg_0ozSyCme",
+      "model": "openai-compatible/qwen",
+      "sessionId": "1793566165702_ig9wj",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:51:32.970Z",
+      "tokens": {
+        "cacheRead": 7691,
+        "cacheWrite": 0,
+        "input": 54,
+        "output": 19,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "cline",
+      "messageId": "cline-cli:1793566165702_ig9wj:msg_69gzGGPB",
+      "model": "openai-compatible/qwen",
+      "sessionId": "1793566165702_ig9wj",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:51:34.407Z",
+      "tokens": {
+        "cacheRead": 7763,
+        "cacheWrite": 0,
+        "input": 54,
+        "output": 19,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "cline",
+      "messageId": "cline-cli:1793566165702_ig9wj:msg_FoOjxqh0",
+      "model": "openai-compatible/qwen",
+      "sessionId": "1793566165702_ig9wj",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:51:35.809Z",
+      "tokens": {
+        "cacheRead": 7835,
+        "cacheWrite": 0,
+        "input": 54,
+        "output": 19,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "cline",
+      "messageId": "cline-cli:1793566165702_ig9wj:msg_8SVvz8bS",
+      "model": "openai-compatible/qwen",
+      "sessionId": "1793566165702_ig9wj",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:51:37.215Z",
+      "tokens": {
+        "cacheRead": 7907,
+        "cacheWrite": 0,
+        "input": 54,
+        "output": 19,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "cline",
+      "messageId": "cline-cli:1793566165702_ig9wj:msg_MbKQPe96",
+      "model": "openai-compatible/qwen",
+      "sessionId": "1793566165702_ig9wj",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:51:38.649Z",
+      "tokens": {
+        "cacheRead": 7979,
+        "cacheWrite": 0,
+        "input": 54,
+        "output": 19,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "cline",
+      "messageId": "cline-cli:1793566165702_ig9wj:msg_uClf0nIn",
+      "model": "openai-compatible/qwen",
+      "sessionId": "1793566165702_ig9wj",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:51:40.142Z",
+      "tokens": {
+        "cacheRead": 8051,
+        "cacheWrite": 0,
+        "input": 54,
+        "output": 19,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "cline",
+      "messageId": "cline-cli:1793566165702_ig9wj:msg_Kns9oQ6M",
+      "model": "openai-compatible/qwen",
+      "sessionId": "1793566165702_ig9wj",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:51:41.571Z",
+      "tokens": {
+        "cacheRead": 8123,
+        "cacheWrite": 0,
+        "input": 54,
+        "output": 19,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "cline",
+      "messageId": "cline-cli:1793566165702_ig9wj:msg_XMzcjVBa",
+      "model": "openai-compatible/qwen",
+      "sessionId": "1793566165702_ig9wj",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:51:43.018Z",
+      "tokens": {
+        "cacheRead": 8195,
+        "cacheWrite": 0,
+        "input": 54,
+        "output": 19,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "cline",
+      "messageId": "cline-cli:1793566165702_ig9wj:msg_ZtCrZmaH",
+      "model": "openai-compatible/qwen",
+      "sessionId": "1793566165702_ig9wj",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:51:44.464Z",
+      "tokens": {
+        "cacheRead": 8267,
+        "cacheWrite": 0,
+        "input": 54,
+        "output": 19,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "cline",
+      "messageId": "cline-cli:1793566165702_ig9wj:msg_fNMEylx9",
+      "model": "openai-compatible/qwen",
+      "sessionId": "1793566165702_ig9wj",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:51:45.963Z",
+      "tokens": {
+        "cacheRead": 8339,
+        "cacheWrite": 0,
+        "input": 54,
+        "output": 19,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "cline",
+      "messageId": "cline-cli:1793566165702_ig9wj:msg_5bpPoOdu",
+      "model": "openai-compatible/qwen",
+      "sessionId": "1793566165702_ig9wj",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:51:47.466Z",
+      "tokens": {
+        "cacheRead": 8411,
+        "cacheWrite": 0,
+        "input": 54,
+        "output": 19,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "cline",
+      "messageId": "cline-cli:1793566165702_ig9wj:msg_c-PPNwMI",
+      "model": "openai-compatible/qwen",
+      "sessionId": "1793566165702_ig9wj",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:51:48.958Z",
+      "tokens": {
+        "cacheRead": 8483,
+        "cacheWrite": 0,
+        "input": 54,
+        "output": 19,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "cline",
+      "messageId": "cline-cli:1793566165702_ig9wj:msg_IoCE0m8F",
+      "model": "openai-compatible/qwen",
+      "sessionId": "1793566165702_ig9wj",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:51:50.460Z",
+      "tokens": {
+        "cacheRead": 8555,
+        "cacheWrite": 0,
+        "input": 54,
+        "output": 19,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "cline",
+      "messageId": "cline-cli:1793566165702_ig9wj:msg_OJmIxnRi",
+      "model": "openai-compatible/qwen",
+      "sessionId": "1793566165702_ig9wj",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:51:52.006Z",
+      "tokens": {
+        "cacheRead": 8627,
+        "cacheWrite": 0,
+        "input": 54,
+        "output": 19,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "cline",
+      "messageId": "cline-cli:1793566165702_ig9wj:msg_q4xLyA5o",
+      "model": "openai-compatible/qwen",
+      "sessionId": "1793566165702_ig9wj",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:51:53.524Z",
+      "tokens": {
+        "cacheRead": 8699,
+        "cacheWrite": 0,
+        "input": 54,
+        "output": 19,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "cline",
+      "messageId": "cline-cli:1793566165702_ig9wj:msg_rMSkCfO_",
+      "model": "openai-compatible/qwen",
+      "sessionId": "1793566165702_ig9wj",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:51:55.037Z",
+      "tokens": {
+        "cacheRead": 8771,
+        "cacheWrite": 0,
+        "input": 54,
+        "output": 19,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "cline",
+      "messageId": "cline-cli:1793566165702_ig9wj:msg_NhC7YkF_",
+      "model": "openai-compatible/qwen",
+      "sessionId": "1793566165702_ig9wj",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:51:56.583Z",
+      "tokens": {
+        "cacheRead": 8843,
+        "cacheWrite": 0,
+        "input": 54,
+        "output": 19,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "cline",
+      "messageId": "cline-cli:1793566165702_ig9wj:msg_OLTqIeKr",
+      "model": "openai-compatible/qwen",
+      "sessionId": "1793566165702_ig9wj",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:51:58.118Z",
+      "tokens": {
+        "cacheRead": 8915,
+        "cacheWrite": 0,
+        "input": 54,
+        "output": 19,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "cline",
+      "messageId": "cline-cli:1793566165702_ig9wj:msg_HY3ZUGLU",
+      "model": "openai-compatible/qwen",
+      "sessionId": "1793566165702_ig9wj",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:51:59.656Z",
+      "tokens": {
+        "cacheRead": 8987,
+        "cacheWrite": 0,
+        "input": 54,
+        "output": 19,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "cline",
+      "messageId": "cline-cli:1793566165702_ig9wj:msg_q8Z6vEnP",
+      "model": "openai-compatible/qwen",
+      "sessionId": "1793566165702_ig9wj",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:52:01.198Z",
+      "tokens": {
+        "cacheRead": 9059,
+        "cacheWrite": 0,
+        "input": 54,
+        "output": 19,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "cline",
+      "messageId": "cline-cli:1793566165702_ig9wj:msg_bh-di8VG",
+      "model": "openai-compatible/qwen",
+      "sessionId": "1793566165702_ig9wj",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:52:02.803Z",
+      "tokens": {
+        "cacheRead": 9131,
+        "cacheWrite": 0,
+        "input": 54,
+        "output": 19,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "cline",
+      "messageId": "cline-cli:1793566165702_ig9wj:msg_15IBscm-",
+      "model": "openai-compatible/qwen",
+      "sessionId": "1793566165702_ig9wj",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:52:04.361Z",
+      "tokens": {
+        "cacheRead": 9203,
+        "cacheWrite": 0,
+        "input": 54,
+        "output": 19,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "cline",
+      "messageId": "cline-cli:1793566165702_ig9wj:msg_1SrMp76o",
+      "model": "openai-compatible/qwen",
+      "sessionId": "1793566165702_ig9wj",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:52:05.921Z",
+      "tokens": {
+        "cacheRead": 9275,
+        "cacheWrite": 0,
+        "input": 54,
+        "output": 19,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "cline",
+      "messageId": "cline-cli:1793566165702_ig9wj:msg_J_lkA64M",
+      "model": "openai-compatible/qwen",
+      "sessionId": "1793566165702_ig9wj",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:52:07.562Z",
+      "tokens": {
+        "cacheRead": 9347,
+        "cacheWrite": 0,
+        "input": 54,
+        "output": 19,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "cline",
+      "messageId": "cline-cli:1793566165702_ig9wj:msg_fb0H_ORA",
+      "model": "openai-compatible/qwen",
+      "sessionId": "1793566165702_ig9wj",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:52:09.193Z",
+      "tokens": {
+        "cacheRead": 9419,
+        "cacheWrite": 0,
+        "input": 54,
+        "output": 19,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "cline",
+      "messageId": "cline-cli:1793566165702_ig9wj:msg_fR5wGJvd",
+      "model": "openai-compatible/qwen",
+      "sessionId": "1793566165702_ig9wj",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:52:10.806Z",
+      "tokens": {
+        "cacheRead": 9491,
+        "cacheWrite": 0,
+        "input": 54,
+        "output": 19,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "cline",
+      "messageId": "cline-cli:1793566165702_ig9wj:msg_gn3JJpQJ",
+      "model": "openai-compatible/qwen",
+      "sessionId": "1793566165702_ig9wj",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:52:12.386Z",
+      "tokens": {
+        "cacheRead": 9563,
+        "cacheWrite": 0,
+        "input": 54,
+        "output": 19,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "cline",
+      "messageId": "cline-cli:1793566165702_ig9wj:msg_x6-1SKY3",
+      "model": "openai-compatible/qwen",
+      "sessionId": "1793566165702_ig9wj",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:52:14.051Z",
+      "tokens": {
+        "cacheRead": 9635,
+        "cacheWrite": 0,
+        "input": 54,
+        "output": 19,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "cline",
+      "messageId": "cline-cli:1793566165702_ig9wj:msg_xINELVp9",
+      "model": "openai-compatible/qwen",
+      "sessionId": "1793566165702_ig9wj",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:52:15.683Z",
+      "tokens": {
+        "cacheRead": 9707,
+        "cacheWrite": 0,
+        "input": 54,
+        "output": 19,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "cline",
+      "messageId": "cline-cli:1793566165702_ig9wj:msg_UyEaq5of",
+      "model": "openai-compatible/qwen",
+      "sessionId": "1793566165702_ig9wj",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:52:17.302Z",
+      "tokens": {
+        "cacheRead": 9779,
+        "cacheWrite": 0,
+        "input": 54,
+        "output": 19,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "cline",
+      "messageId": "cline-cli:1793566165702_ig9wj:msg_YJaB7dI7",
+      "model": "openai-compatible/qwen",
+      "sessionId": "1793566165702_ig9wj",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:52:18.978Z",
+      "tokens": {
+        "cacheRead": 9851,
+        "cacheWrite": 0,
+        "input": 54,
+        "output": 19,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "cline",
+      "messageId": "cline-cli:1793566165702_ig9wj:msg_0RRdiqib",
+      "model": "openai-compatible/qwen",
+      "sessionId": "1793566165702_ig9wj",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:52:20.641Z",
+      "tokens": {
+        "cacheRead": 9923,
+        "cacheWrite": 0,
+        "input": 54,
+        "output": 19,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "cline",
+      "messageId": "cline-cli:1793566165702_ig9wj:msg_NoYJpm40",
+      "model": "openai-compatible/qwen",
+      "sessionId": "1793566165702_ig9wj",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:52:22.294Z",
+      "tokens": {
+        "cacheRead": 9995,
+        "cacheWrite": 0,
+        "input": 54,
+        "output": 19,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "cline",
+      "messageId": "cline-cli:1793566165702_ig9wj:msg_qeFgjj1U",
+      "model": "openai-compatible/qwen",
+      "sessionId": "1793566165702_ig9wj",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:52:23.964Z",
+      "tokens": {
+        "cacheRead": 10067,
+        "cacheWrite": 0,
+        "input": 54,
+        "output": 19,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "cline",
+      "messageId": "cline-cli:1793566165702_ig9wj:msg_tQ2plE13",
+      "model": "openai-compatible/qwen",
+      "sessionId": "1793566165702_ig9wj",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:52:25.695Z",
+      "tokens": {
+        "cacheRead": 10139,
+        "cacheWrite": 0,
+        "input": 54,
+        "output": 19,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "cline",
+      "messageId": "cline-cli:1793566165702_ig9wj:msg_P5nXSm7o",
+      "model": "openai-compatible/qwen",
+      "sessionId": "1793566165702_ig9wj",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:52:27.355Z",
+      "tokens": {
+        "cacheRead": 10211,
+        "cacheWrite": 0,
+        "input": 54,
+        "output": 19,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "cline",
+      "messageId": "cline-cli:1793566165702_ig9wj:msg_3W06aA4Z",
+      "model": "openai-compatible/qwen",
+      "sessionId": "1793566165702_ig9wj",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:52:29.054Z",
+      "tokens": {
+        "cacheRead": 10283,
+        "cacheWrite": 0,
+        "input": 54,
+        "output": 19,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "cline",
+      "messageId": "cline-cli:1793566165702_ig9wj:msg_DtaqSUBY",
+      "model": "openai-compatible/qwen",
+      "sessionId": "1793566165702_ig9wj",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:52:30.844Z",
+      "tokens": {
+        "cacheRead": 10355,
+        "cacheWrite": 0,
+        "input": 54,
+        "output": 19,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "cline",
+      "messageId": "cline-cli:1793566165702_ig9wj:msg_sl4V32mf",
+      "model": "openai-compatible/qwen",
+      "sessionId": "1793566165702_ig9wj",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:52:32.554Z",
+      "tokens": {
+        "cacheRead": 10427,
+        "cacheWrite": 0,
+        "input": 54,
+        "output": 19,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "cline",
+      "messageId": "cline-cli:1793566165702_ig9wj:msg_dgF7Wtah",
+      "model": "openai-compatible/qwen",
+      "sessionId": "1793566165702_ig9wj",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:52:34.290Z",
+      "tokens": {
+        "cacheRead": 10499,
+        "cacheWrite": 0,
+        "input": 54,
+        "output": 19,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "cline",
+      "messageId": "cline-cli:1793566165702_ig9wj:msg_gW5okvh9",
+      "model": "openai-compatible/qwen",
+      "sessionId": "1793566165702_ig9wj",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:52:36.049Z",
+      "tokens": {
+        "cacheRead": 10571,
+        "cacheWrite": 0,
+        "input": 54,
+        "output": 19,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "cline",
+      "messageId": "cline-cli:1793566165702_ig9wj:msg_kkxpJ0VU",
+      "model": "openai-compatible/qwen",
+      "sessionId": "1793566165702_ig9wj",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:52:37.779Z",
+      "tokens": {
+        "cacheRead": 10643,
+        "cacheWrite": 0,
+        "input": 54,
+        "output": 19,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "cline",
+      "messageId": "cline-cli:1793566165702_ig9wj:msg_497R5xqn",
+      "model": "openai-compatible/qwen",
+      "sessionId": "1793566165702_ig9wj",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:52:39.521Z",
+      "tokens": {
+        "cacheRead": 10715,
+        "cacheWrite": 0,
+        "input": 54,
+        "output": 19,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "cline",
+      "messageId": "cline-cli:1793566165702_ig9wj:msg_oH7ArJtm",
+      "model": "openai-compatible/qwen",
+      "sessionId": "1793566165702_ig9wj",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:52:41.298Z",
+      "tokens": {
+        "cacheRead": 10787,
+        "cacheWrite": 0,
+        "input": 54,
+        "output": 19,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "cline",
+      "messageId": "cline-cli:1793566165702_ig9wj:msg_QIdDJ_dV",
+      "model": "openai-compatible/qwen",
+      "sessionId": "1793566165702_ig9wj",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:52:43.068Z",
+      "tokens": {
+        "cacheRead": 10859,
+        "cacheWrite": 0,
+        "input": 54,
+        "output": 19,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "cline",
+      "messageId": "cline-cli:1793566165702_ig9wj:msg_qV8XZFyZ",
+      "model": "openai-compatible/qwen",
+      "sessionId": "1793566165702_ig9wj",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:52:44.829Z",
+      "tokens": {
+        "cacheRead": 10931,
+        "cacheWrite": 0,
+        "input": 54,
+        "output": 19,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "cline",
+      "messageId": "cline-cli:1793566165702_ig9wj:msg_-z62P38A",
+      "model": "openai-compatible/qwen",
+      "sessionId": "1793566165702_ig9wj",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:52:46.610Z",
+      "tokens": {
+        "cacheRead": 11003,
+        "cacheWrite": 0,
+        "input": 54,
+        "output": 19,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "cline",
+      "messageId": "cline-cli:1793566165702_ig9wj:msg_8zpjdrcA",
+      "model": "openai-compatible/qwen",
+      "sessionId": "1793566165702_ig9wj",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:52:48.461Z",
+      "tokens": {
+        "cacheRead": 11075,
+        "cacheWrite": 0,
+        "input": 54,
+        "output": 19,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "cline",
+      "messageId": "cline-cli:1793566165702_ig9wj:msg_UwnRWgFa",
+      "model": "openai-compatible/qwen",
+      "sessionId": "1793566165702_ig9wj",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:52:50.236Z",
+      "tokens": {
+        "cacheRead": 11147,
+        "cacheWrite": 0,
+        "input": 54,
+        "output": 19,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "cline",
+      "messageId": "cline-cli:1793566165702_ig9wj:msg_e5-5XiJs",
+      "model": "openai-compatible/qwen",
+      "sessionId": "1793566165702_ig9wj",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:52:52.030Z",
+      "tokens": {
+        "cacheRead": 11219,
+        "cacheWrite": 0,
+        "input": 54,
+        "output": 19,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "cline",
+      "messageId": "cline-cli:1793566165702_ig9wj:msg_oxam8ej1",
+      "model": "openai-compatible/qwen",
+      "sessionId": "1793566165702_ig9wj",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:52:53.888Z",
+      "tokens": {
+        "cacheRead": 11291,
+        "cacheWrite": 0,
+        "input": 54,
+        "output": 19,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "cline",
+      "messageId": "cline-cli:1793566165702_ig9wj:msg_PEwKBZBE",
+      "model": "openai-compatible/qwen",
+      "sessionId": "1793566165702_ig9wj",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:52:55.712Z",
+      "tokens": {
+        "cacheRead": 11363,
+        "cacheWrite": 0,
+        "input": 54,
+        "output": 19,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "cline",
+      "messageId": "cline-cli:1793566165702_ig9wj:msg_PpECYXDC",
+      "model": "openai-compatible/qwen",
+      "sessionId": "1793566165702_ig9wj",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:52:57.541Z",
+      "tokens": {
+        "cacheRead": 11435,
+        "cacheWrite": 0,
+        "input": 54,
+        "output": 19,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "cline",
+      "messageId": "cline-cli:1793566165702_ig9wj:msg_WjrGe-A-",
+      "model": "openai-compatible/qwen",
+      "sessionId": "1793566165702_ig9wj",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:52:59.445Z",
+      "tokens": {
+        "cacheRead": 11507,
+        "cacheWrite": 0,
+        "input": 54,
+        "output": 19,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "cline",
+      "messageId": "cline-cli:1793566165702_ig9wj:msg_5NbjfQmr",
+      "model": "openai-compatible/qwen",
+      "sessionId": "1793566165702_ig9wj",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:53:01.270Z",
+      "tokens": {
+        "cacheRead": 11579,
+        "cacheWrite": 0,
+        "input": 54,
+        "output": 19,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "cline",
+      "messageId": "cline-cli:1793566165702_ig9wj:msg_neUQkfjp",
+      "model": "openai-compatible/qwen",
+      "sessionId": "1793566165702_ig9wj",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:53:03.125Z",
+      "tokens": {
+        "cacheRead": 11651,
+        "cacheWrite": 0,
+        "input": 54,
+        "output": 19,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "cline",
+      "messageId": "cline-cli:1793566165702_ig9wj:msg_jtqr4IHK",
+      "model": "openai-compatible/qwen",
+      "sessionId": "1793566165702_ig9wj",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:53:05.028Z",
+      "tokens": {
+        "cacheRead": 11723,
+        "cacheWrite": 0,
+        "input": 54,
+        "output": 19,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "cline",
+      "messageId": "cline-cli:1793566165702_ig9wj:msg_5Y1HGQkt",
+      "model": "openai-compatible/qwen",
+      "sessionId": "1793566165702_ig9wj",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:53:06.908Z",
+      "tokens": {
+        "cacheRead": 11795,
+        "cacheWrite": 0,
+        "input": 54,
+        "output": 19,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "cline",
+      "messageId": "cline-cli:1793566165702_ig9wj:msg_C8pm5uHY",
+      "model": "openai-compatible/qwen",
+      "sessionId": "1793566165702_ig9wj",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:53:08.811Z",
+      "tokens": {
+        "cacheRead": 11867,
+        "cacheWrite": 0,
+        "input": 54,
+        "output": 19,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "cline",
+      "messageId": "cline-cli:1793566165702_ig9wj:msg_cc1o1nq6",
+      "model": "openai-compatible/qwen",
+      "sessionId": "1793566165702_ig9wj",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:53:10.743Z",
+      "tokens": {
+        "cacheRead": 11939,
+        "cacheWrite": 0,
+        "input": 54,
+        "output": 19,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "cline",
+      "messageId": "cline-cli:1793566165702_ig9wj:msg_lGQC_C2i",
+      "model": "openai-compatible/qwen",
+      "sessionId": "1793566165702_ig9wj",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:53:12.614Z",
+      "tokens": {
+        "cacheRead": 12011,
+        "cacheWrite": 0,
+        "input": 54,
+        "output": 19,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "cline",
+      "messageId": "cline-cli:1793566165702_ig9wj:msg_MAHV7oj7",
+      "model": "openai-compatible/qwen",
+      "sessionId": "1793566165702_ig9wj",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:53:14.499Z",
+      "tokens": {
+        "cacheRead": 12083,
+        "cacheWrite": 0,
+        "input": 54,
+        "output": 19,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "cline",
+      "messageId": "cline-cli:1793566165702_ig9wj:msg_dymp5B2w",
+      "model": "openai-compatible/qwen",
+      "sessionId": "1793566165702_ig9wj",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:53:16.446Z",
+      "tokens": {
+        "cacheRead": 12155,
+        "cacheWrite": 0,
+        "input": 54,
+        "output": 19,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "cline",
+      "messageId": "cline-cli:1793566165702_ig9wj:msg_zf8dZQca",
+      "model": "openai-compatible/qwen",
+      "sessionId": "1793566165702_ig9wj",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:53:18.423Z",
+      "tokens": {
+        "cacheRead": 12227,
+        "cacheWrite": 0,
+        "input": 54,
+        "output": 19,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "cline",
+      "messageId": "cline-cli:1793566165702_ig9wj:msg_GjlmfqLC",
+      "model": "openai-compatible/qwen",
+      "sessionId": "1793566165702_ig9wj",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:53:20.376Z",
+      "tokens": {
+        "cacheRead": 12299,
+        "cacheWrite": 0,
+        "input": 54,
+        "output": 19,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "cline",
+      "messageId": "cline-cli:1793566165702_ig9wj:msg_Z5gIOvJM",
+      "model": "openai-compatible/qwen",
+      "sessionId": "1793566165702_ig9wj",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:53:22.371Z",
+      "tokens": {
+        "cacheRead": 12371,
+        "cacheWrite": 0,
+        "input": 54,
+        "output": 19,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "cline",
+      "messageId": "cline-cli:1793566165702_ig9wj:msg_lvzMJLX9",
+      "model": "openai-compatible/qwen",
+      "sessionId": "1793566165702_ig9wj",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:53:25.257Z",
+      "tokens": {
+        "cacheRead": 12443,
+        "cacheWrite": 0,
+        "input": 54,
+        "output": 19,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "cline",
+      "messageId": "cline-cli:1793566165702_ig9wj:msg_Ol4LZ2fS",
+      "model": "openai-compatible/qwen",
+      "sessionId": "1793566165702_ig9wj",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:53:27.231Z",
+      "tokens": {
+        "cacheRead": 12515,
+        "cacheWrite": 0,
+        "input": 54,
+        "output": 19,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "cline",
+      "messageId": "cline-cli:1793566165702_ig9wj:msg_sJIj7A3S",
+      "model": "openai-compatible/qwen",
+      "sessionId": "1793566165702_ig9wj",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:53:29.196Z",
+      "tokens": {
+        "cacheRead": 12587,
+        "cacheWrite": 0,
+        "input": 54,
+        "output": 19,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "cline",
+      "messageId": "cline-cli:1793566165702_ig9wj:msg_OY7llaIV",
+      "model": "openai-compatible/qwen",
+      "sessionId": "1793566165702_ig9wj",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:53:31.142Z",
+      "tokens": {
+        "cacheRead": 12659,
+        "cacheWrite": 0,
+        "input": 54,
+        "output": 19,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "cline",
+      "messageId": "cline-cli:1793566165702_ig9wj:msg_lHzeqbce",
+      "model": "openai-compatible/qwen",
+      "sessionId": "1793566165702_ig9wj",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:53:33.165Z",
+      "tokens": {
+        "cacheRead": 12731,
+        "cacheWrite": 0,
+        "input": 54,
+        "output": 19,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "cline",
+      "messageId": "cline-cli:1793566165702_ig9wj:msg_VZ5F-5WU",
+      "model": "openai-compatible/qwen",
+      "sessionId": "1793566165702_ig9wj",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:53:35.149Z",
+      "tokens": {
+        "cacheRead": 12803,
+        "cacheWrite": 0,
+        "input": 54,
+        "output": 19,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "cline",
+      "messageId": "cline-cli:1793566165702_ig9wj:msg_Crz019c8",
+      "model": "openai-compatible/qwen",
+      "sessionId": "1793566165702_ig9wj",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:53:37.542Z",
+      "tokens": {
+        "cacheRead": 12875,
+        "cacheWrite": 0,
+        "input": 54,
+        "output": 19,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "cline",
+      "messageId": "cline-cli:1793566165702_ig9wj:msg_SbcBCmjy",
+      "model": "openai-compatible/qwen",
+      "sessionId": "1793566165702_ig9wj",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:53:42.598Z",
+      "tokens": {
+        "cacheRead": 12947,
+        "cacheWrite": 0,
+        "input": 54,
+        "output": 19,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "cline",
+      "messageId": "cline-cli:1793566165702_ig9wj:msg_hioaxDuS",
+      "model": "openai-compatible/qwen",
+      "sessionId": "1793566165702_ig9wj",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:53:47.272Z",
+      "tokens": {
+        "cacheRead": 13019,
+        "cacheWrite": 0,
+        "input": 54,
+        "output": 19,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "cline",
+      "messageId": "cline-cli:1793566165702_ig9wj:msg_q-V5RuSd",
+      "model": "openai-compatible/qwen",
+      "sessionId": "1793566165702_ig9wj",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:53:51.524Z",
+      "tokens": {
+        "cacheRead": 13091,
+        "cacheWrite": 0,
+        "input": 54,
+        "output": 19,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "cline",
+      "messageId": "cline-cli:1793566165702_ig9wj:msg_M-AQg8ja",
+      "model": "openai-compatible/qwen",
+      "sessionId": "1793566165702_ig9wj",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:53:54.751Z",
+      "tokens": {
+        "cacheRead": 13163,
+        "cacheWrite": 0,
+        "input": 54,
+        "output": 19,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "cline",
+      "messageId": "cline-cli:1793566165702_ig9wj:msg_tMpojrFJ",
+      "model": "openai-compatible/qwen",
+      "sessionId": "1793566165702_ig9wj",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:53:58.142Z",
+      "tokens": {
+        "cacheRead": 13235,
+        "cacheWrite": 0,
+        "input": 54,
+        "output": 19,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "cline",
+      "messageId": "cline-cli:1793566165702_ig9wj:msg_5oVbHo7i",
+      "model": "openai-compatible/qwen",
+      "sessionId": "1793566165702_ig9wj",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:54:01.553Z",
+      "tokens": {
+        "cacheRead": 13307,
+        "cacheWrite": 0,
+        "input": 54,
+        "output": 19,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "cline",
+      "messageId": "cline-cli:1793566165702_ig9wj:msg_GtYfQmhc",
+      "model": "openai-compatible/qwen",
+      "sessionId": "1793566165702_ig9wj",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:54:04.791Z",
+      "tokens": {
+        "cacheRead": 13379,
+        "cacheWrite": 0,
+        "input": 54,
+        "output": 19,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "cline",
+      "messageId": "cline-cli:1793566165702_ig9wj:msg_0Ydew0lC",
+      "model": "openai-compatible/qwen",
+      "sessionId": "1793566165702_ig9wj",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:54:07.993Z",
+      "tokens": {
+        "cacheRead": 13451,
+        "cacheWrite": 0,
+        "input": 54,
+        "output": 19,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "cline",
+      "messageId": "cline-cli:1793566165702_ig9wj:msg_HAaVQyvi",
+      "model": "openai-compatible/qwen",
+      "sessionId": "1793566165702_ig9wj",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:54:11.175Z",
+      "tokens": {
+        "cacheRead": 13523,
+        "cacheWrite": 0,
+        "input": 54,
+        "output": 19,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "cline",
+      "messageId": "cline-cli:1793566165702_ig9wj:msg_29AjeOar",
+      "model": "openai-compatible/qwen",
+      "sessionId": "1793566165702_ig9wj",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:54:14.368Z",
+      "tokens": {
+        "cacheRead": 13595,
+        "cacheWrite": 0,
+        "input": 54,
+        "output": 19,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "cline",
+      "messageId": "cline-cli:1793566165702_ig9wj:msg_1gwcL_-G",
+      "model": "openai-compatible/qwen",
+      "sessionId": "1793566165702_ig9wj",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:54:17.524Z",
+      "tokens": {
+        "cacheRead": 13667,
+        "cacheWrite": 0,
+        "input": 54,
+        "output": 19,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "cline",
+      "messageId": "cline-cli:1793566165702_ig9wj:msg_oWElz4pT",
+      "model": "openai-compatible/qwen",
+      "sessionId": "1793566165702_ig9wj",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:54:20.651Z",
+      "tokens": {
+        "cacheRead": 13739,
+        "cacheWrite": 0,
+        "input": 54,
+        "output": 19,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "cline",
+      "messageId": "cline-cli:1793566165702_ig9wj:msg_5X53ohBh",
+      "model": "openai-compatible/qwen",
+      "sessionId": "1793566165702_ig9wj",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:54:23.885Z",
+      "tokens": {
+        "cacheRead": 13811,
+        "cacheWrite": 0,
+        "input": 54,
+        "output": 19,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "cline",
+      "messageId": "cline-cli:1793566165702_ig9wj:msg_IH2XxRk_",
+      "model": "openai-compatible/qwen",
+      "sessionId": "1793566165702_ig9wj",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:54:27.155Z",
+      "tokens": {
+        "cacheRead": 13883,
+        "cacheWrite": 0,
+        "input": 54,
+        "output": 19,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "cline",
+      "messageId": "cline-cli:1793566165702_ig9wj:msg_q2toPxO8",
+      "model": "openai-compatible/qwen",
+      "sessionId": "1793566165702_ig9wj",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:54:30.364Z",
+      "tokens": {
+        "cacheRead": 13955,
+        "cacheWrite": 0,
+        "input": 54,
+        "output": 19,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "cline",
+      "messageId": "cline-cli:1793566165702_ig9wj:msg_Wh80dz_B",
+      "model": "openai-compatible/qwen",
+      "sessionId": "1793566165702_ig9wj",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:54:33.610Z",
+      "tokens": {
+        "cacheRead": 14027,
+        "cacheWrite": 0,
+        "input": 54,
+        "output": 19,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "cline",
+      "messageId": "cline-cli:1793566165702_ig9wj:msg_LSx_Q_Xu",
+      "model": "openai-compatible/qwen",
+      "sessionId": "1793566165702_ig9wj",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:54:36.791Z",
+      "tokens": {
+        "cacheRead": 14099,
+        "cacheWrite": 0,
+        "input": 54,
+        "output": 19,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "cline",
+      "messageId": "cline-cli:1793566165702_ig9wj:msg_UEKd0CZE",
+      "model": "openai-compatible/qwen",
+      "sessionId": "1793566165702_ig9wj",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:54:40.327Z",
+      "tokens": {
+        "cacheRead": 14171,
+        "cacheWrite": 0,
+        "input": 54,
+        "output": 19,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "cline",
+      "messageId": "cline-cli:1793566165702_ig9wj:msg_II_9UUsB",
+      "model": "openai-compatible/qwen",
+      "sessionId": "1793566165702_ig9wj",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:54:43.860Z",
+      "tokens": {
+        "cacheRead": 14243,
+        "cacheWrite": 0,
+        "input": 54,
+        "output": 19,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "cline",
+      "messageId": "cline-cli:1793566165702_ig9wj:msg_EHlSek_J",
+      "model": "openai-compatible/qwen",
+      "sessionId": "1793566165702_ig9wj",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:54:47.110Z",
+      "tokens": {
+        "cacheRead": 14315,
+        "cacheWrite": 0,
+        "input": 54,
+        "output": 19,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "cline",
+      "messageId": "cline-cli:1793566165702_ig9wj:msg_yOqCQtHV",
+      "model": "openai-compatible/qwen",
+      "sessionId": "1793566165702_ig9wj",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:54:50.514Z",
+      "tokens": {
+        "cacheRead": 14387,
+        "cacheWrite": 0,
+        "input": 54,
+        "output": 19,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "cline",
+      "messageId": "cline-cli:1793566165702_ig9wj:msg_ay-0BXrv",
+      "model": "openai-compatible/qwen",
+      "sessionId": "1793566165702_ig9wj",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:54:53.787Z",
+      "tokens": {
+        "cacheRead": 14459,
+        "cacheWrite": 0,
+        "input": 54,
+        "output": 19,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "cline",
+      "messageId": "cline-cli:1793566165702_ig9wj:msg_F9pMeBHr",
+      "model": "openai-compatible/qwen",
+      "sessionId": "1793566165702_ig9wj",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:54:57.757Z",
+      "tokens": {
+        "cacheRead": 14531,
+        "cacheWrite": 0,
+        "input": 54,
+        "output": 19,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "cline",
+      "messageId": "cline-cli:1793566165702_ig9wj:msg_osNuaDcg",
+      "model": "openai-compatible/qwen",
+      "sessionId": "1793566165702_ig9wj",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:55:01.478Z",
+      "tokens": {
+        "cacheRead": 14603,
+        "cacheWrite": 0,
+        "input": 54,
+        "output": 19,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "cline",
+      "messageId": "cline-cli:1793566165702_ig9wj:msg_e_6NGNa1",
+      "model": "openai-compatible/qwen",
+      "sessionId": "1793566165702_ig9wj",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:55:04.786Z",
+      "tokens": {
+        "cacheRead": 14675,
+        "cacheWrite": 0,
+        "input": 54,
+        "output": 19,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "cline",
+      "messageId": "cline-cli:1793566165702_ig9wj:msg_-PrHQm3_",
+      "model": "openai-compatible/qwen",
+      "sessionId": "1793566165702_ig9wj",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:55:08.253Z",
+      "tokens": {
+        "cacheRead": 14747,
+        "cacheWrite": 0,
+        "input": 54,
+        "output": 19,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "cline",
+      "messageId": "cline-cli:1793566165702_ig9wj:msg_0X_uoSUJ",
+      "model": "openai-compatible/qwen",
+      "sessionId": "1793566165702_ig9wj",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:55:11.765Z",
+      "tokens": {
+        "cacheRead": 14819,
+        "cacheWrite": 0,
+        "input": 54,
+        "output": 19,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "cline",
+      "messageId": "cline-cli:1793566165702_ig9wj:msg_qx0ip3wv",
+      "model": "openai-compatible/qwen",
+      "sessionId": "1793566165702_ig9wj",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:55:15.570Z",
+      "tokens": {
+        "cacheRead": 14891,
+        "cacheWrite": 0,
+        "input": 54,
+        "output": 19,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "cline",
+      "messageId": "cline-cli:1793566165702_ig9wj:msg_MgehEjzy",
+      "model": "openai-compatible/qwen",
+      "sessionId": "1793566165702_ig9wj",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:55:19.031Z",
+      "tokens": {
+        "cacheRead": 14963,
+        "cacheWrite": 0,
+        "input": 54,
+        "output": 19,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "cline",
+      "messageId": "cline-cli:1793566165702_ig9wj:msg_M0ZkDZqY",
+      "model": "openai-compatible/qwen",
+      "sessionId": "1793566165702_ig9wj",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:55:22.588Z",
+      "tokens": {
+        "cacheRead": 15035,
+        "cacheWrite": 0,
+        "input": 54,
+        "output": 19,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "cline",
+      "messageId": "cline-cli:1793566165702_ig9wj:msg_SyV_wJEV",
+      "model": "openai-compatible/qwen",
+      "sessionId": "1793566165702_ig9wj",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:55:26.020Z",
+      "tokens": {
+        "cacheRead": 15107,
+        "cacheWrite": 0,
+        "input": 54,
+        "output": 19,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "cline",
+      "messageId": "cline-cli:1793566165702_ig9wj:msg_aHOAjH64",
+      "model": "openai-compatible/qwen",
+      "sessionId": "1793566165702_ig9wj",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:55:29.601Z",
+      "tokens": {
+        "cacheRead": 15179,
+        "cacheWrite": 0,
+        "input": 54,
+        "output": 19,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "cline",
+      "messageId": "cline-cli:1793566165702_ig9wj:msg_DcNwlzns",
+      "model": "openai-compatible/qwen",
+      "sessionId": "1793566165702_ig9wj",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:55:33.027Z",
+      "tokens": {
+        "cacheRead": 15251,
+        "cacheWrite": 0,
+        "input": 54,
+        "output": 19,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "cline",
+      "messageId": "cline-cli:1793566165702_ig9wj:msg_GuHdUDeL",
+      "model": "openai-compatible/qwen",
+      "sessionId": "1793566165702_ig9wj",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:55:36.603Z",
+      "tokens": {
+        "cacheRead": 15323,
+        "cacheWrite": 0,
+        "input": 54,
+        "output": 19,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "cline",
+      "messageId": "cline-cli:1793566165702_ig9wj:msg_y4iW6loE",
+      "model": "openai-compatible/qwen",
+      "sessionId": "1793566165702_ig9wj",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:55:39.979Z",
+      "tokens": {
+        "cacheRead": 15395,
+        "cacheWrite": 0,
+        "input": 54,
+        "output": 19,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "cline",
+      "messageId": "cline-cli:1793566165702_ig9wj:msg_8N9Ny_Ce",
+      "model": "openai-compatible/qwen",
+      "sessionId": "1793566165702_ig9wj",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:55:43.573Z",
+      "tokens": {
+        "cacheRead": 15467,
+        "cacheWrite": 0,
+        "input": 54,
+        "output": 19,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "cline",
+      "messageId": "cline-cli:1793566165702_ig9wj:msg_njNwMbe1",
+      "model": "openai-compatible/qwen",
+      "sessionId": "1793566165702_ig9wj",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:55:47.099Z",
+      "tokens": {
+        "cacheRead": 15539,
+        "cacheWrite": 0,
+        "input": 54,
+        "output": 19,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "cline",
+      "messageId": "cline-cli:1793566165702_ig9wj:msg_0Bl3y-tQ",
+      "model": "openai-compatible/qwen",
+      "sessionId": "1793566165702_ig9wj",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:55:50.763Z",
+      "tokens": {
+        "cacheRead": 15611,
+        "cacheWrite": 0,
+        "input": 54,
+        "output": 19,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "cline",
+      "messageId": "cline-cli:1793566165702_ig9wj:msg_K0iJGaFr",
+      "model": "openai-compatible/qwen",
+      "sessionId": "1793566165702_ig9wj",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:55:54.402Z",
+      "tokens": {
+        "cacheRead": 15683,
+        "cacheWrite": 0,
+        "input": 54,
+        "output": 19,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "cline",
+      "messageId": "cline-cli:1793566165702_ig9wj:msg_i4odW7h2",
+      "model": "openai-compatible/qwen",
+      "sessionId": "1793566165702_ig9wj",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:55:58.067Z",
+      "tokens": {
+        "cacheRead": 15755,
+        "cacheWrite": 0,
+        "input": 54,
+        "output": 19,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "cline",
+      "messageId": "cline-cli:1793566165702_ig9wj:msg_gvqIbaUI",
+      "model": "openai-compatible/qwen",
+      "sessionId": "1793566165702_ig9wj",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:56:01.757Z",
+      "tokens": {
+        "cacheRead": 15827,
+        "cacheWrite": 0,
+        "input": 54,
+        "output": 19,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "cline",
+      "messageId": "cline-cli:1793566165702_ig9wj:msg_czTxpyR3",
+      "model": "openai-compatible/qwen",
+      "sessionId": "1793566165702_ig9wj",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:56:05.508Z",
+      "tokens": {
+        "cacheRead": 15899,
+        "cacheWrite": 0,
+        "input": 54,
+        "output": 19,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "cline",
+      "messageId": "cline-cli:1793566165702_ig9wj:msg_iwV6wLgZ",
+      "model": "openai-compatible/qwen",
+      "sessionId": "1793566165702_ig9wj",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:56:09.270Z",
+      "tokens": {
+        "cacheRead": 15971,
+        "cacheWrite": 0,
+        "input": 54,
+        "output": 19,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "cline",
+      "messageId": "cline-cli:1793566165702_ig9wj:msg_aFrMgH3Q",
+      "model": "openai-compatible/qwen",
+      "sessionId": "1793566165702_ig9wj",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:56:12.982Z",
+      "tokens": {
+        "cacheRead": 16043,
+        "cacheWrite": 0,
+        "input": 54,
+        "output": 19,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "cline",
+      "messageId": "cline-cli:1793566165702_ig9wj:msg_UfyZ87Ta",
+      "model": "openai-compatible/qwen",
+      "sessionId": "1793566165702_ig9wj",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:56:16.676Z",
+      "tokens": {
+        "cacheRead": 16115,
+        "cacheWrite": 0,
+        "input": 54,
+        "output": 19,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "cline",
+      "messageId": "cline-cli:1793566165702_ig9wj:msg_8ih61Fx1",
+      "model": "openai-compatible/qwen",
+      "sessionId": "1793566165702_ig9wj",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:56:20.436Z",
+      "tokens": {
+        "cacheRead": 16187,
+        "cacheWrite": 0,
+        "input": 54,
+        "output": 19,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "cline",
+      "messageId": "cline-cli:1793566165702_ig9wj:msg_iOZVi-JU",
+      "model": "openai-compatible/qwen",
+      "sessionId": "1793566165702_ig9wj",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:56:24.228Z",
+      "tokens": {
+        "cacheRead": 16259,
+        "cacheWrite": 0,
+        "input": 54,
+        "output": 19,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "cline",
+      "messageId": "cline-cli:1793566165702_ig9wj:msg_wC7iTIAR",
+      "model": "openai-compatible/qwen",
+      "sessionId": "1793566165702_ig9wj",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:56:27.983Z",
+      "tokens": {
+        "cacheRead": 16331,
+        "cacheWrite": 0,
+        "input": 54,
+        "output": 19,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "cline",
+      "messageId": "cline-cli:1793566165702_ig9wj:msg_b7AdszYO",
+      "model": "openai-compatible/qwen",
+      "sessionId": "1793566165702_ig9wj",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:56:31.814Z",
+      "tokens": {
+        "cacheRead": 16403,
+        "cacheWrite": 0,
+        "input": 54,
+        "output": 19,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "cline",
+      "messageId": "cline-cli:1793566165702_ig9wj:msg_nGlGGTaP",
+      "model": "openai-compatible/qwen",
+      "sessionId": "1793566165702_ig9wj",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:56:35.721Z",
+      "tokens": {
+        "cacheRead": 16475,
+        "cacheWrite": 0,
+        "input": 54,
+        "output": 19,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "cline",
+      "messageId": "cline-cli:1793566165702_ig9wj:msg_jnnGJ3Qz",
+      "model": "openai-compatible/qwen",
+      "sessionId": "1793566165702_ig9wj",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:56:39.495Z",
+      "tokens": {
+        "cacheRead": 16547,
+        "cacheWrite": 0,
+        "input": 54,
+        "output": 19,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "cline",
+      "messageId": "cline-cli:1793566165702_ig9wj:msg_PPc5TU3Q",
+      "model": "openai-compatible/qwen",
+      "sessionId": "1793566165702_ig9wj",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:56:43.486Z",
+      "tokens": {
+        "cacheRead": 16619,
+        "cacheWrite": 0,
+        "input": 54,
+        "output": 19,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "cline",
+      "messageId": "cline-cli:1793566165702_ig9wj:msg_n8vWW_2h",
+      "model": "openai-compatible/qwen",
+      "sessionId": "1793566165702_ig9wj",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:56:47.338Z",
+      "tokens": {
+        "cacheRead": 16691,
+        "cacheWrite": 0,
+        "input": 54,
+        "output": 19,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "cline",
+      "messageId": "cline-cli:1793566165702_ig9wj:msg_gAFj9G8b",
+      "model": "openai-compatible/qwen",
+      "sessionId": "1793566165702_ig9wj",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:56:51.181Z",
+      "tokens": {
+        "cacheRead": 16763,
+        "cacheWrite": 0,
+        "input": 54,
+        "output": 19,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "cline",
+      "messageId": "cline-cli:1793566165702_ig9wj:msg_V63Ax87s",
+      "model": "openai-compatible/qwen",
+      "sessionId": "1793566165702_ig9wj",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:56:55.120Z",
+      "tokens": {
+        "cacheRead": 16835,
+        "cacheWrite": 0,
+        "input": 54,
+        "output": 19,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "cline",
+      "messageId": "cline-cli:1793566165702_ig9wj:msg_yWihLfvJ",
+      "model": "openai-compatible/qwen",
+      "sessionId": "1793566165702_ig9wj",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:56:59.077Z",
+      "tokens": {
+        "cacheRead": 16907,
+        "cacheWrite": 0,
+        "input": 54,
+        "output": 19,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "cline",
+      "messageId": "cline-cli:1793566165702_ig9wj:msg_HA1yn2R8",
+      "model": "openai-compatible/qwen",
+      "sessionId": "1793566165702_ig9wj",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:57:03.020Z",
+      "tokens": {
+        "cacheRead": 16979,
+        "cacheWrite": 0,
+        "input": 54,
+        "output": 19,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "cline",
+      "messageId": "cline-cli:1793566165702_ig9wj:msg_vBdPmp5p",
+      "model": "openai-compatible/qwen",
+      "sessionId": "1793566165702_ig9wj",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:57:06.953Z",
+      "tokens": {
+        "cacheRead": 17051,
+        "cacheWrite": 0,
+        "input": 54,
+        "output": 19,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "cline",
+      "messageId": "cline-cli:1793566165702_ig9wj:msg_Whl1vYM1",
+      "model": "openai-compatible/qwen",
+      "sessionId": "1793566165702_ig9wj",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:57:10.988Z",
+      "tokens": {
+        "cacheRead": 17123,
+        "cacheWrite": 0,
+        "input": 54,
+        "output": 19,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "cline",
+      "messageId": "cline-cli:1793566165702_ig9wj:msg_Sczc-gFS",
+      "model": "openai-compatible/qwen",
+      "sessionId": "1793566165702_ig9wj",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:57:15.043Z",
+      "tokens": {
+        "cacheRead": 17195,
+        "cacheWrite": 0,
+        "input": 54,
+        "output": 19,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "cline",
+      "messageId": "cline-cli:1793566165702_ig9wj:msg_Q-R3jYAi",
+      "model": "openai-compatible/qwen",
+      "sessionId": "1793566165702_ig9wj",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:57:19.185Z",
+      "tokens": {
+        "cacheRead": 17267,
+        "cacheWrite": 0,
+        "input": 54,
+        "output": 19,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "cline",
+      "messageId": "cline-cli:1793566165702_ig9wj:msg_rNGHhKOA",
+      "model": "openai-compatible/qwen",
+      "sessionId": "1793566165702_ig9wj",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:57:23.567Z",
+      "tokens": {
+        "cacheRead": 17339,
+        "cacheWrite": 0,
+        "input": 54,
+        "output": 19,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "cline",
+      "messageId": "cline-cli:1793566165702_ig9wj:msg_ulM7Niki",
+      "model": "openai-compatible/qwen",
+      "sessionId": "1793566165702_ig9wj",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:57:27.686Z",
+      "tokens": {
+        "cacheRead": 17411,
+        "cacheWrite": 0,
+        "input": 54,
+        "output": 19,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "cline",
+      "messageId": "cline-cli:1793566165702_ig9wj:msg_yrFxiu-i",
+      "model": "openai-compatible/qwen",
+      "sessionId": "1793566165702_ig9wj",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:57:31.842Z",
+      "tokens": {
+        "cacheRead": 17483,
+        "cacheWrite": 0,
+        "input": 54,
+        "output": 19,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "cline",
+      "messageId": "cline-cli:1793566165702_ig9wj:msg_dwsfPdeJ",
+      "model": "openai-compatible/qwen",
+      "sessionId": "1793566165702_ig9wj",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:57:35.972Z",
+      "tokens": {
+        "cacheRead": 17555,
+        "cacheWrite": 0,
+        "input": 54,
+        "output": 19,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "cline",
+      "messageId": "cline-cli:1793566165702_ig9wj:msg_ahVwDTZX",
+      "model": "openai-compatible/qwen",
+      "sessionId": "1793566165702_ig9wj",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:57:40.118Z",
+      "tokens": {
+        "cacheRead": 17627,
+        "cacheWrite": 0,
+        "input": 54,
+        "output": 19,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "cline",
+      "messageId": "cline-cli:1793566165702_ig9wj:msg_2YMW40Jj",
+      "model": "openai-compatible/qwen",
+      "sessionId": "1793566165702_ig9wj",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:57:44.270Z",
+      "tokens": {
+        "cacheRead": 17699,
+        "cacheWrite": 0,
+        "input": 54,
+        "output": 19,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "cline",
+      "messageId": "cline-cli:1793566165702_ig9wj:msg_s8-Hiq7j",
+      "model": "openai-compatible/qwen",
+      "sessionId": "1793566165702_ig9wj",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:57:48.447Z",
+      "tokens": {
+        "cacheRead": 17771,
+        "cacheWrite": 0,
+        "input": 54,
+        "output": 19,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "cline",
+      "messageId": "cline-cli:1793566165702_ig9wj:msg_qkm2QHvu",
+      "model": "openai-compatible/qwen",
+      "sessionId": "1793566165702_ig9wj",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:57:52.630Z",
+      "tokens": {
+        "cacheRead": 17843,
+        "cacheWrite": 0,
+        "input": 54,
+        "output": 19,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "cline",
+      "messageId": "cline-cli:1793566165702_ig9wj:msg_e1DkTt2Z",
+      "model": "openai-compatible/qwen",
+      "sessionId": "1793566165702_ig9wj",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:57:56.820Z",
+      "tokens": {
+        "cacheRead": 17915,
+        "cacheWrite": 0,
+        "input": 54,
+        "output": 19,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "cline",
+      "messageId": "cline-cli:1793566165702_ig9wj:msg_DHIq6X9Y",
+      "model": "openai-compatible/qwen",
+      "sessionId": "1793566165702_ig9wj",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:58:01.003Z",
+      "tokens": {
+        "cacheRead": 17987,
+        "cacheWrite": 0,
+        "input": 54,
+        "output": 19,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "cline",
+      "messageId": "cline-cli:1793566165702_ig9wj:msg_I4RH-VlF",
+      "model": "openai-compatible/qwen",
+      "sessionId": "1793566165702_ig9wj",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:58:05.237Z",
+      "tokens": {
+        "cacheRead": 18059,
+        "cacheWrite": 0,
+        "input": 54,
+        "output": 19,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "cline",
+      "messageId": "cline-cli:1793566165702_ig9wj:msg_V8pGkS4H",
+      "model": "openai-compatible/qwen",
+      "sessionId": "1793566165702_ig9wj",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:58:09.422Z",
+      "tokens": {
+        "cacheRead": 18131,
+        "cacheWrite": 0,
+        "input": 54,
+        "output": 19,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "cline",
+      "messageId": "cline-cli:1793566165702_ig9wj:msg_ZuogldQs",
+      "model": "openai-compatible/qwen",
+      "sessionId": "1793566165702_ig9wj",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:58:13.708Z",
+      "tokens": {
+        "cacheRead": 18203,
+        "cacheWrite": 0,
+        "input": 54,
+        "output": 19,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "cline",
+      "messageId": "cline-cli:1793566165702_ig9wj:msg_f2aoPc8j",
+      "model": "openai-compatible/qwen",
+      "sessionId": "1793566165702_ig9wj",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:58:18.246Z",
+      "tokens": {
+        "cacheRead": 18275,
+        "cacheWrite": 0,
+        "input": 54,
+        "output": 19,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "cline",
+      "messageId": "cline-cli:1793566165702_ig9wj:msg_Gv4M29vN",
+      "model": "openai-compatible/qwen",
+      "sessionId": "1793566165702_ig9wj",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:58:22.466Z",
+      "tokens": {
+        "cacheRead": 18347,
+        "cacheWrite": 0,
+        "input": 54,
+        "output": 19,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "cline",
+      "messageId": "cline-cli:1793566165702_ig9wj:msg_GxCn1TWy",
+      "model": "openai-compatible/qwen",
+      "sessionId": "1793566165702_ig9wj",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:58:26.710Z",
+      "tokens": {
+        "cacheRead": 18419,
+        "cacheWrite": 0,
+        "input": 54,
+        "output": 19,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "cline",
+      "messageId": "cline-cli:1793566165702_ig9wj:msg_8kSXwJpX",
+      "model": "openai-compatible/qwen",
+      "sessionId": "1793566165702_ig9wj",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:58:31.012Z",
+      "tokens": {
+        "cacheRead": 18491,
+        "cacheWrite": 0,
+        "input": 54,
+        "output": 19,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "cline",
+      "messageId": "cline-cli:1793566165702_ig9wj:msg_Q62yAGQR",
+      "model": "openai-compatible/qwen",
+      "sessionId": "1793566165702_ig9wj",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:58:35.246Z",
+      "tokens": {
+        "cacheRead": 18563,
+        "cacheWrite": 0,
+        "input": 54,
+        "output": 19,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "cline",
+      "messageId": "cline-cli:1793566165702_ig9wj:msg_Qjp62bl8",
+      "model": "openai-compatible/qwen",
+      "sessionId": "1793566165702_ig9wj",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:58:39.527Z",
+      "tokens": {
+        "cacheRead": 18635,
+        "cacheWrite": 0,
+        "input": 54,
+        "output": 19,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "cline",
+      "messageId": "cline-cli:1793566165702_ig9wj:msg_GbRxm8k2",
+      "model": "openai-compatible/qwen",
+      "sessionId": "1793566165702_ig9wj",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:58:43.817Z",
+      "tokens": {
+        "cacheRead": 18707,
+        "cacheWrite": 0,
+        "input": 54,
+        "output": 19,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "cline",
+      "messageId": "cline-cli:1793566165702_ig9wj:msg_HLs6Ag2O",
+      "model": "openai-compatible/qwen",
+      "sessionId": "1793566165702_ig9wj",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:58:48.169Z",
+      "tokens": {
+        "cacheRead": 18779,
+        "cacheWrite": 0,
+        "input": 54,
+        "output": 19,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "cline",
+      "messageId": "cline-cli:1793566165702_ig9wj:msg_Bu3zWABf",
+      "model": "openai-compatible/qwen",
+      "sessionId": "1793566165702_ig9wj",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:58:52.567Z",
+      "tokens": {
+        "cacheRead": 18851,
+        "cacheWrite": 0,
+        "input": 54,
+        "output": 19,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "cline",
+      "messageId": "cline-cli:1793566165702_ig9wj:msg_pFbZj-5j",
+      "model": "openai-compatible/qwen",
+      "sessionId": "1793566165702_ig9wj",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:58:56.943Z",
+      "tokens": {
+        "cacheRead": 18923,
+        "cacheWrite": 0,
+        "input": 54,
+        "output": 19,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "cline",
+      "messageId": "cline-cli:1793566165702_ig9wj:msg_OrmWvu13",
+      "model": "openai-compatible/qwen",
+      "sessionId": "1793566165702_ig9wj",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:59:01.461Z",
+      "tokens": {
+        "cacheRead": 18995,
+        "cacheWrite": 0,
+        "input": 54,
+        "output": 19,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "cline",
+      "messageId": "cline-cli:1793566165702_ig9wj:msg_KL7EsbQZ",
+      "model": "openai-compatible/qwen",
+      "sessionId": "1793566165702_ig9wj",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:59:05.754Z",
+      "tokens": {
+        "cacheRead": 19067,
+        "cacheWrite": 0,
+        "input": 54,
+        "output": 19,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "cline",
+      "messageId": "cline-cli:1793566165702_ig9wj:msg_nI6XHr4N",
+      "model": "openai-compatible/qwen",
+      "sessionId": "1793566165702_ig9wj",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:59:10.205Z",
+      "tokens": {
+        "cacheRead": 19139,
+        "cacheWrite": 0,
+        "input": 54,
+        "output": 19,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "cline",
+      "messageId": "cline-cli:1793566165702_ig9wj:msg_iPG8GrPF",
+      "model": "openai-compatible/qwen",
+      "sessionId": "1793566165702_ig9wj",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:59:14.646Z",
+      "tokens": {
+        "cacheRead": 19211,
+        "cacheWrite": 0,
+        "input": 54,
+        "output": 19,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "cline",
+      "messageId": "cline-cli:1793566165702_ig9wj:msg_-XIw-sBX",
+      "model": "openai-compatible/qwen",
+      "sessionId": "1793566165702_ig9wj",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:59:19.030Z",
+      "tokens": {
+        "cacheRead": 19283,
+        "cacheWrite": 0,
+        "input": 54,
+        "output": 19,
+        "reasoning": 0
+      },
+      "turn": true
+    },
+    {
+      "harness": "cline",
+      "messageId": "cline-cli:1793566165702_ig9wj:msg_-XQZQ35r",
+      "model": "openai-compatible/qwen",
+      "sessionId": "1793566165702_ig9wj",
+      "subagent": false,
+      "timestamp": "2026-11-01T20:59:23.430Z",
+      "tokens": {
+        "cacheRead": 19355,
+        "cacheWrite": 0,
+        "input": 54,
+        "output": 19,
+        "reasoning": 0
+      },
+      "turn": true
+    }
+  ],
+  "diagnostics": [],
+  "skipped": {}
+}

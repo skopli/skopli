@@ -1,0 +1,75 @@
+{
+  "schema_version": 1,
+  "events": [
+    {
+      "calls": 2,
+      "harness": "hermes",
+      "messageId": "local-185ee77a44908e3afceb32f1d0ce97745ec576aec7be407593890b605208c0d3",
+      "model": "custom/qwen",
+      "sessionId": "local-185ee77a44908e3afceb32f1d0ce97745ec576aec7be407593890b605208c0d3",
+      "subagent": false,
+      "timestamp": "2026-11-01T22:35:07.574Z",
+      "tokens": {
+        "cacheRead": 9,
+        "cacheWrite": 0,
+        "input": 13863,
+        "output": 46,
+        "reasoning": 0
+      },
+      "turn": false
+    },
+    {
+      "calls": 4,
+      "harness": "hermes",
+      "messageId": "local-9888d0e12bccb5cb125eb331f1baa3263edc8c5311d46a60ab6bac3da99599a3",
+      "model": "custom/qwen",
+      "sessionId": "local-9888d0e12bccb5cb125eb331f1baa3263edc8c5311d46a60ab6bac3da99599a3",
+      "subagent": false,
+      "timestamp": "2026-11-01T22:36:06.270Z",
+      "tokens": {
+        "cacheRead": 27546,
+        "cacheWrite": 0,
+        "input": 204,
+        "output": 86,
+        "reasoning": 0
+      },
+      "turn": false
+    },
+    {
+      "calls": 4,
+      "harness": "hermes",
+      "messageId": "local-cd3c1491f147d012d088ac87f9f503b2ef6789583a38d7e49693e92fd53e7bdb",
+      "model": "custom/qwen",
+      "sessionId": "local-cd3c1491f147d012d088ac87f9f503b2ef6789583a38d7e49693e92fd53e7bdb",
+      "subagent": false,
+      "timestamp": "2026-11-01T22:36:16.668Z",
+      "tokens": {
+        "cacheRead": 27516,
+        "cacheWrite": 0,
+        "input": 349,
+        "output": 207,
+        "reasoning": 0
+      },
+      "turn": false
+    },
+    {
+      "calls": 2,
+      "harness": "hermes",
+      "messageId": "local-dcef4687219ddae91f41f7ce66f5ac6be6511f7560588ec25d63dac8748e57df",
+      "model": "custom/qwen",
+      "sessionId": "local-dcef4687219ddae91f41f7ce66f5ac6be6511f7560588ec25d63dac8748e57df",
+      "subagent": false,
+      "timestamp": "2026-11-01T22:36:37.230Z",
+      "tokens": {
+        "cacheRead": 2819,
+        "cacheWrite": 0,
+        "input": 11075,
+        "output": 38,
+        "reasoning": 0
+      },
+      "turn": false
+    }
+  ],
+  "diagnostics": [],
+  "skipped": {}
+}

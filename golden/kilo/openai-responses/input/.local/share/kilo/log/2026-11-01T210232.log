@@ -1,0 +1,20 @@
+INFO  2026-11-01T21:02:33 +522ms service=kilocode.config path=/home/user\.config\kilo\kilo.json migrated bash permission to allow for existing user
+INFO  2026-11-01T21:02:33 +12ms service=default version=7.8.18 command=run process_role=main run_id=0c66ba10-7e33-420c-b235-9544d45577cf opencode
+INFO  2026-11-01T21:02:33 +414ms service=bus type=session.turn.open subscribing
+INFO  2026-11-01T21:02:33 +1ms service=bus type=session.turn.close subscribing
+INFO  2026-11-01T21:02:33 +0ms service=bus type=memory.status subscribing
+INFO  2026-11-01T21:02:33 +0ms service=bus type=memory.updated subscribing
+INFO  2026-11-01T21:02:33 +309ms service=kilo-sessions sessionId=ses_e67142ef5ffeY5Z5ftNcKM0Dlr session bootstrap skipped: no client
+INFO  2026-11-01T21:02:36 +2851ms service=kilocode-indexing workspacePath=/home/user/project initializing project indexing
+INFO  2026-11-01T21:02:36 +29ms service=bus type=indexing.status publishing
+INFO  2026-11-01T21:02:36 +0ms service=bus type=indexing.status publishing
+INFO  2026-11-01T21:02:37 +604ms service=bus type=session.turn.open publishing
+INFO  2026-11-01T21:02:37 +13ms service=model-cache providerID=kilo fetching models
+INFO  2026-11-01T21:02:37 +216ms service=model-cache providerID=kilo count=321 models fetched and cached
+INFO  2026-11-01T21:02:37 +2ms service=model-cache providerID=apertis fetching models
+INFO  2026-11-01T21:02:37 +0ms service=model-cache providerID=apertis count=0 models fetched and cached
+INFO  2026-11-01T21:02:37 +341ms service=model-cache providerID=apertis refreshing models
+INFO  2026-11-01T21:02:37 +0ms service=model-cache providerID=apertis count=0 models fetched and cached
+INFO  2026-11-01T21:02:38 +554ms service=snapshot.seed paths=16 dropped=0 ignored=0 large=0 trusted=false shared=false reset=0 duration=453 snapshot seed complete
+INFO  2026-11-01T21:02:49 +11088ms service=snapshot.materialize roots=1 duration=458 snapshot objects materialized
+INFO  2026-11-01T21:03:48 +59028ms service=bus type=session.turn.close publishing

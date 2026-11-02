@@ -1,0 +1,50 @@
+{
+  "schema_version": 1,
+  "by": {
+    "model": [
+      {
+        "key": "qwen",
+        "tokens": {
+          "input": 5906,
+          "output": 270,
+          "cacheRead": 42288,
+          "cacheWrite": 0,
+          "reasoning": 0
+        },
+        "events": 4,
+        "turns": 4,
+        "calls": 4
+      }
+    ],
+    "day": [
+      {
+        "key": "2026-11-01",
+        "tokens": {
+          "input": 5906,
+          "output": 270,
+          "cacheRead": 42288,
+          "cacheWrite": 0,
+          "reasoning": 0
+        },
+        "events": 4,
+        "turns": 4,
+        "calls": 4
+      }
+    ],
+    "harness": [
+      {
+        "key": "gajae",
+        "tokens": {
+          "input": 5906,
+          "output": 270,
+          "cacheRead": 42288,
+          "cacheWrite": 0,
+          "reasoning": 0
+        },
+        "events": 4,
+        "turns": 4,
+        "calls": 4
+      }
+    ]
+  }
+}

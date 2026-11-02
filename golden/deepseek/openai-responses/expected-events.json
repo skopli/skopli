@@ -1,0 +1,75 @@
+{
+  "schema_version": 1,
+  "events": [
+    {
+      "harness": "deepseek",
+      "messageId": ".dsh/sessions/--home-user-project--/session-e89525d1-66b3-4cef-85d9-eedad85542e2/session.v4.jsonl.zstd:17",
+      "model": "qwen",
+      "sessionId": "session-e89525d1-66b3-4cef-85d9-eedad85542e2",
+      "subagent": false,
+      "timestamp": "2026-11-01T22:31:36.912Z",
+      "tokens": {
+        "cacheRead": 5844,
+        "cacheWrite": 0,
+        "input": 339,
+        "output": 68,
+        "reasoning": 0
+      },
+      "turn": true,
+      "workspace": "/home/user/project"
+    },
+    {
+      "harness": "deepseek",
+      "messageId": ".dsh/sessions/--home-user-project--/session-9c591849-dfe0-482b-854a-137600f2e240/session.v4.jsonl.zstd:17",
+      "model": "qwen",
+      "sessionId": "session-9c591849-dfe0-482b-854a-137600f2e240",
+      "subagent": false,
+      "timestamp": "2026-11-01T22:31:44.874Z",
+      "tokens": {
+        "cacheRead": 5844,
+        "cacheWrite": 0,
+        "input": 349,
+        "output": 25,
+        "reasoning": 0
+      },
+      "turn": true,
+      "workspace": "/home/user/project"
+    },
+    {
+      "harness": "deepseek",
+      "messageId": ".dsh/sessions/--home-user-project--/session-051210d8-5bcb-44d5-bc9d-297ed3e90544/session.v4.jsonl.zstd:17",
+      "model": "qwen",
+      "sessionId": "session-051210d8-5bcb-44d5-bc9d-297ed3e90544",
+      "subagent": false,
+      "timestamp": "2026-11-01T22:31:53.155Z",
+      "tokens": {
+        "cacheRead": 5845,
+        "cacheWrite": 0,
+        "input": 349,
+        "output": 57,
+        "reasoning": 0
+      },
+      "turn": true,
+      "workspace": "/home/user/project"
+    },
+    {
+      "harness": "deepseek",
+      "messageId": ".dsh/sessions/--home-user-project--/session-0b0a1dee-e7ed-45a6-812b-772481220e71/session.v4.jsonl.zstd:17",
+      "model": "qwen",
+      "sessionId": "session-0b0a1dee-e7ed-45a6-812b-772481220e71",
+      "subagent": false,
+      "timestamp": "2026-11-01T22:32:05.393Z",
+      "tokens": {
+        "cacheRead": 5845,
+        "cacheWrite": 0,
+        "input": 347,
+        "output": 115,
+        "reasoning": 0
+      },
+      "turn": true,
+      "workspace": "/home/user/project"
+    }
+  ],
+  "diagnostics": [],
+  "skipped": {}
+}

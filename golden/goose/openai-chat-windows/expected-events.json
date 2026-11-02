@@ -1,0 +1,71 @@
+{
+  "schema_version": 1,
+  "events": [
+    {
+      "harness": "goose",
+      "messageId": "20261101_1",
+      "model": "openai/qwen",
+      "sessionId": "20261101_1",
+      "subagent": false,
+      "timestamp": "2026-11-01T21:09:32.000Z",
+      "tokens": {
+        "cacheRead": 5,
+        "cacheWrite": 0,
+        "input": 13087,
+        "output": 31,
+        "reasoning": 0
+      },
+      "turn": false
+    },
+    {
+      "harness": "goose",
+      "messageId": "20261101_2",
+      "model": "openai/qwen",
+      "sessionId": "20261101_2",
+      "subagent": false,
+      "timestamp": "2026-11-01T21:10:24.000Z",
+      "tokens": {
+        "cacheRead": 9163,
+        "cacheWrite": 0,
+        "input": 3939,
+        "output": 23,
+        "reasoning": 0
+      },
+      "turn": false
+    },
+    {
+      "harness": "goose",
+      "messageId": "20261101_3",
+      "model": "openai/qwen",
+      "sessionId": "20261101_3",
+      "subagent": false,
+      "timestamp": "2026-11-01T21:10:47.000Z",
+      "tokens": {
+        "cacheRead": 9163,
+        "cacheWrite": 0,
+        "input": 3940,
+        "output": 25,
+        "reasoning": 0
+      },
+      "turn": false
+    },
+    {
+      "harness": "goose",
+      "messageId": "20261101_4",
+      "model": "openai/qwen",
+      "sessionId": "20261101_4",
+      "subagent": false,
+      "timestamp": "2026-11-01T21:11:11.000Z",
+      "tokens": {
+        "cacheRead": 9163,
+        "cacheWrite": 0,
+        "input": 3938,
+        "output": 38,
+        "reasoning": 0
+      },
+      "turn": false
+    }
+  ],
+  "diagnostics": [],
+  "skipped": {}
+}

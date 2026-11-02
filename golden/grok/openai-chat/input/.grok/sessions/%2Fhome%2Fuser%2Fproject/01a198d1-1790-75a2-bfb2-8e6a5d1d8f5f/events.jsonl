@@ -1,0 +1,15 @@
+{"ts":"2026-11-01T20:33:22.514Z","type":"turn_started","session_id":"01a198d1-1790-75a2-bfb2-8e6a5d1d8f5f","turn_number":0,"model_id":"qwen","yolo_mode":true,"conversation_message_count":3,"session_relationship":"primary","schema_version":"1.0"}
+{"ts":"2026-11-01T20:33:22.540Z","type":"loop_started","loop_index":0}
+{"ts":"2026-11-01T20:33:22.543Z","type":"phase_changed","phase":"waiting_for_model"}
+{"ts":"2026-11-01T20:34:16.072Z","type":"first_token"}
+{"ts":"2026-11-01T20:34:16.072Z","type":"phase_changed","phase":"streaming_text"}
+{"ts":"2026-11-01T20:34:16.153Z","type":"phase_changed","phase":"streaming_text"}
+{"ts":"2026-11-01T20:34:16.228Z","type":"phase_changed","phase":"streaming_text"}
+{"ts":"2026-11-01T20:34:16.316Z","type":"phase_changed","phase":"streaming_text"}
+{"ts":"2026-11-01T20:34:16.380Z","type":"phase_changed","phase":"streaming_text"}
+{"ts":"2026-11-01T20:34:16.457Z","type":"phase_changed","phase":"streaming_text"}
+{"ts":"2026-11-01T20:34:16.535Z","type":"phase_changed","phase":"streaming_text"}
+{"ts":"2026-11-01T20:34:16.626Z","type":"phase_changed","phase":"streaming_text"}
+{"ts":"2026-11-01T20:34:16.704Z","type":"phase_changed","phase":"streaming_text"}
+{"ts":"2026-11-01T20:34:16.786Z","type":"phase_changed","phase":"streaming_text"}
+{"ts":"2026-11-01T20:34:16.957Z","type":"turn_ended","outcome":"completed"}
