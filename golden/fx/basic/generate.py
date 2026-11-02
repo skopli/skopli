@@ -10,9 +10,8 @@ The snapshot carries authoritative provider token and cost aggregates plus a
 models[] array of per-model aggregates with provider-qualified ids
 (provider/model). Counts are real AI Gateway billing figures, not estimates.
 
-The sidecars emit the COMPLETE producer shape confirmed in E11
-(.scratch/expansion/receipts/E11-fx-identity.md), including the fields the reader
-does not consume: the snapshot booleans (api_duration_complete,
+The sidecars emit the complete producer shape as written by fx itself,
+including the fields the reader does not consume: the snapshot booleans (api_duration_complete,
 wall_duration_complete, code_complete), the invocation cursors (next_sequence,
 settled_through_sequence), the durations (api_duration_ms, wall_duration_ms),
 billable_web_search_calls, lines_added, lines_removed, and the pending /
