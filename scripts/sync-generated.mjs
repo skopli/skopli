@@ -75,10 +75,9 @@ const installTable = () => {
 const harnessTable = () => {
   const cell = (h) => {
     const logo = `assets/logos/${h.icon}.svg`;
-    const img =
-      h.icon && existsSync(logo)
-        ? `<img src="${logo}" height="16" alt="" align="absmiddle" /> `
-        : "";
+    const img = existsSync(logo)
+      ? `<img src="${logo}" height="16" alt="" align="absmiddle" /> `
+      : "";
     return [`${img}${label(h)}`, `\`${h.id}\``];
   };
   const half = Math.ceil(harnesses.length / 2);
