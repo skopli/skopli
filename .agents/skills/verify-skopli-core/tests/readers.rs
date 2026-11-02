@@ -47,32 +47,7 @@ fn readers_never_panic_on_damaged_input() {
             let path = input.join(&rel);
             let original = fs::read(&path).unwrap();
             let text = String::from_utf8(original.clone()).unwrap_or_default();
-            let mut variants: Vec<(String, Vec<u8>)> = damaged(&original)
-                .into_iter()
-                .map(|(label, bytes)| (label.to_owned(), bytes))
-                .collect();
-            for doc in docs(&path, &text) {
-                for leaf in leaves(&doc.value) {
-                    for (label, replacement) in adversarial_values() {
-                        let mut mutated = Doc {
-                            line: doc.line,
-                            value: doc.value.clone(),
-                        };
-                        match replacement {
-                            Some(v) => *get_mut(&mut mutated.value, &leaf) = v,
-                            None if leaf.is_empty() => continue,
-                            None => remove(&mut mutated.value, &leaf),
-                        }
-                        write_doc(&path, &text, &mutated);
-                        variants.push((
-                            format!("{} = {label}", leaf.join(".")),
-                            fs::read(&path).unwrap(),
-                        ));
-                    }
-                }
-            }
-            for (label, bytes) in variants {
-                fs::write(&path, &bytes).unwrap();
+            let mut check = |label: String| {
                 runs += 1;
                 let where_ = format!("{} {} [{label}]", case.id(), rel.display());
                 let result = match read(&case.harness, &ctx) {
@@ -81,7 +56,7 @@ fn readers_never_panic_on_damaged_input() {
                             format!("panic in {}", case.id()),
                             format!("{where_}: {panic}"),
                         ));
-                        continue;
+                        return;
                     }
                     Ok(r) => r,
                 };
@@ -102,6 +77,27 @@ fn readers_never_panic_on_damaged_input() {
                             format!("unusable timestamp kept by the wire for {}", case.harness),
                             format!("{where_}: {bad} unusable, wire kept {kept} of {} and dropped {dropped}", result.events.len()),
                         ));
+                    }
+                }
+            };
+            for (label, bytes) in damaged(&original) {
+                fs::write(&path, &bytes).unwrap();
+                check(label.to_owned());
+            }
+            for doc in docs(&path, &text) {
+                for leaf in leaves(&doc.value) {
+                    for (label, replacement) in adversarial_values() {
+                        let mut mutated = Doc {
+                            line: doc.line,
+                            value: doc.value.clone(),
+                        };
+                        match replacement {
+                            Some(v) => *get_mut(&mut mutated.value, &leaf) = v,
+                            None if leaf.is_empty() => continue,
+                            None => remove(&mut mutated.value, &leaf),
+                        }
+                        write_doc(&path, &text, &mutated);
+                        check(format!("{} = {label}", leaf.join(".")));
                     }
                 }
             }

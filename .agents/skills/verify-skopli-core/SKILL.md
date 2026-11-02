@@ -131,7 +131,7 @@ The formatting of a start into its key is `to_iso_string`, which allocates and i
 
 ## Readers
 
-Four tests live in `tests/readers.rs`; the mutation and judgement helpers live in `src/readers.rs`.
+Five tests live in `tests/readers.rs`; the mutation and judgement helpers live in `src/readers.rs`.
 The domain is the golden corpus: every `golden/<harness>/<case>/` with an `input-manifest.json`, 96 cases over all forty registered readers, copied into a scratch home and read through the real `Reader::read` with the context the manifest describes, exactly as `crates/skopli-core/tests/conformance.rs` builds it.
 Nothing in the expectations comes from the reader under test: the token classes come from the cell names in the harness's own files, the event counts from `expected-events.json`, the timestamp grammar from the shared parser.
 
