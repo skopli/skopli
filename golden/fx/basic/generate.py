@@ -10,19 +10,19 @@ The snapshot carries authoritative provider token and cost aggregates plus a
 models[] array of per-model aggregates with provider-qualified ids
 (provider/model). Counts are real AI Gateway billing figures, not estimates.
 
-The sidecars emit the complete producer shape as written by fx itself,
-including the fields the reader does not consume: the snapshot booleans (api_duration_complete,
-wall_duration_complete, code_complete), the invocation cursors (next_sequence,
-settled_through_sequence), the durations (api_duration_ms, wall_duration_ms),
-billable_web_search_calls, lines_added, lines_removed, and the pending /
-publication_backlog arrays; and per model the first_sequence and
-billable_web_search_calls fields. The reader validates only the subset it
-consumes (see fx.rs), so these extra fields are UNREAD: they exist in the fixture
-purely so that fx producer-schema drift stays visible in review, and adding or
-removing them must not change expected-events.json or expected-rollup.json.
-incidents is not unread: the reader inspects it permissively and emits an
-informational warning when it is a non-empty array; the fixture keeps it empty
-so no warning is expected.
+The sidecars emit the complete producer shape as written by fx itself, including
+the fields the reader does not consume: the snapshot booleans
+(api_duration_complete, wall_duration_complete, code_complete), the invocation
+cursors (next_sequence, settled_through_sequence), the durations
+(api_duration_ms, wall_duration_ms), billable_web_search_calls, lines_added,
+lines_removed, and the pending / publication_backlog arrays; and per model the
+first_sequence and billable_web_search_calls fields. The reader validates only
+the subset it consumes (see fx.rs), so these extra fields are UNREAD: they exist
+in the fixture purely so that fx producer-schema drift stays visible in review,
+and adding or removing them must not change expected-events.json or
+expected-rollup.json. incidents is not unread: the reader inspects it
+permissively and emits an informational warning when it is a non-empty array;
+the fixture keeps it empty so no warning is expected.
 
 This fixture covers the row kinds the reader must handle: a complete session
 with two models (one event per models[] entry, provider-qualified ids stored
@@ -66,8 +66,9 @@ def model_aggregate(
     request_count,
     billable_web_search_calls=0,
 ):
-    """A full E11 ModelAggregate. first_sequence and billable_web_search_calls
-    are present in the producer shape but are not read by the reader."""
+    """A ModelAggregate with every field fx writes. first_sequence and
+    billable_web_search_calls are present in the producer shape but are not
+    read by the reader."""
     return {
         "model": model,
         "first_sequence": first_sequence,
@@ -102,11 +103,12 @@ def snapshot(
     publication_backlog=None,
     incidents=None,
 ):
-    """A full E11 Snapshot. Every field beyond schema_version, billing, the token
-    counters, reasoning_tokens, request_count, and models is present as producer
-    shape only; the reader does not consume it, except incidents, which the
-    reader inspects permissively to emit an informational warning when it is a
-    non-empty array."""
+    """A Snapshot with every field fx writes. Every field beyond
+    schema_version, billing, the token counters, reasoning_tokens,
+    request_count, and models is present as producer shape only; the reader
+    does not consume it, except incidents, which the reader inspects
+    permissively to emit an informational warning when it is a non-empty
+    array."""
     return {
         "schema_version": 1,
         "billing": billing,

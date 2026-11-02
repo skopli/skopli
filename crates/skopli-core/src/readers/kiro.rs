@@ -70,16 +70,16 @@ const TABLES: [&str; 2] = ["conversations_v2", "conversations"];
 
 /// Resolve the Kiro CLI database paths, most-current first. The shipped build
 /// writes `~/.kiro/data.sqlite3` (a fixed home path on every OS). A rebranded
-/// build may instead write `data_local_dir/kiro-cli/data.sqlite3` (the E4
-/// addendum's cross-check claim that the ancestor's `amazon-q` directory was
-/// renamed to `kiro-cli`); those `kiro-cli` candidates are probed next as a
-/// cheap defensive measure, since the store schema is identical. The legacy
-/// ancestor build writes `data_local_dir/amazon-q/data.sqlite3`, probed last.
-/// `data_local_dir` is `%LOCALAPPDATA%` on Windows, `~/Library/Application
-/// Support` on macOS, and `$XDG_DATA_HOME` or `~/.local/share` on Linux; all
-/// three per-OS candidates are probed for both directory names so an upgraded
-/// machine is still read. Candidates are deduped first-seen-wins so a path that
-/// two roots resolve to is kept once, in most-current order.
+/// build may instead write `data_local_dir/kiro-cli/data.sqlite3` (the
+/// ancestor's `amazon-q` directory renamed to `kiro-cli`); those `kiro-cli`
+/// candidates are probed next as a cheap defensive measure, since the store
+/// schema is identical. The legacy ancestor build writes
+/// `data_local_dir/amazon-q/data.sqlite3`, probed last. `data_local_dir` is
+/// `%LOCALAPPDATA%` on Windows, `~/Library/Application Support` on macOS, and
+/// `$XDG_DATA_HOME` or `~/.local/share` on Linux; all three per-OS candidates
+/// are probed for both directory names so an upgraded machine is still read.
+/// Candidates are deduped first-seen-wins so a path that two roots resolve to
+/// is kept once, in most-current order.
 pub fn kiro_db_paths(
     localappdata: Option<&str>,
     xdg_data_home: Option<&str>,
@@ -221,15 +221,15 @@ fn conversation_model(state: &Value) -> String {
 }
 
 /// The persisted stable conversation identifier for one row. The vendor
-/// `ConversationState` serializes a `conversation_id: String`
-/// (E4-kiro-schema.md), which is the durable identity of a conversation: a
-/// migration copy of a conversation into the legacy store keeps the same
-/// `conversation_id`, while a reset or independently continued history gets a
-/// fresh one. The JSON value is the vendor-serialized identity and always wins
-/// when present. Some real `conversations_v2` tables also store the id in a
-/// dedicated `conversation_id` column; when the JSON state omits its own id, a
-/// non-empty column value (`column_id`) is used instead so cross-store dedupe
-/// still keys on the durable identity.
+/// `ConversationState` serializes a `conversation_id: String`, which is the
+/// durable identity of a conversation: a migration copy of a conversation into
+/// the legacy store keeps the same `conversation_id`, while a reset or
+/// independently continued history gets a fresh one. The JSON value is the
+/// vendor-serialized identity and always wins when present. Some real
+/// `conversations_v2` tables also store the id in a dedicated `conversation_id`
+/// column; when the JSON state omits its own id, a non-empty column value
+/// (`column_id`) is used instead so cross-store dedupe still keys on the
+/// durable identity.
 fn conversation_id(state: &Value, column_id: Option<&str>) -> Option<String> {
     state
         .get("conversation_id")
