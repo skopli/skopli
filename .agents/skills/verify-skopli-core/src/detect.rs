@@ -82,7 +82,10 @@ pub const MARKERS: &[Marker] = &[
     file("kilo", ".local/share/kilo/kilo.db"),
     file("goose", ".local/share/goose/sessions/sessions.db"),
     file("goose", ".local/share/Block/goose/sessions/sessions.db"),
-    file("goose", "AppData/Roaming/Block/goose/data/sessions/sessions.db"),
+    file(
+        "goose",
+        "AppData/Roaming/Block/goose/data/sessions/sessions.db",
+    ),
     file(
         "goose",
         "Library/Application Support/goose/sessions/sessions.db",
