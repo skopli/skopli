@@ -1,8 +1,8 @@
-import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 import { loadCached, storeCached } from "../src/pricing/cache.ts";
 import { dateParseMs } from "../src/time.ts";
 
@@ -15,8 +15,17 @@ const casesPath = fileURLToPath(
 const cases = JSON.parse(readFileSync(casesPath, "utf8")) as Cases;
 
 const name = "pricing-openrouter.json";
-const cacheWith = (stamp: string): string => {
+const dirs: string[] = [];
+const tempDir = (): string => {
   const dir = mkdtempSync(join(tmpdir(), "skopli-ts-"));
+  dirs.push(dir);
+  return dir;
+};
+afterEach(() => {
+  for (const dir of dirs.splice(0)) rmSync(dir, { recursive: true, force: true });
+});
+const cacheWith = (stamp: string): string => {
+  const dir = tempDir();
   writeFileSync(join(dir, name), JSON.stringify({ fetchedAt: stamp, payload: {} }));
   return dir;
 };
@@ -49,7 +58,7 @@ describe("loadCached reads fetchedAt with the shared grammar", () => {
 describe("storeCached writes the canonical stamp", () => {
   for (const ms of cases.write) {
     it(`writes integral-ms for ${ms}`, () => {
-      const stamp = storeCached(mkdtempSync(join(tmpdir(), "skopli-ts-")), name, {}, ms);
+      const stamp = storeCached(tempDir(), name, {}, ms);
       expect(stamp).toHaveLength(24);
       expect(stamp.endsWith("Z")).toBe(true);
       expect(dateParseMs(stamp)).toBe(ms);
