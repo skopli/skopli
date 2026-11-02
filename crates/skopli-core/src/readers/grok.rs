@@ -167,17 +167,13 @@ fn legacy_usage_tokens(value: &Value) -> Option<TokenCounts> {
         .get("totalTokens")
         .and_then(finite_number)
         .or_else(|| usage.get("total_tokens").and_then(finite_number));
-    let inclusive = match reported_total {
+    let reasoning_inside_output = match reported_total {
         None => true,
         Some(t) => t.max(0.0) == input + output,
     };
     Some(TokenCounts {
-        input: if inclusive {
-            (input - cache_read).max(0.0) as u64
-        } else {
-            input as u64
-        },
-        output: if inclusive {
+        input: (input - cache_read).max(0.0) as u64,
+        output: if reasoning_inside_output {
             (output - reasoning).max(0.0) as u64
         } else {
             output as u64
@@ -638,5 +634,30 @@ pub fn read_grok(home: &Path) -> ReaderResult {
         events,
         skipped,
         warnings,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::legacy_usage_tokens;
+
+    #[test]
+    fn reasoning_outside_output_keeps_the_cache_read_split() {
+        let record: serde_json::Value = serde_json::from_str(concat!(
+            "{\"method\":\"session/update\",\"params\":{\"update\":{\"sessionUpdate\":\"usage\",",
+            "\"usage\":{\"inputTokens\":11849,\"outputTokens\":43,\"totalTokens\":11897,",
+            "\"cachedReadTokens\":7654,\"cacheCreationTokens\":0,\"reasoningTokens\":5}}}}"
+        ))
+        .unwrap();
+        let tokens = legacy_usage_tokens(&record).unwrap();
+        assert_eq!(
+            (
+                tokens.input,
+                tokens.output,
+                tokens.cache_read,
+                tokens.reasoning
+            ),
+            (4195, 43, 7654, 5)
+        );
     }
 }

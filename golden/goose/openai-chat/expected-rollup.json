@@ -5,9 +5,9 @@
       {
         "key": "openai/qwen",
         "tokens": {
-          "input": 26730,
+          "input": 4545,
           "output": 290,
-          "cacheRead": 0,
+          "cacheRead": 22185,
           "cacheWrite": 0,
           "reasoning": 0
         },
@@ -20,9 +20,9 @@
       {
         "key": "2026-10-25",
         "tokens": {
-          "input": 26730,
+          "input": 4545,
           "output": 290,
-          "cacheRead": 0,
+          "cacheRead": 22185,
           "cacheWrite": 0,
           "reasoning": 0
         },
@@ -35,9 +35,9 @@
       {
         "key": "goose",
         "tokens": {
-          "input": 26730,
+          "input": 4545,
           "output": 290,
-          "cacheRead": 0,
+          "cacheRead": 22185,
           "cacheWrite": 0,
           "reasoning": 0
         },

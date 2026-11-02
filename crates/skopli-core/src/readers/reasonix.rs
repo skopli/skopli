@@ -132,11 +132,7 @@ fn read_sidecar(
     let parsed = match read_json(file) {
         Some(v) if is_record(&v) => v,
         _ => {
-            let loc = file.to_owned();
-            warnings.push(ReaderWarning {
-                message: format!("skipping malformed {HARNESS} file {loc}\n"),
-            });
-            skipped.push(loc);
+            skip_malformed(file, skipped, warnings);
             return None;
         }
     };
@@ -145,11 +141,7 @@ fn read_sidecar(
         UsageOutcome::Counts(t) => t,
         UsageOutcome::Zero => return None,
         UsageOutcome::Malformed => {
-            let loc = file.to_owned();
-            warnings.push(ReaderWarning {
-                message: format!("skipping malformed {HARNESS} file {loc}\n"),
-            });
-            skipped.push(loc);
+            skip_malformed(file, skipped, warnings);
             return None;
         }
     };
@@ -160,31 +152,19 @@ fn read_sidecar(
         Some(raw) => match date_parse_ms(raw.trim()) {
             Some(ms) => ms,
             None => {
-                let loc = file.to_owned();
-                warnings.push(ReaderWarning {
-                    message: format!("skipping malformed {HARNESS} file {loc}\n"),
-                });
-                skipped.push(loc);
+                skip_malformed(file, skipped, warnings);
                 return None;
             }
         },
         None => {
-            let loc = file.to_owned();
-            warnings.push(ReaderWarning {
-                message: format!("skipping malformed {HARNESS} file {loc}\n"),
-            });
-            skipped.push(loc);
+            skip_malformed(file, skipped, warnings);
             return None;
         }
     };
     let timestamp = match crate::time::to_iso_string(updated_at_ms) {
         Some(ts) => ts,
         None => {
-            let loc = file.to_owned();
-            warnings.push(ReaderWarning {
-                message: format!("skipping malformed {HARNESS} file {loc}\n"),
-            });
-            skipped.push(loc);
+            skip_malformed(file, skipped, warnings);
             return None;
         }
     };
@@ -222,10 +202,100 @@ fn read_sidecar(
     })
 }
 
+const TELEMETRY_SUFFIX: &str = ".jsonl.telemetry.json";
+const META_SUFFIX: &str = ".jsonl.meta";
+
+fn skip_malformed(file: &str, skipped: &mut Vec<String>, warnings: &mut Vec<ReaderWarning>) {
+    warnings.push(ReaderWarning {
+        message: format!("skipping malformed {HARNESS} file {file}\n"),
+    });
+    skipped.push(file.to_owned());
+}
+
+/// Reasonix 2.56 replaced the `.acp.json` sidecar with two files beside the
+/// transcript: `<id>.jsonl.telemetry.json` (`usage` carries the same cells as
+/// `status.cumulative`) and `<id>.jsonl.meta` (`id`, `model`, `updated_at`,
+/// `preview`). The pair is one candidate; a telemetry file whose meta is
+/// missing or unparseable is malformed.
+fn read_telemetry(
+    file: &str,
+    skipped: &mut Vec<String>,
+    warnings: &mut Vec<ReaderWarning>,
+) -> Option<Candidate> {
+    let telemetry = match read_json(file) {
+        Some(v) if is_record(&v) => v,
+        _ => {
+            skip_malformed(file, skipped, warnings);
+            return None;
+        }
+    };
+    let usage = telemetry.get("usage")?;
+    let tokens = match parse_cumulative(usage) {
+        UsageOutcome::Counts(t) => t,
+        UsageOutcome::Zero => return None,
+        UsageOutcome::Malformed => {
+            skip_malformed(file, skipped, warnings);
+            return None;
+        }
+    };
+    let stem = file.strip_suffix(TELEMETRY_SUFFIX).unwrap_or(file);
+    let meta = match read_json(&format!("{stem}{META_SUFFIX}")) {
+        Some(v) if is_record(&v) => v,
+        _ => {
+            skip_malformed(file, skipped, warnings);
+            return None;
+        }
+    };
+    let updated_at_ms = meta
+        .get("updated_at")
+        .and_then(as_string)
+        .and_then(|raw| date_parse_ms(raw.trim()));
+    let (updated_at_ms, timestamp) =
+        match updated_at_ms.and_then(|ms| crate::time::to_iso_string(ms).map(|ts| (ms, ts))) {
+            Some(pair) => pair,
+            None => {
+                skip_malformed(file, skipped, warnings);
+                return None;
+            }
+        };
+    let session_id = meta
+        .get("id")
+        .and_then(as_string)
+        .filter(|s| !s.trim().is_empty())
+        .unwrap_or_else(|| super::shared::basename(stem));
+    let model = meta
+        .get("model")
+        .and_then(as_string)
+        .filter(|m| !m.trim().is_empty())
+        .unwrap_or_else(|| UNKNOWN_MODEL.to_owned());
+    let title = meta
+        .get("preview")
+        .and_then(as_string)
+        .filter(|t| !t.trim().is_empty());
+    Some(Candidate {
+        event: UsageEvent {
+            harness: HARNESS.to_owned(),
+            timestamp,
+            session_id,
+            message_id: file.to_owned(),
+            turn: true,
+            subagent: false,
+            model,
+            tokens,
+            calls: None,
+            cost_usd: None,
+            workspace: None,
+            title,
+        },
+        updated_at_ms,
+    })
+}
+
 /// Read all Reasonix usage events reachable from `home`. Walks
-/// `<home>/projects/*/sessions/*.acp.json`, emitting one cumulative event per
-/// session id. When two sidecars share a session id (e.g. a recovery-branch
-/// twin), the one with the later `updatedAt` wins.
+/// `<home>/projects/*/sessions/`, reading `*.acp.json` sidecars and the
+/// `*.jsonl.telemetry.json` + `*.jsonl.meta` pairs newer builds write, emitting
+/// one cumulative event per session id. When two sidecars share a session id
+/// (e.g. a recovery-branch twin), the one with the later `updatedAt` wins.
 pub fn read_reasonix(home: &Path) -> ReaderResult {
     let mut skipped: Vec<String> = Vec::new();
     let mut warnings: Vec<ReaderWarning> = Vec::new();
@@ -239,11 +309,17 @@ pub fn read_reasonix(home: &Path) -> ReaderResult {
         };
     }
 
-    let files = list_files(&projects, |name| name.ends_with(".acp.json"));
+    let files = list_files(&projects, |name| {
+        name.ends_with(".acp.json") || name.ends_with(TELEMETRY_SUFFIX)
+    });
     let mut by_session: HashMap<String, Candidate> = HashMap::new();
     let mut order: Vec<String> = Vec::new();
     for file in &files {
-        let candidate = match read_sidecar(file, &mut skipped, &mut warnings) {
+        let candidate = match if file.ends_with(TELEMETRY_SUFFIX) {
+            read_telemetry(file, &mut skipped, &mut warnings)
+        } else {
+            read_sidecar(file, &mut skipped, &mut warnings)
+        } {
             Some(c) => c,
             None => continue,
         };
@@ -314,6 +390,87 @@ mod tests {
         path
     }
 
+    fn write_pair(dir: &Path, slug: &str, id: &str, telemetry: &str, meta: Option<&str>) {
+        let sessions = dir.join("projects").join(slug).join("sessions");
+        fs::create_dir_all(&sessions).unwrap();
+        fs::write(
+            sessions.join(format!("{id}.jsonl.telemetry.json")),
+            telemetry,
+        )
+        .unwrap();
+        if let Some(meta) = meta {
+            fs::write(sessions.join(format!("{id}.jsonl.meta")), meta).unwrap();
+        }
+    }
+
+    // The shape Reasonix 2.56.1 wrote on Windows: usage in the telemetry
+    // sidecar, identity and timestamps in the meta file, no .acp.json.
+    #[test]
+    fn telemetry_and_meta_pair_yields_one_event() {
+        let dir = scratch_dir("telemetry");
+        write_pair(
+            &dir,
+            "c--users-u-proj",
+            "20261101-211432.883022900-qwen",
+            r#"{"version":1,"usage":{"promptTokens":7477,"completionTokens":30,"reasoningTokens":0,"cacheHitTokens":3,"cacheMissTokens":7474,"requestCount":1}}"#,
+            Some(
+                r#"{"id":"20261101-211432.883022900-qwen","created_at":"2026-11-01T21:14:32.9124106Z","updated_at":"2026-11-01T21:15:03.8429271Z","model":"llama/qwen","turns":1,"preview":"What does index.js export?"}"#,
+            ),
+        );
+        let result = read_reasonix(&dir);
+        assert!(result.warnings.is_empty());
+        assert_eq!(result.events.len(), 1);
+        let e = &result.events[0];
+        assert_eq!(e.session_id, "20261101-211432.883022900-qwen");
+        assert_eq!(e.model, "llama/qwen");
+        assert_eq!(e.timestamp, "2026-11-01T21:15:03.842Z");
+        assert_eq!(e.tokens.input, 7474);
+        assert_eq!(e.tokens.output, 30);
+        assert_eq!(e.tokens.cache_read, 3);
+        assert_eq!(e.tokens.cache_write, 0);
+        assert_eq!(e.title.as_deref(), Some("What does index.js export?"));
+        fs::remove_dir_all(&dir).ok();
+    }
+
+    #[test]
+    fn telemetry_without_meta_is_malformed() {
+        let dir = scratch_dir("telemetry-no-meta");
+        write_pair(
+            &dir,
+            "p",
+            "s1",
+            r#"{"version":1,"usage":{"promptTokens":10,"completionTokens":5,"cacheMissTokens":10}}"#,
+            None,
+        );
+        let result = read_reasonix(&dir);
+        assert!(result.events.is_empty());
+        assert_eq!(result.skipped.len(), 1);
+        assert_eq!(result.warnings.len(), 1);
+        fs::remove_dir_all(&dir).ok();
+    }
+
+    #[test]
+    fn telemetry_and_acp_for_one_session_keep_the_latest() {
+        let dir = scratch_dir("telemetry-vs-acp");
+        write_sidecar(
+            &dir,
+            "p",
+            "s1",
+            r#"{"sessionId":"s1","model":"old","updatedAt":"2026-08-01T10:00:00Z","status":{"cumulative":{"promptTokens":100,"completionTokens":50,"cacheMissTokens":100}}}"#,
+        );
+        write_pair(
+            &dir,
+            "p",
+            "s1",
+            r#"{"version":1,"usage":{"promptTokens":10,"completionTokens":5,"cacheMissTokens":10}}"#,
+            Some(r#"{"id":"s1","model":"new","updated_at":"2026-08-02T10:00:00Z"}"#),
+        );
+        let events = read_reasonix(&dir).events;
+        assert_eq!(events.len(), 1);
+        assert_eq!(events[0].model, "new");
+        assert_eq!(events[0].tokens.input, 10);
+        fs::remove_dir_all(&dir).ok();
+    }
     #[test]
     fn empty_home_yields_no_events_then_reads_after_sidecar_appears() {
         let dir = scratch_dir("presence");

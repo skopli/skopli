@@ -1,8 +1,8 @@
 // Shared golden replay: resolve a case's manifest, read it through dist/index.js and
 // normalise the output the way the expected files store it (used by golden.mjs and promote.mjs).
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { isAbsolute, join, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 
 export const root = resolve(fileURLToPath(import.meta.url), "../../../../..");
 
@@ -14,7 +14,7 @@ export const canonical = (v) =>
   );
 
 export const replayCase = async (caseId, dir = join(root, "golden", caseId)) => {
-  const { readUsage, rollup } = await import(join(root, "dist/index.js"));
+  const { readUsage, rollup } = await import(pathToFileURL(join(root, "dist/index.js")).href);
   const input = join(dir, "input");
   const manifest = JSON.parse(readFileSync(join(dir, "input-manifest.json"), "utf8"));
 
@@ -29,7 +29,14 @@ export const replayCase = async (caseId, dir = join(root, "golden", caseId)) => 
   };
   if (manifest.cwd) options.cwd = at(manifest.cwd);
 
-  const relativize = (s) => s.replaceAll(input, "").replace(/(^|\s)\/+/g, "$1");
+  // Strip the input dir and write the rest with "/" so an id reads the same on every OS
+  // (through spaces too: `Library\Application Support`).
+  const relativize = (s) =>
+    s
+      .split(input)
+      .map((part, i) => (i === 0 ? part : part.replace(/^[^"\n]*/, (m) => m.replaceAll("\\", "/"))))
+      .join("")
+      .replace(/(^|\s)\/+/g, "$1");
   const key = (e) => [e.timestamp, e.sessionId, e.messageId, e.model].join("\0");
   const result = await readUsage(options);
   const events = result.events
@@ -44,4 +51,18 @@ export const replayCase = async (caseId, dir = join(root, "golden", caseId)) => 
     dims.map((d) => [d, rollup(events, d === "day" ? { by: d, tz: "UTC" } : { by: d })]),
   );
   return { dir, options, dims, events, by, result, relativize };
+};
+
+// A Windows home carries its own AppData tree; point APPDATA and LOCALAPPDATA at it
+// the way the OS does so AppData-rooted detectors and readers resolve inside the home.
+export const windowsEnv = (home) => {
+  const env = {};
+  for (const [name, sub] of [
+    ["APPDATA", "Roaming"],
+    ["LOCALAPPDATA", "Local"],
+  ]) {
+    const path = join(home, "AppData", sub);
+    if (existsSync(path)) env[name] = path;
+  }
+  return env;
 };

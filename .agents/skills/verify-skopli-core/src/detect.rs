@@ -82,6 +82,7 @@ pub const MARKERS: &[Marker] = &[
     file("kilo", ".local/share/kilo/kilo.db"),
     file("goose", ".local/share/goose/sessions/sessions.db"),
     file("goose", ".local/share/Block/goose/sessions/sessions.db"),
+    file("goose", "AppData/Roaming/Block/goose/data/sessions/sessions.db"),
     file(
         "goose",
         "Library/Application Support/goose/sessions/sessions.db",
@@ -176,6 +177,7 @@ pub const MARKERS: &[Marker] = &[
     file("deepseek", ".dsh/w1/session.v4.jsonl.zstd"),
     file("deepseek", ".dsh/w1/a.db"),
     file("reasonix", ".reasonix/projects/p1/s1.acp.json"),
+    file("reasonix", ".reasonix/projects/p1/s1.jsonl.telemetry.json"),
     file("kiro", ".kiro/data.sqlite3"),
     file("kiro", ".local/share/amazon-q/data.sqlite3"),
     file("kiro", "Library/Application Support/amazon-q/data.sqlite3"),
@@ -348,6 +350,7 @@ pub const DEFAULT_ROOTS: &[(&str, &str, &str)] = &[
     ("PRIME_AGENT_SESSION_DIR", "", ".prime/agent/sessions"),
     ("QWEN_DATA_DIR", "", ".qwen"),
     ("REASONIX_HOME", "", ".reasonix"),
+    ("APPDATA", "reasonix", ".reasonix"),
     ("ZCODE_DATA_DIR", "", ".zcode"),
     ("ZED_DATA_DIR", "", ".local/share/zed"),
 ];
@@ -384,6 +387,10 @@ pub const SIBLING_ROOTS: &[(&str, &str)] = &[
         ".local/share/goose/sessions/sessions.db",
         ".local/share/Block/goose/sessions/sessions.db",
     ),
+    (
+        ".local/share/goose/sessions/sessions.db",
+        "AppData/Roaming/Block/goose/data/sessions/sessions.db",
+    ),
     (".kiro/data.sqlite3", ".local/share/amazon-q/data.sqlite3"),
     (
         ".kiro/data.sqlite3",
@@ -417,10 +424,14 @@ pub fn seed_default_root(case: &crate::readers::Case, home: &Path) {
         return;
     }
     for (var, value) in &env {
-        let (_, sub, root) = DEFAULT_ROOTS
-            .iter()
-            .find(|(v, _, _)| v == var)
+        let mut rows = DEFAULT_ROOTS.iter().filter(|(v, _, _)| v == var);
+        let (_, sub, root) = rows
+            .next()
             .unwrap_or_else(|| panic!("{}: no default root for {var}", case.id()));
+        assert!(
+            rows.next().is_none(),
+            "{var}: more than one default root; one row per variable"
+        );
         let value = value.as_str().unwrap();
         let mut src = if value == "." {
             input.clone()

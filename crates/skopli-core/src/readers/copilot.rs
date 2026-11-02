@@ -619,7 +619,7 @@ mod tests {
             &format!("{SESSION_START}\n{USAGE_RECORD}\n"),
         );
         write(&home, ".copilot/otel/a.jsonl", &format!("{span}\n"));
-        let otel_file = home.join(".copilot/otel/a.jsonl");
+        let otel_file = home.join(".copilot").join("otel").join("a.jsonl");
         let result = read(&home);
         assert_eq!(result.events.len(), 1, "{:?}", result.events);
         assert_eq!(result.events[0].message_id, "sess-1:rec-2");

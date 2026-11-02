@@ -27,7 +27,7 @@ import {
   writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
-import { join, relative } from "node:path";
+import { join, relative, sep } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import { zstdCompressSync, zstdDecompressSync } from "node:zlib";
 import { parseArgs } from "./cli.mjs";
@@ -84,24 +84,32 @@ const [harness, name] = caseId.split("/");
 const dir = join(root, "golden", harness, name);
 const stage = join(root, ".verify", "promote", harness, name);
 const input = join(stage, "input");
-const placed = (p) => join(relative(root, dir), relative(stage, p));
+const slashed = (p) => p.split(sep).join("/");
+const placed = (p) => slashed(join(relative(root, dir), relative(stage, p)));
 
 const pair = (s) => {
   const i = s.indexOf("=");
   return [s.slice(0, i), s.slice(i + 1)];
 };
 const dashed = (p) => p.replace(/^\/+/, "").replaceAll("/", "-");
+// The plain form wins when a variant collides with it (a source without "/" has
+// the same dash-joined form), so a Windows path keeps its path target.
+// Windows also spells a long profile directory by its 8.3 alias (ADMINI~1 for Administrator).
+const shortName = (from) => {
+  const m = /^([A-Za-z]:[\\/]Users[\\/])([^\\/]{9,})$/.exec(from);
+  return m ? [`${m[1]}${m[2].slice(0, 6).toUpperCase()}~1`] : [];
+};
 const rules = [
-  ...new Map(
-    many("--redact")
-      .map(pair)
-      .flatMap(([from, to]) => [
-        [from, to],
-        [dashed(from), dashed(to)],
-        [encodeURIComponent(from), encodeURIComponent(to)],
-      ])
-      .map((rule) => [rule[0], rule]),
-  ).values(),
+  ...many("--redact")
+    .map(pair)
+    .flatMap(([from, to]) => [[from, to], ...shortName(from).map((alias) => [alias, to])])
+    .flatMap(([from, to]) => [
+      [from, to],
+      [dashed(from), dashed(to)],
+      [encodeURIComponent(from), encodeURIComponent(to)],
+    ])
+    .reduce((map, rule) => (map.has(rule[0]) ? map : map.set(rule[0], rule)), new Map())
+    .values(),
 ].sort((a, b) => b[0].length - a[0].length);
 const redact = (s) => rules.reduce((acc, [from, to]) => acc.replaceAll(from, to), s);
 // Same first-8000-bytes NUL heuristic git uses to tell text from binary.
@@ -240,7 +248,7 @@ const manifest = {
 if (dryRun) {
   console.log(
     JSON.stringify(
-      { case: caseId, dir: relative(root, dir), rules, files: planned, manifest },
+      { case: caseId, dir: slashed(relative(root, dir)), rules, files: planned, manifest },
       null,
       2,
     ),
@@ -276,18 +284,19 @@ const totals = by.harness[0]?.tokens ?? {
   cacheWrite: 0,
   reasoning: 0,
 };
+const sqlite = planned.some((p) => /\.(db|sqlite3?)$/.test(p));
 const readme = [
   `# ${harness} / ${name}`,
   "",
   "Real capture of a multi-turn session, promoted from the harness home directory with the verification skill's promotion script.",
   "",
-  `- Wire shape: ${name}.`,
+  `- Wire shape: ${name.replace(/-(windows|macos)$/, "")}.`,
   `- Gateway: ${one("--gateway", "usage-rewriting gateway in front of a local llama-server")}.`,
   `- Server: ${one("--server", "llama-server")}.`,
   `- Model: ${one("--model", "local model")}.`,
   `- Cache numbers: ${one("--cache", "server-reported")}.`,
   `- Store paths: ${stores.map((s) => `\`${redact(s)}\``).join(", ")}.`,
-  `- Redaction: user name, home directory, project path, host name and placeholder API keys replaced; path slugs renamed to match; SQLite text columns rewritten in place and the database checkpointed and vacuumed.`,
+  `- Redaction: user name, home directory, project path, host name and placeholder API keys replaced; path slugs renamed to match${sqlite ? `; SQLite text columns rewritten in place and the database checkpointed and vacuumed` : ""}.`,
   `- Events ${events.length}, sessions ${new Set(events.map((e) => e.sessionId)).size}, diagnostics ${result.diagnostics.length}, skipped ${Object.values(result.skipped).flat().length}.`,
   `- Totals: input ${totals.input}, output ${totals.output}, cache read ${totals.cacheRead}, cache write ${totals.cacheWrite}, reasoning ${totals.reasoning}.`,
   ...many("--note").map((n) => `- ${n}`),

@@ -6,8 +6,9 @@
 // tagged aborted are summed separately because the harness never saw them.
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
+import { pathToFileURL } from "node:url";
 import { parseArgs } from "./cli.mjs";
-import { root } from "./replay.mjs";
+import { root, windowsEnv } from "./replay.mjs";
 
 const help = `usage: reconcile.mjs <home> <harness> <gateway-usage.jsonl> [--dry-run] [--quiet]
 
@@ -62,11 +63,17 @@ if (dryRun) {
   console.log(JSON.stringify({ home, harness, log, gatewayLines: lines.length }, null, 2));
   process.exit(0);
 }
-const { readUsage, rollup } = await import(join(root, "dist/index.js"));
+const { readUsage, rollup } = await import(pathToFileURL(join(root, "dist/index.js")).href);
 const gateway = lines.filter((l) => !l.aborted).reduce((acc, l) => add(acc, fromLine(l)), zero());
 const aborted = lines.filter((l) => l.aborted).reduce((acc, l) => add(acc, fromLine(l)), zero());
 
-const result = await readUsage({ home, cwd: home, env: {}, harnesses: [harness], tz: "UTC" });
+const result = await readUsage({
+  home,
+  cwd: home,
+  env: windowsEnv(home),
+  harnesses: [harness],
+  tz: "UTC",
+});
 const skopli = add(zero(), rollup(result.events, { by: "harness" })[0]?.tokens ?? {});
 const delta = Object.fromEntries(Object.keys(skopli).map((k) => [k, skopli[k] - gateway[k]]));
 const agree = Object.values(delta).every((d) => d === 0);

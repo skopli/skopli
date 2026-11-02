@@ -274,6 +274,14 @@ fn read_pi_root_into(
             let cache_write = usage_rec
                 .and_then(|u| u.get("cacheWrite"))
                 .and_then(finite_number);
+            let reasoning = usage_rec
+                .and_then(|u| u.get("reasoning"))
+                .and_then(finite_number)
+                .unwrap_or(0.0);
+            let cache_write1h = usage_rec
+                .and_then(|u| u.get("cacheWrite1h"))
+                .and_then(finite_number)
+                .map(|n| n.max(0.0) as u64);
 
             let (model, id, input, output, cache_read, cache_write) =
                 match (model, id, input, output, cache_read, cache_write) {
@@ -307,8 +315,8 @@ fn read_pi_root_into(
                     output: output.max(0.0) as u64,
                     cache_read: cache_read.max(0.0) as u64,
                     cache_write: cache_write.max(0.0) as u64,
-                    cache_write1h: None,
-                    reasoning: 0,
+                    cache_write1h,
+                    reasoning: reasoning.max(0.0) as u64,
                 },
                 calls: None,
                 cost_usd: None,
@@ -414,6 +422,37 @@ mod tests {
             ),
         ];
         fs::write(dir.join(file), lines.join("\n")).unwrap();
+    }
+
+    #[test]
+    fn kimchi_usage_reasoning_reaches_the_event() {
+        let home = scratch_dir("kimchi-reasoning");
+        let dir = home.join(".config/kimchi/harness/sessions");
+        fs::create_dir_all(&dir).unwrap();
+        fs::write(
+            dir.join("s.jsonl"),
+            concat!(
+                "{\"type\":\"session\",\"id\":\"s-1\"}\n",
+                "{\"type\":\"message\",\"message\":{\"role\":\"user\"}}\n",
+                "{\"type\":\"message\",\"id\":\"m-1\",\"timestamp\":\"2026-11-01T22:22:33.000Z\",",
+                "\"message\":{\"role\":\"assistant\",\"model\":\"qwen\",\"usage\":{\"input\":17472,",
+                "\"output\":16,\"cacheRead\":3,\"cacheWrite\":0,\"cacheWrite1h\":2,\"reasoning\":5,\"totalTokens\":17491,",
+                "\"cost\":{\"input\":0,\"output\":0,\"cacheRead\":0,\"cacheWrite\":0,\"total\":0}}}}\n"
+            ),
+        )
+        .unwrap();
+        let result = KimchiReader.read(&ReaderContext::new(&home));
+        let tokens = &result.events[0].tokens;
+        assert_eq!(
+            (
+                tokens.input,
+                tokens.output,
+                tokens.cache_read,
+                tokens.reasoning,
+                tokens.cache_write1h
+            ),
+            (17472, 16, 3, 5, Some(2))
+        );
     }
 
     #[test]
