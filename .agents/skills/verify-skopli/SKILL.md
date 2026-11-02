@@ -104,7 +104,7 @@ To read a real or copied harness home instead of a golden case, use `scripts/hom
 node .agents/skills/verify-skopli/scripts/home.mjs <home-dir> --out .verify/evidence/<run>/library-home
 ```
 
-It calls `detectHarnesses` and `readUsage` with that directory as `home` and `cwd` and an empty `env`, so nothing from the current machine's environment leaks in, and writes `home-result.json` (detected harnesses, event and session counts overall and per harness under `byHarness`, first diagnostic) next to `home-read.json`, the full `readUsage` result with its events, diagnostics and skipped files.
+It calls `detectHarnesses` and `readUsage` with that directory as `home` and `cwd` and an `env` that is empty unless the home carries `AppData/Roaming` or `AppData/Local`, in which case `APPDATA` and `LOCALAPPDATA` point inside the home the way Windows does (`reconcile.mjs` derives the same env); nothing from the current machine's environment leaks in, and writes `home-result.json` (detected harnesses, event and session counts overall and per harness under `byHarness`, first diagnostic) next to `home-read.json`, the full `readUsage` result with its events, diagnostics and skipped files.
 There is no expected output to compare against; the proof is the recorded counts and the absence of diagnostics.
 
 ## Usage gateway
