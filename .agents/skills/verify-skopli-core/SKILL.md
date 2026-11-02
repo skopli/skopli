@@ -20,7 +20,8 @@ cargo test --release --manifest-path .agents/skills/verify-skopli-core/Cargo.tom
 
 The tool is `cargo test` on the toolchain pinned by `rust-toolchain.toml` (Rust 1.89.0).
 Node 24 is required because one test runs `src/rollup.ts` and one runs `src/detect.ts` directly through Node's TypeScript support.
-The run takes under a minute after the first build: the rollup check about eight seconds, the reader checks about two, the detection checks about five.
+After the first build the rollup check takes about eleven seconds and the detection checks about fourteen; the reader checks take about nine minutes, nearly all of it the totality check over every damaged input, so the whole run is a ten-minute job.
+Run `--test rollup` or `--test detect` alone for a quick answer and leave `--test readers` for the background or CI, where the `verify-core` job runs all three.
 The Rust core and the wire crate are path dependencies, so the check always runs against the working tree.
 The crate has its own `Cargo.lock`, seeded from the root `Cargo.lock` so the harness builds the core against the same `jiff` and bundled tzdb that ship; when the root lock changes, copy it over this one and let `cargo` prune it on the next run.
 
@@ -131,7 +132,7 @@ The formatting of a start into its key is `to_iso_string`, which allocates and i
 ## Readers
 
 Four tests live in `tests/readers.rs`; the mutation and judgement helpers live in `src/readers.rs`.
-The domain is the golden corpus: every `golden/<harness>/<case>/` with an `input-manifest.json`, seventy-four cases over all forty registered readers, copied into a scratch home and read through the real `Reader::read` with the context the manifest describes, exactly as `crates/skopli-core/tests/conformance.rs` builds it.
+The domain is the golden corpus: every `golden/<harness>/<case>/` with an `input-manifest.json`, 96 cases over all forty registered readers, copied into a scratch home and read through the real `Reader::read` with the context the manifest describes, exactly as `crates/skopli-core/tests/conformance.rs` builds it.
 Nothing in the expectations comes from the reader under test: the token classes come from the cell names in the harness's own files, the event counts from `expected-events.json`, the timestamp grammar from the shared parser.
 
 `readers_never_panic_on_damaged_input` is the totality check.
@@ -169,11 +170,11 @@ Three literal tables in the test keep the check honest:
 ### Bounds
 
 - One mutation per run: a single cell replaced or a single file damaged, never two at once.
-- 96,522 damaged inputs across the seventy-four cases, 206 of which leave the reader with an unusable timestamp that the wire read drops.
-- 1,284 live token cell mutations over 31 readers, 461 inert cells skipped, 26 ignored-by-design entries exercised, 4 known silent drops reproduced.
+- 398,700 damaged inputs across the 96 cases, 260 of which leave the reader with an unusable timestamp that the wire read drops.
+- 3,820 live token cell mutations over 32 readers, 938 inert cells skipped, 36 ignored-by-design entries exercised, 4 known silent drops reproduced.
 - Files the readers open through other means (SQLite databases, zstd streams) get only the byte-level damage, since they hold no JSON leaves to shift.
 
-Not covered: the token mapping of the nine readers in `NO_MAPPING_COVERAGE` (`cherrystudio`, `goose`, `hermes`, `kilo`, `kiro` and `zed` read SQLite only; `cline`, `roo` and `kilocode` keep their counters inside a JSON string in `ui_messages.json`, which the leaf walk does not enter), two faults in one record, faults in file names or directory structure, records the golden case does not contain, readers' handling of a cell type they never see in the corpus, and the exact diagnostic text.
+Not covered: the token mapping of the eight readers in `NO_MAPPING_COVERAGE` (`cherrystudio`, `goose`, `hermes`, `kilo`, `kiro` and `zed` read SQLite only; `roo` and `kilocode` keep their counters inside a JSON string in `ui_messages.json`, which the leaf walk does not enter), two faults in one record, faults in file names or directory structure, records the golden case does not contain, readers' handling of a cell type they never see in the corpus, and the exact diagnostic text.
 The check is differential, so it pins that a bump lands on one event with a stable identity, not which event that is: a reader that credits every record to the same wrong neighbour reads the same way before and after the bump.
 Which input record each event comes from is pinned by the golden corpus (`expected-events.json` names every event's identity and counters), not by this check.
 
@@ -279,7 +280,7 @@ Each variant was applied to the working tree, run, and reverted.
 - A non-UTC block zone: `block_spec` floors in UTC and `Instant.hour` holds the UTC hour, so add a per-zone hour column and pass the zone into `block_spec` before adding the zone to `cases()`; until then such a case fails as a modeling error, not a finding.
 - A change to the clamp, the finite-cost rule or the absent-calls default: update the matching line in `check_conservation` and say in the commit which promise changed.
 
-Keep the domain small enough that a run stays under a minute; widen a single dimension rather than all of them.
+Keep the rollup and detection domains small enough that each check stays under a minute, widening a single dimension rather than all of them; the reader checks grow with the golden corpus, so a new case costs run time by design.
 
 ## Limits
 
