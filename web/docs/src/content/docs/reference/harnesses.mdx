@@ -17,7 +17,7 @@ Display names follow each project's own branding.
   A home without that ledger (builds before it existed) falls back to the per-session sidecars, one event per session.
 - **fx** logs one event per model per session, so `turns` and per-message detail are not available for it.
 - **Trae Agent** writes local wall-clock timestamps with no offset.
-  The reader recovers the offset from each trajectory's file mtime when the two agree to within ten minutes of a quarter-hour; otherwise it books the timestamps as UTC and reports a warning for the file.
+  The reader recovers the offset from each trajectory's file mtime when the two agree to within two minutes of a quarter-hour; otherwise it books the timestamps as UTC and reports a warning for the file.
 - **Codex CLI, Grok Build and ZCode** report reasoning inside output.
   The reader subtracts it so the buckets stay disjoint.
 - **GitHub Copilot CLI** is read from its session-state logs.
