@@ -29,8 +29,9 @@ export type Rollup = {
 };
 
 function dayKey(timestamp: string, tz: string | undefined): string {
-  const date = new Date(timestamp);
-  if (Number.isNaN(date.getTime())) return "invalid-date";
+  const ms = dateParseMs(timestamp);
+  if (ms === undefined) return "invalid-date";
+  const date = new Date(ms);
   // en-CA formats as YYYY-MM-DD
   const options: Intl.DateTimeFormatOptions = {
     year: "numeric",

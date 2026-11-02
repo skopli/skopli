@@ -163,6 +163,14 @@ describe("rollup", () => {
     expect(rows[0]?.key).toBe("invalid-date");
   });
 
+  it("keys day rollups with the same strict grammar as block rollups", () => {
+    // Date accepts single-digit forms and RFC 2822; the core does not.
+    for (const timestamp of ["2026-1-1", "Sat, 01 Aug 2026 10:00:00 GMT"]) {
+      const rows = rollup([event({ timestamp })], { by: "day", tz: "UTC" });
+      expect(rows[0]?.key).toBe("invalid-date");
+    }
+  });
+
   it("rejects characters after the offset the same way Date.parse does", () => {
     const rows = rollup([event({ timestamp: "2026-08-01T10:00:00+00:00garbage" })], {
       by: "block",
