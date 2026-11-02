@@ -12,7 +12,7 @@ export const getStaticPaths: GetStaticPaths = async () => {
 export const GET: APIRoute = async ({ props }) => {
   const { entry } = props;
   const png = await ogImage({
-    site: project.docsName,
+    site: entry.data.title === project.docsName ? project.name : project.docsName,
     title: entry.data.title,
     description: entry.data.description,
     url: `${SITE}${pagePath(entry.id)}`,
