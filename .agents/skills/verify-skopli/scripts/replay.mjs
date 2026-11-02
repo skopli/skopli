@@ -29,11 +29,12 @@ export const replayCase = async (caseId, dir = join(root, "golden", caseId)) => 
   };
   if (manifest.cwd) options.cwd = at(manifest.cwd);
 
-  // Strip the input dir and write the rest with "/" so an id reads the same on every OS.
+  // Strip the input dir and write the rest with "/" so an id reads the same on every OS
+  // (through spaces too: `Library\Application Support`).
   const relativize = (s) =>
     s
       .split(input)
-      .map((part, i) => (i === 0 ? part : part.replace(/^[^\s"]*/, (m) => m.replaceAll("\\", "/"))))
+      .map((part, i) => (i === 0 ? part : part.replace(/^[^"\n]*/, (m) => m.replaceAll("\\", "/"))))
       .join("")
       .replace(/(^|\s)\/+/g, "$1");
   const key = (e) => [e.timestamp, e.sessionId, e.messageId, e.model].join("\0");
