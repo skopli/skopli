@@ -432,15 +432,12 @@ mod tests {
         fs::write(
             dir.join("s.jsonl"),
             concat!(
-                "{\"type\":\"session\",\"id\":\"s-1\"}
-",
-                "{\"type\":\"message\",\"message\":{\"role\":\"user\"}}
-",
+                "{\"type\":\"session\",\"id\":\"s-1\"}\n",
+                "{\"type\":\"message\",\"message\":{\"role\":\"user\"}}\n",
                 "{\"type\":\"message\",\"id\":\"m-1\",\"timestamp\":\"2026-11-01T22:22:33.000Z\",",
                 "\"message\":{\"role\":\"assistant\",\"model\":\"qwen\",\"usage\":{\"input\":17472,",
                 "\"output\":16,\"cacheRead\":3,\"cacheWrite\":0,\"cacheWrite1h\":2,\"reasoning\":5,\"totalTokens\":17491,",
-                "\"cost\":{\"input\":0,\"output\":0,\"cacheRead\":0,\"cacheWrite\":0,\"total\":0}}}}
-"
+                "\"cost\":{\"input\":0,\"output\":0,\"cacheRead\":0,\"cacheWrite\":0,\"total\":0}}}}\n"
             ),
         )
         .unwrap();

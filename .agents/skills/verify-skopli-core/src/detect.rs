@@ -424,10 +424,14 @@ pub fn seed_default_root(case: &crate::readers::Case, home: &Path) {
         return;
     }
     for (var, value) in &env {
-        let (_, sub, root) = DEFAULT_ROOTS
-            .iter()
-            .find(|(v, _, _)| v == var)
+        let mut rows = DEFAULT_ROOTS.iter().filter(|(v, _, _)| v == var);
+        let (_, sub, root) = rows
+            .next()
             .unwrap_or_else(|| panic!("{}: no default root for {var}", case.id()));
+        assert!(
+            rows.next().is_none(),
+            "{var}: more than one default root; one row per variable"
+        );
         let value = value.as_str().unwrap();
         let mut src = if value == "." {
             input.clone()

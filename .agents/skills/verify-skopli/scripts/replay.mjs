@@ -1,6 +1,6 @@
 // Shared golden replay: resolve a case's manifest, read it through dist/index.js and
 // normalise the output the way the expected files store it (used by golden.mjs and promote.mjs).
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { isAbsolute, join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
@@ -50,4 +50,18 @@ export const replayCase = async (caseId, dir = join(root, "golden", caseId)) => 
     dims.map((d) => [d, rollup(events, d === "day" ? { by: d, tz: "UTC" } : { by: d })]),
   );
   return { dir, options, dims, events, by, result, relativize };
+};
+
+// A Windows home carries its own AppData tree; point APPDATA and LOCALAPPDATA at it
+// the way the OS does so AppData-rooted detectors and readers resolve inside the home.
+export const windowsEnv = (home) => {
+  const env = {};
+  for (const [name, sub] of [
+    ["APPDATA", "Roaming"],
+    ["LOCALAPPDATA", "Local"],
+  ]) {
+    const path = join(home, "AppData", sub);
+    if (existsSync(path)) env[name] = path;
+  }
+  return env;
 };

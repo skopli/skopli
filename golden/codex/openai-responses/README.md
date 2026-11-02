@@ -12,3 +12,4 @@ Real capture of a multi-turn session, promoted from the harness home directory w
 - Events 7, sessions 7, diagnostics 0, skipped 0.
 - Totals: input 11519, output 291, cache read 68689, cache write 0, reasoning 0.
 - The home holds eight rollouts: four from a first attempt that exited before the recorded run and four from the recorded run; seven carry a token_count event.
+- Prompt lines keep the capture rig's paths under the redacted profile (`C:/Users/user/.agents/skills`, `C:/Users/user/harnesses/target`); they are conversation text, not stores the reader consumes.

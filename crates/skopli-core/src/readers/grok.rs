@@ -642,7 +642,7 @@ mod tests {
     use super::legacy_usage_tokens;
 
     #[test]
-    fn reasoning_outside_the_total_keeps_the_cache_read_split() {
+    fn reasoning_outside_output_keeps_the_cache_read_split() {
         let record: serde_json::Value = serde_json::from_str(concat!(
             "{\"method\":\"session/update\",\"params\":{\"update\":{\"sessionUpdate\":\"usage\",",
             "\"usage\":{\"inputTokens\":11849,\"outputTokens\":43,\"totalTokens\":11897,",

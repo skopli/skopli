@@ -222,19 +222,12 @@ fn read_sidecar(
     })
 }
 
-/// Read all Reasonix usage events reachable from `home`. Walks
-/// `<home>/projects/*/sessions/*.acp.json`, emitting one cumulative event per
-/// session id. When two sidecars share a session id (e.g. a recovery-branch
-/// twin), the one with the later `updatedAt` wins.
 const TELEMETRY_SUFFIX: &str = ".jsonl.telemetry.json";
 const META_SUFFIX: &str = ".jsonl.meta";
 
 fn skip_malformed(file: &str, skipped: &mut Vec<String>, warnings: &mut Vec<ReaderWarning>) {
     warnings.push(ReaderWarning {
-        message: format!(
-            "skipping malformed {HARNESS} file {file}
-"
-        ),
+        message: format!("skipping malformed {HARNESS} file {file}\n"),
     });
     skipped.push(file.to_owned());
 }
@@ -318,6 +311,11 @@ fn read_telemetry(
     })
 }
 
+/// Read all Reasonix usage events reachable from `home`. Walks
+/// `<home>/projects/*/sessions/`, reading `*.acp.json` sidecars and the
+/// `*.jsonl.telemetry.json` + `*.jsonl.meta` pairs newer builds write, emitting
+/// one cumulative event per session id. When two sidecars share a session id
+/// (e.g. a recovery-branch twin), the one with the later `updatedAt` wins.
 pub fn read_reasonix(home: &Path) -> ReaderResult {
     let mut skipped: Vec<String> = Vec::new();
     let mut warnings: Vec<ReaderWarning> = Vec::new();

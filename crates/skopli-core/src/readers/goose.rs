@@ -89,7 +89,6 @@ fn created_at_iso(value: &Value) -> Option<String> {
     epoch_to_iso(value)
 }
 
-/// Read all goose usage events.
 /// Newer goose builds add `cache_read_tokens` and `cache_write_tokens` (plus
 /// their `accumulated_` forms) to `sessions` and count them inside
 /// `input_tokens`; older databases have neither column.
@@ -101,6 +100,7 @@ fn accumulated_or(row: &Value, column: &str) -> f64 {
         .max(0.0)
 }
 
+/// Read all goose usage events from the session databases.
 pub fn read_goose(db_paths: &[PathBuf]) -> ReaderResult {
     let mut events: Vec<UsageEvent> = Vec::new();
     let mut skipped: Vec<String> = Vec::new();
@@ -124,7 +124,7 @@ pub fn read_goose(db_paths: &[PathBuf]) -> ReaderResult {
         };
         let rows = match query_rows(
             &conn,
-            "SELECT * FROM sessions              WHERE model_config_json IS NOT NULL AND TRIM(model_config_json) != ''",
+            "SELECT * FROM sessions WHERE model_config_json IS NOT NULL AND TRIM(model_config_json) != ''",
         ) {
             Ok(r) => r,
             Err(e) => {
@@ -256,8 +256,8 @@ mod tests {
         let db = dir.join("sessions.db");
         let conn = Connection::open(&db).unwrap();
         conn.execute_batch(
-            "CREATE TABLE sessions (id TEXT, model_config_json TEXT, provider_name TEXT,              created_at TEXT, total_tokens INTEGER, input_tokens INTEGER, output_tokens INTEGER,              cache_read_tokens INTEGER, cache_write_tokens INTEGER,              accumulated_total_tokens INTEGER, accumulated_input_tokens INTEGER,              accumulated_output_tokens INTEGER, accumulated_cache_read_tokens INTEGER,              accumulated_cache_write_tokens INTEGER);
-             INSERT INTO sessions VALUES ('20261101_1', '{\"model_name\":\"qwen\"}', 'anthropic',              '2026-11-01 22:05:30', 13101, 13090, 11, 9163, 3927, 13101, 13090, 11, 9163, 3927);",
+            "CREATE TABLE sessions (id TEXT, model_config_json TEXT, provider_name TEXT, created_at TEXT, total_tokens INTEGER, input_tokens INTEGER, output_tokens INTEGER, cache_read_tokens INTEGER, cache_write_tokens INTEGER, accumulated_total_tokens INTEGER, accumulated_input_tokens INTEGER, accumulated_output_tokens INTEGER, accumulated_cache_read_tokens INTEGER, accumulated_cache_write_tokens INTEGER);
+             INSERT INTO sessions VALUES ('20261101_1', '{\"model_name\":\"qwen\"}', 'anthropic', '2026-11-01 22:05:30', 13101, 13090, 11, 9163, 3927, 13101, 13090, 11, 9163, 3927);",
         )
         .unwrap();
         let result = read_goose(&[db]);
