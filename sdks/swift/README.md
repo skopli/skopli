@@ -4,10 +4,10 @@ Idiomatic Swift bindings for skopli, riding the C ABI (`skopli-capi`) through a 
 `Codable` models in/out, `throws` for errors (`SkopliError`), camelCase throughout, `enum Harness: String`, sync functions plus `async` conveniences via `withCheckedThrowingContinuation`.
 A `Pricing` `final class` frees the native handle in `deinit`.
 
-## Status: structure-complete, verified in CI
+## Status: verified in CI
 
-The Swift toolchain is not installed on the authoring host, so `swift build` / `swift test` are **verified in CI on a macOS runner** (see below).
-The package is delivered structure-complete: every C function signature was cross-checked character-by-character against the generated header, and every JSON key mirrors the sibling Go/Java/C# facades exactly.
+`swift build` and `swift test` run in CI on a macOS runner (see below).
+Every C function signature matches the generated header, and every JSON key mirrors the sibling Go/Java/C# facades exactly.
 
 ## Layout
 

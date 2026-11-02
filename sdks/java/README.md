@@ -4,8 +4,7 @@ Idiomatic Java bindings for skopli, riding the C ABI (`skopli-capi`) via the For
 Typed records and enums, `Optional`/`OptionalLong` for nullable wire fields, a sealed `SkopliException` tree (`InvalidArgumentException`, `CatalogException`, `InternalException`) mapped from the C `AgStatus`, and a sealed `PriceLookup` (`PriceHit`/`PriceMiss`) for pattern-matching pricing results.
 Sync and thread-safe; the pricing handle is `AutoCloseable`.
 
-Requires **JDK 22+** (FFM).
-The dev/test toolchain is Temurin 25.
+Requires **JDK 22+** (FFM); CI runs on 25.
 
 ## Layout
 
