@@ -7,7 +7,8 @@
 //! produced by the TypeScript reader running on V8.
 //!
 //! [`date_parse_ms`] is `Date.parse` restricted to the Date Time String Format,
-//! which is the only shape the facades exchange.
+//! which is the only shape the facades exchange, minus the `T24:00` end-of-day
+//! form that V8 maps to the next midnight; the TypeScript twin rejects it too.
 //!
 //! V8's time value range is `±8.64e15` ms; `toISOString()` throws `RangeError`
 //! outside it, which is `None` here.
