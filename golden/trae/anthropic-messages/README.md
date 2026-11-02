@@ -8,7 +8,7 @@ Real capture of a multi-turn session, promoted from the harness home directory w
 - Model: qwen2.5-1.5b-instruct-q4_k_m (served as "qwen").
 - Cache numbers: server-reported.
 - Store paths: `trajectories`.
-- Redaction: user name, home directory, project path, host name and placeholder API keys replaced; path slugs renamed to match; SQLite text columns rewritten in place and the database checkpointed and vacuumed.
+- Redaction: user name, home directory, project path, host name and placeholder API keys replaced; path slugs renamed to match.
 - Events 18, sessions 4, diagnostics 0, skipped 0.
 - Totals: input 1468, output 3939, cache read 37343, cache write 0, reasoning 0.
 - Captured on macOS 26.6.2 (arm64) with trae-agent 0.1.0 from the main branch (uv tool install, Python 3.12); the layout is the trajectory JSON the Ubuntu fixture hand-shaped, so this is the harness's only real case.

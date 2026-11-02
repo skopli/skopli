@@ -8,6 +8,6 @@ Real capture of a multi-turn session, promoted from the harness home directory w
 - Model: qwen2.5-1.5b-instruct-q4_k_m (served as "qwen").
 - Cache numbers: server-reported prompt_tokens_details.cached_tokens from the gateway (timings.cache_n).
 - Store paths: `.copilot/session-state`.
-- Redaction: user name, home directory, project path, host name and placeholder API keys replaced; path slugs renamed to match; SQLite text columns rewritten in place and the database checkpointed and vacuumed.
+- Redaction: user name, home directory, project path, host name and placeholder API keys replaced; path slugs renamed to match.
 - Events 4, sessions 1, diagnostics 0, skipped 0.
 - Totals: input 9707, output 122, cache read 46149, cache write 0, reasoning 0.

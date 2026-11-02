@@ -8,6 +8,6 @@ Real capture of a multi-turn session, promoted from the harness home directory w
 - Model: qwen2.5-1.5b-instruct-q4_k_m (served as "qwen").
 - Cache numbers: server-reported cache_read_input_tokens; cache_creation_input_tokens is gateway-derived (uncached input booked as creation when the request carried cache_control).
 - Store paths: `.claude/projects`.
-- Redaction: user name, home directory, project path, host name and placeholder API keys replaced; path slugs renamed to match; SQLite text columns rewritten in place and the database checkpointed and vacuumed.
+- Redaction: user name, home directory, project path, host name and placeholder API keys replaced; path slugs renamed to match.
 - Events 4, sessions 1, diagnostics 0, skipped 0.
 - Totals: input 0, output 719, cache read 48110, cache write 15882, reasoning 0.
