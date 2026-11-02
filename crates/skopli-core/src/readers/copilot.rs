@@ -1,4 +1,4 @@
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
 
 use serde_json::Value;
@@ -305,21 +305,33 @@ fn read_otel(root: &Path, owned: Option<&HashSet<&str>>) -> ReaderResult {
 
     // Source-priority selection + same-source max merge. Only a candidate that
     // names its model can stand in for the others in its trace.
+    let mut lowest_by_trace: HashMap<&str, i32> = HashMap::new();
+    let mut lowest_by_response: HashMap<&str, i32> = HashMap::new();
+    for candidate in values.iter().filter(|c| c.model.is_some()) {
+        let lower = |slot: &mut i32| *slot = (*slot).min(candidate.source);
+        lower(
+            lowest_by_trace
+                .entry(&candidate.trace_id)
+                .or_insert(i32::MAX),
+        );
+        if let Some(id) = &candidate.response_id {
+            lower(lowest_by_response.entry(id).or_insert(i32::MAX));
+        }
+    }
+    let outranked = |lowest: &HashMap<&str, i32>, key: &str, source: i32| {
+        lowest.get(key).is_some_and(|&lowest| lowest < source)
+    };
     let suppressed: Vec<bool> = values
         .iter()
-        .map(|candidate| {
-            values.iter().any(|other| {
-                other.source < candidate.source
-                    && other.model.is_some()
-                    && (other.trace_id == candidate.trace_id
-                        || (candidate.response_id.is_some()
-                            && other.response_id == candidate.response_id))
-            })
+        .map(|c| {
+            outranked(&lowest_by_trace, &c.trace_id, c.source)
+                || c.response_id
+                    .as_deref()
+                    .is_some_and(|id| outranked(&lowest_by_response, id, c.source))
         })
         .collect();
     let mut selected: Vec<Candidate> = Vec::new();
-    let mut index_by_id: std::collections::HashMap<String, usize> =
-        std::collections::HashMap::new();
+    let mut index_by_id: HashMap<String, usize> = HashMap::new();
     for (candidate, suppressed) in values.into_iter().zip(suppressed) {
         if suppressed {
             continue;
