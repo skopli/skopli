@@ -290,6 +290,27 @@
       "turn": true
     }
   ],
-  "diagnostics": [],
+  "diagnostics": [
+    {
+      "severity": "warning",
+      "message": "naive timestamps, no usable anchor in trajectories/trajectory_run1.json",
+      "harness": "trae"
+    },
+    {
+      "severity": "warning",
+      "message": "naive timestamps, no usable anchor in trajectories/trajectory_run2.json",
+      "harness": "trae"
+    },
+    {
+      "severity": "warning",
+      "message": "naive timestamps, no usable anchor in trajectories/trajectory_run3.json",
+      "harness": "trae"
+    },
+    {
+      "severity": "warning",
+      "message": "naive timestamps, no usable anchor in trajectories/trajectory_run4.json",
+      "harness": "trae"
+    }
+  ],
   "skipped": {}
 }

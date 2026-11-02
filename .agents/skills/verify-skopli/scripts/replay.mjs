@@ -1,6 +1,6 @@
 // Shared golden replay: resolve a case's manifest, read it through dist/index.js and
 // normalise the output the way the expected files store it (used by golden.mjs and promote.mjs).
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync, utimesSync } from "node:fs";
 import { isAbsolute, join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
@@ -13,9 +13,23 @@ export const canonical = (v) =>
       : x,
   );
 
+// A checkout gives every input file the mtime of the checkout, which a reader that
+// consults mtimes (trae anchors naive timestamps on it) would read as evidence. Pin
+// them to one instant far from any fixture so replay is the same on every machine.
+const PINNED_MTIME = new Date("2000-01-01T00:00:00Z");
+const pinMtimes = (dir) => {
+  if (!existsSync(dir)) return;
+  for (const entry of readdirSync(dir, { withFileTypes: true })) {
+    const path = join(dir, entry.name);
+    if (entry.isDirectory()) pinMtimes(path);
+    else utimesSync(path, PINNED_MTIME, PINNED_MTIME);
+  }
+};
+
 export const replayCase = async (caseId, dir = join(root, "golden", caseId)) => {
   const { readUsage, rollup } = await import(pathToFileURL(join(root, "dist/index.js")).href);
   const input = join(dir, "input");
+  pinMtimes(input);
   const manifest = JSON.parse(readFileSync(join(dir, "input-manifest.json"), "utf8"));
 
   const place = (v) => (isAbsolute(v) ? v : join(input, v));

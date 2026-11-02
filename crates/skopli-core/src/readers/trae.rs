@@ -5,9 +5,10 @@ use serde_json::Value;
 
 use super::reader::{Reader, ReaderContext};
 use super::shared::{
-    ReaderResult, ReaderWarning, as_string, dir_exists, file_mtime_iso, file_stem_name, is_record,
-    optional_cell, parse_timestamp_to_iso, read_json, required_cell,
+    ReaderResult, ReaderWarning, as_string, date_parse_ms, dir_exists, file_mtime_iso,
+    file_stem_name, is_record, optional_cell, parse_timestamp_to_iso, read_json, required_cell,
 };
+use crate::time::to_iso_string;
 use crate::types::{TokenCounts, UsageEvent};
 
 /// The trae-agent reader wired into the harness registry. trae-agent
@@ -20,6 +21,14 @@ use crate::types::{TokenCounts, UsageEvent};
 /// `llm_interactions` entry and never reads `agent_steps`, so a call is never
 /// double counted. When the context carries no working directory the reader
 /// yields nothing rather than erroring.
+///
+/// trae stamps every record with `datetime.now().isoformat()`: local wall time
+/// with no offset. A trajectory is written when its run ends, so the file mtime
+/// is the UTC instant of its `end_time`; the gap between the two, rounded to the
+/// 15-minute grid every real zone sits on, is the local offset and is applied to
+/// each naive timestamp. A file whose mtime no longer tracks its content (a copy,
+/// a checkout) has no usable anchor: its naive timestamps are booked as UTC and
+/// one warning names the file.
 pub struct TraeReader;
 
 impl Reader for TraeReader {
@@ -129,9 +138,24 @@ fn read_trajectory(
     };
 
     let session_id = file_stem_name(file);
+    let offset_ms = naive_offset_ms(&parsed, interactions, file).unwrap_or_else(|| {
+        warnings.push(ReaderWarning {
+            message: format!("naive timestamps, no usable anchor in {file}\n"),
+        });
+        0
+    });
+    let stamp = |value: &Value| -> Option<String> {
+        let iso = parse_timestamp_to_iso(value)?;
+        match value.as_str() {
+            Some(raw) if offset_ms != 0 && is_naive(raw) => {
+                to_iso_string(date_parse_ms(raw)?.checked_add(offset_ms)?)
+            }
+            _ => Some(iso),
+        }
+    };
     let fallback_timestamp = parsed
         .get("start_time")
-        .and_then(parse_timestamp_to_iso)
+        .and_then(stamp)
         .unwrap_or_else(|| file_mtime_iso(file));
     let trajectory_model = parsed
         .get("model")
@@ -189,7 +213,7 @@ fn read_trajectory(
             .unwrap_or_else(|| UNKNOWN_MODEL.to_owned());
         let timestamp = interaction
             .get("timestamp")
-            .and_then(parse_timestamp_to_iso)
+            .and_then(stamp)
             .unwrap_or_else(|| fallback_timestamp.clone());
         events.push(UsageEvent {
             harness: HARNESS.to_owned(),
@@ -207,6 +231,46 @@ fn read_trajectory(
         });
     }
     events
+}
+
+const QUARTER_HOUR_MS: i64 = 15 * 60 * 1000;
+const MAX_OFFSET_MS: i64 = 14 * 60 * 60 * 1000;
+const MAX_RESIDUAL_MS: i64 = 10 * 60 * 1000;
+
+/// True for a date-time string that carries neither `Z` nor a numeric offset.
+fn is_naive(raw: &str) -> bool {
+    let time = raw.trim().get(10..).unwrap_or("");
+    !time.ends_with('Z') && !time.contains('+') && !time.contains('-')
+}
+
+/// The local offset of a trajectory's naive timestamps, from the file mtime
+/// against `end_time` (else the newest timestamp in the file). `Some(0)` when
+/// the file has no naive timestamp to shift; `None` when the gap is more than 14
+/// hours or further than 10 minutes from the 15-minute grid.
+fn naive_offset_ms(parsed: &Value, interactions: &[Value], file: &str) -> Option<i64> {
+    let naive_ms = |value: Option<&Value>| {
+        value
+            .and_then(Value::as_str)
+            .filter(|s| is_naive(s))
+            .and_then(date_parse_ms)
+    };
+    let newest = interactions
+        .iter()
+        .filter_map(|i| naive_ms(i.get("timestamp")))
+        .chain(naive_ms(parsed.get("start_time")))
+        .max();
+    let Some(anchor) = naive_ms(parsed.get("end_time")).or(newest) else {
+        return Some(0);
+    };
+    let mtime = fs::metadata(file)
+        .and_then(|m| m.modified())
+        .ok()?
+        .duration_since(std::time::UNIX_EPOCH)
+        .ok()?
+        .as_millis() as i64;
+    let gap = mtime.checked_sub(anchor)?;
+    let rounded = (gap as f64 / QUARTER_HOUR_MS as f64).round() as i64 * QUARTER_HOUR_MS;
+    (rounded.abs() <= MAX_OFFSET_MS && (gap - rounded).abs() < MAX_RESIDUAL_MS).then_some(rounded)
 }
 
 /// List the trajectory files directly under `dir` (non-recursive) whose names
@@ -274,6 +338,77 @@ mod tests {
         let dir = cwd.join("trajectories");
         fs::create_dir_all(&dir).unwrap();
         fs::write(dir.join(name), body).unwrap();
+    }
+
+    const NAIVE_RUN: &str = r#"{"task":"t","start_time":"2026-11-01T12:59:56.291241","end_time":"2026-11-01T13:00:35.669971","model":"qwen","llm_interactions":[{"timestamp":"2026-11-01T13:00:04.885339","response":{"model":"qwen","usage":{"input_tokens":10,"output_tokens":5}}},{"timestamp":"2026-11-01T13:00:35.650334+00:00","response":{"model":"qwen","usage":{"input_tokens":10,"output_tokens":5}}}]}"#;
+
+    /// Set the file mtime to `end_time` (as UTC) plus `delta_ms`.
+    fn set_mtime(cwd: &Path, name: &str, delta_ms: i64) {
+        let at = std::time::UNIX_EPOCH
+            + std::time::Duration::from_millis(
+                (date_parse_ms("2026-11-01T13:00:35.669971").unwrap() + delta_ms) as u64,
+            );
+        fs::File::options()
+            .write(true)
+            .open(cwd.join("trajectories").join(name))
+            .unwrap()
+            .set_modified(at)
+            .unwrap();
+    }
+
+    #[test]
+    fn naive_timestamps_are_shifted_by_the_mtime_anchor() {
+        let dir = scratch_dir("anchor");
+        write_trajectory(&dir, "trajectory_run1.json", NAIVE_RUN);
+        set_mtime(&dir, "trajectory_run1.json", 8 * 3_600_000 + 2_300);
+        let r = read_trae(&dir);
+        assert!(r.warnings.is_empty());
+        assert_eq!(r.events[0].timestamp, "2026-11-01T21:00:04.885Z");
+        assert_eq!(
+            r.events[1].timestamp, "2026-11-01T13:00:35.650Z",
+            "an offset-aware stamp is left alone"
+        );
+    }
+
+    #[test]
+    fn negative_offsets_round_to_the_quarter_hour() {
+        let dir = scratch_dir("anchor-neg");
+        write_trajectory(&dir, "trajectory_run1.json", NAIVE_RUN);
+        set_mtime(
+            &dir,
+            "trajectory_run1.json",
+            -(5 * 3_600_000 + 30 * 60_000) + 4 * 60_000,
+        );
+        let r = read_trae(&dir);
+        assert!(r.warnings.is_empty());
+        assert_eq!(r.events[0].timestamp, "2026-11-01T07:30:04.885Z");
+    }
+
+    #[test]
+    fn stale_mtime_books_naive_as_utc_with_one_warning() {
+        let dir = scratch_dir("anchor-stale");
+        write_trajectory(&dir, "trajectory_run1.json", NAIVE_RUN);
+        set_mtime(&dir, "trajectory_run1.json", 20 * 3_600_000);
+        let r = read_trae(&dir);
+        assert_eq!(r.events[0].timestamp, "2026-11-01T13:00:04.885Z");
+        assert_eq!(r.warnings.len(), 1);
+        assert!(
+            r.warnings[0]
+                .message
+                .starts_with("naive timestamps, no usable anchor in ")
+        );
+        assert!(r.skipped.is_empty());
+    }
+
+    #[test]
+    fn newest_timestamp_anchors_a_run_without_end_time() {
+        let dir = scratch_dir("anchor-newest");
+        let body = NAIVE_RUN.replace(r#""end_time":"2026-11-01T13:00:35.669971","#, "");
+        write_trajectory(&dir, "trajectory_run1.json", &body);
+        set_mtime(&dir, "trajectory_run1.json", 3_600_000 - 30_000);
+        let r = read_trae(&dir);
+        assert!(r.warnings.is_empty());
+        assert_eq!(r.events[0].timestamp, "2026-11-01T14:00:04.885Z");
     }
 
     #[test]

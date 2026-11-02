@@ -96,6 +96,9 @@ impl Drop for Scratch {
     }
 }
 
+/// Copy a case input, pinning every file mtime to one instant far from any
+/// fixture: a reader that consults mtimes (trae anchors naive timestamps on
+/// it) must see the same evidence as the conformance sweep.
 pub fn copy_tree(from: &Path, to: &Path) {
     fs::create_dir_all(to).unwrap();
     for entry in fs::read_dir(from).unwrap().filter_map(Result::ok) {
@@ -103,9 +106,20 @@ pub fn copy_tree(from: &Path, to: &Path) {
         if entry.path().is_dir() {
             copy_tree(&entry.path(), &target);
         } else {
-            fs::copy(entry.path(), target).unwrap();
+            fs::copy(entry.path(), &target).unwrap();
+            fs::File::options()
+                .write(true)
+                .open(&target)
+                .unwrap()
+                .set_modified(pinned_mtime())
+                .unwrap();
         }
     }
+}
+
+/// 2000-01-01T00:00:00Z.
+fn pinned_mtime() -> std::time::SystemTime {
+    std::time::UNIX_EPOCH + std::time::Duration::from_secs(946_684_800)
 }
 
 /// A case copied under a scratch directory: the copy, the reader context the
@@ -411,7 +425,7 @@ impl TokenClass {
         }
         if last.contains("reason") || last.contains("thought") {
             Some(Self::Reasoning)
-        } else if last.contains("cachemiss") {
+        } else if last.replace('_', "").contains("cachemiss") {
             Some(Self::Input)
         } else if p.contains("cache") {
             Some(if last.contains("1h") {

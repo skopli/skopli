@@ -133,6 +133,7 @@ The formatting of a start into its key is `to_iso_string`, which allocates and i
 
 Five tests live in `tests/readers.rs`; the mutation and judgement helpers live in `src/readers.rs`.
 The domain is the golden corpus: every `golden/<harness>/<case>/` with an `input-manifest.json`, 96 cases over all forty registered readers, copied into a scratch home and read through the real `Reader::read` with the context the manifest describes, exactly as `crates/skopli-core/tests/conformance.rs` builds it.
+The copy pins every file mtime to 2000-01-01T00:00:00Z, as the conformance sweep and the golden replay script pin the checkout's: a reader that consults mtimes (trae anchors naive timestamps on the file mtime) sees the same evidence on every machine, and a golden case never depends on when it was checked out.
 Nothing in the expectations comes from the reader under test: the token classes come from the cell names in the harness's own files, the event counts from `expected-events.json`, the timestamp grammar from the shared parser.
 
 `readers_never_panic_on_damaged_input` is the totality check.

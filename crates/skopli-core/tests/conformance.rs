@@ -33,6 +33,21 @@ use skopli_core::types::UsageEvent;
 mod support;
 use support::structural_eq;
 
+/// A checkout gives every input file the mtime of the checkout, which a reader
+/// that consults mtimes (trae anchors naive timestamps on it) would read as
+/// evidence. Pin them to one instant far from any fixture so replay is the same
+/// on every machine.
+fn pin_mtimes(dir: &Path) {
+    let epoch = std::time::UNIX_EPOCH + std::time::Duration::from_secs(946_684_800);
+    for entry in std::fs::read_dir(dir).into_iter().flatten().flatten() {
+        if entry.path().is_dir() {
+            pin_mtimes(&entry.path());
+        } else if let Ok(f) = std::fs::File::options().write(true).open(entry.path()) {
+            f.set_modified(epoch).ok();
+        }
+    }
+}
+
 /// Strip the absolute `input/` prefix (in `/` and `\` forms) from a path or
 /// message and normalize `\` to `/`, matching the TS exporter: strip every bare
 /// `inputDir` variant, normalize `\`->`/`, then collapse a run of leading
@@ -367,6 +382,7 @@ fn conformance() {
         };
 
         let input_dir = case.dir.join("input");
+        pin_mtimes(&input_dir);
 
         // A registered reader may still not serve a particular case's format
         // (e.g. an unported input format). Report those as
