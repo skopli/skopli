@@ -25,8 +25,8 @@ describe("script command lines", () => {
 
   it("promote --dry-run previews longest-first rules and the files, writing nothing", () => {
     const home = mkdtempSync(join(tmpdir(), "promote-dry-"));
-    mkdirSync(join(home, "store", "ubuntu-x-y"), { recursive: true });
-    writeFileSync(join(home, "store", "ubuntu-x-y", "s.json"), "{}");
+    mkdirSync(join(home, "store", "alice-x-y"), { recursive: true });
+    writeFileSync(join(home, "store", "alice-x-y", "s.json"), "{}");
     const { status, stdout } = run(
       "promote.mjs",
       home,
@@ -34,15 +34,15 @@ describe("script command lines", () => {
       "--store",
       "store",
       "--redact",
-      "ubuntu=user",
+      "alice=user",
       "--redact",
-      "/home/ubuntu/x/y=/home/user/project",
+      "/home/alice/x/y=/home/user/project",
       "--dry-run",
     );
     expect(status).toBe(0);
     const plan = JSON.parse(stdout) as { rules: [string, string][]; files: string[] };
     const sources = plan.rules.map(([from]) => from);
-    expect(sources.indexOf("/home/ubuntu/x/y")).toBeLessThan(sources.indexOf("ubuntu"));
+    expect(sources.indexOf("/home/alice/x/y")).toBeLessThan(sources.indexOf("alice"));
     const lengths = sources.map((s) => s.length);
     expect(lengths).toEqual([...lengths].sort((a, b) => b - a));
     expect(plan.files).toEqual(["golden/promote-dry-run/case/input/store/user-x-y/s.json"]);
@@ -76,7 +76,7 @@ describe("script command lines", () => {
   it("promote keeps the existing case when a store is missing or a file fails redaction", () => {
     const home = mkdtempSync(join(tmpdir(), "promote-keep-"));
     mkdirSync(join(home, "store"));
-    writeFileSync(join(home, "store", "s.json"), '{"user":"ubuntu"}');
+    writeFileSync(join(home, "store", "s.json"), '{"user":"alice"}');
     const existing = join(root, "golden", "promote-keep", "case", "input", "old.json");
     mkdirSync(join(existing, ".."), { recursive: true });
     writeFileSync(existing, "{}");
@@ -92,7 +92,7 @@ describe("script command lines", () => {
         "--store",
         "store",
         "--redact",
-        "ubuntu=ubuntu2",
+        "alice=alice2",
       );
       expect(leak.status).toBe(1);
       expect(leak.stderr).toContain("redaction source still present");
