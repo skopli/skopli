@@ -14,7 +14,10 @@ use crate::types::{TokenCounts, UsageEvent};
 /// one transcript per session at `~/.commandcode/projects/<cwd-slug>/<session
 /// uuid>.jsonl`: a `session` header line followed by `message` lines, where the
 /// assistant line of each turn carries a top-level `usage` object and `model`.
-/// The `.checkpoints.jsonl` and `.meta.json` siblings hold no usage.
+/// The sidecars beside it (`.meta.json`, `.share.json`, `.checkpoints.jsonl`,
+/// `.prompts.jsonl`, `.scheduled-tasks.json`, `.v2.bak`) hold no usage and are
+/// told apart by the harness's own transcript test, mirrored in
+/// `is_transcript_name`.
 pub struct CommandcodeReader;
 
 impl Reader for CommandcodeReader {
@@ -34,6 +37,14 @@ pub fn commandcode_projects(home: &Path) -> PathBuf {
 }
 
 const UNKNOWN_MODEL: &str = "commandcode-unknown";
+
+/// Command Code's `isSessionTranscriptFileName`, verbatim.
+fn is_transcript_name(name: &str) -> bool {
+    name.ends_with(".jsonl")
+        && !name.contains(".checkpoints.")
+        && !name.contains(".prompts.")
+        && !name.contains(".v2.bak")
+}
 
 /// `inputTokens` is the full prompt, cached prefix included (it equals the
 /// wire's `prompt_tokens`), so the cache read is subtracted to count each token
@@ -61,9 +72,7 @@ pub fn read_commandcode(projects: &Path) -> ReaderResult {
     if !dir_exists(projects) {
         return result;
     }
-    let files = list_files(projects, |name| {
-        name.ends_with(".jsonl") && !name.ends_with(".checkpoints.jsonl")
-    });
+    let files = list_files(projects, is_transcript_name);
     for file in &files {
         let Some(lines) = read_jsonl_lines(file, &mut result.skipped, &mut result.warnings) else {
             continue;
@@ -154,16 +163,18 @@ mod tests {
         fs::create_dir_all(&dir).unwrap();
         let file = dir.join("0f1e2d3c-0000-4000-8000-000000000001.jsonl");
         fs::write(&file, lines.join("\n") + "\n").unwrap();
-        fs::write(
-            dir.join("0f1e2d3c-0000-4000-8000-000000000001.checkpoints.jsonl"),
-            "{\"turnNumber\":1}\n",
-        )
-        .unwrap();
-        fs::write(
-            dir.join("0f1e2d3c-0000-4000-8000-000000000001.meta.json"),
-            "{\"entrypoint\":\"print\"}",
-        )
-        .unwrap();
+        for (sidecar, body) in [
+            ("checkpoints.jsonl", "{\"turnNumber\":1}\n"),
+            ("prompts.jsonl", "not a transcript line\n"),
+            ("meta.json", "{\"entrypoint\":\"print\"}"),
+            ("v2.bak", "{"),
+        ] {
+            fs::write(
+                dir.join(format!("0f1e2d3c-0000-4000-8000-000000000001.{sidecar}")),
+                body,
+            )
+            .unwrap();
+        }
         (home, file)
     }
 
