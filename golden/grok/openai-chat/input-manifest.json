@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "harness": "grok",
+  "case": "openai-chat",
+  "home": ".",
+  "options": {
+    "harnesses": [
+      "grok"
+    ],
+    "tz": "UTC"
+  },
+  "rollups": [
+    "model",
+    "day",
+    "harness"
+  ]
+}

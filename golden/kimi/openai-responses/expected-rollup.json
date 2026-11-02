@@ -1,0 +1,50 @@
+{
+  "schema_version": 1,
+  "by": {
+    "model": [
+      {
+        "key": "llama/qwen",
+        "tokens": {
+          "input": 700,
+          "output": 1271,
+          "cacheRead": 54494,
+          "cacheWrite": 0,
+          "reasoning": 0
+        },
+        "events": 4,
+        "turns": 4,
+        "calls": 4
+      }
+    ],
+    "day": [
+      {
+        "key": "2026-11-01",
+        "tokens": {
+          "input": 700,
+          "output": 1271,
+          "cacheRead": 54494,
+          "cacheWrite": 0,
+          "reasoning": 0
+        },
+        "events": 4,
+        "turns": 4,
+        "calls": 4
+      }
+    ],
+    "harness": [
+      {
+        "key": "kimi",
+        "tokens": {
+          "input": 700,
+          "output": 1271,
+          "cacheRead": 54494,
+          "cacheWrite": 0,
+          "reasoning": 0
+        },
+        "events": 4,
+        "turns": 4,
+        "calls": 4
+      }
+    ]
+  }
+}

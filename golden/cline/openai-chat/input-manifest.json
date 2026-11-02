@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "harness": "cline",
+  "case": "openai-chat",
+  "home": ".",
+  "options": {
+    "harnesses": [
+      "cline"
+    ],
+    "tz": "UTC"
+  },
+  "rollups": [
+    "model",
+    "day",
+    "harness"
+  ]
+}

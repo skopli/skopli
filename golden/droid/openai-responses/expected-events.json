@@ -1,0 +1,71 @@
+{
+  "schema_version": 1,
+  "events": [
+    {
+      "harness": "droid",
+      "messageId": "8611b51d-600b-4be0-933c-bf4faf58c776",
+      "model": "qwen-0",
+      "sessionId": "8611b51d-600b-4be0-933c-bf4faf58c776",
+      "subagent": false,
+      "timestamp": "2026-11-01T19:56:07.450Z",
+      "tokens": {
+        "cacheRead": 7289,
+        "cacheWrite": 0,
+        "input": 2327,
+        "output": 12,
+        "reasoning": 0
+      },
+      "turn": false
+    },
+    {
+      "harness": "droid",
+      "messageId": "7ee00ee2-3f03-43ce-abc7-c2732ae00fe6",
+      "model": "qwen-0",
+      "sessionId": "7ee00ee2-3f03-43ce-abc7-c2732ae00fe6",
+      "subagent": false,
+      "timestamp": "2026-11-01T19:56:21.388Z",
+      "tokens": {
+        "cacheRead": 9611,
+        "cacheWrite": 0,
+        "input": 15,
+        "output": 19,
+        "reasoning": 0
+      },
+      "turn": false
+    },
+    {
+      "harness": "droid",
+      "messageId": "21918834-798e-48ac-9ff9-93682a44c86d",
+      "model": "qwen-0",
+      "sessionId": "21918834-798e-48ac-9ff9-93682a44c86d",
+      "subagent": false,
+      "timestamp": "2026-11-01T19:56:27.814Z",
+      "tokens": {
+        "cacheRead": 9612,
+        "cacheWrite": 0,
+        "input": 15,
+        "output": 15,
+        "reasoning": 0
+      },
+      "turn": false
+    },
+    {
+      "harness": "droid",
+      "messageId": "703015de-1572-42c6-acac-3fa272a269ee",
+      "model": "qwen-0",
+      "sessionId": "703015de-1572-42c6-acac-3fa272a269ee",
+      "subagent": false,
+      "timestamp": "2026-11-01T19:56:34.222Z",
+      "tokens": {
+        "cacheRead": 9612,
+        "cacheWrite": 0,
+        "input": 13,
+        "output": 46,
+        "reasoning": 0
+      },
+      "turn": false
+    }
+  ],
+  "diagnostics": [],
+  "skipped": {}
+}

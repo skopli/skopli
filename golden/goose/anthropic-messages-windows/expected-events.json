@@ -1,0 +1,71 @@
+{
+  "schema_version": 1,
+  "events": [
+    {
+      "harness": "goose",
+      "messageId": "20261101_1",
+      "model": "anthropic/qwen",
+      "sessionId": "20261101_1",
+      "subagent": false,
+      "timestamp": "2026-11-01T21:11:43.000Z",
+      "tokens": {
+        "cacheRead": 9163,
+        "cacheWrite": 3927,
+        "input": 0,
+        "output": 11,
+        "reasoning": 0
+      },
+      "turn": false
+    },
+    {
+      "harness": "goose",
+      "messageId": "20261101_2",
+      "model": "anthropic/qwen",
+      "sessionId": "20261101_2",
+      "subagent": false,
+      "timestamp": "2026-11-01T21:12:11.000Z",
+      "tokens": {
+        "cacheRead": 9163,
+        "cacheWrite": 3937,
+        "input": 0,
+        "output": 128,
+        "reasoning": 0
+      },
+      "turn": false
+    },
+    {
+      "harness": "goose",
+      "messageId": "20261101_3",
+      "model": "anthropic/qwen",
+      "sessionId": "20261101_3",
+      "subagent": false,
+      "timestamp": "2026-11-01T21:12:50.000Z",
+      "tokens": {
+        "cacheRead": 9163,
+        "cacheWrite": 3938,
+        "input": 0,
+        "output": 26,
+        "reasoning": 0
+      },
+      "turn": false
+    },
+    {
+      "harness": "goose",
+      "messageId": "20261101_4",
+      "model": "anthropic/qwen",
+      "sessionId": "20261101_4",
+      "subagent": false,
+      "timestamp": "2026-11-01T21:13:21.000Z",
+      "tokens": {
+        "cacheRead": 9163,
+        "cacheWrite": 3936,
+        "input": 0,
+        "output": 43,
+        "reasoning": 0
+      },
+      "turn": false
+    }
+  ],
+  "diagnostics": [],
+  "skipped": {}
+}
