@@ -8,93 +8,12 @@ use super::shared::{
 };
 use crate::types::{TokenCounts, UsageEvent};
 
-/// The fx.sh reader wired into the harness registry. fx (vercel-labs/fx) is a
-/// native coding agent that persists per-session usage at
-/// `~/.fx/sessions/<session_id>/usage-v2.json`. The profile root constant is
-/// `.fx`, joined to the OS home; there is no environment override that
-/// redirects it, so the root resolves from home only.
-///
-/// Discovery enumerates only the immediate session directories under
-/// `sessions/`, sorted, and inspects the single fixed `usage-v2.json` directly
-/// below each one. Files at any deeper nesting are ignored: fx writes exactly one
-/// sidecar per session directory, so a deterministic one-based ordinal over the
-/// sorted session directories is the diagnostic index.
-///
-/// Validation is scoped to the fields the reader consumes, not the full E11
-/// producer schema. Every other snapshot and model field (`first_sequence`,
-/// `billable_web_search_calls`, the snapshot totals, the duration/cursor/boolean
-/// fields, `pending`, `publication_backlog`, and so on) is intentionally not
-/// gated: strict full-schema validation would reject benign producer additions
-/// without improving usage correctness. A violation of a validated field skips
-/// that sidecar and yields one structured diagnostic against a
-/// `{path}:usage-v2:{ordinal}` identity. The validated fields are:
-///
-/// - The envelope is an object with exactly the three keys `schema_version`,
-///   `session_id`, and `snapshot`; `schema_version` is the integer 1;
-///   `session_id` is a non-empty string equal to the owning session directory
-///   name and a valid fx session id of the form `{ms}-{ns}-{16hex}` (decimal
-///   millis, decimal nanos, and exactly sixteen lowercase hex characters); and
-///   `snapshot` is an object.
-/// - The snapshot carries its own integer `schema_version` equal to 1, a
-///   `billing` string that is one of `complete` / `pending` / `incomplete` /
-///   `legacy`, and a `models` array. An empty `models` array is valid and records
-///   no usage without a diagnostic.
-/// - Every entry of `models[]` is an object with a non-blank `model` string and
-///   required u64 token counters `input_tokens`, `output_tokens`,
-///   `cache_read_tokens`, and `cache_write_tokens`, each a JSON integer in
-///   `0..=u64::MAX`. A required counter that is absent, null, negative,
-///   fractional, non-numeric, or above `u64::MAX` makes the whole sidecar
-///   malformed rather than coercing to zero. `reasoning_tokens` and
-///   `request_count` are optional: absent or null is honored (`legacy` snapshots
-///   write both as null, mapping to a zero reasoning count and an absent call
-///   count), but a populated value that is not a u64 integer is malformed.
-/// - The provider-qualified `model` names within one sidecar must be unique;
-///   duplicate names make the whole sidecar malformed, so the
-///   `{session_id}:{model}` identity below can never collide.
-///
-/// The token and cost figures are authoritative provider counts applied from AI
-/// Gateway billing records, not estimates. One event is emitted per entry of the
-/// snapshot's `models[]` array; each entry carries a provider-qualified model id
-/// (`provider/model`) which is stored as-is, matching the devin precedent, plus
-/// its own token counts, request count, and cost. The `message_id` is
-/// `{session_id}:{model}`, keyed on the provider-qualified model name rather than
-/// the array position, which is not evidenced as stable. E11 does not evidence
-/// that model names are unique within a snapshot, so the reader enforces it:
-/// duplicate model names make the sidecar malformed, keeping the identity
-/// collision-free rather than assuming the producer never repeats a row. The
-/// event timestamp derives from the session id's leading millisecond prefix.
-///
-/// Each sidecar is a cumulative whole-snapshot restatement of a session's usage,
-/// not an append: a later read of the same session supersedes the earlier one.
-/// Correctness across repeated reads therefore requires the consumer to replace
-/// prior events by `message_id`; the rollup layer sums events blindly, so
-/// re-reading a rewritten snapshot without message-id-keyed replacement would
-/// double-count. Keying `message_id` on the stable per-model identity is what
-/// makes that replacement well defined.
-///
-/// The `billing` enum describes reconciliation completeness of the saved window,
-/// not the validity of the aggregated per-model figures: the counts are already
-/// the authoritative applied totals in every state. All four states are
-/// therefore read; usage that exists is usage. A snapshot may also carry an
-/// `incidents[]` array recording completeness incidents; when non-empty it draws
-/// one informational warning naming the session, but no usage is skipped.
-///
-/// fx 0.0.16 and later also write an append-only session log at
-/// `~/.fx/sessions/v2/<session_id>/log.jsonl`, one JSON record per line with
-/// `seq`, `ts` (epoch milliseconds), `kind` and, for `kind: "set"`, a `key` and
-/// `value`. The `usage` key restates the session's cumulative main-agent token
-/// sums (`input_tokens`, `output_tokens`, nullable `cache_read_tokens`,
-/// `cache_write_tokens`, `reasoning_tokens`) after every model exchange, so
-/// each `usage` record yields one event holding the difference from the
-/// previous one, with `message_id` `{session_id}:{line}`, that record's `ts`,
-/// one call, the model from the latest `prefs` record, the workspace from
-/// `session_created` and the title from the `title` record. The last usage
-/// event before a `turn_committed` record is the turn's event (`turn: true`);
-/// an exchange that leaves the counters unchanged yields nothing. A log
-/// without a `usage` record is a session that never completed a turn and is
-/// silent. A line that is not a JSON object, or a `usage` record whose
-/// counters are not u64 integers (null is honored for the three optional
-/// ones), is skipped with a `{path}:{line}` diagnostic.
+/// fx persists usage in two stores under `~/.fx/sessions`: a cumulative
+/// `usage-v2.json` sidecar per session directory (one event per `models[]`
+/// entry, `message_id` `{session_id}:{model}` so a rewritten snapshot replaces
+/// its earlier events) and, from fx 0.0.16, an append-only
+/// `v2/<session_id>/log.jsonl` whose `usage` records restate the session's
+/// cumulative counters and are booked as the delta from the previous record.
 pub struct FxReader;
 
 impl Reader for FxReader {
@@ -111,28 +30,18 @@ const HARNESS: &str = "fx";
 const SIDECAR_FILE: &str = "usage-v2.json";
 const V2_LOG_FILE: &str = "log.jsonl";
 
-/// Resolve the fx sessions directory, `<home>/.fx/sessions`. The profile root
-/// (`.fx`) is a fixed home-relative constant on every OS with no environment
-/// override, so the sessions directory resolves from home only.
 pub fn fx_sessions_dir(home: &Path) -> PathBuf {
     home.join(".fx").join("sessions")
 }
 
-/// The four billing states fx records; any other string is malformed.
 const BILLING_STATES: [&str; 4] = ["complete", "pending", "incomplete", "legacy"];
 
-/// A required u64 token counter. Returns the value only when it is a JSON integer
-/// in `0..=u64::MAX`; a value that is absent, null, negative, fractional,
-/// non-numeric, or above `u64::MAX` is `None`, which the caller treats as a
-/// malformed sidecar rather than coercing to zero.
 fn required_u64(value: Option<&Value>) -> Option<u64> {
     value?.as_u64()
 }
 
-/// An optional u64 counter with three outcomes: `Ok(Some)` for a valid u64
-/// integer, `Ok(None)` for an absent or null value (fx's honored optionality,
-/// as on `legacy` snapshots), and `Err(())` for a populated value that is not a
-/// u64 integer (malformed).
+/// `Ok(None)` for an absent or null counter, `Err(())` for a populated one
+/// that is not a u64.
 fn optional_u64(value: Option<&Value>) -> Result<Option<u64>, ()> {
     match value {
         None => Ok(None),
@@ -141,16 +50,11 @@ fn optional_u64(value: Option<&Value>) -> Result<Option<u64>, ()> {
     }
 }
 
-/// An optional finite cost. `null`, absent, or non-finite -> `None`. Cost is not
-/// a validated required field; a non-finite value simply carries no cost.
 fn optional_cost(value: Option<&Value>) -> Option<f64> {
     value?.as_f64().filter(|n| n.is_finite())
 }
 
-/// True when `id` is a valid fx session id: `{ms}-{ns}-{16hex}`, that is a
-/// decimal millisecond field, a decimal nanosecond field, and exactly sixteen
-/// lowercase hexadecimal characters, joined by single hyphens with no extra
-/// components. Both numeric fields must be non-empty runs of ASCII digits.
+/// `{ms}-{ns}-{16 lowercase hex}`.
 fn is_valid_session_id(id: &str) -> bool {
     let mut parts = id.split('-');
     let (Some(ms), Some(ns), Some(hex), None) =
@@ -166,24 +70,14 @@ fn is_valid_session_id(id: &str) -> bool {
     is_decimal(ms) && is_decimal(ns) && is_hex16
 }
 
-/// Derive the session timestamp from a validated session id's leading
-/// millisecond prefix. The caller has already confirmed the id shape, so the
-/// substring before the first `-` is the epoch-millisecond session start.
 fn timestamp_from_session_id(session_id: &str) -> Option<String> {
     let prefix = session_id.split('-').next()?;
     let ms: f64 = prefix.parse().ok()?;
     parse_timestamp_to_iso(&Value::from(ms))
 }
 
-/// Validate one `models[]` entry and build its event. Returns `Err(())` when the
-/// entry is not an object, the model id is absent or blank, a required u64 token
-/// counter is invalid, or an optional counter is populated with a non-u64 value.
-/// The provider-qualified model id is stored as-is, and also keys the
-/// `message_id` (`{session_id}:{model}`) so the identity is stable across
-/// snapshot rewrites rather than depending on array position, which is not
-/// evidenced as stable. Uniqueness of model names within one sidecar is enforced
-/// by the caller ([`validate_sidecar`]) rather than assumed, so the identity
-/// never collides.
+/// One event for a `models[]` entry, `Err(())` when a consumed field is
+/// invalid.
 fn model_event(entry: &Value, session_id: &str, timestamp: &str) -> Result<UsageEvent, ()> {
     if !is_record(entry) {
         return Err(());
@@ -223,29 +117,16 @@ fn model_event(entry: &Value, session_id: &str, timestamp: &str) -> Result<Usage
     })
 }
 
-/// The outcome of validating one sidecar: the events it yields and whether its
-/// snapshot carried a non-empty `incidents[]` array (an informational signal,
-/// not a skip).
 struct SidecarRead {
     events: Vec<UsageEvent>,
     has_incidents: bool,
 }
 
-/// Validate and read one `usage-v2.json` sidecar into events, or `Err(())` when
-/// the sidecar violates any of the fields the reader consumes. Validation is a
-/// scoped subset of the E11 producer schema, not the full schema: fields the
-/// reader does not consume are intentionally not gated. `dir_name` is the owning
-/// session directory name the envelope `session_id` must equal. Enforced:
-/// readable file and object JSON; an envelope with exactly the three keys
-/// `schema_version` / `session_id` / `snapshot`; outer `schema_version` == 1;
-/// `session_id` a non-empty string equal to `dir_name` and a valid fx session
-/// id; `snapshot` an object carrying its own `schema_version` == 1, a `billing`
-/// string among the four known states, and a `models` array. Every model entry
-/// is validated by [`model_event`], and model names must be unique within the
-/// sidecar (a duplicate provider-qualified name is malformed, keeping the
-/// `{session_id}:{model}` identity collision-free). An empty `models` array is
-/// valid and yields no events. A non-empty `incidents[]` is reported through
-/// `has_incidents`.
+/// Validate only the fields the reader consumes: an envelope of exactly
+/// `schema_version` / `session_id` / `snapshot`, `schema_version` 1 at both
+/// levels, a session id equal to `dir_name`, a known `billing` state and
+/// unique model names. Other producer fields are not gated, so benign
+/// additions do not reject the sidecar.
 fn validate_sidecar(file: &str, dir_name: &str) -> Result<SidecarRead, ()> {
     let content = std::fs::read_to_string(file).map_err(|_| ())?;
     let envelope: Value = serde_json::from_str(&content).map_err(|_| ())?;
@@ -296,12 +177,6 @@ fn validate_sidecar(file: &str, dir_name: &str) -> Result<SidecarRead, ()> {
     })
 }
 
-/// True when the snapshot carries a non-empty `incidents[]` array. `incidents`
-/// records completeness incidents that make the snapshot's completeness
-/// self-describing (E11); an absent or non-array `incidents` is optional and
-/// ignored. When present and non-empty, the caller emits an informational
-/// warning naming the session rather than skipping any usage: the per-model
-/// figures are still authoritative, the incidents only annotate reconciliation.
 fn has_incidents(snapshot: &serde_json::Map<String, Value>) -> bool {
     snapshot
         .get("incidents")
@@ -309,11 +184,8 @@ fn has_incidents(snapshot: &serde_json::Map<String, Value>) -> bool {
         .is_some_and(|incidents| !incidents.is_empty())
 }
 
-/// Read one `usage-v2.json` sidecar into events. A schema violation records a
-/// single structured diagnostic against `label` and yields no events. A valid
-/// sidecar whose snapshot carries a non-empty `incidents[]` array additionally
-/// pushes one informational warning naming the session; that warning does not
-/// skip any usage and is not added to `skipped`.
+/// A schema violation is one diagnostic against `label`; a non-empty
+/// `incidents[]` is one informational warning and skips nothing.
 fn read_sidecar(
     file: &str,
     dir_name: &str,
@@ -347,19 +219,12 @@ fn skip(label: &str, skipped: &mut Vec<String>, warnings: &mut Vec<ReaderWarning
     skipped.push(label.to_owned());
 }
 
-/// Read one v2 session log into one event per `usage` record. The log
-/// restates the session's cumulative usage after every model exchange, so
-/// each record becomes the difference from the previous valid record in file
-/// order (`seq` is not consulted), timestamped by that record and counted as
-/// one call; the last usage event before a `turn_committed` record is the
-/// turn's event, since a turn with tool calls restates more than once; summing
-/// the records themselves would double count. A record
-/// whose counters fall below the previous one is a fresh baseline and is
-/// booked whole. A record that restates the same totals adds nothing and
-/// yields no event. A malformed `usage` record or an unparsable line is a
-/// diagnostic and leaves the earlier events standing; an unreadable file is a
-/// skipped file. Each event carries the model of the latest `prefs` record
-/// before it and the session's final title and workspace.
+/// One event per `usage` record, holding the difference from the previous
+/// record in file order (a record whose counters fell is a fresh baseline, an
+/// unchanged restatement yields nothing); the last usage event before a
+/// `turn_committed` record is the turn's event. The model comes from the
+/// latest `prefs` record, the workspace and title from the session's final
+/// ones.
 fn read_v2_log(
     file: &Path,
     session_id: &str,
@@ -479,9 +344,8 @@ fn v2_usage(record: &Value) -> Option<(TokenCounts, String)> {
     Some((tokens, timestamp))
 }
 
-/// The immediate subdirectory names of `dir`, sorted. Unreadable directories
-/// and non-directory entries are ignored. Enumeration stays at depth one so a
-/// deeper nested file cannot masquerade as a session or shift ordinals.
+/// The immediate subdirectory names of `dir`, sorted; depth one, so a nested
+/// file cannot shift ordinals.
 fn immediate_session_dirs(dir: &Path) -> Vec<String> {
     let mut names: Vec<String> = match std::fs::read_dir(dir) {
         Ok(entries) => entries
@@ -495,13 +359,8 @@ fn immediate_session_dirs(dir: &Path) -> Vec<String> {
     names
 }
 
-/// Read all fx usage events from the sessions directory. Only the immediate
-/// session directories under `sessions/` are enumerated, sorted, and each one's
-/// single fixed `usage-v2.json` is inspected; deeper files are ignored. The
-/// `{path}:usage-v2:{ordinal}` diagnostic identity uses the sidecar file path,
-/// the `usage-v2` scope, and a one-based ordinal over the sorted session
-/// directories. A missing session directory or a directory without its sidecar
-/// yields no events and no diagnostics (absence is normal).
+/// Sidecar diagnostics are labelled `{path}:usage-v2:{ordinal}` over the
+/// sorted session directories; a missing directory or sidecar is silent.
 pub fn read_fx(sessions_dir: &Path) -> ReaderResult {
     let mut events: Vec<UsageEvent> = Vec::new();
     let mut skipped: Vec<String> = Vec::new();
