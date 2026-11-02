@@ -264,51 +264,6 @@ const IGNORED_BY_DESIGN: &[(&str, &str, &str)] = &[
         "status.cumulative.promptTokens",
         "the prompt total is split into cacheHitTokens and cacheMissTokens, which are read",
     ),
-    (
-        "reasonix",
-        "usage.promptTokens",
-        "the telemetry prompt total is split into cacheHitTokens and cacheMissTokens, which are read",
-    ),
-    (
-        "reasonix",
-        "usage.coldStart.",
-        "the first request's counts, restated inside the session totals, which are read",
-    ),
-    (
-        "kimchi",
-        "message.usage.cost.",
-        "dollar cost per counter, not a token count",
-    ),
-    (
-        "codex",
-        "payload.usage.",
-        "the token_usage_record restates the token_count event's last_token_usage, which is read",
-    ),
-    (
-        "codex",
-        "payload.turn_token_usage.",
-        "the token_usage_record restates the token_count event's last_token_usage, which is read",
-    ),
-    (
-        "codex",
-        "payload.thread_token_usage.",
-        "the token_usage_record restates the token_count event's total_token_usage, which is read",
-    ),
-    (
-        "codex",
-        "user_input_order",
-        "the user message's position in the thread, not a token count",
-    ),
-    (
-        "grok",
-        "params.update._meta.promptIndex",
-        "the prompt's position in the session, not a token count",
-    ),
-    (
-        "grok",
-        "params.update.usage.modelUsage.",
-        "per-model restatement of the usage totals, which are read",
-    ),
 ];
 
 /// Readers whose golden input holds no token cell the mapping check can
@@ -316,6 +271,7 @@ const IGNORED_BY_DESIGN: &[(&str, &str, &str)] = &[
 /// when this list and the set of readers with no live mutation differ.
 const NO_MAPPING_COVERAGE: &[&str] = &[
     "cherrystudio",
+    "cline",
     "goose",
     "hermes",
     "kilo",
