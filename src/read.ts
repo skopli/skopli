@@ -153,8 +153,12 @@ export async function readUsage(options: ReadUsageOptions = {}): Promise<ReadUsa
   const events: UsageEvent[] = [];
   const skipped: Partial<Record<Harness, string[]>> = {};
 
-  for (const harness of harnesses) {
-    const result = await gatherHarness(harness, options);
+  // each read is an independent threadpool task, so they run concurrently; the
+  // results are still merged in harness order to keep diagnostics deterministic
+  const gathered = await Promise.all(
+    harnesses.map(async (harness) => ({ harness, result: await gatherHarness(harness, options) })),
+  );
+  for (const { harness, result } of gathered) {
     // reader warnings are surfaced before this harness's per-event filtering,
     // matching the original in-process order (warn sink fires during the read)
     for (const diagnostic of result.diagnostics)
