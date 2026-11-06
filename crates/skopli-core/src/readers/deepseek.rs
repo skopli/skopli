@@ -2,6 +2,7 @@ use std::cmp::Reverse;
 use std::collections::{BTreeMap, HashSet};
 use std::io::Read;
 use std::path::{Path, PathBuf};
+use std::thread::{Builder, Scope, ScopedJoinHandle};
 
 use serde_json::Value;
 
@@ -364,6 +365,52 @@ fn read_session(
     events
 }
 
+/// Events, skipped entries, warnings, and JSONL dedup identities read from a
+/// run of sessions.
+type SessionsPart = (
+    Vec<UsageEvent>,
+    Vec<String>,
+    Vec<ReaderWarning>,
+    HashSet<String>,
+);
+
+/// Read `sessions` in order into one batch.
+fn read_sessions(sessions: &[Vec<String>]) -> SessionsPart {
+    let (mut events, mut skipped, mut warnings, mut seen) =
+        (Vec::new(), Vec::new(), Vec::new(), HashSet::new());
+    for logs in sessions {
+        events.extend(read_session(logs, &mut skipped, &mut warnings, &mut seen));
+    }
+    (events, skipped, warnings, seen)
+}
+
+/// Read `sessions` as up to `threads` contiguous chunks, each on a thread
+/// started by `spawn`, and return the parts in chunk order. A chunk whose
+/// thread cannot be created is read on the calling thread instead, so running
+/// out of threads never loses a read the serial loop could do.
+fn read_chunked<'env>(
+    sessions: &'env [Vec<String>],
+    threads: usize,
+    spawn: impl for<'scope> Fn(
+        &'scope Scope<'scope, 'env>,
+        &'env [Vec<String>],
+    ) -> std::io::Result<ScopedJoinHandle<'scope, SessionsPart>>,
+) -> Vec<SessionsPart> {
+    std::thread::scope(|scope| {
+        let handles: Vec<_> = sessions
+            .chunks(sessions.len().div_ceil(threads).max(1))
+            .map(|chunk| (chunk, spawn(scope, chunk)))
+            .collect();
+        handles
+            .into_iter()
+            .map(|(chunk, handle)| match handle {
+                Ok(h) => h.join().unwrap_or_else(|e| std::panic::resume_unwind(e)),
+                Err(_) => read_sessions(chunk),
+            })
+            .collect()
+    })
+}
+
 /// The reserved SQLite `application_id` for DeepSeek Harness session databases
 /// (`0x44534850`, ASCII "DSHP") and the schema version this build understands.
 const SQLITE_APPLICATION_ID: i64 = 0x4453_4850;
@@ -624,8 +671,18 @@ pub fn read_deepseek(home: &Path) -> ReaderResult {
         };
     }
 
-    for logs in session_logs(home) {
-        events.extend(read_session(&logs, &mut skipped, &mut warnings, &mut seen));
+    // Sessions are independent and the cost is per-file open and read latency,
+    // so contiguous chunks are read on scoped threads and merged back in order.
+    let sessions = session_logs(home);
+    let threads = std::thread::available_parallelism().map_or(1, usize::from);
+    let parts = read_chunked(&sessions, threads, |scope, chunk| {
+        Builder::new().spawn_scoped(scope, move || read_sessions(chunk))
+    });
+    for (part_events, part_skipped, part_warnings, part_seen) in parts {
+        events.extend(part_events);
+        skipped.extend(part_skipped);
+        warnings.extend(part_warnings);
+        seen.extend(part_seen);
     }
 
     let databases = list_files(home, |name| {
@@ -744,6 +801,65 @@ mod tests {
         let events = read_deepseek(&dir).events;
         assert_eq!(events.len(), 1, "only the finalized message emits");
         assert_eq!(events[0].tokens.input, 10);
+    }
+
+    #[test]
+    fn many_sessions_keep_directory_order() {
+        let dir = scratch_dir("many-sessions");
+        let mut expected_skipped = Vec::new();
+        for i in 0..64 {
+            let file = write_session(
+                &dir,
+                "--proj--",
+                &format!("s{i:02}"),
+                &format!(
+                    "{{\"type\":\"session\",\"id\":\"s{i:02}\",\"createdAt\":1}}\n\
+                     not json\n\
+                     {{\"type\":\"assistant/message\",\"seq\":1,\"time\":1754042401000,\"data\":{{\"message\":{{\"source\":{{\"model\":\"m\"}}}},\"usage\":{{\"inputTokens\":1,\"outputTokens\":1}}}}}}\n"
+                ),
+            );
+            expected_skipped.push(format!("{}:2", file.to_string_lossy()));
+        }
+        let result = read_deepseek(&dir);
+        let ids: Vec<_> = result.events.iter().map(|e| e.session_id.clone()).collect();
+        assert_eq!(ids, (0..64).map(|i| format!("s{i:02}")).collect::<Vec<_>>());
+        assert_eq!(result.skipped, expected_skipped);
+        fs::remove_dir_all(&dir).ok();
+    }
+
+    #[test]
+    fn chunks_without_a_thread_are_read_inline_in_order() {
+        let dir = scratch_dir("spawn-fallback");
+        for i in 0..8 {
+            write_session(
+                &dir,
+                "--proj--",
+                &format!("s{i}"),
+                &format!(
+                    "{{\"type\":\"session\",\"id\":\"s{i}\",\"createdAt\":1}}\n\
+                     not json\n\
+                     {{\"type\":\"assistant/message\",\"seq\":1,\"time\":1754042401000,\"data\":{{\"message\":{{\"source\":{{\"model\":\"m\"}}}},\"usage\":{{\"inputTokens\":1,\"outputTokens\":1}}}}}}\n"
+                ),
+            );
+        }
+        let sessions = session_logs(&dir);
+        let expected: Vec<_> = sessions.chunks(2).map(read_sessions).collect();
+        assert_eq!(expected.iter().map(|p| p.0.len()).sum::<usize>(), 8);
+        let none = read_chunked(&sessions, 4, |_, _| {
+            Err(std::io::Error::other("no threads"))
+        });
+        assert_eq!(none, expected);
+        let attempts = std::sync::atomic::AtomicUsize::new(0);
+        let some = read_chunked(&sessions, 4, |scope, chunk| {
+            if attempts.fetch_add(1, std::sync::atomic::Ordering::Relaxed) % 2 == 0 {
+                Err(std::io::Error::other("no threads"))
+            } else {
+                Builder::new().spawn_scoped(scope, move || read_sessions(chunk))
+            }
+        });
+        assert_eq!(attempts.into_inner(), 4);
+        assert_eq!(some, expected);
+        fs::remove_dir_all(&dir).ok();
     }
 
     #[test]
