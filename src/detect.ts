@@ -29,8 +29,7 @@ function dirExists(path: string): boolean {
   }
 }
 
-function listFiles(dir: string, match: (name: string) => boolean): string[] {
-  const out: string[] = [];
+function hasFile(dir: string, match: (name: string) => boolean): boolean {
   const stack = [dir];
   while (stack.length > 0) {
     const current = stack.pop();
@@ -42,12 +41,11 @@ function listFiles(dir: string, match: (name: string) => boolean): string[] {
       continue;
     }
     for (const entry of entries) {
-      const full = join(current, entry.name);
-      if (entry.isDirectory()) stack.push(full);
-      else if (entry.isFile() && match(entry.name)) out.push(full);
+      if (entry.isDirectory()) stack.push(join(current, entry.name));
+      else if (entry.isFile() && match(entry.name)) return true;
     }
   }
-  return out.sort();
+  return false;
 }
 
 // --- per-harness data-root resolvers (were src/readers/<harness>.ts) ---
@@ -482,13 +480,12 @@ function hasAiderFiles(home: string): boolean {
 }
 
 function hasFileWithSuffix(dir: string, suffix: string): boolean {
-  if (!dirExists(dir)) return false;
-  return listFiles(dir, (name) => name.endsWith(suffix)).length > 0;
+  return hasFile(dir, (name) => name.endsWith(suffix));
 }
 
 // Depth-one probe matching the fx reader's discovery contract: a fixed file name
 // directly under an immediate child directory of `dir`. Unlike the recursive
-// listFiles, this only inspects `<dir>/<child>/<fileName>`, so a nested file
+// hasFile, this only inspects `<dir>/<child>/<fileName>`, so a nested file
 // deeper than one level does not falsely detect the harness.
 function hasImmediateChildFile(dir: string, fileName: string): boolean {
   if (!dirExists(dir)) return false;
@@ -577,7 +574,7 @@ export function detectHarnesses(resolver: PathResolver = defaultPathResolver): D
   if (dirExists(join(geminiRoot(resolver), "tmp"))) supported.push("gemini");
   if (
     existsSync(copilotOtelRoot(resolver)) ||
-    listFiles(copilotSessionStateRoot(resolver), (name) => name === "events.jsonl").length > 0
+    hasFile(copilotSessionStateRoot(resolver), (name) => name === "events.jsonl")
   ) {
     supported.push("copilot");
   }
@@ -644,15 +641,14 @@ export function detectHarnesses(resolver: PathResolver = defaultPathResolver): D
   {
     const root = deepseekRoot(resolver);
     if (
-      dirExists(root) &&
-      listFiles(
+      hasFile(
         root,
         (name) =>
           isDeepseekSessionLog(name) ||
           name.endsWith(".db") ||
           name.endsWith(".sqlite") ||
           name.endsWith(".sqlite3"),
-      ).length > 0
+      )
     ) {
       supported.push("deepseek");
     }
