@@ -6,7 +6,7 @@ use serde_json::Value;
 use super::reader::{Reader, ReaderContext};
 use super::shared::{
     JsonlLine, ReaderResult, ReaderWarning, as_string, file_mtime_iso, finite_number, is_record,
-    list_files, read_jsonl_lines,
+    list_files, map_chunks, read_jsonl_lines,
 };
 use crate::types::{TokenCounts, UsageEvent};
 
@@ -225,8 +225,34 @@ fn read_pi_root_into(
     warnings: &mut Vec<ReaderWarning>,
     seen: &mut HashSet<String>,
 ) {
-    for file in list_files(root, |name| name.ends_with(".jsonl")) {
-        let lines = match read_jsonl_lines(&file, skipped, warnings) {
+    let files = list_files(root, |name| name.ends_with(".jsonl"));
+    for (part_events, part_skipped, part_warnings) in
+        map_chunks(&files, |chunk| read_pi_files(chunk, harness))
+    {
+        skipped.extend(part_skipped);
+        warnings.extend(part_warnings);
+        for event in part_events {
+            let tokens_json = serde_json::to_string(&event.tokens).unwrap_or_default();
+            let dedup_key = format!(
+                "{}:{}:{}:{}",
+                event.session_id, event.message_id, event.model, tokens_json
+            );
+            if seen.insert(dedup_key) {
+                events.push(event);
+            }
+        }
+    }
+}
+
+/// Events (before dedup), skipped entries, and warnings read from `files` in
+/// order.
+fn read_pi_files(
+    files: &[String],
+    harness: &str,
+) -> (Vec<UsageEvent>, Vec<String>, Vec<ReaderWarning>) {
+    let (mut events, mut skipped, mut warnings) = (Vec::new(), Vec::new(), Vec::new());
+    for file in files {
+        let lines = match read_jsonl_lines(file, &mut skipped, &mut warnings) {
             Some(l) => l,
             None => continue,
         };
@@ -304,7 +330,7 @@ fn read_pi_root_into(
                 timestamp: value
                     .get("timestamp")
                     .and_then(as_string)
-                    .unwrap_or_else(|| file_mtime_iso(&file)),
+                    .unwrap_or_else(|| file_mtime_iso(file)),
                 session_id: session_id.clone().unwrap_or_else(|| file.clone()),
                 message_id: id,
                 turn,
@@ -323,19 +349,11 @@ fn read_pi_root_into(
                 workspace: None,
                 title: None,
             };
-            let tokens_json = serde_json::to_string(&event.tokens).unwrap_or_default();
-            let dedup_key = format!(
-                "{}:{}:{}:{}",
-                event.session_id, event.message_id, event.model, tokens_json
-            );
             previous_was_user = false;
-            if seen.contains(&dedup_key) {
-                continue;
-            }
-            seen.insert(dedup_key);
             events.push(event);
         }
     }
+    (events, skipped, warnings)
 }
 
 #[cfg(test)]
@@ -453,6 +471,33 @@ mod tests {
             ),
             (17472, 16, 3, 5, Some(2))
         );
+    }
+
+    #[test]
+    fn many_files_keep_directory_order_and_dedup_across_chunks() {
+        let home = scratch_dir("pi-many");
+        let dir = pi_sessions_root(None, &home);
+        // More files than threads, so several chunks; each pair of files
+        // mirrors one session, which must be counted once.
+        for i in 0..64 {
+            write_session(
+                &dir,
+                &format!("f{i:02}.jsonl"),
+                &format!("s{:02}", i / 2),
+                "m",
+            );
+            let file = dir.join(format!("f{i:02}.jsonl"));
+            let content = fs::read_to_string(&file).unwrap();
+            fs::write(&file, format!("{content}\nnot json")).unwrap();
+        }
+        let result = PiReader.read(&ReaderContext::new(&home));
+        let sessions: Vec<String> = result.events.iter().map(|e| e.session_id.clone()).collect();
+        let expected: Vec<String> = (0..32).map(|i| format!("s{i:02}")).collect();
+        assert_eq!(sessions, expected);
+        let files = list_files(&dir, |name| name.ends_with(".jsonl"));
+        let skipped: Vec<String> = files.iter().map(|f| format!("{f}:4")).collect();
+        assert_eq!(result.skipped, skipped);
+        fs::remove_dir_all(&home).ok();
     }
 
     #[test]

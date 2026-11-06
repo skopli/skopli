@@ -1,5 +1,7 @@
 use std::fs;
+use std::io;
 use std::path::Path;
+use std::thread::{Builder, Scope, ScopedJoinHandle};
 
 use serde_json::Value;
 use walkdir::WalkDir;
@@ -37,6 +39,44 @@ pub fn list_files(dir: &Path, predicate: impl Fn(&str) -> bool) -> Vec<String> {
         .collect();
     out.sort();
     out
+}
+
+/// Map `items` as contiguous chunks, one scoped thread per available CPU, and
+/// return the results in chunk order. For independent per-file reads whose
+/// cost is open and read latency rather than CPU.
+pub fn map_chunks<T: Sync, R: Send>(items: &[T], map: impl Fn(&[T]) -> R + Sync) -> Vec<R> {
+    let threads = std::thread::available_parallelism().map_or(1, usize::from);
+    let map = &map;
+    map_chunks_with(items, threads, map, |scope, chunk| {
+        Builder::new().spawn_scoped(scope, move || map(chunk))
+    })
+}
+
+/// [`map_chunks`] with the chunk count and thread start injected. A chunk
+/// whose thread cannot be created is mapped on the calling thread instead, so
+/// running out of threads never loses a read the serial loop could do.
+pub(crate) fn map_chunks_with<'env, T: Sync, R: Send>(
+    items: &'env [T],
+    threads: usize,
+    map: &impl Fn(&'env [T]) -> R,
+    spawn: impl for<'scope> Fn(
+        &'scope Scope<'scope, 'env>,
+        &'env [T],
+    ) -> io::Result<ScopedJoinHandle<'scope, R>>,
+) -> Vec<R> {
+    std::thread::scope(|scope| {
+        let handles: Vec<_> = items
+            .chunks(items.len().div_ceil(threads).max(1))
+            .map(|chunk| (chunk, spawn(scope, chunk)))
+            .collect();
+        handles
+            .into_iter()
+            .map(|(chunk, handle)| match handle {
+                Ok(h) => h.join().unwrap_or_else(|e| std::panic::resume_unwind(e)),
+                Err(_) => map(chunk),
+            })
+            .collect()
+    })
 }
 
 /// True when `path` is an existing directory.

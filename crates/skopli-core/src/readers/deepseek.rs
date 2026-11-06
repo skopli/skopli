@@ -2,14 +2,14 @@ use std::cmp::Reverse;
 use std::collections::{BTreeMap, HashSet};
 use std::io::Read;
 use std::path::{Path, PathBuf};
-use std::thread::{Builder, Scope, ScopedJoinHandle};
 
 use serde_json::Value;
 
 use super::reader::{Reader, ReaderContext};
 use super::shared::{
     EpochUnit, ReaderResult, ReaderWarning, as_string, basename, dir_exists, dirname,
-    epoch_to_iso_unit, finite_number, is_record, list_files, optional_cell, required_cell,
+    epoch_to_iso_unit, finite_number, is_record, list_files, map_chunks, optional_cell,
+    required_cell,
 };
 use super::sqlite_store::{blob_column, open_readonly, pragma_int, table_exists};
 use crate::types::{TokenCounts, UsageEvent};
@@ -384,33 +384,6 @@ fn read_sessions(sessions: &[Vec<String>]) -> SessionsPart {
     (events, skipped, warnings, seen)
 }
 
-/// Read `sessions` as up to `threads` contiguous chunks, each on a thread
-/// started by `spawn`, and return the parts in chunk order. A chunk whose
-/// thread cannot be created is read on the calling thread instead, so running
-/// out of threads never loses a read the serial loop could do.
-fn read_chunked<'env>(
-    sessions: &'env [Vec<String>],
-    threads: usize,
-    spawn: impl for<'scope> Fn(
-        &'scope Scope<'scope, 'env>,
-        &'env [Vec<String>],
-    ) -> std::io::Result<ScopedJoinHandle<'scope, SessionsPart>>,
-) -> Vec<SessionsPart> {
-    std::thread::scope(|scope| {
-        let handles: Vec<_> = sessions
-            .chunks(sessions.len().div_ceil(threads).max(1))
-            .map(|chunk| (chunk, spawn(scope, chunk)))
-            .collect();
-        handles
-            .into_iter()
-            .map(|(chunk, handle)| match handle {
-                Ok(h) => h.join().unwrap_or_else(|e| std::panic::resume_unwind(e)),
-                Err(_) => read_sessions(chunk),
-            })
-            .collect()
-    })
-}
-
 /// The reserved SQLite `application_id` for DeepSeek Harness session databases
 /// (`0x44534850`, ASCII "DSHP") and the schema version this build understands.
 const SQLITE_APPLICATION_ID: i64 = 0x4453_4850;
@@ -671,14 +644,10 @@ pub fn read_deepseek(home: &Path) -> ReaderResult {
         };
     }
 
-    // Sessions are independent and the cost is per-file open and read latency,
-    // so contiguous chunks are read on scoped threads and merged back in order.
     let sessions = session_logs(home);
-    let threads = std::thread::available_parallelism().map_or(1, usize::from);
-    let parts = read_chunked(&sessions, threads, |scope, chunk| {
-        Builder::new().spawn_scoped(scope, move || read_sessions(chunk))
-    });
-    for (part_events, part_skipped, part_warnings, part_seen) in parts {
+    for (part_events, part_skipped, part_warnings, part_seen) in
+        map_chunks(&sessions, read_sessions)
+    {
         events.extend(part_events);
         skipped.extend(part_skipped);
         warnings.extend(part_warnings);
@@ -702,8 +671,9 @@ pub fn read_deepseek(home: &Path) -> ReaderResult {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::readers::shared::{scratch_dir, test_home};
+    use crate::readers::shared::{map_chunks_with, scratch_dir, test_home};
     use std::fs;
+    use std::thread::Builder;
 
     #[test]
     fn default_home_resolves_dot_dsh() {
@@ -845,12 +815,12 @@ mod tests {
         let sessions = session_logs(&dir);
         let expected: Vec<_> = sessions.chunks(2).map(read_sessions).collect();
         assert_eq!(expected.iter().map(|p| p.0.len()).sum::<usize>(), 8);
-        let none = read_chunked(&sessions, 4, |_, _| {
+        let none = map_chunks_with(&sessions, 4, &read_sessions, |_, _| {
             Err(std::io::Error::other("no threads"))
         });
         assert_eq!(none, expected);
         let attempts = std::sync::atomic::AtomicUsize::new(0);
-        let some = read_chunked(&sessions, 4, |scope, chunk| {
+        let some = map_chunks_with(&sessions, 4, &read_sessions, |scope, chunk| {
             if attempts.fetch_add(1, std::sync::atomic::Ordering::Relaxed) % 2 == 0 {
                 Err(std::io::Error::other("no threads"))
             } else {
