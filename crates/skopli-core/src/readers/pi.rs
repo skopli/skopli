@@ -226,12 +226,10 @@ fn read_pi_root_into(
     seen: &mut HashSet<String>,
 ) {
     let files = list_files(root, |name| name.ends_with(".jsonl"));
-    for (part_events, part_skipped, part_warnings) in
-        map_chunks(&files, |chunk| read_pi_files(chunk, harness))
-    {
-        skipped.extend(part_skipped);
-        warnings.extend(part_warnings);
-        for event in part_events {
+    for part in map_chunks(&files, |chunk| read_pi_files(chunk, harness)) {
+        skipped.extend(part.skipped);
+        warnings.extend(part.warnings);
+        for event in part.events {
             let tokens_json = serde_json::to_string(&event.tokens).unwrap_or_default();
             let dedup_key = format!(
                 "{}:{}:{}:{}",
@@ -244,12 +242,7 @@ fn read_pi_root_into(
     }
 }
 
-/// Events (before dedup), skipped entries, and warnings read from `files` in
-/// order.
-fn read_pi_files(
-    files: &[String],
-    harness: &str,
-) -> (Vec<UsageEvent>, Vec<String>, Vec<ReaderWarning>) {
+fn read_pi_files(files: &[String], harness: &str) -> ReaderResult {
     let (mut events, mut skipped, mut warnings) = (Vec::new(), Vec::new(), Vec::new());
     for file in files {
         let lines = match read_jsonl_lines(file, &mut skipped, &mut warnings) {
@@ -353,7 +346,11 @@ fn read_pi_files(
             events.push(event);
         }
     }
-    (events, skipped, warnings)
+    ReaderResult {
+        events,
+        skipped,
+        warnings,
+    }
 }
 
 #[cfg(test)]

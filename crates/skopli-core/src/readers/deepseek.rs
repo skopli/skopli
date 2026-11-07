@@ -365,23 +365,18 @@ fn read_session(
     events
 }
 
-/// Events, skipped entries, warnings, and JSONL dedup identities read from a
-/// run of sessions.
-type SessionsPart = (
-    Vec<UsageEvent>,
-    Vec<String>,
-    Vec<ReaderWarning>,
-    HashSet<String>,
-);
-
-/// Read `sessions` in order into one batch.
-fn read_sessions(sessions: &[Vec<String>]) -> SessionsPart {
+fn read_sessions(sessions: &[Vec<String>]) -> (ReaderResult, HashSet<String>) {
     let (mut events, mut skipped, mut warnings, mut seen) =
         (Vec::new(), Vec::new(), Vec::new(), HashSet::new());
     for logs in sessions {
         events.extend(read_session(logs, &mut skipped, &mut warnings, &mut seen));
     }
-    (events, skipped, warnings, seen)
+    let part = ReaderResult {
+        events,
+        skipped,
+        warnings,
+    };
+    (part, seen)
 }
 
 /// The reserved SQLite `application_id` for DeepSeek Harness session databases
@@ -644,13 +639,10 @@ pub fn read_deepseek(home: &Path) -> ReaderResult {
         };
     }
 
-    let sessions = session_logs(home);
-    for (part_events, part_skipped, part_warnings, part_seen) in
-        map_chunks(&sessions, read_sessions)
-    {
-        events.extend(part_events);
-        skipped.extend(part_skipped);
-        warnings.extend(part_warnings);
+    for (part, part_seen) in map_chunks(&session_logs(home), read_sessions) {
+        events.extend(part.events);
+        skipped.extend(part.skipped);
+        warnings.extend(part.warnings);
         seen.extend(part_seen);
     }
 

@@ -398,14 +398,17 @@ fn read_legacy_session(
     usage_events.into_iter().chain(fallback_events).collect()
 }
 
-/// Legacy events, skipped entries, and warnings read from `files` in order.
-fn read_legacy_sessions(files: &[String]) -> (Vec<UsageEvent>, Vec<String>, Vec<ReaderWarning>) {
+fn read_legacy_sessions(files: &[String]) -> ReaderResult {
     let (mut skipped, mut warnings) = (Vec::new(), Vec::new());
     let events = files
         .iter()
         .flat_map(|file| read_legacy_session(file, &mut skipped, &mut warnings))
         .collect();
-    (events, skipped, warnings)
+    ReaderResult {
+        events,
+        skipped,
+        warnings,
+    }
 }
 
 fn open_turn(
@@ -632,13 +635,11 @@ pub fn read_grok(home: &Path) -> ReaderResult {
     let sessions_dir = home.join("sessions");
     let legacy_files = list_files(&sessions_dir, |name| name == "updates.jsonl");
     let mut events = unified;
-    for (part_events, part_skipped, part_warnings) in
-        map_chunks(&legacy_files, read_legacy_sessions)
-    {
-        skipped.extend(part_skipped);
-        warnings.extend(part_warnings);
+    for part in map_chunks(&legacy_files, read_legacy_sessions) {
+        skipped.extend(part.skipped);
+        warnings.extend(part.warnings);
         events.extend(
-            part_events
+            part.events
                 .into_iter()
                 .filter(|event| !unified_sessions.contains(&event.session_id)),
         );

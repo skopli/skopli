@@ -295,7 +295,6 @@ fn read_wire_file(
     WireResult { events, slots }
 }
 
-/// Wire results, skipped entries, and warnings read from `files` in order.
 fn read_wire_files(
     files: &[String],
     config_fallback_model: &str,
