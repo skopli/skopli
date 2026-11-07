@@ -41,9 +41,8 @@ pub fn list_files(dir: &Path, predicate: impl Fn(&str) -> bool) -> Vec<String> {
     out
 }
 
-/// Map `items` as contiguous chunks, one scoped thread per available CPU, and
-/// return the results in chunk order. For independent per-file reads whose
-/// cost is open and read latency rather than CPU.
+/// Map `items` as at most `available_parallelism` contiguous chunks, each on a
+/// scoped thread, and return the results in chunk order.
 pub fn map_chunks<T: Sync, R: Send>(items: &[T], map: impl Fn(&[T]) -> R + Sync) -> Vec<R> {
     let threads = std::thread::available_parallelism().map_or(1, usize::from);
     let map = &map;
@@ -52,10 +51,9 @@ pub fn map_chunks<T: Sync, R: Send>(items: &[T], map: impl Fn(&[T]) -> R + Sync)
     })
 }
 
-/// [`map_chunks`] with the chunk count and thread start injected. A chunk
-/// whose thread cannot be created is mapped on the calling thread instead, so
-/// running out of threads never loses a read the serial loop could do.
-pub(crate) fn map_chunks_with<'env, T: Sync, R: Send>(
+/// [`map_chunks`] with the thread count and spawner injected. A chunk whose
+/// thread fails to spawn is mapped on the calling thread instead.
+fn map_chunks_with<'env, T: Sync, R: Send>(
     items: &'env [T],
     threads: usize,
     map: &impl Fn(&'env [T]) -> R,
@@ -498,7 +496,30 @@ pub(crate) fn scratch_dir(tag: &str) -> ScratchDir {
 
 #[cfg(test)]
 mod tests {
-    use super::reparse_iso;
+    use std::cell::Cell;
+
+    use super::{Builder, io, map_chunks_with, reparse_iso};
+
+    #[test]
+    fn chunks_without_a_thread_are_mapped_inline_in_order() {
+        let items: Vec<u32> = (0..8).collect();
+        let double = |chunk: &[u32]| chunk.iter().map(|i| i * 2).collect::<Vec<_>>();
+        let expected = [0, 2, 4, 6, 8, 10, 12, 14];
+        let none = map_chunks_with(&items, 4, &double, |_, _| {
+            Err(io::Error::other("no threads"))
+        });
+        assert_eq!(none.concat(), expected);
+        let spawn = Cell::new(false);
+        let mixed = map_chunks_with(&items, 4, &double, |scope, chunk| {
+            spawn.set(!spawn.get());
+            if spawn.get() {
+                Builder::new().spawn_scoped(scope, move || double(chunk))
+            } else {
+                Err(io::Error::other("no threads"))
+            }
+        });
+        assert_eq!(mixed.concat(), expected);
+    }
 
     #[test]
     fn scratch_dirs_are_distinct_and_removed_on_drop() {

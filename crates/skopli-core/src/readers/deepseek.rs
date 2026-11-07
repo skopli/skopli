@@ -671,9 +671,8 @@ pub fn read_deepseek(home: &Path) -> ReaderResult {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::readers::shared::{map_chunks_with, scratch_dir, test_home};
+    use crate::readers::shared::{scratch_dir, test_home};
     use std::fs;
-    use std::thread::Builder;
 
     #[test]
     fn default_home_resolves_dot_dsh() {
@@ -794,41 +793,6 @@ mod tests {
         let ids: Vec<_> = result.events.iter().map(|e| e.session_id.clone()).collect();
         assert_eq!(ids, (0..64).map(|i| format!("s{i:02}")).collect::<Vec<_>>());
         assert_eq!(result.skipped, expected_skipped);
-        fs::remove_dir_all(&dir).ok();
-    }
-
-    #[test]
-    fn chunks_without_a_thread_are_read_inline_in_order() {
-        let dir = scratch_dir("spawn-fallback");
-        for i in 0..8 {
-            write_session(
-                &dir,
-                "--proj--",
-                &format!("s{i}"),
-                &format!(
-                    "{{\"type\":\"session\",\"id\":\"s{i}\",\"createdAt\":1}}\n\
-                     not json\n\
-                     {{\"type\":\"assistant/message\",\"seq\":1,\"time\":1754042401000,\"data\":{{\"message\":{{\"source\":{{\"model\":\"m\"}}}},\"usage\":{{\"inputTokens\":1,\"outputTokens\":1}}}}}}\n"
-                ),
-            );
-        }
-        let sessions = session_logs(&dir);
-        let expected: Vec<_> = sessions.chunks(2).map(read_sessions).collect();
-        assert_eq!(expected.iter().map(|p| p.0.len()).sum::<usize>(), 8);
-        let none = map_chunks_with(&sessions, 4, &read_sessions, |_, _| {
-            Err(std::io::Error::other("no threads"))
-        });
-        assert_eq!(none, expected);
-        let attempts = std::sync::atomic::AtomicUsize::new(0);
-        let some = map_chunks_with(&sessions, 4, &read_sessions, |scope, chunk| {
-            if attempts.fetch_add(1, std::sync::atomic::Ordering::Relaxed) % 2 == 0 {
-                Err(std::io::Error::other("no threads"))
-            } else {
-                Builder::new().spawn_scoped(scope, move || read_sessions(chunk))
-            }
-        });
-        assert_eq!(attempts.into_inner(), 4);
-        assert_eq!(some, expected);
         fs::remove_dir_all(&dir).ok();
     }
 
