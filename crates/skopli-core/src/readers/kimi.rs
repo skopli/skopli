@@ -392,14 +392,16 @@ mod tests {
     fn many_files_keep_session_order_and_replace_slots_across_chunks() {
         let home = scratch_dir("kimi-many");
         let sessions = home.join(".kimi").join("sessions");
-        // More files than threads, so a session's agent file and main file
-        // can land in different chunks; the main file sorts later and its
-        // larger total must replace the agent file's slot.
+        // s00's forty agent files sort before its main file, so whenever there
+        // is more than one thread the main file is in a later chunk, and its
+        // larger total must replace the agents' slot.
         for i in 0..40 {
             let session = sessions.join(format!("s{i:02}"));
-            fs::create_dir_all(session.join("agents/a")).unwrap();
-            let agent = format!("{}\nnot json", status_line(1));
-            fs::write(session.join("agents/a/wire.jsonl"), agent).unwrap();
+            let agent = sessions.join(format!("s00/agents/a{i:02}"));
+            fs::create_dir_all(&session).unwrap();
+            fs::create_dir_all(&agent).unwrap();
+            let agent_line = format!("{}\nnot json", status_line(1));
+            fs::write(agent.join("wire.jsonl"), agent_line).unwrap();
             let main = format!("{}\nnot json", status_line(5));
             fs::write(session.join("wire.jsonl"), main).unwrap();
         }

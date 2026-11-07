@@ -664,7 +664,6 @@ mod tests {
         let home = scratch_dir("grok-many");
         let grok = home.join(".grok");
         let usage = "{\"params\":{\"update\":{\"sessionUpdate\":\"usage\",\"usage\":{\"inputTokens\":10,\"outputTokens\":2}}}}";
-        // More sessions than threads, so they span several chunks.
         for i in 0..40 {
             let session = grok.join("sessions").join(format!("s{i:02}"));
             fs::create_dir_all(&session).unwrap();

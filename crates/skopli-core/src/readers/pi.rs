@@ -474,13 +474,13 @@ mod tests {
     fn many_files_keep_directory_order_and_dedup_across_chunks() {
         let home = scratch_dir("pi-many");
         let dir = pi_sessions_root(None, &home);
-        // More files than threads, so several chunks; each pair of files
-        // mirrors one session, which must be counted once.
+        // File i + 32 mirrors file i, so the two are in different chunks
+        // whenever there is more than one thread.
         for i in 0..64 {
             write_session(
                 &dir,
                 &format!("f{i:02}.jsonl"),
-                &format!("s{:02}", i / 2),
+                &format!("s{:02}", i % 32),
                 "m",
             );
             let file = dir.join(format!("f{i:02}.jsonl"));
