@@ -366,16 +366,11 @@ fn read_session(
 }
 
 fn read_sessions(sessions: &[Vec<String>]) -> (ReaderResult, HashSet<String>) {
-    let (mut events, mut skipped, mut warnings, mut seen) =
-        (Vec::new(), Vec::new(), Vec::new(), HashSet::new());
+    let (mut part, mut seen) = (ReaderResult::default(), HashSet::new());
     for logs in sessions {
-        events.extend(read_session(logs, &mut skipped, &mut warnings, &mut seen));
+        let events = read_session(logs, &mut part.skipped, &mut part.warnings, &mut seen);
+        part.events.extend(events);
     }
-    let part = ReaderResult {
-        events,
-        skipped,
-        warnings,
-    };
     (part, seen)
 }
 
