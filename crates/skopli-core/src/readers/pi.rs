@@ -472,6 +472,7 @@ mod tests {
 
     #[test]
     fn many_files_keep_directory_order_and_dedup_across_chunks() {
+        use std::io::Write;
         let home = scratch_dir("pi-many");
         let dir = pi_sessions_root(None, &home);
         // File i + 32 mirrors file i, so the two are in different chunks
@@ -483,9 +484,12 @@ mod tests {
                 &format!("s{:02}", i % 32),
                 "m",
             );
-            let file = dir.join(format!("f{i:02}.jsonl"));
-            let content = fs::read_to_string(&file).unwrap();
-            fs::write(&file, format!("{content}\nnot json")).unwrap();
+            fs::OpenOptions::new()
+                .append(true)
+                .open(dir.join(format!("f{i:02}.jsonl")))
+                .unwrap()
+                .write_all(b"\nnot json")
+                .unwrap();
         }
         let result = PiReader.read(&ReaderContext::new(&home));
         let sessions: Vec<String> = result.events.iter().map(|e| e.session_id.clone()).collect();
