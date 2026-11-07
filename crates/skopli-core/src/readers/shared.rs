@@ -51,6 +51,29 @@ pub fn map_chunks<T: Sync, R: Send>(items: &[T], map: impl Fn(&[T]) -> R + Sync)
     })
 }
 
+/// Read `items` with `read` on [`map_chunks`] threads into one result, in item
+/// order.
+pub fn read_chunked<T: Sync>(
+    items: &[T],
+    read: impl Fn(&T, &mut Vec<String>, &mut Vec<ReaderWarning>) -> Vec<UsageEvent> + Sync,
+) -> ReaderResult {
+    let parts = map_chunks(items, |chunk| {
+        let mut part = ReaderResult::default();
+        for item in chunk {
+            let events = read(item, &mut part.skipped, &mut part.warnings);
+            part.events.extend(events);
+        }
+        part
+    });
+    let mut out = ReaderResult::default();
+    for part in parts {
+        out.events.extend(part.events);
+        out.skipped.extend(part.skipped);
+        out.warnings.extend(part.warnings);
+    }
+    out
+}
+
 /// [`map_chunks`] with the thread count and spawner injected. A chunk whose
 /// thread fails to spawn is mapped on the calling thread instead.
 fn map_chunks_with<'env, T: Sync, R: Send>(

@@ -6,8 +6,8 @@ use serde_json::Value;
 use super::reader::{Reader, ReaderContext};
 use super::shared::{
     JsonlLine, ReaderResult, ReaderWarning, as_string, dirname, epoch_to_iso, file_mtime_iso,
-    finite_number, is_record, list_files, map_chunks, parent_dir_name, read_json, read_jsonl_lines,
-    reparse_iso,
+    finite_number, is_record, list_files, parent_dir_name, read_chunked, read_json,
+    read_jsonl_lines, reparse_iso,
 };
 use crate::types::{TokenCounts, UsageEvent};
 
@@ -398,19 +398,6 @@ fn read_legacy_session(
     usage_events.into_iter().chain(fallback_events).collect()
 }
 
-fn read_legacy_sessions(files: &[String]) -> ReaderResult {
-    let (mut skipped, mut warnings) = (Vec::new(), Vec::new());
-    let events = files
-        .iter()
-        .flat_map(|file| read_legacy_session(file, &mut skipped, &mut warnings))
-        .collect();
-    ReaderResult {
-        events,
-        skipped,
-        warnings,
-    }
-}
-
 fn open_turn(
     baseline: f64,
     timestamp: &str,
@@ -635,15 +622,17 @@ pub fn read_grok(home: &Path) -> ReaderResult {
     let sessions_dir = home.join("sessions");
     let legacy_files = list_files(&sessions_dir, |name| name == "updates.jsonl");
     let mut events = unified;
-    for part in map_chunks(&legacy_files, read_legacy_sessions) {
-        skipped.extend(part.skipped);
-        warnings.extend(part.warnings);
-        events.extend(
-            part.events
-                .into_iter()
-                .filter(|event| !unified_sessions.contains(&event.session_id)),
-        );
-    }
+    let legacy = read_chunked(&legacy_files, |file, skipped, warnings| {
+        read_legacy_session(file, skipped, warnings)
+    });
+    skipped.extend(legacy.skipped);
+    warnings.extend(legacy.warnings);
+    events.extend(
+        legacy
+            .events
+            .into_iter()
+            .filter(|event| !unified_sessions.contains(&event.session_id)),
+    );
     ReaderResult {
         events,
         skipped,
