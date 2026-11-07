@@ -158,7 +158,6 @@ export async function readUsage(options: ReadUsageOptions = {}): Promise<ReadUsa
     harnesses.map(async (harness) => ({ harness, result: await gatherHarness(harness, options) })),
   );
   for (const { harness, result } of gathered) {
-    // a harness's reader warnings precede the diagnostics from filtering its events
     for (const diagnostic of result.diagnostics)
       diagnostics.add(diagnostic.severity, diagnostic.message, diagnostic);
     if (result.skipped.length > 0) skipped[harness] = result.skipped;
