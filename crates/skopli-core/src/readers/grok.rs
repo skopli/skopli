@@ -6,7 +6,7 @@ use serde_json::Value;
 use super::reader::{Reader, ReaderContext};
 use super::shared::{
     JsonlLine, ReaderResult, ReaderWarning, as_string, dirname, epoch_to_iso, file_mtime_iso,
-    finite_number, is_record, list_files, parent_dir_name, read_json, read_jsonl_lines,
+    finite_number, is_record, list_files, map_chunks, parent_dir_name, read_json, read_jsonl_lines,
     reparse_iso,
 };
 use crate::types::{TokenCounts, UsageEvent};
@@ -398,6 +398,16 @@ fn read_legacy_session(
     usage_events.into_iter().chain(fallback_events).collect()
 }
 
+/// Legacy events, skipped entries, and warnings read from `files` in order.
+fn read_legacy_sessions(files: &[String]) -> (Vec<UsageEvent>, Vec<String>, Vec<ReaderWarning>) {
+    let (mut skipped, mut warnings) = (Vec::new(), Vec::new());
+    let events = files
+        .iter()
+        .flat_map(|file| read_legacy_session(file, &mut skipped, &mut warnings))
+        .collect();
+    (events, skipped, warnings)
+}
+
 fn open_turn(
     baseline: f64,
     timestamp: &str,
@@ -622,13 +632,16 @@ pub fn read_grok(home: &Path) -> ReaderResult {
     let sessions_dir = home.join("sessions");
     let legacy_files = list_files(&sessions_dir, |name| name == "updates.jsonl");
     let mut events = unified;
-    for file in &legacy_files {
-        for event in read_legacy_session(file, &mut skipped, &mut warnings) {
-            if unified_sessions.contains(&event.session_id) {
-                continue;
-            }
-            events.push(event);
-        }
+    for (part_events, part_skipped, part_warnings) in
+        map_chunks(&legacy_files, read_legacy_sessions)
+    {
+        skipped.extend(part_skipped);
+        warnings.extend(part_warnings);
+        events.extend(
+            part_events
+                .into_iter()
+                .filter(|event| !unified_sessions.contains(&event.session_id)),
+        );
     }
     ReaderResult {
         events,
@@ -639,7 +652,45 @@ pub fn read_grok(home: &Path) -> ReaderResult {
 
 #[cfg(test)]
 mod tests {
-    use super::legacy_usage_tokens;
+    use std::fs;
+
+    use super::{GrokReader, legacy_usage_tokens};
+    use crate::readers::reader::{Reader, ReaderContext};
+    use crate::readers::shared::{list_files, scratch_dir};
+
+    #[test]
+    fn many_legacy_sessions_keep_order_and_unified_override_across_chunks() {
+        let home = scratch_dir("grok-many");
+        let grok = home.join(".grok");
+        let usage = "{\"params\":{\"update\":{\"sessionUpdate\":\"usage\",\"usage\":{\"inputTokens\":10,\"outputTokens\":2}}}}";
+        // More sessions than threads, so they span several chunks.
+        for i in 0..40 {
+            let session = grok.join("sessions").join(format!("s{i:02}"));
+            fs::create_dir_all(&session).unwrap();
+            fs::write(session.join("updates.jsonl"), format!("{usage}\nnot json")).unwrap();
+            fs::write(session.join("signals.json"), "{\"totalTokens\":100}").unwrap();
+        }
+        fs::create_dir_all(grok.join("logs")).unwrap();
+        let unified = "{\"msg\":\"shell.turn.inference_done\",\"sid\":\"s05\",\"ts\":1700000000,\"ctx\":{\"id\":\"u1\",\"prompt_tokens\":7,\"completion_tokens\":1}}";
+        fs::write(grok.join("logs/unified.jsonl"), unified).unwrap();
+
+        let result = GrokReader.read(&ReaderContext::new(&home));
+        let got: Vec<(String, u64)> = result
+            .events
+            .iter()
+            .map(|e| (e.session_id.clone(), e.tokens.input))
+            .collect();
+        let mut expected = vec![("s05".to_owned(), 7)];
+        for i in (0..40).filter(|&i| i != 5) {
+            expected.push((format!("s{i:02}"), 10));
+            expected.push((format!("s{i:02}"), 90));
+        }
+        assert_eq!(got, expected);
+        let files = list_files(&grok.join("sessions"), |name| name == "updates.jsonl");
+        let skipped: Vec<String> = files.iter().map(|f| format!("{f}:2")).collect();
+        assert_eq!(result.skipped, skipped);
+        fs::remove_dir_all(&home).ok();
+    }
 
     #[test]
     fn reasoning_outside_output_keeps_the_cache_read_split() {
