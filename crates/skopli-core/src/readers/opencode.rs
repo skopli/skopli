@@ -725,7 +725,6 @@ mod tests {
             names("mimocode"),
             vec!["mimocode.db", "opencode-2.db", "opencode.db"]
         );
-        std::fs::remove_dir_all(&root).unwrap();
     }
 
     #[test]

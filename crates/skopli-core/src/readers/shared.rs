@@ -426,24 +426,50 @@ pub(crate) fn test_home() -> std::path::PathBuf {
     std::path::PathBuf::from("/home/u")
 }
 
-/// A fresh per-test scratch directory under the system temp dir.
+/// A fresh per-test scratch directory under the system temp dir, removed on drop.
 #[cfg(test)]
-pub(crate) fn scratch_dir(tag: &str) -> std::path::PathBuf {
-    let base = std::env::temp_dir().join(format!(
-        "skopli-{tag}-{}-{}",
-        std::process::id(),
-        std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .unwrap()
-            .as_nanos()
-    ));
-    fs::create_dir_all(&base).unwrap();
-    base
+pub(crate) struct ScratchDir(std::path::PathBuf);
+
+#[cfg(test)]
+impl std::ops::Deref for ScratchDir {
+    type Target = Path;
+    fn deref(&self) -> &Path {
+        &self.0
+    }
+}
+
+#[cfg(test)]
+impl Drop for ScratchDir {
+    fn drop(&mut self) {
+        let _ = fs::remove_dir_all(&self.0);
+    }
+}
+
+#[cfg(test)]
+pub(crate) fn scratch_dir(tag: &str) -> ScratchDir {
+    static SEQ: std::sync::atomic::AtomicUsize = std::sync::atomic::AtomicUsize::new(0);
+    let n = SEQ.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+    let dir = std::env::temp_dir().join(format!("skopli-{tag}-{}-{n}", std::process::id()));
+    // A killed earlier run with a recycled pid can have left this path behind.
+    let _ = fs::remove_dir_all(&dir);
+    fs::create_dir(&dir).unwrap();
+    ScratchDir(dir)
 }
 
 #[cfg(test)]
 mod tests {
     use super::reparse_iso;
+
+    #[test]
+    fn scratch_dirs_are_distinct_and_removed_on_drop() {
+        let a = super::scratch_dir("t");
+        let b = super::scratch_dir("t");
+        assert_ne!(&*a, &*b);
+        let path = a.to_path_buf();
+        drop(a);
+        assert!(!path.exists());
+        assert!(b.exists());
+    }
 
     #[test]
     fn fractional_seconds_are_truncated_to_milliseconds() {
