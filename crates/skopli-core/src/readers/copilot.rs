@@ -562,7 +562,7 @@ mod tests {
     }
 
     fn read(home: &Path) -> ReaderResult {
-        CopilotReader.read(&ReaderContext::new(home.to_path_buf()))
+        CopilotReader.read(&ReaderContext::new(home))
     }
 
     #[test]

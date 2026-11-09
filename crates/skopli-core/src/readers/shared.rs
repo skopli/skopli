@@ -452,13 +452,24 @@ pub(crate) fn scratch_dir(tag: &str) -> ScratchDir {
     let dir = std::env::temp_dir().join(format!("skopli-{tag}-{}-{n}", std::process::id()));
     // A killed earlier run with a recycled pid can have left this path behind.
     let _ = fs::remove_dir_all(&dir);
-    fs::create_dir_all(&dir).unwrap();
+    fs::create_dir(&dir).unwrap();
     ScratchDir(dir)
 }
 
 #[cfg(test)]
 mod tests {
     use super::reparse_iso;
+
+    #[test]
+    fn scratch_dirs_are_distinct_and_removed_on_drop() {
+        let a = super::scratch_dir("t");
+        let b = super::scratch_dir("t");
+        assert_ne!(&*a, &*b);
+        let path = a.to_path_buf();
+        drop(a);
+        assert!(!path.exists());
+        assert!(b.exists());
+    }
 
     #[test]
     fn fractional_seconds_are_truncated_to_milliseconds() {
