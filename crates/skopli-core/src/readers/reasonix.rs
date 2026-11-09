@@ -440,7 +440,7 @@ pub fn read_reasonix(home: &Path) -> ReaderResult {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::readers::shared::{scratch_dir, test_home};
+    use crate::readers::shared::{ScratchDir, scratch_dir, test_home};
     use std::fs;
 
     const STATS: &str = concat!(
@@ -452,7 +452,7 @@ mod tests {
         "\n"
     );
 
-    fn stats_home(rows: &str) -> PathBuf {
+    fn stats_home(rows: &str) -> ScratchDir {
         let home = scratch_dir("reasonix-stats");
         fs::create_dir_all(home.join("stats")).unwrap();
         fs::write(home.join("stats").join("2026-10-25.jsonl"), rows).unwrap();
@@ -593,7 +593,6 @@ mod tests {
         assert_eq!(e.tokens.cache_read, 3);
         assert_eq!(e.tokens.cache_write, 0);
         assert_eq!(e.title.as_deref(), Some("What does index.js export?"));
-        fs::remove_dir_all(&dir).ok();
     }
 
     #[test]
@@ -610,7 +609,6 @@ mod tests {
         assert!(result.events.is_empty());
         assert_eq!(result.skipped.len(), 1);
         assert_eq!(result.warnings.len(), 1);
-        fs::remove_dir_all(&dir).ok();
     }
 
     #[test]
@@ -633,7 +631,6 @@ mod tests {
         assert_eq!(events.len(), 1);
         assert_eq!(events[0].model, "new");
         assert_eq!(events[0].tokens.input, 10);
-        fs::remove_dir_all(&dir).ok();
     }
     #[test]
     fn empty_home_yields_no_events_then_reads_after_sidecar_appears() {
@@ -659,7 +656,6 @@ mod tests {
         assert_eq!(events[0].tokens.cache_write, 0);
         assert_eq!(events[0].tokens.reasoning, 10);
         assert_eq!(events[0].workspace.as_deref(), Some("/home/u/proj"));
-        fs::remove_dir_all(&dir).ok();
     }
 
     #[test]
@@ -679,7 +675,6 @@ mod tests {
         );
         assert_eq!(events[0].tokens.output, 20);
         assert_eq!(events[0].tokens.cache_read, 0);
-        fs::remove_dir_all(&dir).ok();
     }
 
     #[test]
@@ -694,7 +689,6 @@ mod tests {
         let events = read_reasonix(&dir).events;
         assert_eq!(events.len(), 1, "estimated sessions still emit real tokens");
         assert_eq!(events[0].tokens.input, 10);
-        fs::remove_dir_all(&dir).ok();
     }
 
     #[test]
@@ -717,7 +711,6 @@ mod tests {
             result.warnings[0].message,
             format!("skipping malformed reasonix file {loc}\n")
         );
-        fs::remove_dir_all(&dir).ok();
     }
 
     #[test]
@@ -738,7 +731,6 @@ mod tests {
         let events = read_reasonix(&dir).events;
         assert_eq!(events.len(), 1, "one event per session id");
         assert_eq!(events[0].tokens.input, 100, "latest updatedAt wins");
-        fs::remove_dir_all(&dir).ok();
     }
 
     #[test]
@@ -769,7 +761,6 @@ mod tests {
             events[0].timestamp, "2026-08-03T08:30:00.000Z",
             "emitted timestamp is the same normalized instant used for dedup"
         );
-        fs::remove_dir_all(&dir).ok();
     }
 
     #[test]
@@ -803,7 +794,6 @@ mod tests {
         for w in &result.warnings {
             assert!(w.message.starts_with("skipping malformed reasonix file "));
         }
-        fs::remove_dir_all(&dir).ok();
     }
 
     #[test]
@@ -818,7 +808,6 @@ mod tests {
         let result = read_reasonix(&dir);
         assert!(result.events.is_empty());
         assert!(result.warnings.is_empty(), "absent status is not malformed");
-        fs::remove_dir_all(&dir).ok();
     }
 
     #[test]
@@ -831,7 +820,6 @@ mod tests {
             r#"{"sessionId":"s","model":"m","updatedAt":"2026-08-01T10:00:00Z","status":{"cumulative":{"promptTokens":0,"completionTokens":0}}}"#,
         );
         assert!(read_reasonix(&dir).events.is_empty());
-        fs::remove_dir_all(&dir).ok();
     }
 
     #[test]
@@ -851,7 +839,6 @@ mod tests {
             result.warnings[0].message,
             format!("skipping malformed reasonix file {loc}\n")
         );
-        fs::remove_dir_all(&dir).ok();
     }
 
     #[test]
@@ -873,6 +860,5 @@ mod tests {
             read_reasonix(&dir).events.is_empty(),
             "only .acp.json is read"
         );
-        fs::remove_dir_all(&dir).ok();
     }
 }

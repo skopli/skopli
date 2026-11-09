@@ -251,7 +251,6 @@ mod tests {
     use super::*;
     use crate::readers::shared::{scratch_dir, test_home};
     use rusqlite::Connection;
-    use std::fs;
 
     #[test]
     fn appdata_path_is_appended_when_present() {
@@ -352,8 +351,6 @@ mod tests {
         assert_eq!(inv.tokens.cache_write, 8);
         // created_at is epoch millis -> ISO
         assert_eq!(inv.timestamp, "2025-08-01T10:00:00.000Z");
-
-        fs::remove_dir_all(&dir).ok();
     }
 
     // Build a DB with an explicit set of `(id, in, out, reason, cr, cw, kind,
@@ -391,7 +388,6 @@ mod tests {
         let dir = scratch_dir("absent");
         let db = dir.join("cherrystudio.sqlite");
         assert!(read_cherrystudio(&[db]).events.is_empty());
-        fs::remove_dir_all(&dir).ok();
     }
 
     // Overlap-shaped fixture: a legacy-aggregate and two invocation rows sharing
@@ -426,7 +422,6 @@ mod tests {
             ["agg1", "inv1", "inv2"],
             "aggregate + both invocations all emit despite shared scope"
         );
-        fs::remove_dir_all(&dir).ok();
     }
 
     // A populated but undecodable token cell (non-numeric text) skips the row
@@ -458,7 +453,6 @@ mod tests {
             result.warnings[0].message,
             format!("skipping malformed cherrystudio record {db_str}:bad1\n")
         );
-        fs::remove_dir_all(&dir).ok();
     }
 
     // A fractional token count is schema-invalid (Cherry Studio enforces
@@ -491,7 +485,6 @@ mod tests {
             result.warnings[1].message,
             format!("skipping malformed cherrystudio record {db_str}:frac2\n")
         );
-        fs::remove_dir_all(&dir).ok();
     }
 
     // A negative token count is invalid (Cherry Studio's schema forbids it) and
@@ -513,6 +506,5 @@ mod tests {
             result.warnings[0].message,
             format!("skipping malformed cherrystudio record {db_str}:neg1\n")
         );
-        fs::remove_dir_all(&dir).ok();
     }
 }

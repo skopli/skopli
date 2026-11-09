@@ -562,9 +562,7 @@ mod tests {
     }
 
     fn read(home: &Path) -> ReaderResult {
-        let result = CopilotReader.read(&ReaderContext::new(home.to_path_buf()));
-        fs::remove_dir_all(home).ok();
-        result
+        CopilotReader.read(&ReaderContext::new(home.to_path_buf()))
     }
 
     #[test]
