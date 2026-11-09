@@ -1,0 +1,14 @@
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    # Security updates only: a limit of 0 turns off version-update pull requests.
+    open-pull-requests-limit: 0
+    groups:
+      astro:
+        applies-to: security-updates
+        patterns:
+          - astro
+          - "@astrojs/*"
