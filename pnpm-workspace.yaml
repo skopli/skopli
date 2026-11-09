@@ -4,3 +4,7 @@ packages:
 onlyBuiltDependencies:
   - esbuild
   - sharp
+
+overrides:
+  # satori pins fflate 0.7.3 exactly; drop this once a satori release allows >=0.7.5.
+  fflate@<0.7.5: 0.7.5
