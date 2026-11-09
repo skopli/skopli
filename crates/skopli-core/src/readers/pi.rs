@@ -441,7 +441,7 @@ mod tests {
             ),
         )
         .unwrap();
-        let result = KimchiReader.read(&ReaderContext::new(&home));
+        let result = KimchiReader.read(&ReaderContext::new(&*home));
         let tokens = &result.events[0].tokens;
         assert_eq!(
             (
@@ -481,7 +481,5 @@ mod tests {
             .collect();
         sessions.sort_unstable();
         assert_eq!(sessions, vec!["session-1", "session-2"]);
-
-        fs::remove_dir_all(&base).ok();
     }
 }

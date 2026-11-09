@@ -464,7 +464,6 @@ mod tests {
         assert!(result.events.is_empty());
         assert!(result.skipped.is_empty());
         assert!(result.warnings.is_empty());
-        fs::remove_dir_all(&dir).ok();
     }
 
     #[test]
@@ -535,7 +534,6 @@ mod tests {
             second.message_id,
             "1770000000000-1770000000000000000-a1b2c3d4e5f60718:anthropic/claude-sonnet-4-5"
         );
-        fs::remove_dir_all(&dir).ok();
     }
 
     #[test]
@@ -573,7 +571,6 @@ mod tests {
         assert_eq!(events.len(), 1);
         assert_eq!(events[0].tokens.reasoning, 0);
         assert_eq!(events[0].calls, None);
-        fs::remove_dir_all(&dir).ok();
     }
 
     #[test]
@@ -609,7 +606,6 @@ mod tests {
         );
         let events = read_fx(&sessions).events;
         assert_eq!(events.len(), 1, "pending usage that exists is still usage");
-        fs::remove_dir_all(&dir).ok();
     }
 
     #[test]
@@ -634,7 +630,6 @@ mod tests {
             result.warnings[0].message,
             format!("skipping malformed fx record {file_str}:usage-v2:1\n")
         );
-        fs::remove_dir_all(&dir).ok();
     }
 
     #[test]
@@ -649,7 +644,6 @@ mod tests {
         assert!(result.events.is_empty());
         let file_str = file.to_string_lossy().into_owned();
         assert_eq!(result.skipped, vec![format!("{file_str}:usage-v2:1")]);
-        fs::remove_dir_all(&dir).ok();
     }
 
     #[test]
@@ -676,7 +670,6 @@ mod tests {
         assert!(result.events.is_empty());
         assert!(result.warnings.is_empty());
         assert!(result.skipped.is_empty());
-        fs::remove_dir_all(&dir).ok();
     }
 
     #[test]
@@ -699,7 +692,6 @@ mod tests {
             1,
             "incomplete usage that exists is still usage"
         );
-        fs::remove_dir_all(&dir).ok();
     }
 
     #[test]
@@ -726,7 +718,6 @@ mod tests {
             result.warnings[0].message,
             format!("fx session {session_id} reports completeness incidents\n")
         );
-        fs::remove_dir_all(&dir).ok();
     }
 
     #[test]
@@ -748,7 +739,6 @@ mod tests {
         assert_eq!(result.events.len(), 1);
         assert!(result.warnings.is_empty(), "empty incidents is silent");
         assert!(result.skipped.is_empty());
-        fs::remove_dir_all(&dir).ok();
     }
 
     #[test]
@@ -769,7 +759,6 @@ mod tests {
             }),
         );
         assert_only_diagnostic(&sessions, "duplicate_model_names");
-        fs::remove_dir_all(&dir).ok();
     }
 
     /// A well-formed model aggregate whose required u64 counters are all present.
@@ -847,7 +836,6 @@ mod tests {
                 }),
             );
             assert_only_diagnostic(&sessions, name);
-            fs::remove_dir_all(&dir).ok();
         }
     }
 
@@ -863,7 +851,6 @@ mod tests {
         );
         fs::write(session_dir.join(SIDECAR_FILE), raw).unwrap();
         assert_only_diagnostic(&sessions, "overflowing_token_field");
-        fs::remove_dir_all(&dir).ok();
     }
 
     #[test]
@@ -881,7 +868,6 @@ mod tests {
         });
         fs::write(session_dir.join(SIDECAR_FILE), envelope.to_string()).unwrap();
         assert_only_diagnostic(&sessions, "extra_top_level_key");
-        fs::remove_dir_all(&dir).ok();
     }
 
     #[test]
@@ -898,7 +884,6 @@ mod tests {
         });
         fs::write(session_dir.join(SIDECAR_FILE), envelope.to_string()).unwrap();
         assert_only_diagnostic(&sessions, "session_id_directory_mismatch");
-        fs::remove_dir_all(&dir).ok();
     }
 
     #[test]
@@ -934,7 +919,6 @@ mod tests {
                 snapshot,
             );
             assert_only_diagnostic(&sessions, name);
-            fs::remove_dir_all(&dir).ok();
         }
     }
 
@@ -952,7 +936,6 @@ mod tests {
         });
         fs::write(session_dir.join(SIDECAR_FILE), envelope.to_string()).unwrap();
         assert_only_diagnostic(&sessions, "invalid_session_dir_name");
-        fs::remove_dir_all(&dir).ok();
     }
 
     #[test]
@@ -978,7 +961,6 @@ mod tests {
             format!("{session_id}:openai/gpt-5.4")
         );
         assert!(expected.ends_with("usage-v2.json"));
-        fs::remove_dir_all(&dir).ok();
     }
 
     fn write_v2_log(sessions: &Path, session_id: &str, lines: &[&str]) {
@@ -1023,7 +1005,6 @@ mod tests {
             event.title.as_deref(),
             Some("What does index.js in this project export? Answer")
         );
-        fs::remove_dir_all(&dir).ok();
     }
 
     #[test]
@@ -1034,7 +1015,6 @@ mod tests {
         let result = read_fx(&sessions);
         assert!(result.events.is_empty());
         assert!(result.skipped.is_empty());
-        fs::remove_dir_all(&dir).ok();
     }
 
     #[test]
@@ -1073,7 +1053,6 @@ mod tests {
             ]
         );
         assert!(result.events.iter().all(|e| e.calls == Some(1)));
-        fs::remove_dir_all(&dir).ok();
     }
 
     #[test]
@@ -1095,7 +1074,6 @@ mod tests {
             "{}",
             result.skipped[0]
         );
-        fs::remove_dir_all(&dir).ok();
     }
 
     #[test]
@@ -1116,7 +1094,6 @@ mod tests {
             result.skipped[0]
         );
         assert_eq!(result.warnings.len(), 1);
-        fs::remove_dir_all(&dir).ok();
     }
 
     #[test]
@@ -1164,7 +1141,6 @@ mod tests {
                 "vi5FAUzM30R7"
             ]
         );
-        fs::remove_dir_all(&dir).ok();
     }
 
     #[test]
@@ -1190,6 +1166,5 @@ mod tests {
             "{}",
             result.skipped[1]
         );
-        fs::remove_dir_all(&dir).ok();
     }
 }
