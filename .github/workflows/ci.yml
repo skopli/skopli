@@ -5,7 +5,7 @@ name: CI
 
 on:
   push:
-    branches: ["**"]
+    branches: [main]
   pull_request:
   workflow_dispatch:
 
@@ -13,8 +13,8 @@ permissions:
   contents: read
 
 concurrency:
-  group: ci-${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  group: ci-${{ github.workflow }}-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 env:
   CARGO_TERM_COLOR: always
@@ -216,3 +216,14 @@ jobs:
           export DYLD_LIBRARY_PATH="$GITHUB_WORKSPACE/target/release:${DYLD_LIBRARY_PATH:-}"
           swift build -Xlinker -L"$GITHUB_WORKSPACE/target/release" -Xlinker -lskopli
           swift test -Xlinker -L"$GITHUB_WORKSPACE/target/release" -Xlinker -lskopli
+
+  # Aggregate check for branch protection: it must need every other job in this workflow.
+  ci-ok:
+    needs: [rust, verify-core, typescript, web, node-addon, python, ruby, go, java, dotnet, swift]
+    if: ${{ always() }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Require every CI job to pass
+        if: ${{ contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled') }}
+        run: exit 1
