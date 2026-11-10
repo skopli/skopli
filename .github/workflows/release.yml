@@ -350,13 +350,12 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          if state=$(gh release view "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --json isDraft --jq .isDraft 2>&1); then
-            if [ "$state" != true ]; then
-              echo "release $GITHUB_REF_NAME is already published, so its reviewed assets stay as they are" >&2
-              exit 1
-            fi
-          elif [ "$state" != "release not found" ]; then
-            echo "$state" >&2
+          # This endpoint returns published releases only, so a draft or no release at all is a 404.
+          if out=$(gh api "repos/$GITHUB_REPOSITORY/releases/tags/$GITHUB_REF_NAME" --jq .tag_name 2>&1); then
+            echo "release $GITHUB_REF_NAME is already published, so its reviewed assets stay as they are" >&2
+            exit 1
+          elif [[ "$out" != *"(HTTP 404)"* ]]; then
+            echo "$out" >&2
             exit 1
           fi
       - name: Download the release artifacts
