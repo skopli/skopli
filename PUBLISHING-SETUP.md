@@ -26,6 +26,10 @@ The canonical domain is **skopli.com** (skopli.dev held as a backup/redirect), w
    The npm, PyPI, RubyGems and NuGet jobs download their files from that release and check them against `SHA256SUMS` before pushing, so each registry receives the reviewed bytes.
    The crates.io job publishes from the tag's source, which has no release asset to check.
 
+A tag whose version contains `-` (a SemVer prerelease such as `v1.2.0-rc.1`) drafts a prerelease, which GitHub never marks as the latest release.
+`publish-npm` publishes a prerelease under the `next` dist-tag, so `npm install skopli` keeps resolving to the latest stable version.
+PyPI, crates.io, RubyGems and NuGet treat a prerelease version as a prerelease by themselves.
+
 Every publish job skips a version its registry already has, so a failed publish job can be re-run on its own.
 Once a release is published, `draft-release` fails instead of touching it, so a later run of the same tag cannot replace the reviewed files.
 The build run and the publish run of one tag share a concurrency group, so publishing a draft while a re-run of its tag is still in progress queues the publish run behind it.
@@ -87,7 +91,7 @@ The bootstrap configures the npm trusted publisher:
 | Environment          | Leave empty   |
 | Allowed actions      | `npm publish` |
 
-The job runs `npm publish skopli-<version>.tgz --provenance --access public` with `id-token: write`; the package page should show the "Built and signed on GitHub Actions" provenance badge.
+The job runs `npm publish skopli-<version>.tgz --provenance --access public` (plus `--tag next` for a prerelease version) with `id-token: write`; the package page should show the "Built and signed on GitHub Actions" provenance badge.
 After configuring, lock token publishing:
 
 ```sh

@@ -381,7 +381,7 @@ jobs:
         uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2
         with:
           draft: true
-          prerelease: false
+          prerelease: ${{ contains(github.ref_name, '-') }}
           generate_release_notes: true
           files: assets/*
 
@@ -413,10 +413,12 @@ jobs:
       - name: npm publish (GATED, OIDC)
         run: |
           version="${GITHUB_REF_NAME#v}"
+          dist_tag=()
+          if [[ "$version" == *-* ]]; then dist_tag=(--tag next); fi
           if curl -fsS --retry 3 -o /dev/null "https://registry.npmjs.org/skopli/$version"; then
             echo "skopli $version is already on npm"
           else
-            npm publish "skopli-$version.tgz" --provenance --access public
+            npm publish "skopli-$version.tgz" --provenance --access public "${dist_tag[@]}"
           fi
 
   publish-pypi:
