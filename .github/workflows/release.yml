@@ -105,7 +105,7 @@ jobs:
           node --input-type=module -e '
             const { readUsage } = await import("./dist/index.js");
             const usage = await readUsage({ home: process.cwd(), env: {}, harnesses: ["claude"] });
-            console.log(`${usage.events.length} events`);
+            console.log(usage.events.length, "events");
           '
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
@@ -375,7 +375,7 @@ jobs:
             cp "$f" assets/
           done
           cd assets
-          sha256sum * > SHA256SUMS
+          sha256sum -- * > SHA256SUMS
           cat SHA256SUMS
       - name: Create/refresh the DRAFT GitHub release
         uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2
@@ -438,7 +438,7 @@ jobs:
             --pattern "skopli-*.whl" --pattern "skopli-[0-9]*.tar.gz"
           cd dist-py
           sha256sum -c --ignore-missing ../SHA256SUMS
-          if sha256sum * | grep -vxF -f ../SHA256SUMS; then echo "a downloaded file is not in SHA256SUMS" >&2; exit 1; fi
+          if sha256sum -- * | grep -vxF -f ../SHA256SUMS; then echo "a downloaded file is not in SHA256SUMS" >&2; exit 1; fi
       - name: publish to PyPI (GATED, OIDC)
         uses: pypa/gh-action-pypi-publish@dc37677b2e1c63e2034f94d8a5b11f265b73ba33 # v1.14.2
         with:
