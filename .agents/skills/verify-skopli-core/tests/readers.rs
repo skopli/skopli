@@ -31,12 +31,23 @@ fn report(kind: &str, failures: Vec<(String, String)>, total: usize) {
     );
 }
 
-/// Every reader survives every single-cell replacement and every byte-level
-/// cut of its golden input. An event whose timestamp no longer parses may
-/// leave the reader, but the wire read the facades call must then drop it
-/// with a diagnostic instead of keeping it.
-#[test]
-fn readers_never_panic_on_damaged_input() {
+/// A damage class of the totality check: every byte-level damage of a file, or
+/// every JSON leaf replaced by one adversarial value.
+#[derive(Clone, Copy, Debug, PartialEq)]
+enum Damage {
+    Bytes,
+    Cell(&'static str),
+}
+
+/// Every reader survives every damage of the class to its golden input. An
+/// event whose timestamp no longer parses may leave the reader, but the wire
+/// read the facades call must then drop it with a diagnostic instead of
+/// keeping it.
+fn totality(damage: Damage) {
+    let cells: Vec<_> = adversarial_values()
+        .into_iter()
+        .filter(|(label, _)| damage == Damage::Cell(label))
+        .collect();
     let mut failures = Vec::new();
     let mut runs = 0;
     let mut unusable = 0;
@@ -80,19 +91,21 @@ fn readers_never_panic_on_damaged_input() {
                     }
                 }
             };
-            for (label, bytes) in damaged(&original) {
-                fs::write(&path, &bytes).unwrap();
-                check(label.to_owned());
+            if damage == Damage::Bytes {
+                for (label, bytes) in damaged(&original) {
+                    fs::write(&path, &bytes).unwrap();
+                    check(label.to_owned());
+                }
             }
             for doc in docs(&path, &text) {
                 for leaf in leaves(&doc.value) {
-                    for (label, replacement) in adversarial_values() {
+                    for (label, replacement) in &cells {
                         let mut mutated = Doc {
                             line: doc.line,
                             value: doc.value.clone(),
                         };
                         match replacement {
-                            Some(v) => *get_mut(&mut mutated.value, &leaf) = v,
+                            Some(v) => *get_mut(&mut mutated.value, &leaf) = v.clone(),
                             None if leaf.is_empty() => continue,
                             None => remove(&mut mutated.value, &leaf),
                         }
@@ -105,9 +118,44 @@ fn readers_never_panic_on_damaged_input() {
         }
     }
     eprintln!(
-        "{runs} damaged inputs, {unusable} of them left the reader with an unusable timestamp"
+        "{damage:?}: {runs} damaged inputs, {unusable} of them left the reader with an unusable timestamp"
     );
-    report("totality", failures, runs);
+    report(&format!("totality {damage:?}"), failures, runs);
+}
+
+/// One test per damage class, so libtest runs the classes on separate
+/// threads. The last test fails when a cell value has no test of its own.
+macro_rules! totality_tests {
+    ($($test:ident => $damage:expr),* $(,)?) => {
+        $(
+            #[test]
+            fn $test() {
+                totality($damage);
+            }
+        )*
+
+        #[test]
+        fn every_damage_class_has_a_totality_test() {
+            let classes: Vec<Damage> = std::iter::once(Damage::Bytes)
+                .chain(adversarial_values().into_iter().map(|(label, _)| Damage::Cell(label)))
+                .collect();
+            assert_eq!([$($damage),*].to_vec(), classes);
+        }
+    };
+}
+
+totality_tests! {
+    readers_never_panic_on_damaged_bytes => Damage::Bytes,
+    readers_never_panic_on_null_cells => Damage::Cell("null"),
+    readers_never_panic_on_empty_string_cells => Damage::Cell("empty string"),
+    readers_never_panic_on_text_cells => Damage::Cell("text"),
+    readers_never_panic_on_negative_cells => Damage::Cell("negative"),
+    readers_never_panic_on_huge_cells => Damage::Cell("huge"),
+    readers_never_panic_on_past_u64_cells => Damage::Cell("past u64"),
+    readers_never_panic_on_bool_cells => Damage::Cell("bool"),
+    readers_never_panic_on_object_cells => Damage::Cell("object"),
+    readers_never_panic_on_array_cells => Damage::Cell("array"),
+    readers_never_panic_on_removed_cells => Damage::Cell("removed"),
 }
 
 /// Silent drops the check finds in the product today. Each entry pins a
