@@ -21,12 +21,13 @@ The canonical domain is **skopli.com** (skopli.dev held as a backup/redirect), w
    Each leg whose target runs on its own runner also loads what it built: the napi addon, a wheel, the C ABI library, the npm tarball, the gem, the NuGet package and the jar.
 3. `draft-release` needs every build leg, the jar build included, and attaches the npm tarball, the wheels and sdist, the C ABI archives, the gem, the NuGet package and the jars to a draft release, with a `SHA256SUMS` file that covers them.
    A failed build, including a failed jar build, blocks the draft, so the draft never exists with an asset missing and nothing is uploaded to the release after it is published.
-4. A maintainer reviews the draft and publishes it.
+4. A maintainer reviews the draft and publishes it once every run of the tag has finished, so no re-run is still writing to the draft.
 5. Publishing fires `release: published`, which starts the five publish jobs when `PUBLISH_ENABLED` is `'true'`.
    The npm, PyPI, RubyGems and NuGet jobs download their files from that release and check them against `SHA256SUMS` before pushing, so each registry receives the reviewed bytes.
    The crates.io job publishes from the tag's source, which has no release asset to check.
 
-A tag whose version contains `-` (a SemVer prerelease such as `v1.2.0-rc.1`) drafts a prerelease, which GitHub never marks as the latest release.
+A tag whose version contains `-` drafts a prerelease, which GitHub never marks as the latest release.
+Use `-alpha.N`, `-beta.N` or `-rc.N` (for example `v1.2.0-rc.1`), because `pyproject.toml` carries the same string and the wheel build accepts only prerelease forms that Python's version scheme (PEP 440) understands.
 `publish-npm` publishes a prerelease under the `next` dist-tag, so `npm install skopli` keeps resolving to the latest stable version.
 PyPI, crates.io, RubyGems and NuGet treat a prerelease version as a prerelease by themselves.
 
