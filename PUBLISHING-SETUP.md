@@ -19,8 +19,8 @@ The canonical domain is **skopli.com** (skopli.dev held as a backup/redirect), w
 1. Pushing a `vX.Y.Z` tag starts `version-check`, which fails the run before any build unless every manifest version is `X.Y.Z` (`scripts/check-versions.mjs`).
 2. The build legs build every artifact.
    Each leg whose target runs on its own runner also loads what it built: the napi addon, a wheel, the C ABI library, the npm tarball, the gem, the NuGet package and the jar.
-3. `draft-release` attaches the npm tarball, the wheels and sdist, the C ABI archives, the gem and the NuGet package to a draft release, with a `SHA256SUMS` file that covers them.
-   `attach-java-jar` then adds the jars and their `.sha256` files, so the jar, which no registry receives yet, never holds up the draft.
+3. `draft-release` needs every build leg, the jar build included, and attaches the npm tarball, the wheels and sdist, the C ABI archives, the gem, the NuGet package and the jars to a draft release, with a `SHA256SUMS` file that covers them.
+   A failed build, including a failed jar build, blocks the draft, so the draft never exists with an asset missing and nothing is uploaded to the release after it is published.
 4. A maintainer reviews the draft and publishes it.
 5. Publishing fires `release: published`, which starts the five publish jobs when `PUBLISH_ENABLED` is `'true'`.
    The npm, PyPI, RubyGems and NuGet jobs download their files from that release and check them against `SHA256SUMS` before pushing, so each registry receives the reviewed bytes.
@@ -28,7 +28,7 @@ The canonical domain is **skopli.com** (skopli.dev held as a backup/redirect), w
 
 Every publish job skips a version its registry already has, so a failed publish job can be re-run on its own.
 Once a release is published, `draft-release` fails instead of touching it, so a later run of the same tag cannot replace the reviewed files.
-The build run and the publish run of one tag share a concurrency group, so publishing a draft while its tag's run is still attaching the jar queues the publish run behind it.
+The build run and the publish run of one tag share a concurrency group, so publishing a draft while a re-run of its tag is still in progress queues the publish run behind it.
 The group holds one waiting run, so a newer run of the same tag cancels a waiting publish run.
 Nothing fires `release: published` a second time: when the publish run was cancelled, or ran while `PUBLISH_ENABLED` was unset, re-run it from the Actions tab.
 
@@ -262,7 +262,7 @@ Deleting a GitHub secret alone does not revoke the credential at its provider.
 ## Repository controls
 
 - Keep default workflow permissions read-only; `release.yml` grants
-  `contents: write` only to the draft-release and attach-java-jar jobs.
+  `contents: write` only to the draft-release job.
 - Prevent Actions from approving pull requests.
 - Require maintainer approval before workflows from external forks run.
 - Require CI checks on `main`.

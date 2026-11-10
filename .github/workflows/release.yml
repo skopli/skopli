@@ -341,6 +341,7 @@ jobs:
       - capi-artifacts
       - ruby-gem
       - dotnet-nupkg
+      - java-jar
     runs-on: ubuntu-latest
     if: github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.dry_run == false)
     permissions:
@@ -361,7 +362,7 @@ jobs:
       - name: Download the release artifacts
         uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
-          pattern: "{npm-package,wheels-*,capi-*,ruby-gem,dotnet-nupkg}"
+          pattern: "{npm-package,wheels-*,capi-*,ruby-gem,dotnet-nupkg,java-jar}"
           path: release-artifacts
       - name: Collect the assets and write SHA256SUMS
         run: |
@@ -383,27 +384,6 @@ jobs:
           prerelease: false
           generate_release_notes: true
           files: assets/*
-
-  # No registry receives the jar yet, so it is attached after the draft instead of gating it.
-  attach-java-jar:
-    name: attach-java-jar
-    needs: [java-jar, draft-release]
-    runs-on: ubuntu-latest
-    if: github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.dry_run == false)
-    permissions:
-      contents: write
-    steps:
-      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
-        with:
-          name: java-jar
-          path: jar
-      - name: Upload the jars and their checksums to the draft
-        working-directory: jar
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          for f in *.jar; do sha256sum "$f" > "$f.sha256"; done
-          gh release upload "$GITHUB_REF_NAME" *.jar *.sha256 --repo "$GITHUB_REPOSITORY" --clobber
 
   # The publish jobs below run on `release: published` only and need nothing from the build graph.
   # On that event GITHUB_REF_NAME is the release's tag.
