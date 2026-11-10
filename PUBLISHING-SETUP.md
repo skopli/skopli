@@ -27,6 +27,7 @@ The canonical domain is **skopli.com** (skopli.dev held as a backup/redirect), w
    The crates.io job publishes from the tag's source, which has no release asset to check.
 
 Every publish job skips a version its registry already has, so a failed publish job can be re-run on its own.
+Once a release is published, `draft-release` fails instead of touching it, so a later run of the same tag cannot replace the reviewed files.
 The build run and the publish run of one tag share a concurrency group, so publishing a draft while its tag's run is still attaching the jar queues the publish run behind it.
 The group holds one waiting run, so a newer run of the same tag cancels a waiting publish run.
 Nothing fires `release: published` a second time: when the publish run was cancelled, or ran while `PUBLISH_ENABLED` was unset, re-run it from the Actions tab.

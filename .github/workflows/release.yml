@@ -346,6 +346,19 @@ jobs:
     permissions:
       contents: write
     steps:
+      - name: Refuse to change a published release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if state=$(gh release view "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --json isDraft --jq .isDraft 2>&1); then
+            if [ "$state" != true ]; then
+              echo "release $GITHUB_REF_NAME is already published, so its reviewed assets stay as they are" >&2
+              exit 1
+            fi
+          elif [ "$state" != "release not found" ]; then
+            echo "$state" >&2
+            exit 1
+          fi
       - name: Download the release artifacts
         uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
