@@ -20,7 +20,7 @@ cargo test --release --manifest-path .agents/skills/verify-skopli-core/Cargo.tom
 
 The tool is `cargo test` on the toolchain pinned by `rust-toolchain.toml` (Rust 1.89.0).
 Node 24 is required because one test runs `src/rollup.ts` and one runs `src/detect.ts` directly through Node's TypeScript support.
-After the first build the rollup check takes about eleven seconds and the detection checks about fourteen; the reader checks take about nine minutes, nearly all of it the totality check over every damaged input, so the whole run is a ten-minute job.
+After the first build the rollup check takes about eleven seconds and the detection checks about fourteen; the reader checks take far longer, nearly all of it the eleven totality tests over every damaged input, which libtest runs in parallel, so their wall time falls with the number of cores.
 Run `--test rollup` or `--test detect` alone for a quick answer and leave `--test readers` for the background or CI, where the `verify-core` job runs all three.
 The Rust core and the wire crate are path dependencies, so the check always runs against the working tree.
 The crate has its own `Cargo.lock`, seeded from the root `Cargo.lock` so the harness builds the core against the same `jiff` and bundled tzdb that ship; when the root lock changes, copy it over this one and let `cargo` prune it on the next run.
@@ -131,13 +131,14 @@ The formatting of a start into its key is `to_iso_string`, which allocates and i
 
 ## Readers
 
-Five tests live in `tests/readers.rs`; the mutation and judgement helpers live in `src/readers.rs`.
-The domain is the golden corpus: every `golden/<harness>/<case>/` with an `input-manifest.json`, 96 cases over all forty registered readers, copied into a scratch home and read through the real `Reader::read` with the context the manifest describes, exactly as `crates/skopli-core/tests/conformance.rs` builds it.
+Sixteen tests live in `tests/readers.rs`; the mutation and judgement helpers live in `src/readers.rs`.
+The domain is the golden corpus: every `golden/<harness>/<case>/` with an `input-manifest.json`, 99 cases over all forty registered readers, copied into a scratch home and read through the real `Reader::read` with the context the manifest describes, exactly as `crates/skopli-core/tests/conformance.rs` builds it.
 The copy pins every file mtime to 2000-01-01T00:00:00Z, as the conformance sweep and the golden replay script pin the checkout's: a reader that consults mtimes (trae anchors naive timestamps on the file mtime) sees the same evidence on every machine, and a golden case never depends on when it was checked out.
 Nothing in the expectations comes from the reader under test: the token classes come from the cell names in the harness's own files, the event counts from `expected-events.json`, the timestamp grammar from the shared parser.
 
-`readers_never_panic_on_damaged_input` is the totality check.
-For every file of every case it writes every variant below, runs the reader, and fails on a panic.
+The totality check is eleven tests, one per damage class, so libtest runs the classes on separate threads: `readers_never_panic_on_damaged_bytes` for the byte-level damage and one `readers_never_panic_on_<value>_cells` test for each cell value below.
+`every_damage_class_has_a_totality_test` fails when a value in `adversarial_values` has no test of its own.
+For every file of every case each test writes every variant of its class, runs the reader, and fails on a panic.
 A reader may return an event whose timestamp no longer parses; when it does, the check runs the wire read the facades call (`skopli_wire::read::read_usage`) on the same home and requires that exactly those events are dropped, each with an `unusable timestamp` diagnostic, so the facades never see one.
 
 - Every JSON leaf of every `.json`, `.jsonl` and `.ndjson` document, in turn, replaced by `null`, `""`, `"x"`, `-1`, `1e300`, `2^64`, `true`, `{}`, `[]`, and removed.
@@ -171,7 +172,7 @@ Three literal tables in the test keep the check honest:
 ### Bounds
 
 - One mutation per run: a single cell replaced or a single file damaged, never two at once.
-- 398,700 damaged inputs across the 96 cases, 260 of which leave the reader with an unusable timestamp that the wire read drops.
+- 407,230 damaged inputs across the 99 cases, summed over the eleven totality tests, 254 of which leave the reader with an unusable timestamp that the wire read drops.
 - 3,820 live token cell mutations over 32 readers, 938 inert cells skipped, 36 ignored-by-design entries exercised, 4 known silent drops reproduced.
 - Files the readers open through other means (SQLite databases, zstd streams) get only the byte-level damage, since they hold no JSON leaves to shift.
 
