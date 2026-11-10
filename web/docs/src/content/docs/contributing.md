@@ -114,9 +114,10 @@ Built-in catalogs live in [`crates/skopli-core/src/pricing/sources.rs`](https://
 
 ## Releases
 
-[`.github/workflows/release.yml`](https://github.com/skopli/skopli/blob/main/.github/workflows/release.yml) builds every facade on a tag and attaches the artifacts to a draft GitHub release.
+[`.github/workflows/release.yml`](https://github.com/skopli/skopli/blob/main/.github/workflows/release.yml) builds every facade on a tag and attaches the artifacts, with a `SHA256SUMS` file, to a draft GitHub release.
+Publishing the draft starts the registry publish jobs, which publish the draft's files.
 Before tagging `vX.Y.Z`, set `X.Y.Z` in the workspace [`Cargo.toml`](https://github.com/skopli/skopli/blob/main/Cargo.toml) (`workspace.package.version` and the `skopli-core` and `skopli-wire` entries under `workspace.dependencies`), in [`package.json`](https://github.com/skopli/skopli/blob/main/package.json), in [`crates/skopli-py/pyproject.toml`](https://github.com/skopli/skopli/blob/main/crates/skopli-py/pyproject.toml), in [`crates/skopli-ruby/lib/skopli/version.rb`](https://github.com/skopli/skopli/blob/main/crates/skopli-ruby/lib/skopli/version.rb) (`Skopli::VERSION`), in [`sdks/java/build.gradle.kts`](https://github.com/skopli/skopli/blob/main/sdks/java/build.gradle.kts), and in [`sdks/csharp/Skopli/Skopli.csproj`](https://github.com/skopli/skopli/blob/main/sdks/csharp/Skopli/Skopli.csproj).
-The crates.io publish job refuses a tag that does not match the crate version; the other manifests are not checked.
+The workflow's `version-check` job (`node scripts/check-versions.mjs vX.Y.Z`) fails the run before any build when one of these differs from the tag.
 `scripts/stage-capi.sh <target>` builds the C ABI archive the workflow attaches; run it after `cargo build -p skopli-capi --release --target <target>` to inspect one.
 The registry publish jobs are gated behind the `PUBLISH_ENABLED` repository variable.
 [`PUBLISHING-SETUP.md`](https://github.com/skopli/skopli/blob/main/PUBLISHING-SETUP.md) lists the trusted-publisher setup each registry needs.

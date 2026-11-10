@@ -1,14 +1,19 @@
-# Build every artifact, upload them to a draft GitHub release, and publish to the registries
-# only when the repository variable PUBLISH_ENABLED is the string 'true' and the registry's
-# OIDC trusted publisher names this workflow (PUBLISHING-SETUP.md). No registry secret is stored;
-# without the trusted-publisher configuration the token exchange fails and the job stops.
-# Third-party actions are pinned to full commit SHAs. The draft-release job alone takes
-# `contents: write`; publish jobs take `id-token: write`.
+# Two event graphs share this file, because each registry's OIDC trusted publisher names it.
+# A `v*` tag push or `workflow_dispatch` checks the manifest versions, builds and smoke-loads every
+# artifact, and (unless it is a dry run) attaches them with SHA256SUMS to a draft GitHub release.
+# A human publishing that draft (`release: published`) runs the registry publish jobs, which take
+# the reviewed assets from the release and verify them against SHA256SUMS; crates.io publishes
+# from the tag's source. Publish jobs run only when the repository variable PUBLISH_ENABLED is the
+# string 'true' and the registry's trusted publisher is configured (PUBLISHING-SETUP.md); no
+# registry secret is stored. Third-party actions are pinned to full commit SHAs. Only
+# draft-release and attach-java-jar take `contents: write`; publish jobs take `id-token: write`.
 name: Release
 
 on:
   push:
     tags: ["v*"]
+  release:
+    types: [published]
   workflow_dispatch:
     inputs:
       dry_run:
@@ -19,6 +24,8 @@ on:
 permissions:
   contents: read
 
+# A release event's ref is the release tag, so the build run and the publish run of one tag
+# queue behind each other here.
 concurrency:
   group: release-${{ github.ref }}
   cancel-in-progress: false
@@ -27,19 +34,35 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
+  version-check:
+    name: version-check
+    if: github.event_name != 'release'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+      - name: Every manifest carries one version (and the tag's, on a tag)
+        env:
+          TAG: ${{ github.ref_type == 'tag' && github.ref_name || '' }}
+        run: node scripts/check-versions.mjs "$TAG"
+
   napi-prebuild:
     name: napi-prebuild (${{ matrix.target }})
+    needs: version-check
+    if: github.event_name != 'release'
     runs-on: ${{ matrix.runner }}
     strategy:
       fail-fast: false
       matrix:
         include:
-          - { runner: windows-latest, target: x86_64-pc-windows-msvc }
+          - { runner: windows-latest, target: x86_64-pc-windows-msvc, smoke: true }
           - { runner: windows-latest, target: aarch64-pc-windows-msvc }
           - { runner: macos-latest, target: x86_64-apple-darwin }
-          - { runner: macos-latest, target: aarch64-apple-darwin }
-          - { runner: ubuntu-latest, target: x86_64-unknown-linux-gnu }
-          - { runner: ubuntu-24.04-arm, target: aarch64-unknown-linux-gnu }
+          - { runner: macos-latest, target: aarch64-apple-darwin, smoke: true }
+          - { runner: ubuntu-latest, target: x86_64-unknown-linux-gnu, smoke: true }
+          - { runner: ubuntu-24.04-arm, target: aarch64-unknown-linux-gnu, smoke: true }
           - { runner: ubuntu-latest, target: x86_64-unknown-linux-musl }
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -51,21 +74,63 @@ jobs:
         run: sudo apt-get install -y musl-tools
       - name: napi build (release, per target)
         run: pnpm run build:native -- --target ${{ matrix.target }}
+      - name: Smoke-load the addon
+        if: matrix.smoke
+        run: node -e "console.log(require('./native/index.cjs').supportedHarnesses().join(' '))"
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: napi-${{ matrix.target }}
-          path: native/*.node
+          path: native/
+          if-no-files-found: error
+
+  # One npm package, skopli, carries the loader and every target's binary.
+  npm-package:
+    name: npm-package
+    needs: napi-prebuild
+    if: github.event_name != 'release'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: ./.github/actions/node
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          pattern: napi-*
+          merge-multiple: true
+          path: native
+      - name: Pack and smoke-load the tarball
+        run: |
+          pnpm pack
+          mkdir "$RUNNER_TEMP/npm-smoke"
+          tar -xzf skopli-*.tgz -C "$RUNNER_TEMP/npm-smoke"
+          cd "$RUNNER_TEMP/npm-smoke/package"
+          node --input-type=module -e '
+            const { readUsage } = await import("./dist/index.js");
+            const usage = await readUsage({ home: process.cwd(), env: {}, harnesses: ["claude"] });
+            console.log(`${usage.events.length} events`);
+          '
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: npm-package
+          path: skopli-*.tgz
           if-no-files-found: error
 
   # maturin abi3 wheels: manylinux, musllinux_1_2, windows, macOS per arch (not universal2), plus sdist.
   python-wheels:
     name: py-wheels (${{ matrix.platform }}-${{ matrix.target }})
+    needs: version-check
+    if: github.event_name != 'release'
     runs-on: ${{ matrix.runner }}
     strategy:
       fail-fast: false
       matrix:
         include:
-          - { runner: ubuntu-latest, platform: manylinux, target: x86_64, manylinux: auto }
+          - {
+              runner: ubuntu-latest,
+              platform: manylinux,
+              target: x86_64,
+              manylinux: auto,
+              smoke: true,
+            }
           - { runner: ubuntu-latest, platform: manylinux, target: x86, manylinux: auto }
           - { runner: ubuntu-latest, platform: manylinux, target: aarch64, manylinux: auto }
           - { runner: ubuntu-latest, platform: manylinux, target: armv7, manylinux: auto }
@@ -80,11 +145,11 @@ jobs:
               manylinux: musllinux_1_2,
             }
           - { runner: ubuntu-latest, platform: musllinux, target: armv7, manylinux: musllinux_1_2 }
-          - { runner: windows-latest, platform: windows, target: x64, manylinux: auto }
+          - { runner: windows-latest, platform: windows, target: x64, manylinux: auto, smoke: true }
           - { runner: windows-latest, platform: windows, target: x86, manylinux: auto }
           - { runner: windows-latest, platform: windows, target: aarch64, manylinux: auto }
           - { runner: macos-latest, platform: macos, target: x86_64, manylinux: auto }
-          - { runner: macos-latest, platform: macos, target: aarch64, manylinux: auto }
+          - { runner: macos-latest, platform: macos, target: aarch64, manylinux: auto, smoke: true }
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
@@ -98,6 +163,12 @@ jobs:
           manylinux: ${{ matrix.manylinux }}
           args: --release --manifest-path crates/skopli-py/Cargo.toml --out dist-py
           sccache: "true"
+      - name: Smoke-load the wheel
+        if: matrix.smoke
+        shell: bash
+        run: |
+          python -m pip install --no-index --find-links dist-py skopli
+          python -c "import skopli; print(skopli.default_cache_dir())"
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: wheels-${{ matrix.platform }}-${{ matrix.target }}
@@ -106,6 +177,8 @@ jobs:
 
   python-sdist:
     name: py-sdist
+    needs: version-check
+    if: github.event_name != 'release'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -122,16 +195,18 @@ jobs:
 
   capi-artifacts:
     name: capi (${{ matrix.target }})
+    needs: version-check
+    if: github.event_name != 'release'
     runs-on: ${{ matrix.runner }}
     strategy:
       fail-fast: false
       matrix:
         include:
-          - { runner: ubuntu-latest, target: x86_64-unknown-linux-gnu }
-          - { runner: ubuntu-24.04-arm, target: aarch64-unknown-linux-gnu }
+          - { runner: ubuntu-latest, target: x86_64-unknown-linux-gnu, smoke: true }
+          - { runner: ubuntu-24.04-arm, target: aarch64-unknown-linux-gnu, smoke: true }
           - { runner: macos-latest, target: x86_64-apple-darwin }
-          - { runner: macos-latest, target: aarch64-apple-darwin }
-          - { runner: windows-latest, target: x86_64-pc-windows-msvc }
+          - { runner: macos-latest, target: aarch64-apple-darwin, smoke: true }
+          - { runner: windows-latest, target: x86_64-pc-windows-msvc, smoke: true }
           - { runner: windows-latest, target: aarch64-pc-windows-msvc }
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -143,6 +218,27 @@ jobs:
       - name: Package one archive per target (header + libraries)
         shell: bash
         run: bash scripts/stage-capi.sh ${{ matrix.target }}
+      - if: matrix.smoke
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.12"
+      - name: Smoke-load the archived shared library
+        if: matrix.smoke
+        shell: bash
+        run: |
+          pkgid="$(cargo pkgid -p skopli-capi)"
+          python - "${pkgid##*[@#]}" dist-capi/* <<'PY'
+          import ctypes, pathlib, shutil, sys, tempfile
+          version, archive = sys.argv[1:]
+          out = pathlib.Path(tempfile.mkdtemp())
+          shutil.unpack_archive(archive, out)
+          names = {"libskopli.so", "libskopli.dylib", "skopli.dll"}
+          lib = ctypes.CDLL(str(next(p for p in out.rglob("*") if p.name in names)))
+          lib.ag_version.restype = ctypes.c_char_p
+          found = lib.ag_version().decode()
+          print(f"{archive}: ag_version {found}")
+          sys.exit(0 if found == version else f"expected {version}")
+          PY
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: capi-${{ matrix.target }}
@@ -151,6 +247,8 @@ jobs:
 
   ruby-gem:
     name: ruby-gem
+    needs: version-check
+    if: github.event_name != 'release'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -165,6 +263,12 @@ jobs:
         run: |
           bundle exec rake compile
           gem build skopli.gemspec -o skopli.gem
+      # `gem install` compiles the extension from the gem's own files, as a user's install does.
+      - name: Smoke-load the gem
+        working-directory: ${{ runner.temp }}
+        run: |
+          gem install "$GITHUB_WORKSPACE/crates/skopli-ruby/skopli.gem"
+          ruby -e 'require "skopli"; puts Skopli.default_cache_dir'
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: ruby-gem
@@ -173,6 +277,8 @@ jobs:
 
   dotnet-nupkg:
     name: dotnet-nupkg
+    needs: version-check
+    if: github.event_name != 'release'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -181,6 +287,15 @@ jobs:
         run: cargo build -p skopli-capi --release
       - name: dotnet pack
         run: dotnet pack sdks/csharp/Skopli/Skopli.csproj -c Release -o dist-nuget
+      # The package carries the managed assembly only; the native library comes from the C ABI build.
+      - name: Smoke-load the package
+        working-directory: ${{ runner.temp }}
+        run: |
+          dotnet new console -o nupkg-smoke
+          cd nupkg-smoke
+          dotnet add package Skopli --source "$GITHUB_WORKSPACE/dist-nuget"
+          echo 'System.Console.WriteLine(Skopli.SkopliClient.Version);' > Program.cs
+          LD_LIBRARY_PATH="$GITHUB_WORKSPACE/target/release" dotnet run
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: dotnet-nupkg
@@ -189,6 +304,8 @@ jobs:
 
   java-jar:
     name: java-jar
+    needs: version-check
+    if: github.event_name != 'release'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -202,6 +319,14 @@ jobs:
       - name: Build the jar (gradle)
         working-directory: sdks/java
         run: gradle --no-daemon jar sourcesJar
+      - uses: ./.github/actions/rust
+      - name: Build C ABI cdylib
+        run: cargo build -p skopli-capi --release
+      - name: Smoke-load the jar
+        run: |
+          echo 'class Smoke { public static void main(String[] a) { System.out.println(com.skopli.Skopli.version()); } }' > "$RUNNER_TEMP/Smoke.java"
+          java --enable-native-access=ALL-UNNAMED -Dskopli.library.path=target/release/libskopli.so \
+            -cp sdks/java/build/libs/skopli-*[0-9].jar "$RUNNER_TEMP/Smoke.java"
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: java-jar
@@ -211,72 +336,114 @@ jobs:
   draft-release:
     name: draft-release
     needs:
-      - napi-prebuild
+      - npm-package
       - python-wheels
       - python-sdist
       - capi-artifacts
       - ruby-gem
       - dotnet-nupkg
-      - java-jar
     runs-on: ubuntu-latest
-    if: ${{ github.event_name == 'push' || inputs.dry_run == false }}
+    if: github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.dry_run == false)
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - name: Download all build artifacts
+      - name: Download the release artifacts
         uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
+          pattern: "{npm-package,wheels-*,capi-*,ruby-gem,dotnet-nupkg}"
           path: release-artifacts
+      - name: Collect the assets and write SHA256SUMS
+        run: |
+          mkdir assets
+          for f in release-artifacts/*/*; do
+            if [ -e "assets/${f##*/}" ]; then
+              echo "two artifacts ship an asset named ${f##*/}" >&2
+              exit 1
+            fi
+            cp "$f" assets/
+          done
+          cd assets
+          sha256sum * > SHA256SUMS
+          cat SHA256SUMS
       - name: Create/refresh the DRAFT GitHub release
         uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2
         with:
           draft: true
           prerelease: false
           generate_release_notes: true
-          files: release-artifacts/**/*
+          files: assets/*
 
+  # No registry receives the jar yet, so it is attached after the draft instead of gating it.
+  attach-java-jar:
+    name: attach-java-jar
+    needs: [java-jar, draft-release]
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.dry_run == false)
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: java-jar
+          path: jar
+      - name: Upload the jars and their checksums to the draft
+        working-directory: jar
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          for f in *.jar; do sha256sum "$f" > "$f.sha256"; done
+          gh release upload "$GITHUB_REF_NAME" *.jar *.sha256 --repo "$GITHUB_REPOSITORY" --clobber
+
+  # The publish jobs below run on `release: published` only and need nothing from the build graph.
+  # On that event GITHUB_REF_NAME is the release's tag.
   publish-npm:
     name: publish-npm (GATED, OIDC)
-    needs: [draft-release, napi-prebuild]
-    if: ${{ vars.PUBLISH_ENABLED == 'true' }}
+    if: github.event_name == 'release' && vars.PUBLISH_ENABLED == 'true'
     runs-on: ubuntu-latest
     permissions:
       contents: read
       id-token: write
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: ./.github/actions/node
+      - name: Download and verify the reviewed tarball
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release download "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --pattern "skopli-*.tgz" --pattern SHA256SUMS
+          sha256sum -c --ignore-missing SHA256SUMS
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
+          node-version: 24
           registry-url: "https://registry.npmjs.org"
-      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
-        with:
-          path: dist-artifacts
       # npm >= 11.5.1 exchanges the job's OIDC identity for a publish credential; the one-off
-      # bootstrap publish of skopli and every skopli-<platform> package is in PUBLISHING-SETUP.md.
-      - name: npm >= 11.5.1 for OIDC trusted publishing
+      # bootstrap publish of skopli is in PUBLISHING-SETUP.md.
+      - name: npm 12.0.1 for OIDC trusted publishing
+        run: npm install --global npm@12.0.1
+      - name: npm publish (GATED, OIDC)
         run: |
-          have="$(npm --version)"
-          [ "$(printf '%s\n' 11.5.1 "$have" | sort -V | head -n1)" = 11.5.1 ] || npm install -g npm@latest
-      - name: napi prepublish + publish (GATED, OIDC)
-        run: |
-          pnpm exec napi prepublish -t npm
-          npm publish --provenance --access public
+          version="${GITHUB_REF_NAME#v}"
+          if curl -fsS --retry 3 -o /dev/null "https://registry.npmjs.org/skopli/$version"; then
+            echo "skopli $version is already on npm"
+          else
+            npm publish "skopli-$version.tgz" --provenance --access public
+          fi
 
   publish-pypi:
     name: publish-pypi (GATED, OIDC)
-    needs: [draft-release, python-wheels, python-sdist]
-    if: ${{ vars.PUBLISH_ENABLED == 'true' }}
+    if: github.event_name == 'release' && vars.PUBLISH_ENABLED == 'true'
     runs-on: ubuntu-latest
     permissions:
       contents: read
       id-token: write
     steps:
-      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
-        with:
-          pattern: wheels-*
-          merge-multiple: true
-          path: dist-py
+      - name: Download and verify the reviewed wheels and sdist
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release download "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --pattern SHA256SUMS
+          gh release download "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --dir dist-py \
+            --pattern "skopli-*.whl" --pattern "skopli-[0-9]*.tar.gz"
+          cd dist-py
+          sha256sum -c --ignore-missing ../SHA256SUMS
       - name: publish to PyPI (GATED, OIDC)
         uses: pypa/gh-action-pypi-publish@dc37677b2e1c63e2034f94d8a5b11f265b73ba33 # v1.14.2
         with:
@@ -285,8 +452,7 @@ jobs:
 
   publish-crates:
     name: publish-crates (GATED, OIDC)
-    needs: [draft-release]
-    if: ${{ vars.PUBLISH_ENABLED == 'true' }}
+    if: github.event_name == 'release' && vars.PUBLISH_ENABLED == 'true'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -303,7 +469,7 @@ jobs:
           CARGO_REGISTRY_TOKEN: ${{ steps.cratesio.outputs.token }}
         run: |
           version="$(cargo metadata --no-deps --format-version 1 | jq -r '.packages[] | select(.name == "skopli-core") | .version')"
-          if [ "$GITHUB_REF_TYPE" = tag ] && [ "$GITHUB_REF_NAME" != "v$version" ]; then
+          if [ "$GITHUB_REF_NAME" != "v$version" ]; then
             echo "tag $GITHUB_REF_NAME does not match crate version $version" >&2
             exit 1
           fi
@@ -317,38 +483,46 @@ jobs:
 
   publish-rubygems:
     name: publish-rubygems (GATED, OIDC)
-    needs: [draft-release, ruby-gem]
-    if: ${{ vars.PUBLISH_ENABLED == 'true' }}
+    if: github.event_name == 'release' && vars.PUBLISH_ENABLED == 'true'
     runs-on: ubuntu-latest
     permissions:
       contents: read
       id-token: write
     steps:
+      - name: Download and verify the reviewed gem
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release download "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --pattern skopli.gem --pattern SHA256SUMS
+          sha256sum -c --ignore-missing SHA256SUMS
       - uses: ruby/setup-ruby@95ef2b042f9d7a56d8268cba8559e2842e2ad01b # v1 branch (pinned)
         with:
           ruby-version: "3.4"
-      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
-        with:
-          name: ruby-gem
-          path: gem-out
       - name: configure RubyGems credentials (GATED, OIDC)
         uses: rubygems/configure-rubygems-credentials@dc5a8d8553e6ee01fc26761a49e99e733d17954a # v2.1.0
       - name: gem push (GATED)
-        run: gem push gem-out/*.gem
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          if curl -fsS --retry 3 -o /dev/null "https://rubygems.org/api/v2/rubygems/skopli/versions/$version.json"; then
+            echo "skopli $version is already on RubyGems"
+          else
+            gem push skopli.gem
+          fi
 
   publish-nuget:
     name: publish-nuget (GATED, OIDC)
-    needs: [draft-release, dotnet-nupkg]
-    if: ${{ vars.PUBLISH_ENABLED == 'true' }}
+    if: github.event_name == 'release' && vars.PUBLISH_ENABLED == 'true'
     runs-on: ubuntu-latest
     permissions:
       contents: read
       id-token: write
     steps:
-      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
-        with:
-          name: dotnet-nupkg
-          path: nuget-out
+      - name: Download and verify the reviewed package
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release download "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --pattern "Skopli.*.nupkg" --pattern SHA256SUMS
+          sha256sum -c --ignore-missing SHA256SUMS
       - name: NuGet login (GATED, OIDC)
         id: nuget-login
         uses: NuGet/login@8d196754b4036150537f80ac539e15c2f1028841 # v1.2.0
@@ -356,6 +530,6 @@ jobs:
           user: skopli
       - name: dotnet nuget push (GATED)
         run: |
-          dotnet nuget push "nuget-out/*.nupkg" \
+          dotnet nuget push "Skopli.*.nupkg" \
             --api-key "${{ steps.nuget-login.outputs.NUGET_API_KEY }}" \
             --source https://api.nuget.org/v3/index.json --skip-duplicate
