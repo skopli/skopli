@@ -5,8 +5,7 @@
 # the reviewed assets from the release and verify them against SHA256SUMS; crates.io publishes
 # from the tag's source. Publish jobs run only when the repository variable PUBLISH_ENABLED is the
 # string 'true' and the registry's trusted publisher is configured (PUBLISHING-SETUP.md); no
-# registry secret is stored. Third-party actions are pinned to full commit SHAs. Only
-# draft-release and attach-java-jar take `contents: write`; publish jobs take `id-token: write`.
+# registry secret is stored.
 name: Release
 
 on:
@@ -410,6 +409,7 @@ jobs:
         run: |
           gh release download "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --pattern "skopli-*.tgz" --pattern SHA256SUMS
           sha256sum -c --ignore-missing SHA256SUMS
+          if sha256sum skopli-*.tgz | grep -vxF -f SHA256SUMS; then echo "a downloaded file is not in SHA256SUMS" >&2; exit 1; fi
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 24
@@ -444,6 +444,7 @@ jobs:
             --pattern "skopli-*.whl" --pattern "skopli-[0-9]*.tar.gz"
           cd dist-py
           sha256sum -c --ignore-missing ../SHA256SUMS
+          if sha256sum * | grep -vxF -f ../SHA256SUMS; then echo "a downloaded file is not in SHA256SUMS" >&2; exit 1; fi
       - name: publish to PyPI (GATED, OIDC)
         uses: pypa/gh-action-pypi-publish@dc37677b2e1c63e2034f94d8a5b11f265b73ba33 # v1.14.2
         with:
@@ -495,6 +496,7 @@ jobs:
         run: |
           gh release download "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --pattern skopli.gem --pattern SHA256SUMS
           sha256sum -c --ignore-missing SHA256SUMS
+          if sha256sum skopli.gem | grep -vxF -f SHA256SUMS; then echo "a downloaded file is not in SHA256SUMS" >&2; exit 1; fi
       - uses: ruby/setup-ruby@95ef2b042f9d7a56d8268cba8559e2842e2ad01b # v1 branch (pinned)
         with:
           ruby-version: "3.4"
@@ -523,13 +525,15 @@ jobs:
         run: |
           gh release download "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --pattern "Skopli.*.nupkg" --pattern SHA256SUMS
           sha256sum -c --ignore-missing SHA256SUMS
+          if sha256sum Skopli.*.nupkg | grep -vxF -f SHA256SUMS; then echo "a downloaded file is not in SHA256SUMS" >&2; exit 1; fi
       - name: NuGet login (GATED, OIDC)
         id: nuget-login
         uses: NuGet/login@8d196754b4036150537f80ac539e15c2f1028841 # v1.2.0
         with:
           user: skopli
       - name: dotnet nuget push (GATED)
+        env:
+          NUGET_API_KEY: ${{ steps.nuget-login.outputs.NUGET_API_KEY }}
         run: |
-          dotnet nuget push "Skopli.*.nupkg" \
-            --api-key "${{ steps.nuget-login.outputs.NUGET_API_KEY }}" \
+          dotnet nuget push "Skopli.*.nupkg" --api-key "$NUGET_API_KEY" \
             --source https://api.nuget.org/v3/index.json --skip-duplicate

@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
 // Every place a release version is written by hand, in the order CONTRIBUTING.md lists them.
-export const locations = [
+const locations = [
   ["Cargo.toml", "workspace.package.version", /^\[workspace\.package\][^[]*?^version = "([^"]*)"/m],
   [
     "Cargo.toml",
@@ -40,23 +40,8 @@ export const versionErrors = (versions, tag) => {
 const main = () => {
   const args = process.argv.slice(2);
   if (args.length > 1 || args.some((a) => a.startsWith("-"))) {
-    const help = args.includes("--help") || args.includes("-h");
-    (help ? console.log : console.error)(
-      [
-        "usage: node scripts/check-versions.mjs [tag]",
-        "",
-        "Reads the release version from every manifest that carries one by hand and fails when",
-        "they differ. With a tag (vX.Y.Z), also fails when any of them is not X.Y.Z. An empty",
-        "tag argument counts as no tag. The release workflow runs this before any build.",
-        "",
-        "example: node scripts/check-versions.mjs v0.1.0",
-        "",
-        "  exit 0  every manifest carries the same version (and matches the tag)",
-        "  exit 1  mismatches, one per line on stderr",
-        "  exit 2  bad arguments, this usage on stderr",
-      ].join("\n"),
-    );
-    process.exit(help ? 0 : 2);
+    console.error("usage: node scripts/check-versions.mjs [vX.Y.Z]");
+    process.exit(2);
   }
   const versions = readVersions(join(import.meta.dirname, ".."));
   const errors = versionErrors(versions, args[0] || undefined);

@@ -1,13 +1,27 @@
+import { spawnSync } from "node:child_process";
 import { describe, expect, it } from "vitest";
-import { locations, readVersions, versionErrors } from "../scripts/check-versions.mjs";
+import { readVersions, versionErrors } from "../scripts/check-versions.mjs";
 
 const at = (version: string | undefined, where = "a") => ({ where, version });
 
 describe("check-versions", () => {
   it("finds one shared version in every manifest of this repository", () => {
-    const versions = readVersions(".");
-    expect(versions).toHaveLength(locations.length);
-    expect(versionErrors(versions, undefined)).toEqual([]);
+    expect(versionErrors(readVersions("."), undefined)).toEqual([]);
+  });
+
+  it("treats an empty tag argument as no tag", () => {
+    const run = spawnSync(process.execPath, ["scripts/check-versions.mjs", ""], {
+      encoding: "utf8",
+    });
+    expect(run.status).toBe(0);
+  });
+
+  it("fails with one line per manifest when the tag matches none of them", () => {
+    const run = spawnSync(process.execPath, ["scripts/check-versions.mjs", "v9.9.9"], {
+      encoding: "utf8",
+    });
+    expect(run.status).toBe(1);
+    expect(run.stderr.trim().split("\n")).toHaveLength(8);
   });
 
   it("names every manifest that disagrees with the first one", () => {

@@ -28,6 +28,8 @@ The canonical domain is **skopli.com** (skopli.dev held as a backup/redirect), w
 
 Every publish job skips a version its registry already has, so a failed publish job can be re-run on its own.
 The build run and the publish run of one tag share a concurrency group, so publishing a draft while its tag's run is still attaching the jar queues the publish run behind it.
+The group holds one waiting run, so a newer run of the same tag cancels a waiting publish run.
+Nothing fires `release: published` a second time: when the publish run was cancelled, or ran while `PUBLISH_ENABLED` was unset, re-run it from the Actions tab.
 
 `workflow_dispatch` with `dry_run: true` (the default) runs `version-check` and the build legs, and touches no release.
 With `dry_run: false` it also drafts the release; dispatch it on the tag (`gh workflow run release.yml --ref vX.Y.Z -f dry_run=false`) so the draft and the version check use that tag.
@@ -54,7 +56,7 @@ npm, PyPI, crates.io, RubyGems, and NuGet all support GitHub Actions OIDC truste
 Each requires `id-token: write` on the publish job and a trusted-publisher configuration on the registry naming this owner, repository, and workflow filename (`release.yml`).
 Maven Central is the one channel that cannot use OIDC.
 
-All five gated publish jobs in `release.yml` are OIDC-native: `id-token: write` plus the registry's official exchange (npm CLI 12.0.1, pinned; OIDC needs >= 11.5.1, `pypa/gh-action-pypi-publish`, `rust-lang/crates-io-auth-action`, `rubygems/configure-rubygems-credentials`, `NuGet/login`).
+All five gated publish jobs in `release.yml` are OIDC-native: `id-token: write` plus the registry's official exchange (npm CLI, pinned to 12.0.1, `pypa/gh-action-pypi-publish`, `rust-lang/crates-io-auth-action`, `rubygems/configure-rubygems-credentials`, `NuGet/login`).
 No classic registry token is referenced anywhere; the only remaining stored secrets are Maven Central's (which has no OIDC).
 
 ### npm
