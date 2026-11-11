@@ -225,7 +225,7 @@ jobs:
         if: ${{ !cancelled() }}
         working-directory: crates/skopli-ruby
         run: bundle exec rake
-      # maturin-action exports RUSTC_WRAPPER=sccache to every later step, so it runs last.
+      # maturin-action exports RUSTC_WRAPPER=sccache to every later step, so no Rust build may follow it.
       - id: python-wheel
         if: ${{ !cancelled() }}
         uses: PyO3/maturin-action@e83996d129638aa358a18fbd1dfb82f0b0fb5d3b # v1.51.0
