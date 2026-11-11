@@ -6,8 +6,8 @@ use serde_json::Value;
 use super::reader::{Reader, ReaderContext};
 use super::shared::{
     JsonlLine, ReaderResult, ReaderWarning, as_string, dirname, epoch_to_iso, file_mtime_iso,
-    finite_number, is_record, list_files, parent_dir_name, read_json, read_jsonl_lines,
-    reparse_iso,
+    finite_number, is_record, list_files, parent_dir_name, read_chunked, read_json,
+    read_jsonl_lines, reparse_iso,
 };
 use crate::types::{TokenCounts, UsageEvent};
 
@@ -622,14 +622,17 @@ pub fn read_grok(home: &Path) -> ReaderResult {
     let sessions_dir = home.join("sessions");
     let legacy_files = list_files(&sessions_dir, |name| name == "updates.jsonl");
     let mut events = unified;
-    for file in &legacy_files {
-        for event in read_legacy_session(file, &mut skipped, &mut warnings) {
-            if unified_sessions.contains(&event.session_id) {
-                continue;
-            }
-            events.push(event);
-        }
-    }
+    let legacy = read_chunked(&legacy_files, |file, skipped, warnings| {
+        read_legacy_session(file, skipped, warnings)
+    });
+    skipped.extend(legacy.skipped);
+    warnings.extend(legacy.warnings);
+    events.extend(
+        legacy
+            .events
+            .into_iter()
+            .filter(|event| !unified_sessions.contains(&event.session_id)),
+    );
     ReaderResult {
         events,
         skipped,
@@ -639,7 +642,43 @@ pub fn read_grok(home: &Path) -> ReaderResult {
 
 #[cfg(test)]
 mod tests {
-    use super::legacy_usage_tokens;
+    use std::fs;
+
+    use super::{GrokReader, legacy_usage_tokens};
+    use crate::readers::reader::{Reader, ReaderContext};
+    use crate::readers::shared::{list_files, scratch_dir};
+
+    #[test]
+    fn many_legacy_sessions_keep_order_and_unified_override_across_chunks() {
+        let home = scratch_dir("grok-many");
+        let grok = home.join(".grok");
+        let usage = "{\"params\":{\"update\":{\"sessionUpdate\":\"usage\",\"usage\":{\"inputTokens\":10,\"outputTokens\":2}}}}";
+        for i in 0..40 {
+            let session = grok.join("sessions").join(format!("s{i:02}"));
+            fs::create_dir_all(&session).unwrap();
+            fs::write(session.join("updates.jsonl"), format!("{usage}\nnot json")).unwrap();
+            fs::write(session.join("signals.json"), "{\"totalTokens\":100}").unwrap();
+        }
+        fs::create_dir_all(grok.join("logs")).unwrap();
+        let unified = "{\"msg\":\"shell.turn.inference_done\",\"sid\":\"s05\",\"ts\":1700000000,\"ctx\":{\"id\":\"u1\",\"prompt_tokens\":7,\"completion_tokens\":1}}";
+        fs::write(grok.join("logs/unified.jsonl"), unified).unwrap();
+
+        let result = GrokReader.read(&ReaderContext::new(&*home));
+        let got: Vec<(String, u64)> = result
+            .events
+            .iter()
+            .map(|e| (e.session_id.clone(), e.tokens.input))
+            .collect();
+        let mut expected = vec![("s05".to_owned(), 7)];
+        for i in (0..40).filter(|&i| i != 5) {
+            expected.push((format!("s{i:02}"), 10));
+            expected.push((format!("s{i:02}"), 90));
+        }
+        assert_eq!(got, expected);
+        let files = list_files(&grok.join("sessions"), |name| name == "updates.jsonl");
+        let skipped: Vec<String> = files.iter().map(|f| format!("{f}:2")).collect();
+        assert_eq!(result.skipped, skipped);
+    }
 
     #[test]
     fn reasoning_outside_output_keeps_the_cache_read_split() {

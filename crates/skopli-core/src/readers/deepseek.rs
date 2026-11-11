@@ -8,7 +8,8 @@ use serde_json::Value;
 use super::reader::{Reader, ReaderContext};
 use super::shared::{
     EpochUnit, ReaderResult, ReaderWarning, as_string, basename, dir_exists, dirname,
-    epoch_to_iso_unit, finite_number, is_record, list_files, optional_cell, required_cell,
+    epoch_to_iso_unit, finite_number, is_record, list_files, map_chunks, optional_cell,
+    required_cell,
 };
 use super::sqlite_store::{blob_column, open_readonly, pragma_int, table_exists};
 use crate::types::{TokenCounts, UsageEvent};
@@ -364,6 +365,15 @@ fn read_session(
     events
 }
 
+fn read_sessions(sessions: &[Vec<String>]) -> (ReaderResult, HashSet<String>) {
+    let (mut part, mut seen) = (ReaderResult::default(), HashSet::new());
+    for logs in sessions {
+        let events = read_session(logs, &mut part.skipped, &mut part.warnings, &mut seen);
+        part.events.extend(events);
+    }
+    (part, seen)
+}
+
 /// The reserved SQLite `application_id` for DeepSeek Harness session databases
 /// (`0x44534850`, ASCII "DSHP") and the schema version this build understands.
 const SQLITE_APPLICATION_ID: i64 = 0x4453_4850;
@@ -624,8 +634,11 @@ pub fn read_deepseek(home: &Path) -> ReaderResult {
         };
     }
 
-    for logs in session_logs(home) {
-        events.extend(read_session(&logs, &mut skipped, &mut warnings, &mut seen));
+    for (part, part_seen) in map_chunks(&session_logs(home), read_sessions) {
+        events.extend(part.events);
+        skipped.extend(part.skipped);
+        warnings.extend(part.warnings);
+        seen.extend(part_seen);
     }
 
     let databases = list_files(home, |name| {
@@ -744,6 +757,29 @@ mod tests {
         let events = read_deepseek(&dir).events;
         assert_eq!(events.len(), 1, "only the finalized message emits");
         assert_eq!(events[0].tokens.input, 10);
+    }
+
+    #[test]
+    fn many_sessions_keep_directory_order() {
+        let dir = scratch_dir("many-sessions");
+        let mut expected_skipped = Vec::new();
+        for i in 0..64 {
+            let file = write_session(
+                &dir,
+                "--proj--",
+                &format!("s{i:02}"),
+                &format!(
+                    "{{\"type\":\"session\",\"id\":\"s{i:02}\",\"createdAt\":1}}\n\
+                     not json\n\
+                     {{\"type\":\"assistant/message\",\"seq\":1,\"time\":1754042401000,\"data\":{{\"message\":{{\"source\":{{\"model\":\"m\"}}}},\"usage\":{{\"inputTokens\":1,\"outputTokens\":1}}}}}}\n"
+                ),
+            );
+            expected_skipped.push(format!("{}:2", file.to_string_lossy()));
+        }
+        let result = read_deepseek(&dir);
+        let ids: Vec<_> = result.events.iter().map(|e| e.session_id.clone()).collect();
+        assert_eq!(ids, (0..64).map(|i| format!("s{i:02}")).collect::<Vec<_>>());
+        assert_eq!(result.skipped, expected_skipped);
     }
 
     #[test]

@@ -6,7 +6,7 @@ use serde_json::Value;
 use super::reader::{Reader, ReaderContext};
 use super::shared::{
     JsonlLine, ReaderResult, ReaderWarning, as_string, file_mtime_iso, finite_number, is_record,
-    list_files, read_jsonl_lines,
+    list_files, read_chunked, read_jsonl_lines,
 };
 use crate::types::{TokenCounts, UsageEvent};
 
@@ -225,117 +225,132 @@ fn read_pi_root_into(
     warnings: &mut Vec<ReaderWarning>,
     seen: &mut HashSet<String>,
 ) {
-    for file in list_files(root, |name| name.ends_with(".jsonl")) {
-        let lines = match read_jsonl_lines(&file, skipped, warnings) {
-            Some(l) => l,
-            None => continue,
-        };
-        let mut session_id: Option<String> = None;
-        let mut subagent = false;
-        let mut previous_was_user = false;
-        for JsonlLine { index, value } in &lines {
-            if !is_record(value) {
-                continue;
-            }
-            let line_type = value.get("type").and_then(Value::as_str);
-            if line_type == Some("session") {
-                session_id = value.get("id").and_then(as_string);
-                subagent = value.get("rlmDepth").and_then(finite_number).unwrap_or(0.0) > 0.0;
-                continue;
-            }
-            if line_type != Some("message") {
-                continue;
-            }
-            let message = match value.get("message") {
-                Some(m) if is_record(m) => m,
-                _ => continue,
-            };
-            let role = message.get("role").and_then(Value::as_str);
-            if role == Some("user") {
-                previous_was_user = true;
-                continue;
-            }
-            if role != Some("assistant") {
-                continue;
-            }
-            let usage = message.get("usage");
-            let model = message.get("model").and_then(as_string);
-            let id = value.get("id").and_then(as_string);
-            let usage_rec = usage.filter(|u| is_record(u));
-            let input = usage_rec
-                .and_then(|u| u.get("input"))
-                .and_then(finite_number);
-            let output = usage_rec
-                .and_then(|u| u.get("output"))
-                .and_then(finite_number);
-            let cache_read = usage_rec
-                .and_then(|u| u.get("cacheRead"))
-                .and_then(finite_number);
-            let cache_write = usage_rec
-                .and_then(|u| u.get("cacheWrite"))
-                .and_then(finite_number);
-            let reasoning = usage_rec
-                .and_then(|u| u.get("reasoning"))
-                .and_then(finite_number)
-                .unwrap_or(0.0);
-            let cache_write1h = usage_rec
-                .and_then(|u| u.get("cacheWrite1h"))
-                .and_then(finite_number)
-                .map(|n| n.max(0.0) as u64);
-
-            let (model, id, input, output, cache_read, cache_write) =
-                match (model, id, input, output, cache_read, cache_write) {
-                    (Some(m), Some(i), Some(inp), Some(out), Some(cr), Some(cw)) => {
-                        (m, i, inp, out, cr, cw)
-                    }
-                    _ => {
-                        let location = format!("{file}:{}", index + 1);
-                        skipped.push(location.clone());
-                        warnings.push(ReaderWarning {
-                            message: format!("skipping malformed {harness} usage {location}\n"),
-                        });
-                        previous_was_user = false;
-                        continue;
-                    }
-                };
-            let turn = previous_was_user;
-            let event = UsageEvent {
-                harness: harness.to_owned(),
-                timestamp: value
-                    .get("timestamp")
-                    .and_then(as_string)
-                    .unwrap_or_else(|| file_mtime_iso(&file)),
-                session_id: session_id.clone().unwrap_or_else(|| file.clone()),
-                message_id: id,
-                turn,
-                subagent,
-                model,
-                tokens: TokenCounts {
-                    input: input.max(0.0) as u64,
-                    output: output.max(0.0) as u64,
-                    cache_read: cache_read.max(0.0) as u64,
-                    cache_write: cache_write.max(0.0) as u64,
-                    cache_write1h,
-                    reasoning: reasoning.max(0.0) as u64,
-                },
-                calls: None,
-                cost_usd: None,
-                workspace: None,
-                title: None,
-            };
-            let tokens_json = serde_json::to_string(&event.tokens).unwrap_or_default();
-            let dedup_key = format!(
-                "{}:{}:{}:{}",
-                event.session_id, event.message_id, event.model, tokens_json
-            );
-            previous_was_user = false;
-            if seen.contains(&dedup_key) {
-                continue;
-            }
-            seen.insert(dedup_key);
+    let files = list_files(root, |name| name.ends_with(".jsonl"));
+    let part = read_chunked(&files, |file, skipped, warnings| {
+        read_pi_file(file, harness, skipped, warnings)
+    });
+    skipped.extend(part.skipped);
+    warnings.extend(part.warnings);
+    for event in part.events {
+        let tokens_json = serde_json::to_string(&event.tokens).unwrap_or_default();
+        let dedup_key = format!(
+            "{}:{}:{}:{}",
+            event.session_id, event.message_id, event.model, tokens_json
+        );
+        if seen.insert(dedup_key) {
             events.push(event);
         }
     }
+}
+
+fn read_pi_file(
+    file: &str,
+    harness: &str,
+    skipped: &mut Vec<String>,
+    warnings: &mut Vec<ReaderWarning>,
+) -> Vec<UsageEvent> {
+    let lines = match read_jsonl_lines(file, skipped, warnings) {
+        Some(l) => l,
+        None => return Vec::new(),
+    };
+    let mut events = Vec::new();
+    let mut session_id: Option<String> = None;
+    let mut subagent = false;
+    let mut previous_was_user = false;
+    for JsonlLine { index, value } in &lines {
+        if !is_record(value) {
+            continue;
+        }
+        let line_type = value.get("type").and_then(Value::as_str);
+        if line_type == Some("session") {
+            session_id = value.get("id").and_then(as_string);
+            subagent = value.get("rlmDepth").and_then(finite_number).unwrap_or(0.0) > 0.0;
+            continue;
+        }
+        if line_type != Some("message") {
+            continue;
+        }
+        let message = match value.get("message") {
+            Some(m) if is_record(m) => m,
+            _ => continue,
+        };
+        let role = message.get("role").and_then(Value::as_str);
+        if role == Some("user") {
+            previous_was_user = true;
+            continue;
+        }
+        if role != Some("assistant") {
+            continue;
+        }
+        let usage = message.get("usage");
+        let model = message.get("model").and_then(as_string);
+        let id = value.get("id").and_then(as_string);
+        let usage_rec = usage.filter(|u| is_record(u));
+        let input = usage_rec
+            .and_then(|u| u.get("input"))
+            .and_then(finite_number);
+        let output = usage_rec
+            .and_then(|u| u.get("output"))
+            .and_then(finite_number);
+        let cache_read = usage_rec
+            .and_then(|u| u.get("cacheRead"))
+            .and_then(finite_number);
+        let cache_write = usage_rec
+            .and_then(|u| u.get("cacheWrite"))
+            .and_then(finite_number);
+        let reasoning = usage_rec
+            .and_then(|u| u.get("reasoning"))
+            .and_then(finite_number)
+            .unwrap_or(0.0);
+        let cache_write1h = usage_rec
+            .and_then(|u| u.get("cacheWrite1h"))
+            .and_then(finite_number)
+            .map(|n| n.max(0.0) as u64);
+
+        let (model, id, input, output, cache_read, cache_write) =
+            match (model, id, input, output, cache_read, cache_write) {
+                (Some(m), Some(i), Some(inp), Some(out), Some(cr), Some(cw)) => {
+                    (m, i, inp, out, cr, cw)
+                }
+                _ => {
+                    let location = format!("{file}:{}", index + 1);
+                    skipped.push(location.clone());
+                    warnings.push(ReaderWarning {
+                        message: format!("skipping malformed {harness} usage {location}\n"),
+                    });
+                    previous_was_user = false;
+                    continue;
+                }
+            };
+        let turn = previous_was_user;
+        let event = UsageEvent {
+            harness: harness.to_owned(),
+            timestamp: value
+                .get("timestamp")
+                .and_then(as_string)
+                .unwrap_or_else(|| file_mtime_iso(file)),
+            session_id: session_id.clone().unwrap_or_else(|| file.to_owned()),
+            message_id: id,
+            turn,
+            subagent,
+            model,
+            tokens: TokenCounts {
+                input: input.max(0.0) as u64,
+                output: output.max(0.0) as u64,
+                cache_read: cache_read.max(0.0) as u64,
+                cache_write: cache_write.max(0.0) as u64,
+                cache_write1h,
+                reasoning: reasoning.max(0.0) as u64,
+            },
+            calls: None,
+            cost_usd: None,
+            workspace: None,
+            title: None,
+        };
+        previous_was_user = false;
+        events.push(event);
+    }
+    events
 }
 
 #[cfg(test)]
@@ -453,6 +468,36 @@ mod tests {
             ),
             (17472, 16, 3, 5, Some(2))
         );
+    }
+
+    #[test]
+    fn many_files_keep_directory_order_and_dedup_across_chunks() {
+        use std::io::Write;
+        let home = scratch_dir("pi-many");
+        let dir = pi_sessions_root(None, &home);
+        // File i + 32 mirrors file i, so the two are in different chunks
+        // whenever there is more than one thread.
+        for i in 0..64 {
+            write_session(
+                &dir,
+                &format!("f{i:02}.jsonl"),
+                &format!("s{:02}", i % 32),
+                "m",
+            );
+            fs::OpenOptions::new()
+                .append(true)
+                .open(dir.join(format!("f{i:02}.jsonl")))
+                .unwrap()
+                .write_all(b"\nnot json")
+                .unwrap();
+        }
+        let result = PiReader.read(&ReaderContext::new(&*home));
+        let sessions: Vec<String> = result.events.iter().map(|e| e.session_id.clone()).collect();
+        let expected: Vec<String> = (0..32).map(|i| format!("s{i:02}")).collect();
+        assert_eq!(sessions, expected);
+        let files = list_files(&dir, |name| name.ends_with(".jsonl"));
+        let skipped: Vec<String> = files.iter().map(|f| format!("{f}:4")).collect();
+        assert_eq!(result.skipped, skipped);
     }
 
     #[test]

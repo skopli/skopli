@@ -1,4 +1,12 @@
-import { copyFileSync, mkdirSync, mkdtempSync, readdirSync, rmSync, writeFileSync } from "node:fs";
+import {
+  appendFileSync,
+  copyFileSync,
+  mkdirSync,
+  mkdtempSync,
+  readdirSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -100,6 +108,28 @@ function makeHomeWithTimestamps(timestamps: string[]): string {
   return home;
 }
 
+// the amp reader passes ledger timestamp strings through unparsed, so a
+// garbage value reaches the readUsage-level policy
+function writeAmpBadTimestampThread(dir: string): void {
+  mkdirSync(join(dir, "threads"), { recursive: true });
+  writeFileSync(
+    join(dir, "threads", "T-1.json"),
+    JSON.stringify({
+      id: "T-1",
+      usageLedger: {
+        events: [
+          {
+            id: "bad",
+            timestamp: "not-a-timestamp",
+            model: "gpt-5",
+            tokens: { input: 3, output: 4 },
+          },
+        ],
+      },
+    }),
+  );
+}
+
 describe("readUsage", () => {
   it("reads events for explicitly requested harnesses under an injected home", async () => {
     const home = makeClaudeHome();
@@ -198,27 +228,9 @@ describe("readUsage", () => {
   });
 
   it("backstops reader-passed unusable timestamps with a diagnostic even unfiltered", async () => {
-    // the amp reader passes ledger timestamp strings through unparsed, so a
-    // garbage value reaches the readUsage-level policy
     const dir = mkdtempSync(join(tmpdir(), "skopli-amp-"));
     try {
-      mkdirSync(join(dir, "threads"), { recursive: true });
-      writeFileSync(
-        join(dir, "threads", "T-1.json"),
-        JSON.stringify({
-          id: "T-1",
-          usageLedger: {
-            events: [
-              {
-                id: "bad",
-                timestamp: "not-a-timestamp",
-                model: "gpt-5",
-                tokens: { input: 3, output: 4 },
-              },
-            ],
-          },
-        }),
-      );
+      writeAmpBadTimestampThread(dir);
       const result = await readUsage({ env: { AMP_DATA_DIR: dir }, harnesses: ["amp"] });
       expect(result.events).toHaveLength(0);
       const backstop = result.diagnostics.find((d) => d.message.includes("unusable timestamp"));
@@ -598,6 +610,29 @@ describe("readUsage", () => {
     expect(legacy?.calls).toBeUndefined();
     expect(result.skipped.fx?.length).toBe(1);
     expect(result.skipped.fx?.[0]).toContain(":usage-v2:4");
+  });
+
+  it("merges harness results in the requested order, not completion order", async () => {
+    // claude has far more to read than amp, so amp finishes first whichever order is requested
+    const home = makeHomeWithTimestamps(Array(20_000).fill("2026-08-01T10:00:00Z"));
+    try {
+      appendFileSync(join(home, ".claude", "projects", "demo", "session.jsonl"), "\nnot json");
+      const ampDir = join(home, "amp");
+      writeAmpBadTimestampThread(ampDir);
+      for (const harnesses of [
+        ["claude", "amp"],
+        ["amp", "claude"],
+      ] as const) {
+        const result = await readUsage({
+          home,
+          env: { AMP_DATA_DIR: ampDir },
+          harnesses: [...harnesses],
+        });
+        expect([...new Set(result.diagnostics.map((d) => d.harness))]).toEqual(harnesses);
+      }
+    } finally {
+      rmSync(home, { recursive: true, force: true });
+    }
   });
 
   it("auto-detects harnesses in an empty injected home without touching the real one", async () => {
