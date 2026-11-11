@@ -545,6 +545,23 @@ mod tests {
     }
 
     #[test]
+    fn a_panicking_chunk_thread_reraises_its_panic() {
+        let items: Vec<u32> = (0..8).collect();
+        let len = |chunk: &[u32]| {
+            if chunk.contains(&5) {
+                std::panic::panic_any(5_u32);
+            }
+            chunk.len()
+        };
+        let result = std::panic::catch_unwind(|| {
+            map_chunks_with(&items, 4, &len, |scope, chunk| {
+                Builder::new().spawn_scoped(scope, move || len(chunk))
+            })
+        });
+        assert_eq!(result.unwrap_err().downcast_ref::<u32>(), Some(&5));
+    }
+
+    #[test]
     fn scratch_dirs_are_distinct_and_removed_on_drop() {
         let a = super::scratch_dir("t");
         let b = super::scratch_dir("t");
