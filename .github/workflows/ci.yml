@@ -81,7 +81,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
+        os: [ubuntu-latest, windows-latest]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: ./.github/actions/node
@@ -95,7 +95,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
+        os: [ubuntu-latest, windows-latest]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
@@ -115,12 +115,8 @@ jobs:
           pytest tests
 
   ruby:
-    name: ruby (${{ matrix.os }})
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-latest, macos-latest]
+    name: ruby (ubuntu-latest)
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: ruby/setup-ruby@95ef2b042f9d7a56d8268cba8559e2842e2ad01b # v1 branch (pinned)
@@ -138,7 +134,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
+        os: [ubuntu-latest, windows-latest]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
@@ -158,8 +154,6 @@ jobs:
         run: |
           if [ "$RUNNER_OS" = "Windows" ]; then
             export PATH="$GITHUB_WORKSPACE/target/x86_64-pc-windows-gnu/release:$PATH"
-          elif [ "$RUNNER_OS" = "macOS" ]; then
-            export DYLD_LIBRARY_PATH="$GITHUB_WORKSPACE/target/release:${DYLD_LIBRARY_PATH:-}"
           else
             export LD_LIBRARY_PATH="$GITHUB_WORKSPACE/target/release:${LD_LIBRARY_PATH:-}"
           fi
@@ -168,12 +162,8 @@ jobs:
           go test ./...
 
   java:
-    name: java (${{ matrix.os }})
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-latest, macos-latest]
+    name: java (ubuntu-latest)
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
@@ -195,7 +185,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
+        os: [ubuntu-latest, windows-latest]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: ./.github/actions/rust
@@ -204,22 +194,144 @@ jobs:
           dotnet build sdks/csharp/Skopli.sln -c Release
           dotnet test sdks/csharp/Skopli.sln -c Release --no-build
 
-  swift:
-    name: swift (macos)
+  # GitHub caps concurrent macOS jobs per account (5 on the Free plan), so macOS runs each
+  # language as a step of one of two jobs instead of a job per language.
+  macos-bindings:
+    name: macos (node-addon, python, ruby)
     runs-on: macos-latest
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: ./.github/actions/rust
-      - run: cargo build -p skopli-capi --release
-      - working-directory: sdks/swift
+      - id: checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - id: setup-python
+        if: ${{ !cancelled() }}
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.12"
+      - id: setup-ruby
+        if: ${{ !cancelled() }}
+        uses: ruby/setup-ruby@95ef2b042f9d7a56d8268cba8559e2842e2ad01b # v1 branch (pinned)
+        with:
+          ruby-version: "3.4"
+          bundler-cache: true
+          working-directory: crates/skopli-ruby
+      - id: setup-node
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/node
+      - id: setup-rust
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/rust
+      - id: node-addon
+        if: ${{ !cancelled() }}
+        run: |
+          pnpm run build:native
+          pnpm exec tsc -p tsconfig.build.json
+      - id: ruby
+        if: ${{ !cancelled() }}
+        working-directory: crates/skopli-ruby
+        run: bundle exec rake
+      # maturin-action exports RUSTC_WRAPPER=sccache to every later step, so no Rust build may follow it.
+      - id: python-wheel
+        if: ${{ !cancelled() }}
+        uses: PyO3/maturin-action@e83996d129638aa358a18fbd1dfb82f0b0fb5d3b # v1.51.0
+        with:
+          command: build
+          args: --release --manifest-path crates/skopli-py/Cargo.toml
+          sccache: "true"
+      - id: python
+        if: ${{ !cancelled() && steps.python-wheel.outcome == 'success' }}
+        working-directory: crates/skopli-py
+        run: |
+          python -m pip install --upgrade pip pytest
+          python -m pip install --no-index --find-links ../../target/wheels skopli
+          pytest tests
+      - name: Summarise results
+        if: ${{ always() }}
+        env:
+          STEPS: ${{ toJSON(steps) }}
+        shell: bash
+        run: |
+          jq -r '"| Step | Result |", "|---|---|", (to_entries[] | "| \(.key) | \(.value.outcome) |")' <<< "$STEPS" |
+            tee -a "$GITHUB_STEP_SUMMARY"
+
+  macos-sdks:
+    name: macos (go, java, dotnet, swift)
+    runs-on: macos-latest
+    steps:
+      - id: checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - id: setup-go
+        if: ${{ !cancelled() }}
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version: "1.26"
+          cache: false # sdks/go has no go.sum
+      - id: setup-java
+        if: ${{ !cancelled() }}
+        uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
+        with:
+          distribution: temurin
+          java-version: "25"
+      - id: setup-gradle
+        if: ${{ !cancelled() }}
+        uses: gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6.4.0
+        with:
+          gradle-version: "9.8.0"
+      - id: setup-rust
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/rust
+      - id: skopli-capi
+        if: ${{ !cancelled() }}
+        run: cargo build -p skopli-capi --release
+      - id: go
+        if: ${{ !cancelled() && steps.skopli-capi.outcome == 'success' }}
+        working-directory: sdks/go
+        run: |
+          export DYLD_LIBRARY_PATH="$GITHUB_WORKSPACE/target/release:${DYLD_LIBRARY_PATH:-}"
+          go build ./...
+          go vet ./...
+          go test ./...
+      - id: java
+        if: ${{ !cancelled() && steps.skopli-capi.outcome == 'success' }}
+        run: |
+          bash sdks/java/scripts/smoke.sh
+          cd sdks/java
+          gradle --no-daemon jar sourcesJar
+      - id: dotnet
+        if: ${{ !cancelled() && steps.skopli-capi.outcome == 'success' }}
+        run: |
+          dotnet build sdks/csharp/Skopli.sln -c Release
+          dotnet test sdks/csharp/Skopli.sln -c Release --no-build
+      - id: swift
+        if: ${{ !cancelled() && steps.skopli-capi.outcome == 'success' }}
+        working-directory: sdks/swift
         run: |
           export DYLD_LIBRARY_PATH="$GITHUB_WORKSPACE/target/release:${DYLD_LIBRARY_PATH:-}"
           swift build -Xlinker -L"$GITHUB_WORKSPACE/target/release" -Xlinker -lskopli
           swift test -Xlinker -L"$GITHUB_WORKSPACE/target/release" -Xlinker -lskopli
+      - name: Summarise results
+        if: ${{ always() }}
+        env:
+          STEPS: ${{ toJSON(steps) }}
+        shell: bash
+        run: |
+          jq -r '"| Step | Result |", "|---|---|", (to_entries[] | "| \(.key) | \(.value.outcome) |")' <<< "$STEPS" |
+            tee -a "$GITHUB_STEP_SUMMARY"
 
   # Aggregate check for branch protection: it must need every other job in this workflow.
   ci-ok:
-    needs: [rust, verify-core, typescript, web, node-addon, python, ruby, go, java, dotnet, swift]
+    needs:
+      - rust
+      - verify-core
+      - typescript
+      - web
+      - node-addon
+      - python
+      - ruby
+      - go
+      - java
+      - dotnet
+      - macos-bindings
+      - macos-sdks
     if: ${{ always() }}
     runs-on: ubuntu-latest
     timeout-minutes: 5
