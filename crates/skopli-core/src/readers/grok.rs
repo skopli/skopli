@@ -663,7 +663,7 @@ mod tests {
         let unified = "{\"msg\":\"shell.turn.inference_done\",\"sid\":\"s05\",\"ts\":1700000000,\"ctx\":{\"id\":\"u1\",\"prompt_tokens\":7,\"completion_tokens\":1}}";
         fs::write(grok.join("logs/unified.jsonl"), unified).unwrap();
 
-        let result = GrokReader.read(&ReaderContext::new(&home));
+        let result = GrokReader.read(&ReaderContext::new(&*home));
         let got: Vec<(String, u64)> = result
             .events
             .iter()
@@ -678,7 +678,6 @@ mod tests {
         let files = list_files(&grok.join("sessions"), |name| name == "updates.jsonl");
         let skipped: Vec<String> = files.iter().map(|f| format!("{f}:2")).collect();
         assert_eq!(result.skipped, skipped);
-        fs::remove_dir_all(&home).ok();
     }
 
     #[test]

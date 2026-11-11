@@ -491,14 +491,13 @@ mod tests {
                 .write_all(b"\nnot json")
                 .unwrap();
         }
-        let result = PiReader.read(&ReaderContext::new(&home));
+        let result = PiReader.read(&ReaderContext::new(&*home));
         let sessions: Vec<String> = result.events.iter().map(|e| e.session_id.clone()).collect();
         let expected: Vec<String> = (0..32).map(|i| format!("s{i:02}")).collect();
         assert_eq!(sessions, expected);
         let files = list_files(&dir, |name| name.ends_with(".jsonl"));
         let skipped: Vec<String> = files.iter().map(|f| format!("{f}:4")).collect();
         assert_eq!(result.skipped, skipped);
-        fs::remove_dir_all(&home).ok();
     }
 
     #[test]

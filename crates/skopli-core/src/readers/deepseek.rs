@@ -780,7 +780,6 @@ mod tests {
         let ids: Vec<_> = result.events.iter().map(|e| e.session_id.clone()).collect();
         assert_eq!(ids, (0..64).map(|i| format!("s{i:02}")).collect::<Vec<_>>());
         assert_eq!(result.skipped, expected_skipped);
-        fs::remove_dir_all(&dir).ok();
     }
 
     #[test]

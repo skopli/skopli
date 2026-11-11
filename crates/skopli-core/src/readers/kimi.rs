@@ -405,7 +405,7 @@ mod tests {
             let main = format!("{}\nnot json", status_line(5));
             fs::write(session.join("wire.jsonl"), main).unwrap();
         }
-        let result = KimiReader.read(&ReaderContext::new(&home));
+        let result = KimiReader.read(&ReaderContext::new(&*home));
         let got: Vec<(String, u64)> = result
             .events
             .iter()
@@ -416,6 +416,5 @@ mod tests {
         let files = list_files(&sessions, |name| name == "wire.jsonl");
         let skipped: Vec<String> = files.iter().map(|f| format!("{f}:2")).collect();
         assert_eq!(result.skipped, skipped);
-        fs::remove_dir_all(&home).ok();
     }
 }
