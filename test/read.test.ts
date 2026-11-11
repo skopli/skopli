@@ -600,6 +600,57 @@ describe("readUsage", () => {
     expect(result.skipped.fx?.[0]).toContain(":usage-v2:4");
   });
 
+  it("merges harness results in the requested order, not completion order", async () => {
+    // claude has far more to read than amp, so amp finishes first whichever order is requested
+    const home = mkdtempSync(join(tmpdir(), "skopli-order-"));
+    const ampDir = mkdtempSync(join(tmpdir(), "skopli-order-amp-"));
+    try {
+      const project = join(home, ".claude", "projects", "demo");
+      mkdirSync(project, { recursive: true });
+      const lines = Array.from({ length: 20_000 }, (_, i) =>
+        JSON.stringify({
+          type: "assistant",
+          timestamp: "2026-08-01T10:00:00Z",
+          sessionId: "s1",
+          uuid: `m${i}`,
+          message: { id: `m${i}`, model: "claude-sonnet-4-5", usage: { input_tokens: 1 } },
+        }),
+      );
+      writeFileSync(join(project, "session.jsonl"), [...lines, "not json"].join("\n"));
+      mkdirSync(join(ampDir, "threads"));
+      writeFileSync(
+        join(ampDir, "threads", "T-1.json"),
+        JSON.stringify({
+          id: "T-1",
+          usageLedger: {
+            events: [
+              {
+                id: "bad",
+                timestamp: "not-a-timestamp",
+                model: "gpt-5",
+                tokens: { input: 3, output: 4 },
+              },
+            ],
+          },
+        }),
+      );
+      for (const harnesses of [
+        ["claude", "amp"],
+        ["amp", "claude"],
+      ] as const) {
+        const result = await readUsage({
+          home,
+          env: { AMP_DATA_DIR: ampDir },
+          harnesses: [...harnesses],
+        });
+        expect([...new Set(result.diagnostics.map((d) => d.harness))]).toEqual(harnesses);
+      }
+    } finally {
+      rmSync(home, { recursive: true, force: true });
+      rmSync(ampDir, { recursive: true, force: true });
+    }
+  });
+
   it("auto-detects harnesses in an empty injected home without touching the real one", async () => {
     const home = mkdtempSync(join(tmpdir(), "skopli-empty-"));
     try {
