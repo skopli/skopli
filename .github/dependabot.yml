@@ -12,3 +12,15 @@ updates:
         patterns:
           - astro
           - "@astrojs/*"
+  - package-ecosystem: npm
+    directory: /web/docs
+    schedule:
+      interval: monthly
+    allow:
+      - dependency-name: astro
+      - dependency-name: "@astrojs/*"
+    groups:
+      astro:
+        patterns:
+          - astro
+          - "@astrojs/*"
