@@ -3,7 +3,7 @@ description: Install Ruby 3.4 and the crates/skopli-ruby bundle, restoring the b
 runs:
   using: composite
   steps:
-    - uses: ruby/setup-ruby@95ef2b042f9d7a56d8268cba8559e2842e2ad01b # v1 branch (pinned)
+    - uses: ruby/setup-ruby@95ef2b042f9d7a56d8268cba8559e2842e2ad01b # v1.321.0
       with:
         ruby-version: "3.4"
     # The crate commits no Gemfile.lock, so the lock is resolved here before it can key the cache.
@@ -22,7 +22,7 @@ runs:
         restore-keys: ${{ steps.lock.outputs.prefix }}
     - working-directory: crates/skopli-ruby
       run: |
-        bundle install --jobs 4
+        bundle install
         bundle clean
       shell: bash
     - if: github.ref == 'refs/heads/main' && steps.restore.outputs.cache-hit != 'true'
