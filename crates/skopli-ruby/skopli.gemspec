@@ -15,6 +15,7 @@ Gem::Specification.new do |spec|
   spec.homepage = "https://docs.skopli.com/skopli/"
   spec.metadata = {
     "homepage_uri" => "https://docs.skopli.com/skopli/",
+    "documentation_uri" => "https://docs.skopli.com/skopli/",
     "source_code_uri" => "https://github.com/skopli/skopli"
   }
 

@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+require "rake/clean"
 require "rake/testtask"
 require_relative "lib/skopli/version"
 
@@ -27,12 +28,17 @@ end
 task default: %i[compile test]
 
 VENDORED = %w[skopli-core skopli-wire].freeze
+CLOBBER.include("pkg", "skopli.gem")
 
 # An installed gem has no checkout around it, so the gem root must be its own
 # Cargo workspace with the core crates it needs under vendor/.
 desc "Build skopli.gem with skopli-core and skopli-wire vendored"
 task :gem do
-  tables = File.read("../../Cargo.toml").split(/^(?=\[)/).grep(/\A\[workspace\.(package|dependencies)\]/).join
+  root = File.read("../../Cargo.toml").split(/^(?=\[)/)
+  unknown = root.filter_map { |table| table[/\A\[.*\]/] } - ["[workspace]", "[workspace.package]", "[workspace.dependencies]"]
+  raise "root Cargo.toml tables #{unknown.join(", ")} are not carried into the gem" unless unknown.empty?
+
+  tables = root.grep(/\A\[workspace\.(package|dependencies)\]/).join
   version = tables[/^\[workspace\.package\][^\[]*?^version = "([^"]*)"/m, 1]
   raise "workspace version #{version.inspect} differs from Skopli::VERSION #{Skopli::VERSION}" unless version == Skopli::VERSION
 
