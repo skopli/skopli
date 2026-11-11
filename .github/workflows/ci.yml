@@ -221,6 +221,11 @@ jobs:
         run: |
           pnpm run build:native
           pnpm exec tsc -p tsconfig.build.json
+      - id: ruby
+        if: ${{ !cancelled() }}
+        working-directory: crates/skopli-ruby
+        run: bundle exec rake
+      # maturin-action exports RUSTC_WRAPPER=sccache to every later step, so it runs last.
       - id: python-wheel
         if: ${{ !cancelled() }}
         uses: PyO3/maturin-action@e83996d129638aa358a18fbd1dfb82f0b0fb5d3b # v1.51.0
@@ -235,10 +240,6 @@ jobs:
           python -m pip install --upgrade pip pytest
           python -m pip install --no-index --find-links ../../target/wheels skopli
           pytest tests
-      - id: ruby
-        if: ${{ !cancelled() }}
-        working-directory: crates/skopli-ruby
-        run: bundle exec rake
       - name: Summarise results
         if: ${{ always() }}
         env:
