@@ -115,7 +115,7 @@ end`,
   {
     id: "java",
     registry: "GitHub Releases",
-    install: 'gh release download --repo skopli/skopli --pattern "skopli-[0-9]*[0-9].jar"',
+    install: 'gh release download --repo skopli/skopli --pattern "skopli-[0-9]*[^s].jar"',
     source:
       "git clone https://github.com/skopli/skopli && cargo build --manifest-path skopli/Cargo.toml -p skopli-capi --release && gradle -p skopli/sdks/java jar",
     note: "JDK 22+. sdks/java/README.md covers the jar and the run-time flags.",
