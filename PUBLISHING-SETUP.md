@@ -3,9 +3,8 @@
 This guide records the external account configuration and credential maintenance that cannot be inferred from the repository.
 It contains no secret values and is safe to keep under version control.
 
-This repository is currently LOCAL-ONLY.
-Every publish job in `.github/workflows/release.yml` is gated on the repo variable `PUBLISH_ENABLED == 'true'`, and each registry's trusted publisher is not yet configured, so nothing can publish until a real repository is deliberately configured.
-The GitHub release is always created as a draft; a human publishes it.
+Every publish job in `.github/workflows/release.yml` is gated on the repo variable `PUBLISH_ENABLED == 'true'`, and a registry accepts a publish only once its trusted publisher below is configured.
+The GitHub release is always created as a draft, and the registries publish only after a human publishes it (see [Release flow](#release-flow)).
 
 The permanent home is a GitHub organization (`github.com/skopli`, falling back to `skopli-dev`), created before the first release.
 The Go module path and every OIDC trusted-publisher configuration bake in the owner/repo identity, so the owner must be frozen first.
@@ -13,20 +12,49 @@ Replace `skopli/skopli` below if the slug differs.
 A free npm organization `skopli` is also created to reserve the `@skopli/` scope defensively; published packages stay unscoped.
 The canonical domain is **skopli.com** (skopli.dev held as a backup/redirect), which fixes the Maven namespace as `com.skopli`.
 
+## Release flow
+
+`release.yml` has two event graphs, and no job in one waits for a job in the other.
+
+1. Pushing a `vX.Y.Z` tag starts `version-check`, which fails the run before any build unless every manifest version is `X.Y.Z` (`scripts/check-versions.mjs`).
+2. The build legs build every artifact.
+   Each leg whose target runs on its own runner also loads what it built: the napi addon, a wheel, the C ABI library, the npm tarball, the gem, the NuGet package and the jar.
+3. `draft-release` needs every build leg, the jar build included, and attaches the npm tarball, the wheels and sdist, the C ABI archives, the gem, the NuGet package and the jars to a draft release, with a `SHA256SUMS` file that covers them.
+   A failed build, including a failed jar build, blocks the draft, so the draft never exists with an asset missing and nothing is uploaded to the release after it is published.
+4. A maintainer reviews the draft and publishes it once every run of the tag has finished, so no re-run is still writing to the draft.
+5. Publishing fires `release: published`, which starts the five publish jobs when `PUBLISH_ENABLED` is `'true'`.
+   The npm, PyPI, RubyGems and NuGet jobs download their files from that release and check them against `SHA256SUMS` before pushing, so each registry receives the reviewed bytes.
+   The crates.io job publishes from the tag's source, which has no release asset to check.
+
+A tag whose version contains `-` drafts a prerelease, which GitHub never marks as the latest release.
+Use `-alpha.N`, `-beta.N` or `-rc.N` (for example `v1.2.0-rc.1`), because `pyproject.toml` carries the same string and the wheel build accepts only prerelease forms that Python's version scheme (PEP 440) understands.
+`publish-npm` publishes a prerelease under the `next` dist-tag, so `npm install skopli` keeps resolving to the latest stable version.
+PyPI, crates.io, RubyGems and NuGet treat a prerelease version as a prerelease by themselves.
+
+Every publish job skips a version its registry already has, so a failed publish job can be re-run on its own.
+Once a release is published, `draft-release` fails instead of touching it, so a later run of the same tag cannot replace the reviewed files.
+The build run and the publish run of one tag share a concurrency group, so publishing a draft while a re-run of its tag is still in progress queues the publish run behind it.
+The group holds one waiting run, so a newer run of the same tag cancels a waiting publish run.
+Nothing fires `release: published` a second time: when the publish run was cancelled, or ran while `PUBLISH_ENABLED` was unset, re-run it from the Actions tab.
+
+`workflow_dispatch` with `dry_run: true` (the default) runs `version-check` and the build legs, and touches no release.
+With `dry_run: false` it also drafts the release; dispatch it on the tag (`gh workflow run release.yml --ref vX.Y.Z -f dry_run=false`) so the draft and the version check use that tag.
+A dispatch never publishes to a registry.
+
 ## Current channels
 
-| Channel                 | Credential                                      | External state                                                                                                                                                             |
-| ----------------------- | ----------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| GitHub Releases         | `GITHUB_TOKEN`                                  | Workflow is ready (draft-only); the first release is pending.                                                                                                              |
-| npm                     | Trusted publishing (OIDC), no stored secret     | Nothing published. `skopli` and the `skopli-<platform>` prebuild names were free at check (2026-08-23). Complete the local [npm bootstrap](#npm) before the first release. |
-| PyPI                    | Trusted publishing (OIDC), no stored secret     | Nothing published; `skopli` free at check. Complete [PyPI](#pypi).                                                                                                         |
-| crates.io               | Trusted publishing (OIDC), no stored secret     | No crates published; `skopli*` names free at check. Complete [crates.io](#cratesio).                                                                                       |
-| RubyGems                | Trusted publishing (OIDC), no stored secret     | Nothing published; `skopli` free at check. Complete [RubyGems](#rubygems).                                                                                                 |
-| NuGet                   | Trusted publishing (OIDC), no stored secret     | Nothing published; `Skopli` free at check. Complete [NuGet](#nuget).                                                                                                       |
-| Maven Central           | Portal token + GPG signing key (no OIDC exists) | No `com.skopli` namespace claimed; no publish job exists yet. Complete [Maven Central](#maven-central).                                                                    |
-| C ABI (GitHub Releases) | `GITHUB_TOKEN`                                  | One `skopli-capi-<version>-<target>` archive per target (header, shared and static library) attaches to the draft release. See [C ABI](#c-abi).                            |
-| Go modules              | None (the tag is the release)                   | Module path `github.com/skopli/skopli` becomes permanent at first `go get`. See [Go](#go-modules).                                                                         |
-| Swift Package Manager   | None (consumers pin the repo tag)               | No registry interaction. See [Swift](#swift-package-manager).                                                                                                              |
+| Channel                 | Credential                                      | External state                                                                                                                                  |
+| ----------------------- | ----------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| GitHub Releases         | `GITHUB_TOKEN`                                  | Workflow is ready (draft-only); the first release is pending.                                                                                   |
+| npm                     | Trusted publishing (OIDC), no stored secret     | Nothing published. `skopli` was free at check (2026-08-23). Complete the local [npm bootstrap](#npm) before the first release.                  |
+| PyPI                    | Trusted publishing (OIDC), no stored secret     | Nothing published; `skopli` free at check. Complete [PyPI](#pypi).                                                                              |
+| crates.io               | Trusted publishing (OIDC), no stored secret     | No crates published; `skopli*` names free at check. Complete [crates.io](#cratesio).                                                            |
+| RubyGems                | Trusted publishing (OIDC), no stored secret     | Nothing published; `skopli` free at check. Complete [RubyGems](#rubygems).                                                                      |
+| NuGet                   | Trusted publishing (OIDC), no stored secret     | Nothing published; `Skopli` free at check. Complete [NuGet](#nuget).                                                                            |
+| Maven Central           | Portal token + GPG signing key (no OIDC exists) | No `com.skopli` namespace claimed; no publish job exists yet. Complete [Maven Central](#maven-central).                                         |
+| C ABI (GitHub Releases) | `GITHUB_TOKEN`                                  | One `skopli-capi-<version>-<target>` archive per target (header, shared and static library) attaches to the draft release. See [C ABI](#c-abi). |
+| Go modules              | None (the tag is the release)                   | Module path `github.com/skopli/skopli` becomes permanent at first `go get`. See [Go](#go-modules).                                              |
+| Swift Package Manager   | None (consumers pin the repo tag)               | No registry interaction. See [Swift](#swift-package-manager).                                                                                   |
 
 ## Trusted publishing (OIDC)
 
@@ -34,31 +62,27 @@ npm, PyPI, crates.io, RubyGems, and NuGet all support GitHub Actions OIDC truste
 Each requires `id-token: write` on the publish job and a trusted-publisher configuration on the registry naming this owner, repository, and workflow filename (`release.yml`).
 Maven Central is the one channel that cannot use OIDC.
 
-All five gated publish jobs in `release.yml` are OIDC-native: `id-token: write` plus the registry's official exchange (npm CLI >= 11.5.1, `pypa/gh-action-pypi-publish`, `rust-lang/crates-io-auth-action`, `rubygems/configure-rubygems-credentials`, `NuGet/login`).
+All five gated publish jobs in `release.yml` are OIDC-native: `id-token: write` plus the registry's official exchange (npm CLI, pinned to 12.0.1, `pypa/gh-action-pypi-publish`, `rust-lang/crates-io-auth-action`, `rubygems/configure-rubygems-credentials`, `NuGet/login`).
 No classic registry token is referenced anywhere; the only remaining stored secrets are Maven Central's (which has no OIDC).
 
 ### npm
 
-The main package is the unscoped `skopli`; napi-rs manages the `skopli-<platform>` prebuild packages as `optionalDependencies` (unscoped, so trusted publishing must be configured for every one of them).
+The package is the unscoped `skopli`.
+It is one package that carries the napi loader and the prebuilt binary of every `napi-prebuild` target under `native/`; there are no per-platform packages.
+The `npm-package` job packs it once with `pnpm pack`, the draft release carries that `skopli-<version>.tgz`, and `publish-npm` publishes exactly that file.
 
-npm trusted publishing requires the package to already exist, so bootstrap each package **locally, before the first release**, using the central bootstrap script.
+npm trusted publishing requires the package to already exist, so bootstrap it **locally, before the first release**, using the central bootstrap script.
 It publishes a `0.0.0` placeholder under the `bootstrap` dist-tag from your own logged-in npm session, configures the trusted publisher, locks publishing to 2FA, and verifies the result - no `NPM_TOKEN` is ever stored in the repository:
 
 ```sh
 gh api repos/jishnuteegala/.github/contents/scripts/npm-oidc-bootstrap.sh --jq .content | base64 -d > npm-oidc-bootstrap.sh
-bash npm-oidc-bootstrap.sh all --repo skopli/skopli --workflow release.yml \
-  skopli skopli-darwin-arm64 skopli-darwin-x64 \
-  skopli-linux-x64-gnu skopli-linux-arm64-gnu \
-  skopli-linux-x64-musl skopli-linux-arm64-musl \
-  skopli-linux-arm-gnueabihf \
-  skopli-win32-x64-msvc skopli-win32-arm64-msvc
+bash npm-oidc-bootstrap.sh all --repo skopli/skopli --workflow release.yml skopli
 ```
 
 The `publish` and `lock` phases prompt for web-based EOTP, so run them interactively.
 An agent may run the `trust` and `verify` phases without an OTP.
-Keep the platform list in sync with the shipped prebuild matrix.
 
-The bootstrap configures one npm trusted publisher per package:
+The bootstrap configures the npm trusted publisher:
 
 | Field                | Value         |
 | -------------------- | ------------- |
@@ -68,7 +92,7 @@ The bootstrap configures one npm trusted publisher per package:
 | Environment          | Leave empty   |
 | Allowed actions      | `npm publish` |
 
-Publish with `npm publish --provenance --access public` and `id-token: write`; the package pages should show the "Built and signed on GitHub Actions" provenance badge.
+The job runs `npm publish skopli-<version>.tgz --provenance --access public` (plus `--tag next` for a prerelease version) with `id-token: write`; the package page should show the "Built and signed on GitHub Actions" provenance badge.
 After configuring, lock token publishing:
 
 ```sh
@@ -87,7 +111,7 @@ npm view "skopli@$version" --json dist.attestations \
 
 ### PyPI
 
-The `publish-pypi` job uploads the maturin wheels and sdist with `pypa/gh-action-pypi-publish` + `id-token: write`; no API token is stored.
+The `publish-pypi` job uploads the wheels and sdist attached to the published release with `pypa/gh-action-pypi-publish` + `id-token: write`; no API token is stored.
 Configure a "pending" trusted publisher on pypi.org before the first release (pending publishers allow the very first upload):
 
 | Field             | Value         |
@@ -102,7 +126,7 @@ Configure a "pending" trusted publisher on pypi.org before the first release (pe
 
 The `publish-crates` job publishes `skopli-core`, then `skopli-wire`, then `skopli-capi`, in dependency order.
 The three manifests allow publishing and share the workspace version; the `skopli-node`, `skopli-py`, `skopli-ruby` binding crates stay `publish = false`.
-The job checks that the tag matches the crate version, skips any crate already on crates.io, and runs `cargo publish -p <crate>`; cargo waits for each crate to reach the index before verifying the next.
+The job checks out the published release's tag, checks that the tag matches the crate version, skips any crate already on crates.io, and runs `cargo publish -p <crate>`; cargo waits for each crate to reach the index before verifying the next.
 
 crates.io only lets a crate that already exists get a trusted publisher, so the first version of each crate is published by hand with the interim token below: `cargo publish -p skopli-core`, then `-p skopli-wire`, then `-p skopli-capi`.
 Then add the trusted publisher (owner `skopli`, repository `skopli`, workflow `release.yml`) on each of the three crates, revoke the token, and let the job mint its own with `rust-lang/crates-io-auth-action` + `id-token: write` from the next release on.
@@ -122,7 +146,7 @@ Do not grant `change-owners`, `yank`, or `trusted-publishing`.
 ### RubyGems
 
 The gem is `skopli` (built from `crates/skopli-ruby`, rb-sys/magnus).
-The `publish-rubygems` job runs `rubygems/configure-rubygems-credentials` + `id-token: write`, then `gem push`; no API key is stored.
+The `publish-rubygems` job downloads `skopli.gem` from the published release, runs `rubygems/configure-rubygems-credentials` + `id-token: write`, then `gem push` unless RubyGems already has the version; no API key is stored.
 RubyGems trusted publishing supports a "pending" publisher for a gem name that has never been pushed - configure it before the first release with owner `skopli`, repository `skopli`, workflow `release.yml`.
 
 Decide before v1: source gem (compiles on `gem install`, current setup) vs precompiled native gems (rb-sys cross-gem matrix, multiplies the build matrix).
@@ -130,13 +154,13 @@ Decide before v1: source gem (compiles on `gem install`, current setup) vs preco
 ### NuGet
 
 The package is `Skopli` (`sdks/csharp/Skopli`).
-The `publish-nuget` job runs `NuGet/login` (OIDC exchanged for a one-hour temporary API key) followed by `dotnet nuget push`; no API key is stored.
+The `publish-nuget` job downloads the `.nupkg` from the published release, runs `NuGet/login` (OIDC exchanged for a one-hour temporary API key), then `dotnet nuget push --skip-duplicate`; no API key is stored.
 Configure the trusted-publishing policy on nuget.org for owner `skopli`, repository `skopli`, workflow `release.yml`.
 A successful push still goes through nuget.org validation before listing.
 
 ### Maven Central
 
-The only channel that requires stored secrets, and the only one with no publish job yet (the workflow builds `java-jar` but does not publish it).
+The only channel that requires stored secrets, and the only one with no publish job yet (the workflow attaches the jar to the GitHub release but publishes it nowhere).
 Before the first Java release:
 
 1. Register on <https://central.sonatype.com> and claim the `com.skopli`
@@ -207,10 +231,10 @@ GitHub never reveals stored secret values; a recent update time proves only that
 
 After every release:
 
-1. Confirm the **Release** workflow completed and the draft release was
-   reviewed and published by a human.
-2. Confirm `skopli` and every `skopli-<platform>` package exist on npm at the
-   new version with provenance linked to this repository.
+1. Confirm the tag's **Release** run completed, the draft release was
+   reviewed and published by a human, and the publish run that followed completed.
+2. Confirm `skopli` exists on npm at the new version with provenance linked to
+   this repository.
 3. Confirm the PyPI wheels (manylinux/musllinux/windows/macos matrix) and sdist
    appear at the new version.
 4. Confirm `skopli-core`, `skopli-wire`, and `skopli-capi` appear on crates.io
