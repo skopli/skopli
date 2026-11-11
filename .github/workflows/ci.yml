@@ -195,23 +195,27 @@ jobs:
           dotnet test sdks/csharp/Skopli.sln -c Release --no-build
 
   # GitHub caps concurrent macOS jobs per account (5 on the Free plan), so macOS runs each
-  # language as a step of one of two jobs instead of a job per language. A failing language
-  # step does not stop the others, and the job summary lists every step's result.
+  # language as a step of one of two jobs instead of a job per language.
   macos-bindings:
     name: macos (node-addon, python, ruby)
     runs-on: macos-latest
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+      - id: checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - id: setup-python
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: "3.12"
-      - uses: ruby/setup-ruby@95ef2b042f9d7a56d8268cba8559e2842e2ad01b # v1 branch (pinned)
+      - id: setup-ruby
+        uses: ruby/setup-ruby@95ef2b042f9d7a56d8268cba8559e2842e2ad01b # v1 branch (pinned)
         with:
           ruby-version: "3.4"
           bundler-cache: true
           working-directory: crates/skopli-ruby
-      - uses: ./.github/actions/node
-      - uses: ./.github/actions/rust
+      - id: setup-node
+        uses: ./.github/actions/node
+      - id: setup-rust
+        uses: ./.github/actions/rust
       - id: node-addon
         if: ${{ !cancelled() }}
         run: |
@@ -239,6 +243,7 @@ jobs:
         if: ${{ always() }}
         env:
           STEPS: ${{ toJSON(steps) }}
+        shell: bash
         run: |
           jq -r '"| Step | Result |", "|---|---|", (to_entries[] | "| \(.key) | \(.value.outcome) |")' <<< "$STEPS" |
             tee -a "$GITHUB_STEP_SUMMARY"
@@ -247,20 +252,26 @@ jobs:
     name: macos (go, java, dotnet, swift)
     runs-on: macos-latest
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+      - id: checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - id: setup-go
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version: "1.26"
           cache: false # sdks/go has no go.sum
-      - uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
+      - id: setup-java
+        uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
         with:
           distribution: temurin
           java-version: "25"
-      - uses: gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6.4.0
+      - id: setup-gradle
+        uses: gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6.4.0
         with:
           gradle-version: "9.8.0"
-      - uses: ./.github/actions/rust
+      - id: setup-rust
+        uses: ./.github/actions/rust
       - id: skopli-capi
+        if: ${{ !cancelled() }}
         run: cargo build -p skopli-capi --release
       - id: go
         if: ${{ !cancelled() && steps.skopli-capi.outcome == 'success' }}
@@ -292,6 +303,7 @@ jobs:
         if: ${{ always() }}
         env:
           STEPS: ${{ toJSON(steps) }}
+        shell: bash
         run: |
           jq -r '"| Step | Result |", "|---|---|", (to_entries[] | "| \(.key) | \(.value.outcome) |")' <<< "$STEPS" |
             tee -a "$GITHUB_STEP_SUMMARY"
