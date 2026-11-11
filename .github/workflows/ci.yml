@@ -203,18 +203,22 @@ jobs:
       - id: checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - id: setup-python
+        if: ${{ !cancelled() }}
         uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: "3.12"
       - id: setup-ruby
+        if: ${{ !cancelled() }}
         uses: ruby/setup-ruby@95ef2b042f9d7a56d8268cba8559e2842e2ad01b # v1 branch (pinned)
         with:
           ruby-version: "3.4"
           bundler-cache: true
           working-directory: crates/skopli-ruby
       - id: setup-node
+        if: ${{ !cancelled() }}
         uses: ./.github/actions/node
       - id: setup-rust
+        if: ${{ !cancelled() }}
         uses: ./.github/actions/rust
       - id: node-addon
         if: ${{ !cancelled() }}
@@ -256,20 +260,24 @@ jobs:
       - id: checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - id: setup-go
+        if: ${{ !cancelled() }}
         uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version: "1.26"
           cache: false # sdks/go has no go.sum
       - id: setup-java
+        if: ${{ !cancelled() }}
         uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
         with:
           distribution: temurin
           java-version: "25"
       - id: setup-gradle
+        if: ${{ !cancelled() }}
         uses: gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6.4.0
         with:
           gradle-version: "9.8.0"
       - id: setup-rust
+        if: ${{ !cancelled() }}
         uses: ./.github/actions/rust
       - id: skopli-capi
         if: ${{ !cancelled() }}
