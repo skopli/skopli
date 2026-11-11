@@ -1,0 +1,32 @@
+name: Ruby and Bundler
+description: Install Ruby 3.4 and the crates/skopli-ruby bundle, restoring the bundle cache (only main saves it).
+runs:
+  using: composite
+  steps:
+    - uses: ruby/setup-ruby@95ef2b042f9d7a56d8268cba8559e2842e2ad01b # v1 branch (pinned)
+      with:
+        ruby-version: "3.4"
+    # The crate commits no Gemfile.lock, so the lock is resolved here before it can key the cache.
+    - id: lock
+      working-directory: crates/skopli-ruby
+      run: |
+        bundle config set --local path vendor/bundle
+        bundle lock
+        echo "prefix=bundle-$ImageOS-$RUNNER_ARCH-ruby-$(ruby -e 'print RUBY_VERSION')-" >> "$GITHUB_OUTPUT"
+      shell: bash
+    - id: restore
+      uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      with:
+        path: crates/skopli-ruby/vendor/bundle
+        key: ${{ steps.lock.outputs.prefix }}${{ hashFiles('crates/skopli-ruby/Gemfile.lock') }}
+        restore-keys: ${{ steps.lock.outputs.prefix }}
+    - working-directory: crates/skopli-ruby
+      run: |
+        bundle install --jobs 4
+        bundle clean
+      shell: bash
+    - if: github.ref == 'refs/heads/main' && steps.restore.outputs.cache-hit != 'true'
+      uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      with:
+        path: crates/skopli-ruby/vendor/bundle
+        key: ${{ steps.restore.outputs.cache-primary-key }}

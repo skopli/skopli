@@ -18,6 +18,7 @@ concurrency:
 
 env:
   CARGO_TERM_COLOR: always
+  SCCACHE_GHA_RW_MODE: ${{ github.ref == 'refs/heads/main' && 'READ_WRITE' || 'READ_ONLY' }}
 
 jobs:
   rust:
@@ -119,11 +120,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: ruby/setup-ruby@95ef2b042f9d7a56d8268cba8559e2842e2ad01b # v1 branch (pinned)
-        with:
-          ruby-version: "3.4"
-          bundler-cache: true
-          working-directory: crates/skopli-ruby
+      - uses: ./.github/actions/ruby
       - uses: ./.github/actions/rust
       - working-directory: crates/skopli-ruby
         run: bundle exec rake
@@ -209,11 +206,7 @@ jobs:
           python-version: "3.12"
       - id: setup-ruby
         if: ${{ !cancelled() }}
-        uses: ruby/setup-ruby@95ef2b042f9d7a56d8268cba8559e2842e2ad01b # v1 branch (pinned)
-        with:
-          ruby-version: "3.4"
-          bundler-cache: true
-          working-directory: crates/skopli-ruby
+        uses: ./.github/actions/ruby
       - id: setup-node
         if: ${{ !cancelled() }}
         uses: ./.github/actions/node
