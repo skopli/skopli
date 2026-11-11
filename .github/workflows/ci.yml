@@ -310,7 +310,19 @@ jobs:
 
   # Aggregate check for branch protection: it must need every other job in this workflow.
   ci-ok:
-    needs: [rust, verify-core, typescript, web, node-addon, python, ruby, go, java, dotnet, macos-bindings, macos-sdks]
+    needs:
+      - rust
+      - verify-core
+      - typescript
+      - web
+      - node-addon
+      - python
+      - ruby
+      - go
+      - java
+      - dotnet
+      - macos-bindings
+      - macos-sdks
     if: ${{ always() }}
     runs-on: ubuntu-latest
     timeout-minutes: 5
