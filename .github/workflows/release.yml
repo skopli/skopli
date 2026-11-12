@@ -259,9 +259,7 @@ jobs:
       - uses: ./.github/actions/rust
       - name: Build the gem
         working-directory: crates/skopli-ruby
-        run: |
-          bundle exec rake compile
-          gem build skopli.gemspec -o skopli.gem
+        run: bundle exec rake gem
       # `gem install` compiles the extension from the gem's own files, as a user's install does.
       - name: Smoke-load the gem
         working-directory: ${{ runner.temp }}

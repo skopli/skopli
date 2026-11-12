@@ -127,6 +127,14 @@ jobs:
       - uses: ./.github/actions/rust
       - working-directory: crates/skopli-ruby
         run: bundle exec rake
+      - name: Build the gem
+        working-directory: crates/skopli-ruby
+        run: bundle exec rake gem
+      - name: Install and load the gem outside the checkout
+        working-directory: ${{ runner.temp }}
+        run: |
+          gem install "$GITHUB_WORKSPACE/crates/skopli-ruby/skopli.gem"
+          ruby -e 'require "skopli"; puts Gem.loaded_specs["skopli"].full_gem_path, Skopli::VERSION'
 
   go:
     name: go (${{ matrix.os }})
