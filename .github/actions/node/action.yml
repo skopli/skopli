@@ -1,5 +1,5 @@
 name: Node and pnpm
-description: Install pnpm and Node 24 with the pnpm store cached, then install the workspace.
+description: Install pnpm and Node 24, restore the pnpm store (only main saves it), then install the workspace.
 runs:
   using: composite
   steps:
@@ -7,6 +7,18 @@ runs:
     - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
       with:
         node-version: 24
-        cache: pnpm
+    - id: store
+      run: echo "path=$(pnpm store path --silent)" >> "$GITHUB_OUTPUT"
+      shell: bash
+    - id: restore
+      uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      with:
+        path: ${{ steps.store.outputs.path }}
+        key: pnpm-store-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('pnpm-lock.yaml') }}
     - run: pnpm install --frozen-lockfile
       shell: bash
+    - if: github.ref == 'refs/heads/main' && steps.restore.outputs.cache-hit != 'true'
+      uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      with:
+        path: ${{ steps.store.outputs.path }}
+        key: ${{ steps.restore.outputs.cache-primary-key }}
