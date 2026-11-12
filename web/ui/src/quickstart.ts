@@ -99,7 +99,7 @@ let priced = pricing.price_rollups(&by_model);`,
     install: "gem install skopli",
     source:
       'gem "skopli", git: "https://github.com/skopli/skopli", glob: "crates/skopli-ruby/*.gemspec"',
-    note: "Ruby 3.2+. Building from source needs a Rust toolchain.",
+    note: "Ruby 3.2+. The gem compiles on install and needs Rust 1.88+, a C compiler and libclang.",
     code: `require "skopli"
 
 result = Skopli.read_usage(

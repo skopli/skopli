@@ -146,6 +146,9 @@ Do not grant `change-owners`, `yank`, or `trusted-publishing`.
 ### RubyGems
 
 The gem is `skopli` (built from `crates/skopli-ruby`, rb-sys/magnus).
+The `ruby-gem` job builds it with `rake gem`, which stages `skopli-core` and `skopli-wire` under `vendor/` with the workspace `Cargo.lock` and a generated `Cargo.toml` that makes the gem root its own Cargo workspace.
+The job's smoke step then installs and loads the gem outside the checkout.
+It is a source gem, so `gem install skopli` needs Rust 1.88 or later, a C compiler and libclang on the user's machine.
 The `publish-rubygems` job downloads `skopli.gem` from the published release, runs `rubygems/configure-rubygems-credentials` + `id-token: write`, then `gem push` unless RubyGems already has the version; no API key is stored.
 RubyGems trusted publishing supports a "pending" publisher for a gem name that has never been pushed - configure it before the first release with owner `skopli`, repository `skopli`, workflow `release.yml`.
 

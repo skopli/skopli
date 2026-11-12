@@ -14,11 +14,11 @@ crates/skopli-ruby/
   Cargo.toml            # cdylib crate `skopli` (magnus + rb-sys)
   src/                  # Rust: lib.rs (magnus binding) + gvl/modules; the JSON
                         #       boundary is the shared skopli-wire crate
-  skopli.gemspec    # crate-local gemspec
-  Rakefile              # rake compile (rb_sys/extensiontask) + rake test
-  ext/skopli/extconf.rb  # rb-sys create_rust_makefile
-  lib/skopli.rb     # facade module functions
-  lib/skopli/       # errors, value classes, Pricing
+  skopli.gemspec        # crate-local gemspec
+  Rakefile              # rake compile (rb_sys/extensiontask), rake test, rake gem
+  extconf.rb            # rb-sys create_rust_makefile
+  lib/skopli.rb         # facade module functions
+  lib/skopli/           # errors, value classes, Pricing
   test/test_smoke.rb    # read -> rollup -> price against golden/claude/basic
 ```
 
@@ -30,9 +30,17 @@ Requires Ruby 3.2+ and a Rust toolchain.
 bundle install
 rake compile   # builds the native extension via cargo
 rake test      # runs the smoke test
-# or:
-gem build skopli.gemspec
+rake gem       # builds skopli.gem
 ```
+
+`rake gem` stages the gem in `pkg/skopli/` with `skopli-core` and `skopli-wire` under `vendor/`, the workspace `Cargo.lock`, and a generated `Cargo.toml` that makes the gem root its own Cargo workspace.
+The gem then builds from its own files, with no checkout around it.
+Do not run `gem build` on `skopli.gemspec` in this directory: that gem lacks the core crates and fails to install.
+
+## Install
+
+The gem is a source gem: `gem install skopli` compiles the native extension on your machine.
+It needs Rust 1.88 or later, a C compiler (for the bundled SQLite), and libclang (rb-sys generates Ruby bindings with bindgen).
 
 ## Usage
 
