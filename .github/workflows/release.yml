@@ -31,6 +31,7 @@ concurrency:
 
 env:
   CARGO_TERM_COLOR: always
+  SCCACHE_GHA_RW_MODE: ${{ github.ref == 'refs/heads/main' && 'READ_WRITE' || 'READ_ONLY' }}
 
 jobs:
   version-check:
@@ -251,11 +252,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: ruby/setup-ruby@95ef2b042f9d7a56d8268cba8559e2842e2ad01b # v1 branch (pinned)
-        with:
-          ruby-version: "3.4"
-          bundler-cache: true
-          working-directory: crates/skopli-ruby
+      - uses: ./.github/actions/ruby
       - uses: ./.github/actions/rust
       - name: Build the gem
         working-directory: crates/skopli-ruby
@@ -493,7 +490,7 @@ jobs:
           gh release download "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --pattern skopli.gem --pattern SHA256SUMS
           sha256sum -c --ignore-missing SHA256SUMS
           if sha256sum skopli.gem | grep -vxF -f SHA256SUMS; then echo "a downloaded file is not in SHA256SUMS" >&2; exit 1; fi
-      - uses: ruby/setup-ruby@95ef2b042f9d7a56d8268cba8559e2842e2ad01b # v1 branch (pinned)
+      - uses: ruby/setup-ruby@95ef2b042f9d7a56d8268cba8559e2842e2ad01b # v1.321.0
         with:
           ruby-version: "3.4"
       - name: configure RubyGems credentials (GATED, OIDC)
