@@ -1,5 +1,7 @@
 use std::fs;
+use std::io;
 use std::path::Path;
+use std::thread::{Builder, Scope, ScopedJoinHandle};
 
 use serde_json::Value;
 use walkdir::WalkDir;
@@ -37,6 +39,65 @@ pub fn list_files(dir: &Path, predicate: impl Fn(&str) -> bool) -> Vec<String> {
         .collect();
     out.sort();
     out
+}
+
+/// Map `items` as at most `available_parallelism` contiguous chunks, each on a
+/// scoped thread, and return the results in chunk order.
+pub fn map_chunks<T: Sync, R: Send>(items: &[T], map: impl Fn(&[T]) -> R + Sync) -> Vec<R> {
+    let threads = std::thread::available_parallelism().map_or(1, usize::from);
+    let map = &map;
+    map_chunks_with(items, threads, map, |scope, chunk| {
+        Builder::new().spawn_scoped(scope, move || map(chunk))
+    })
+}
+
+/// Read `items` with `read` on [`map_chunks`] threads into one result, in item
+/// order.
+pub fn read_chunked<T: Sync>(
+    items: &[T],
+    read: impl Fn(&T, &mut Vec<String>, &mut Vec<ReaderWarning>) -> Vec<UsageEvent> + Sync,
+) -> ReaderResult {
+    let parts = map_chunks(items, |chunk| {
+        let mut part = ReaderResult::default();
+        for item in chunk {
+            let events = read(item, &mut part.skipped, &mut part.warnings);
+            part.events.extend(events);
+        }
+        part
+    });
+    let mut out = ReaderResult::default();
+    for part in parts {
+        out.events.extend(part.events);
+        out.skipped.extend(part.skipped);
+        out.warnings.extend(part.warnings);
+    }
+    out
+}
+
+/// [`map_chunks`] with the thread count and spawner injected. A chunk whose
+/// thread fails to spawn is mapped on the calling thread instead.
+fn map_chunks_with<'env, T: Sync, R: Send>(
+    items: &'env [T],
+    threads: usize,
+    map: &impl Fn(&'env [T]) -> R,
+    spawn: impl for<'scope> Fn(
+        &'scope Scope<'scope, 'env>,
+        &'env [T],
+    ) -> io::Result<ScopedJoinHandle<'scope, R>>,
+) -> Vec<R> {
+    std::thread::scope(|scope| {
+        let handles: Vec<_> = items
+            .chunks(items.len().div_ceil(threads).max(1))
+            .map(|chunk| (chunk, spawn(scope, chunk)))
+            .collect();
+        handles
+            .into_iter()
+            .map(|(chunk, handle)| match handle {
+                Ok(h) => h.join().unwrap_or_else(|e| std::panic::resume_unwind(e)),
+                Err(_) => map(chunk),
+            })
+            .collect()
+    })
 }
 
 /// True when `path` is an existing directory.
@@ -426,24 +487,90 @@ pub(crate) fn test_home() -> std::path::PathBuf {
     std::path::PathBuf::from("/home/u")
 }
 
-/// A fresh per-test scratch directory under the system temp dir.
+/// A fresh per-test scratch directory under the system temp dir, removed on drop.
 #[cfg(test)]
-pub(crate) fn scratch_dir(tag: &str) -> std::path::PathBuf {
-    let base = std::env::temp_dir().join(format!(
-        "skopli-{tag}-{}-{}",
-        std::process::id(),
-        std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .unwrap()
-            .as_nanos()
-    ));
-    fs::create_dir_all(&base).unwrap();
-    base
+pub(crate) struct ScratchDir(std::path::PathBuf);
+
+#[cfg(test)]
+impl std::ops::Deref for ScratchDir {
+    type Target = Path;
+    fn deref(&self) -> &Path {
+        &self.0
+    }
+}
+
+#[cfg(test)]
+impl Drop for ScratchDir {
+    fn drop(&mut self) {
+        let _ = fs::remove_dir_all(&self.0);
+    }
+}
+
+#[cfg(test)]
+pub(crate) fn scratch_dir(tag: &str) -> ScratchDir {
+    static SEQ: std::sync::atomic::AtomicUsize = std::sync::atomic::AtomicUsize::new(0);
+    let n = SEQ.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+    let dir = std::env::temp_dir().join(format!("skopli-{tag}-{}-{n}", std::process::id()));
+    // A killed earlier run with a recycled pid can have left this path behind.
+    let _ = fs::remove_dir_all(&dir);
+    fs::create_dir(&dir).unwrap();
+    ScratchDir(dir)
 }
 
 #[cfg(test)]
 mod tests {
-    use super::reparse_iso;
+    use std::cell::Cell;
+
+    use super::{Builder, io, map_chunks_with, reparse_iso};
+
+    #[test]
+    fn chunks_without_a_thread_are_mapped_inline_in_order() {
+        let items: Vec<u32> = (0..8).collect();
+        let double = |chunk: &[u32]| chunk.iter().map(|i| i * 2).collect::<Vec<_>>();
+        let expected = [0, 2, 4, 6, 8, 10, 12, 14];
+        let none = map_chunks_with(&items, 4, &double, |_, _| {
+            Err(io::Error::other("no threads"))
+        });
+        assert_eq!(none.concat(), expected);
+        let spawn = Cell::new(false);
+        let mixed = map_chunks_with(&items, 4, &double, |scope, chunk| {
+            spawn.set(!spawn.get());
+            if spawn.get() {
+                Builder::new().spawn_scoped(scope, move || double(chunk))
+            } else {
+                Err(io::Error::other("no threads"))
+            }
+        });
+        assert_eq!(mixed.concat(), expected);
+    }
+
+    #[test]
+    fn a_panicking_chunk_thread_reraises_its_panic() {
+        let items: Vec<u32> = (0..8).collect();
+        let len = |chunk: &[u32]| {
+            if chunk.contains(&5) {
+                std::panic::panic_any(5_u32);
+            }
+            chunk.len()
+        };
+        let result = std::panic::catch_unwind(|| {
+            map_chunks_with(&items, 4, &len, |scope, chunk| {
+                Builder::new().spawn_scoped(scope, move || len(chunk))
+            })
+        });
+        assert_eq!(result.unwrap_err().downcast_ref::<u32>(), Some(&5));
+    }
+
+    #[test]
+    fn scratch_dirs_are_distinct_and_removed_on_drop() {
+        let a = super::scratch_dir("t");
+        let b = super::scratch_dir("t");
+        assert_ne!(&*a, &*b);
+        let path = a.to_path_buf();
+        drop(a);
+        assert!(!path.exists());
+        assert!(b.exists());
+    }
 
     #[test]
     fn fractional_seconds_are_truncated_to_milliseconds() {

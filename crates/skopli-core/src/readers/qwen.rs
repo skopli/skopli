@@ -216,7 +216,6 @@ mod tests {
         )
         .unwrap();
         let result = read_qwen(&root);
-        fs::remove_dir_all(&root).ok();
         assert!(result.events.is_empty());
         assert_eq!(result.skipped.len(), 1);
         assert!(

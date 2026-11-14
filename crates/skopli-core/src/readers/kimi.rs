@@ -6,7 +6,7 @@ use serde_json::Value;
 use super::reader::{Reader, ReaderContext};
 use super::shared::{
     EpochUnit, ReaderResult, ReaderWarning, as_string, basename, date_parse_ms, dirname,
-    epoch_to_iso_unit, file_mtime_iso, finite_number, is_record, list_files, read_json,
+    epoch_to_iso_unit, file_mtime_iso, finite_number, is_record, list_files, map_chunks, read_json,
     read_jsonl_lines,
 };
 use crate::types::{TokenCounts, UsageEvent};
@@ -295,6 +295,18 @@ fn read_wire_file(
     WireResult { events, slots }
 }
 
+fn read_wire_files(
+    files: &[String],
+    config_fallback_model: &str,
+) -> (Vec<WireResult>, Vec<String>, Vec<ReaderWarning>) {
+    let (mut skipped, mut warnings) = (Vec::new(), Vec::new());
+    let results = files
+        .iter()
+        .map(|file| read_wire_file(file, config_fallback_model, &mut skipped, &mut warnings))
+        .collect();
+    (results, skipped, warnings)
+}
+
 /// Read all kimi usage events.
 pub fn read_kimi(roots: &[PathBuf]) -> ReaderResult {
     let mut events: Vec<UsageEvent> = Vec::new();
@@ -322,23 +334,29 @@ pub fn read_kimi(roots: &[PathBuf]) -> ReaderResult {
         let sessions_dir = root.join("sessions");
         let files = list_files(&sessions_dir, |name| name == "wire.jsonl");
         let model = config_model(root);
-        for file in &files {
-            let WireResult {
+        for (results, part_skipped, part_warnings) in
+            map_chunks(&files, |chunk| read_wire_files(chunk, &model))
+        {
+            skipped.extend(part_skipped);
+            warnings.extend(part_warnings);
+            for WireResult {
                 events: direct,
                 slots,
-            } = read_wire_file(file, &model, &mut skipped, &mut warnings);
-            for event in direct {
-                add_event(event, &mut events);
-            }
-            for KeyedSlot { key, slot } in slots {
-                match keyed.get(&key) {
-                    Some(existing) if !should_replace(existing, &slot) => {}
-                    Some(_) => {
-                        keyed.insert(key, slot);
-                    }
-                    None => {
-                        keyed_order.push(key.clone());
-                        keyed.insert(key, slot);
+            } in results
+            {
+                for event in direct {
+                    add_event(event, &mut events);
+                }
+                for KeyedSlot { key, slot } in slots {
+                    match keyed.get(&key) {
+                        Some(existing) if !should_replace(existing, &slot) => {}
+                        Some(_) => {
+                            keyed.insert(key, slot);
+                        }
+                        None => {
+                            keyed_order.push(key.clone());
+                            keyed.insert(key, slot);
+                        }
                     }
                 }
             }
@@ -353,5 +371,50 @@ pub fn read_kimi(roots: &[PathBuf]) -> ReaderResult {
         events,
         skipped,
         warnings,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::fs;
+
+    use super::KimiReader;
+    use crate::readers::reader::{Reader, ReaderContext};
+    use crate::readers::shared::{list_files, scratch_dir};
+
+    fn status_line(output: u64) -> String {
+        format!(
+            "{{\"timestamp\":1700000000,\"message\":{{\"type\":\"StatusUpdate\",\"payload\":{{\"message_id\":\"m\",\"token_usage\":{{\"input_other\":1,\"output\":{output}}}}}}}}}"
+        )
+    }
+
+    #[test]
+    fn many_files_keep_session_order_and_replace_slots_across_chunks() {
+        let home = scratch_dir("kimi-many");
+        let sessions = home.join(".kimi").join("sessions");
+        // s00's forty agent files sort before its main file, so whenever there
+        // is more than one thread the main file is in a later chunk, and its
+        // larger total must replace the agents' slot.
+        for i in 0..40 {
+            let session = sessions.join(format!("s{i:02}"));
+            let agent = sessions.join(format!("s00/agents/a{i:02}"));
+            fs::create_dir_all(&session).unwrap();
+            fs::create_dir_all(&agent).unwrap();
+            let agent_line = format!("{}\nnot json", status_line(1));
+            fs::write(agent.join("wire.jsonl"), agent_line).unwrap();
+            let main = format!("{}\nnot json", status_line(5));
+            fs::write(session.join("wire.jsonl"), main).unwrap();
+        }
+        let result = KimiReader.read(&ReaderContext::new(&*home));
+        let got: Vec<(String, u64)> = result
+            .events
+            .iter()
+            .map(|e| (e.session_id.clone(), e.tokens.output))
+            .collect();
+        let expected: Vec<(String, u64)> = (0..40).map(|i| (format!("s{i:02}"), 5)).collect();
+        assert_eq!(got, expected);
+        let files = list_files(&sessions, |name| name == "wire.jsonl");
+        let skipped: Vec<String> = files.iter().map(|f| format!("{f}:2")).collect();
+        assert_eq!(result.skipped, skipped);
     }
 }

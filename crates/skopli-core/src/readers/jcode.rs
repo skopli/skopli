@@ -303,7 +303,6 @@ mod tests {
         let events = read_jcode(&home).events;
         assert_eq!(events.len(), 1);
         assert_eq!(events[0].message_id, "m1");
-        fs::remove_dir_all(&dir).ok();
     }
 
     #[test]
@@ -328,7 +327,6 @@ mod tests {
             ),
             (1, 25, 7111, 8586)
         );
-        fs::remove_dir_all(&dir).ok();
     }
 
     #[test]
@@ -353,7 +351,6 @@ mod tests {
             (e.tokens.input, e.tokens.output, e.tokens.cache_read),
             (15693, 54, 3)
         );
-        fs::remove_dir_all(&dir).ok();
     }
 
     #[test]
@@ -376,7 +373,6 @@ mod tests {
         assert_eq!(events[0].message_id, "j1");
         assert_eq!(events[0].tokens.input, 10);
         assert_eq!(events[0].tokens.output, 20);
-        fs::remove_dir_all(&dir).ok();
     }
 
     #[test]
@@ -395,6 +391,5 @@ mod tests {
         )
         .unwrap();
         assert!(read_jcode(&dir).events.is_empty());
-        fs::remove_dir_all(&dir).ok();
     }
 }

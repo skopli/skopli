@@ -275,7 +275,6 @@ mod tests {
             (tokens.input, tokens.output, tokens.cache_read),
             (0, 0, 9163)
         );
-        let _ = std::fs::remove_dir_all(dir);
     }
 
     #[test]
@@ -300,7 +299,6 @@ mod tests {
             ),
             (0, 11, 9163, 3927)
         );
-        let _ = std::fs::remove_dir_all(dir);
     }
 
     #[test]

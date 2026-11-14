@@ -90,7 +90,7 @@ mod tests {
             ),
         )
         .unwrap();
-        let result = read_claude_transcripts(std::slice::from_ref(&root), "codebuddy");
+        let result = read_claude_transcripts(&[root.to_path_buf()], "codebuddy");
         assert_eq!(result.events.len(), 1, "{:?}", result.warnings);
         let e = &result.events[0];
         assert_eq!(e.timestamp, "2026-10-25T11:15:48.636Z");
@@ -102,7 +102,6 @@ mod tests {
             (e.tokens.input, e.tokens.output, e.tokens.cache_read),
             (22017 - 17944, 129, 17944)
         );
-        std::fs::remove_dir_all(&root).unwrap();
     }
 
     // A tool-call step is written as `type: "function_call"` with no `role`; it carries
@@ -124,7 +123,7 @@ mod tests {
             ),
         )
         .unwrap();
-        let result = read_claude_transcripts(std::slice::from_ref(&root), "codebuddy");
+        let result = read_claude_transcripts(&[root.to_path_buf()], "codebuddy");
         assert_eq!(result.events.len(), 2, "{:?}", result.warnings);
         let f = &result.events[0];
         assert_eq!(f.message_id, "f1");
@@ -132,6 +131,5 @@ mod tests {
             (f.tokens.input, f.tokens.output, f.tokens.cache_read),
             (22017 - 5, 47, 5)
         );
-        std::fs::remove_dir_all(&root).unwrap();
     }
 }

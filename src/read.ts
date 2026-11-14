@@ -153,10 +153,11 @@ export async function readUsage(options: ReadUsageOptions = {}): Promise<ReadUsa
   const events: UsageEvent[] = [];
   const skipped: Partial<Record<Harness, string[]>> = {};
 
-  for (const harness of harnesses) {
-    const result = await gatherHarness(harness, options);
-    // reader warnings are surfaced before this harness's per-event filtering,
-    // matching the original in-process order (warn sink fires during the read)
+  // merged in harness order, not completion order, so diagnostics stay deterministic
+  const gathered = await Promise.all(
+    harnesses.map(async (harness) => ({ harness, result: await gatherHarness(harness, options) })),
+  );
+  for (const { harness, result } of gathered) {
     for (const diagnostic of result.diagnostics)
       diagnostics.add(diagnostic.severity, diagnostic.message, diagnostic);
     if (result.skipped.length > 0) skipped[harness] = result.skipped;

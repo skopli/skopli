@@ -28,6 +28,8 @@ Gem::Specification.new do |spec|
     "extconf.rb",
     "Cargo.toml",
     "Cargo.lock",
+    "vendor/*/Cargo.toml",
+    "vendor/*/src/**/*.rs",
     "README.md"
   ]
   spec.require_paths = ["lib"]

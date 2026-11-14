@@ -345,16 +345,7 @@ fn fetched_at_stamp(now: u64) -> Option<String> {
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    fn tmp_dir(tag: &str) -> PathBuf {
-        let base = std::env::temp_dir().join(format!(
-            "skopli-sources-test-{tag}-{}-{}",
-            std::process::id(),
-            now_ms()
-        ));
-        std::fs::create_dir_all(&base).unwrap();
-        base
-    }
+    use crate::readers::shared::scratch_dir;
 
     fn openrouter_payload() -> Value {
         serde_json::json!({
@@ -402,7 +393,7 @@ mod tests {
         // consume it through load_cached. Garbage must invalidate the entry
         // (None); a valid epoch must sit exactly on the fresh/stale boundary.
         for case in &cases.read {
-            let dir = tmp_dir(&format!("ts-read-{}", case.name));
+            let dir = scratch_dir(&format!("ts-read-{}", case.name));
             let file = serde_json::json!({
                 "fetchedAt": case.stamp,
                 "payload": openrouter_payload(),
@@ -436,13 +427,12 @@ mod tests {
                     assert!(stale.stale, "read {}: age==ttl+1 must be stale", case.name);
                 }
             }
-            std::fs::remove_dir_all(&dir).ok();
         }
 
         // Write cases: store through store_cached, read the persisted document,
         // assert the real fetchedAt shape, then load it back through load_cached.
         for &ms in &cases.write {
-            let dir = tmp_dir(&format!("ts-write-{ms}"));
+            let dir = scratch_dir(&format!("ts-write-{ms}"));
             let stamp = store_cached(&dir, name, &openrouter_payload(), ms).unwrap();
             assert_eq!(stamp.len(), 24, "write {ms}: length");
             assert!(stamp.ends_with('Z'), "write {ms}: Z suffix");
@@ -463,7 +453,6 @@ mod tests {
                 stale.stale,
                 "write {ms}: reload at now==epoch+1 must be stale"
             );
-            std::fs::remove_dir_all(&dir).ok();
         }
     }
 
@@ -472,7 +461,7 @@ mod tests {
         // Regression: a max_cache_age_ms of u64::MAX must never wrap the age
         // comparison negative and mark a fresh cache stale. With the old
         // `ttl_ms as i64` cast, u64::MAX became -1 and age 0 satisfied 0 > -1.
-        let dir = tmp_dir("ttl-u64-max");
+        let dir = scratch_dir("ttl-u64-max");
         let now = 1_000_000_000_000;
         store_cached(&dir, "openrouter", &openrouter_payload(), now).unwrap();
         let cached = load_cached(&dir, "openrouter", u64::MAX, now).unwrap();
@@ -480,17 +469,16 @@ mod tests {
             !cached.stale,
             "u64::MAX TTL with a fresh stamp must be fresh"
         );
-        std::fs::remove_dir_all(&dir).ok();
     }
 
     #[test]
     fn store_then_load_is_fresh_and_atomic() {
-        let dir = tmp_dir("atomic");
+        let dir = scratch_dir("atomic");
         let now = 1_000_000_000_000;
         let at = store_cached(&dir, "openrouter", &openrouter_payload(), now).unwrap();
         assert_eq!(at, "2001-09-09T01:46:40.000Z");
         // No stray temp files remain after the rename.
-        let leftovers: Vec<_> = std::fs::read_dir(&dir)
+        let leftovers: Vec<_> = std::fs::read_dir(&*dir)
             .unwrap()
             .filter_map(Result::ok)
             .filter(|e| e.file_name().to_string_lossy().ends_with(".tmp"))
@@ -503,21 +491,20 @@ mod tests {
         let cached =
             load_cached(&dir, "openrouter", DEFAULT_TTL_MS, now + DEFAULT_TTL_MS + 1).unwrap();
         assert!(cached.stale);
-        std::fs::remove_dir_all(&dir).ok();
     }
 
     #[test]
     fn fresh_cache_short_circuits_fetch() {
-        let dir = tmp_dir("fresh");
+        let dir = scratch_dir("fresh");
         let now = now_ms();
         store_cached(&dir, "openrouter", &openrouter_payload(), now).unwrap();
         let opts = BuiltinOptions {
-            cache_dir: dir.clone(),
+            cache_dir: dir.to_path_buf(),
             offline: false,
             max_cache_age_ms: None,
         };
         // Empty base dir → any fetch would fail; a fresh cache must avoid it.
-        let empty_base = tmp_dir("fresh-base");
+        let empty_base = scratch_dir("fresh-base");
         let catalogs = load_with(
             &opts,
             false,
@@ -526,23 +513,21 @@ mod tests {
         );
         assert_eq!(catalogs.len(), 1);
         assert_eq!(catalogs[0].source, "openrouter");
-        std::fs::remove_dir_all(&dir).ok();
-        std::fs::remove_dir_all(&empty_base).ok();
     }
 
     #[test]
     fn stale_cache_fetches_and_refreshes() {
-        let dir = tmp_dir("stale");
+        let dir = scratch_dir("stale");
         // Write a cache far in the past so it is stale.
         store_cached(&dir, "openrouter", &openrouter_payload(), 1_000_000_000_000).unwrap();
-        let base = tmp_dir("stale-base");
+        let base = scratch_dir("stale-base");
         std::fs::write(
             base.join("openrouter.json"),
             serde_json::to_string(&openrouter_payload()).unwrap(),
         )
         .unwrap();
         let opts = BuiltinOptions {
-            cache_dir: dir.clone(),
+            cache_dir: dir.to_path_buf(),
             offline: false,
             max_cache_age_ms: None,
         };
@@ -551,18 +536,16 @@ mod tests {
         // The refreshed cache is now fresh (fetchedAt updated to ~now).
         let reloaded = load_cached(&dir, "openrouter", DEFAULT_TTL_MS, now_ms()).unwrap();
         assert!(!reloaded.stale);
-        std::fs::remove_dir_all(&dir).ok();
-        std::fs::remove_dir_all(&base).ok();
     }
 
     #[test]
     fn fetch_failure_falls_back_to_any_age_stale() {
-        let dir = tmp_dir("fallback");
+        let dir = scratch_dir("fallback");
         store_cached(&dir, "openrouter", &openrouter_payload(), 1_000_000_000_000).unwrap();
         // Empty base → fetch fails; stale cache must still be served.
-        let empty_base = tmp_dir("fallback-base");
+        let empty_base = scratch_dir("fallback-base");
         let opts = BuiltinOptions {
-            cache_dir: dir.clone(),
+            cache_dir: dir.to_path_buf(),
             offline: false,
             max_cache_age_ms: None,
         };
@@ -574,16 +557,14 @@ mod tests {
         );
         assert_eq!(catalogs.len(), 1);
         assert_eq!(catalogs[0].source, "openrouter");
-        std::fs::remove_dir_all(&dir).ok();
-        std::fs::remove_dir_all(&empty_base).ok();
     }
 
     #[test]
     fn offline_is_cache_only() {
-        let dir = tmp_dir("offline");
+        let dir = scratch_dir("offline");
         store_cached(&dir, "openrouter", &openrouter_payload(), 1_000_000_000_000).unwrap();
         // Base has data but offline must never consult it.
-        let base = tmp_dir("offline-base");
+        let base = scratch_dir("offline-base");
         std::fs::write(
             base.join("litellm.json"),
             serde_json::to_string(&serde_json::json!({
@@ -593,7 +574,7 @@ mod tests {
         )
         .unwrap();
         let opts = BuiltinOptions {
-            cache_dir: dir.clone(),
+            cache_dir: dir.to_path_buf(),
             offline: true,
             max_cache_age_ms: None,
         };
@@ -601,24 +582,22 @@ mod tests {
         // Only the cached openrouter source; litellm (base-only) is NOT fetched.
         assert_eq!(catalogs.len(), 1);
         assert_eq!(catalogs[0].source, "openrouter");
-        std::fs::remove_dir_all(&dir).ok();
-        std::fs::remove_dir_all(&base).ok();
     }
 
     #[test]
     fn max_cache_age_override_forces_stale() {
-        let dir = tmp_dir("ttl");
+        let dir = scratch_dir("ttl");
         let now = now_ms();
         store_cached(&dir, "openrouter", &openrouter_payload(), now).unwrap();
         // TTL of 0 ms makes even a just-written cache stale → it must fetch.
-        let base = tmp_dir("ttl-base");
+        let base = scratch_dir("ttl-base");
         std::fs::write(
             base.join("openrouter.json"),
             serde_json::to_string(&openrouter_payload()).unwrap(),
         )
         .unwrap();
         let opts = BuiltinOptions {
-            cache_dir: dir.clone(),
+            cache_dir: dir.to_path_buf(),
             offline: false,
             max_cache_age_ms: Some(0),
         };
@@ -629,7 +608,5 @@ mod tests {
         assert!(cached.stale, "0ms TTL must classify as stale");
         let catalogs = load_with(&opts, false, &Fetcher::Base(&base), &SourceUrls::default());
         assert_eq!(catalogs.len(), 1);
-        std::fs::remove_dir_all(&dir).ok();
-        std::fs::remove_dir_all(&base).ok();
     }
 }

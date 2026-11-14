@@ -1,6 +1,8 @@
 # frozen_string_literal: true
 
+require "rake/clean"
 require "rake/testtask"
+require_relative "lib/skopli/version"
 
 begin
   require "rb_sys/extensiontask"
@@ -24,3 +26,40 @@ Rake::TestTask.new(test: :compile) do |t|
 end
 
 task default: %i[compile test]
+
+VENDORED = %w[skopli-core skopli-wire].freeze
+CLOBBER.include("pkg", "skopli.gem")
+
+# An installed gem has no checkout around it, so the gem root must be its own
+# Cargo workspace with the core crates it needs under vendor/.
+desc "Build skopli.gem with skopli-core and skopli-wire vendored"
+task :gem do
+  root = File.read("../../Cargo.toml").split(/^(?=\[)/)
+  unknown = root.filter_map { |table| table[/\A\[.*\]/] } - ["[workspace]", "[workspace.package]", "[workspace.dependencies]"]
+  raise "root Cargo.toml tables #{unknown.join(", ")} are not carried into the gem" unless unknown.empty?
+
+  tables = root.grep(/\A\[workspace\.(package|dependencies)\]/).join
+  version = tables[/^\[workspace\.package\][^\[]*?^version = "([^"]*)"/m, 1]
+  raise "workspace version #{version.inspect} differs from Skopli::VERSION #{Skopli::VERSION}" unless version == Skopli::VERSION
+
+  rewritten = 0
+  tables = tables.gsub(%r{path = "crates/([^"]+)"}) do
+    raise "path dependency #{$1} is not vendored" unless VENDORED.include?($1)
+    rewritten += 1
+    %(path = "vendor/#{$1}")
+  end
+  raise "expected #{VENDORED.size} path rewrites, made #{rewritten}" unless rewritten == VENDORED.size
+
+  stage = "pkg/skopli"
+  rm_rf stage
+  mkdir_p stage
+  cp_r %w[lib src extconf.rb README.md skopli.gemspec ../../Cargo.lock], stage
+  VENDORED.each do |name|
+    mkdir_p "#{stage}/vendor/#{name}"
+    cp_r %W[../#{name}/Cargo.toml ../#{name}/src], "#{stage}/vendor/#{name}"
+  end
+
+  members = VENDORED.map { |name| "vendor/#{name}" }
+  File.write("#{stage}/Cargo.toml", "#{File.read("Cargo.toml")}\n[workspace]\nmembers = #{members.inspect}\n\n#{tables}")
+  sh "gem", "build", "skopli.gemspec", "-o", File.expand_path("skopli.gem"), chdir: stage
+end

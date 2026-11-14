@@ -8,7 +8,8 @@ use serde_json::Value;
 use super::reader::{Reader, ReaderContext};
 use super::shared::{
     EpochUnit, ReaderResult, ReaderWarning, as_string, basename, dir_exists, dirname,
-    epoch_to_iso_unit, finite_number, is_record, list_files, optional_cell, required_cell,
+    epoch_to_iso_unit, finite_number, is_record, list_files, map_chunks, optional_cell,
+    required_cell,
 };
 use super::sqlite_store::{blob_column, open_readonly, pragma_int, table_exists};
 use crate::types::{TokenCounts, UsageEvent};
@@ -364,6 +365,15 @@ fn read_session(
     events
 }
 
+fn read_sessions(sessions: &[Vec<String>]) -> (ReaderResult, HashSet<String>) {
+    let (mut part, mut seen) = (ReaderResult::default(), HashSet::new());
+    for logs in sessions {
+        let events = read_session(logs, &mut part.skipped, &mut part.warnings, &mut seen);
+        part.events.extend(events);
+    }
+    (part, seen)
+}
+
 /// The reserved SQLite `application_id` for DeepSeek Harness session databases
 /// (`0x44534850`, ASCII "DSHP") and the schema version this build understands.
 const SQLITE_APPLICATION_ID: i64 = 0x4453_4850;
@@ -624,8 +634,11 @@ pub fn read_deepseek(home: &Path) -> ReaderResult {
         };
     }
 
-    for logs in session_logs(home) {
-        events.extend(read_session(&logs, &mut skipped, &mut warnings, &mut seen));
+    for (part, part_seen) in map_chunks(&session_logs(home), read_sessions) {
+        events.extend(part.events);
+        skipped.extend(part.skipped);
+        warnings.extend(part.warnings);
+        seen.extend(part_seen);
     }
 
     let databases = list_files(home, |name| {
@@ -696,7 +709,6 @@ mod tests {
         assert_eq!(events[0].tokens.input, 10);
         assert_eq!(events[0].tokens.output, 5);
         assert!(!events[0].subagent);
-        fs::remove_dir_all(&dir).ok();
     }
 
     #[test]
@@ -714,7 +726,6 @@ mod tests {
         assert_eq!(events[0].tokens.cache_read, 30);
         assert_eq!(events[0].tokens.cache_write, 20);
         assert_eq!(events[0].tokens.reasoning, 7);
-        fs::remove_dir_all(&dir).ok();
     }
 
     #[test]
@@ -730,7 +741,6 @@ mod tests {
         let events = read_deepseek(&dir).events;
         assert_eq!(events.len(), 1);
         assert!(events[0].subagent);
-        fs::remove_dir_all(&dir).ok();
     }
 
     #[test]
@@ -747,7 +757,29 @@ mod tests {
         let events = read_deepseek(&dir).events;
         assert_eq!(events.len(), 1, "only the finalized message emits");
         assert_eq!(events[0].tokens.input, 10);
-        fs::remove_dir_all(&dir).ok();
+    }
+
+    #[test]
+    fn many_sessions_keep_directory_order() {
+        let dir = scratch_dir("many-sessions");
+        let mut expected_skipped = Vec::new();
+        for i in 0..64 {
+            let file = write_session(
+                &dir,
+                "--proj--",
+                &format!("s{i:02}"),
+                &format!(
+                    "{{\"type\":\"session\",\"id\":\"s{i:02}\",\"createdAt\":1}}\n\
+                     not json\n\
+                     {{\"type\":\"assistant/message\",\"seq\":1,\"time\":1754042401000,\"data\":{{\"message\":{{\"source\":{{\"model\":\"m\"}}}},\"usage\":{{\"inputTokens\":1,\"outputTokens\":1}}}}}}\n"
+                ),
+            );
+            expected_skipped.push(format!("{}:2", file.to_string_lossy()));
+        }
+        let result = read_deepseek(&dir);
+        let ids: Vec<_> = result.events.iter().map(|e| e.session_id.clone()).collect();
+        assert_eq!(ids, (0..64).map(|i| format!("s{i:02}")).collect::<Vec<_>>());
+        assert_eq!(result.skipped, expected_skipped);
     }
 
     #[test]
@@ -761,7 +793,6 @@ mod tests {
              {\"type\":\"assistant/message\",\"seq\":1,\"time\":1754042401000,\"data\":{\"message\":{\"source\":{\"model\":\"m\"}},\"usage\":{\"inputTokens\":0,\"outputTokens\":0}}}\n",
         );
         assert!(read_deepseek(&dir).events.is_empty());
-        fs::remove_dir_all(&dir).ok();
     }
 
     #[test]
@@ -782,7 +813,6 @@ mod tests {
             result.warnings[0].message,
             format!("skipping malformed deepseek record {loc}\n")
         );
-        fs::remove_dir_all(&dir).ok();
     }
 
     #[test]
@@ -800,7 +830,6 @@ mod tests {
             result.warnings[0].message,
             format!("skipping malformed deepseek file {file}\n")
         );
-        fs::remove_dir_all(&dir).ok();
     }
 
     #[test]
@@ -825,7 +854,6 @@ mod tests {
         assert_eq!(events.len(), 1);
         assert_eq!(events[0].session_id, "z");
         assert_eq!(events[0].tokens.input, 4);
-        fs::remove_dir_all(&dir).ok();
     }
 
     #[test]
@@ -853,7 +881,6 @@ mod tests {
         assert_eq!(result.events[0].workspace.as_deref(), Some("/work/proj"));
         assert_eq!(session_log_generation("session.v4.jsonl.zstd"), Some(4));
         assert_eq!(session_log_generation("session.v4.jsonl.bak"), None);
-        fs::remove_dir_all(&dir).ok();
     }
 
     #[test]
@@ -871,7 +898,6 @@ mod tests {
         assert_eq!(result.events.len(), 1);
         assert!(result.events[0].message_id.contains("session.v4.jsonl"));
         assert_eq!(result.events[0].tokens.input, 10);
-        fs::remove_dir_all(&dir).ok();
     }
 
     #[test]
@@ -901,7 +927,6 @@ mod tests {
                 ),
             }]
         );
-        fs::remove_dir_all(&dir).ok();
     }
 
     // Two frames written by the reference `zstd` CLI and concatenated, as the
@@ -931,7 +956,6 @@ mod tests {
         fs::create_dir_all(&session_dir).unwrap();
         fs::write(session_dir.join("session.v4.jsonl.zstd"), bytes).unwrap();
         let result = read_deepseek(&dir);
-        fs::remove_dir_all(&dir).ok();
         (session_dir.join("session.v4.jsonl.zstd"), result)
     }
 
@@ -1092,7 +1116,6 @@ mod tests {
         assert_eq!(events[1].session_id, "sess-b");
         assert_eq!(events[1].model, "deepseek-reasoner");
         assert!(events[1].subagent, "parent_session tags a subagent");
-        fs::remove_dir_all(&dir).ok();
     }
 
     #[test]
@@ -1134,7 +1157,6 @@ mod tests {
         );
         assert_eq!(events[1].message_id, "sess-a:5");
         assert_eq!(events[1].tokens.input, 11);
-        fs::remove_dir_all(&dir).ok();
     }
 
     #[test]
@@ -1155,7 +1177,6 @@ mod tests {
             "structured db-level diagnostic: {}",
             result.warnings[0].message
         );
-        fs::remove_dir_all(&dir).ok();
     }
 
     #[test]
@@ -1187,7 +1208,6 @@ mod tests {
             result.warnings[0].message,
             format!("skipping malformed deepseek record {db_str}:1\n")
         );
-        fs::remove_dir_all(&dir).ok();
     }
 
     #[test]
@@ -1205,7 +1225,6 @@ mod tests {
             "a foreign db is not a diagnostic"
         );
         assert!(result.skipped.is_empty());
-        fs::remove_dir_all(&dir).ok();
     }
 
     #[test]
@@ -1235,7 +1254,6 @@ mod tests {
         assert_eq!(result.events[0].tokens.input, 100);
         assert_eq!(result.events[0].tokens.output, 50);
         assert_eq!(result.events[0].tokens.reasoning, 7);
-        fs::remove_dir_all(&dir).ok();
     }
 
     #[test]
@@ -1261,7 +1279,6 @@ mod tests {
             result.warnings[0].message,
             format!("skipping malformed deepseek record {db_str}:1\n")
         );
-        fs::remove_dir_all(&dir).ok();
     }
 
     #[test]
@@ -1292,6 +1309,5 @@ mod tests {
             "an unknown schema version is silently ignored, not a diagnostic"
         );
         assert!(result.skipped.is_empty());
-        fs::remove_dir_all(&dir).ok();
     }
 }

@@ -22,6 +22,7 @@ target/
 Gemfile.lock
 crates/skopli-ruby/lib/skopli/skopli.*
 crates/skopli-ruby/tmp/
+crates/skopli-ruby/pkg/
 
 # Python build artifacts
 *.pyd

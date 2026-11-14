@@ -485,7 +485,6 @@ mod tests {
         assert_eq!(events[0].tokens.reasoning, 40);
         assert_eq!(events[0].timestamp, "2026-08-01T10:00:05.000Z");
         assert_eq!(events[0].session_id, "trajectory_20260801_100000");
-        fs::remove_dir_all(&dir).ok();
     }
 
     #[test]
@@ -502,7 +501,6 @@ mod tests {
         assert_eq!(events[0].tokens.cache_write, 0);
         assert_eq!(events[0].tokens.reasoning, 0);
         assert_eq!(events[0].model, "m", "falls back to trajectory model");
-        fs::remove_dir_all(&dir).ok();
     }
 
     #[test]
@@ -514,14 +512,12 @@ mod tests {
             r#"{"model":"m","llm_interactions":[{"response":{"usage":{"input_tokens":0,"output_tokens":0}}}]}"#,
         );
         assert!(read_trae(&dir).events.is_empty());
-        fs::remove_dir_all(&dir).ok();
     }
 
     #[test]
     fn missing_trajectories_dir_yields_empty() {
         let dir = scratch_dir("absent");
         assert!(read_trae(&dir).events.is_empty());
-        fs::remove_dir_all(&dir).ok();
     }
 
     #[test]
@@ -544,7 +540,6 @@ mod tests {
             result.warnings[0].message,
             format!("skipping malformed trae interaction {file}:1\n")
         );
-        fs::remove_dir_all(&dir).ok();
     }
 
     #[test]
@@ -580,7 +575,6 @@ mod tests {
             result.warnings[0].message,
             format!("skipping malformed trae interaction {file}:1\n")
         );
-        fs::remove_dir_all(&dir).ok();
     }
 
     #[test]
@@ -604,7 +598,6 @@ mod tests {
                 .all(|w| w.message.starts_with("skipping malformed trae trajectory ")),
             "file-level malformed diagnostics for both"
         );
-        fs::remove_dir_all(&dir).ok();
     }
 
     #[test]
@@ -640,6 +633,5 @@ mod tests {
         );
         assert_eq!(result.events[0].tokens.input, 10);
         assert!(result.skipped.is_empty());
-        fs::remove_dir_all(&dir).ok();
     }
 }

@@ -150,14 +150,14 @@ mod tests {
     use std::fs;
 
     use super::*;
-    use crate::readers::shared::{scratch_dir, test_home};
+    use crate::readers::shared::{ScratchDir, scratch_dir, test_home};
 
     const HEADER: &str = r#"{"type":"session","version":3,"id":"s1","timestamp":"2026-10-25T10:21:20.528Z","cwd":"/work/p-limit"}"#;
     const USER: &str = r#"{"type":"message","id":"u1","parentId":null,"timestamp":"2026-10-25T10:24:58.100Z","message":{"role":"user","content":[{"type":"text","text":"hi"}]}}"#;
     const ASSISTANT: &str = r#"{"type":"message","id":"a1","parentId":"u1","timestamp":"2026-10-25T10:24:58.100Z","message":{"role":"assistant","content":[]},"usage":{"inputTokens":14607,"outputTokens":40,"cacheReadTokens":6955,"cacheWriteTokens":0},"model":"llama/qwen"}"#;
     const ASSISTANT2: &str = r#"{"type":"message","id":"a2","parentId":"u2","timestamp":"2026-10-25T10:27:34.501Z","message":{"role":"assistant","content":[]},"usage":{"inputTokens":14670,"outputTokens":42,"cacheReadTokens":14646,"cacheWriteTokens":0},"model":"llama/qwen"}"#;
 
-    fn write_session(lines: &[&str]) -> (PathBuf, PathBuf) {
+    fn write_session(lines: &[&str]) -> (ScratchDir, PathBuf) {
         let home = scratch_dir("commandcode");
         let dir = commandcode_projects(&home).join("work-p-limit");
         fs::create_dir_all(&dir).unwrap();
@@ -195,7 +195,7 @@ mod tests {
     #[test]
     fn session_and_user_lines_carry_no_usage() {
         let (home, _) = write_session(&[HEADER, USER]);
-        let r = CommandcodeReader.read(&ReaderContext::new(&home));
+        let r = CommandcodeReader.read(&ReaderContext::new(&*home));
         assert!(r.events.is_empty());
         assert!(r.warnings.is_empty());
     }
@@ -203,7 +203,7 @@ mod tests {
     #[test]
     fn one_event_per_assistant_line_with_uncached_input() {
         let (home, _) = write_session(&[HEADER, USER, ASSISTANT, ASSISTANT2]);
-        let r = CommandcodeReader.read(&ReaderContext::new(&home));
+        let r = CommandcodeReader.read(&ReaderContext::new(&*home));
         assert_eq!(r.events.len(), 2);
         let e = &r.events[0];
         assert_eq!(e.session_id, "0f1e2d3c-0000-4000-8000-000000000001");
@@ -221,7 +221,7 @@ mod tests {
     fn repeated_message_id_is_a_rewrite() {
         let rewrite = ASSISTANT.replace("\"outputTokens\":40", "\"outputTokens\":41");
         let (home, _) = write_session(&[HEADER, ASSISTANT, &rewrite]);
-        let r = CommandcodeReader.read(&ReaderContext::new(&home));
+        let r = CommandcodeReader.read(&ReaderContext::new(&*home));
         assert_eq!(r.events.len(), 1);
         assert_eq!(r.events[0].tokens.output, 41);
     }
@@ -229,7 +229,7 @@ mod tests {
     #[test]
     fn malformed_line_is_skipped_with_a_warning() {
         let (home, file) = write_session(&[HEADER, "{not json", ASSISTANT]);
-        let r = CommandcodeReader.read(&ReaderContext::new(&home));
+        let r = CommandcodeReader.read(&ReaderContext::new(&*home));
         assert_eq!(r.events.len(), 1);
         assert_eq!(r.skipped, vec![format!("{}:2", file.display())]);
         assert_eq!(r.warnings.len(), 1);
@@ -239,7 +239,7 @@ mod tests {
     fn non_numeric_usage_cell_is_skipped_with_a_warning() {
         let bad = ASSISTANT.replace("\"inputTokens\":14607", "\"inputTokens\":\"x\"");
         let (home, _) = write_session(&[HEADER, &bad, ASSISTANT2]);
-        let r = CommandcodeReader.read(&ReaderContext::new(&home));
+        let r = CommandcodeReader.read(&ReaderContext::new(&*home));
         assert_eq!(r.events.len(), 1);
         assert_eq!(r.events[0].message_id, "a2");
         assert!(r.warnings[0].message.contains("malformed usage"));
@@ -249,7 +249,7 @@ mod tests {
     fn missing_model_falls_back_to_unknown() {
         let no_model = ASSISTANT.replace(",\"model\":\"llama/qwen\"", "");
         let (home, _) = write_session(&[HEADER, &no_model]);
-        let r = CommandcodeReader.read(&ReaderContext::new(&home));
+        let r = CommandcodeReader.read(&ReaderContext::new(&*home));
         assert_eq!(r.events[0].model, UNKNOWN_MODEL);
     }
 }

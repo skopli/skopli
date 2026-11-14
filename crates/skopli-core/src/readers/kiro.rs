@@ -722,7 +722,6 @@ mod tests {
         assert!(events[0].turn);
         assert!(!events[0].subagent);
         assert_eq!(events[0].workspace.as_deref(), Some("/home/u/proj"));
-        fs::remove_dir_all(&dir).ok();
     }
 
     #[test]
@@ -748,7 +747,6 @@ mod tests {
         assert_eq!(events.len(), 2);
         assert_eq!(events[0].message_id, "/home/u/proj:0");
         assert_eq!(events[1].message_id, "/home/u/proj:1");
-        fs::remove_dir_all(&dir).ok();
     }
 
     #[test]
@@ -767,7 +765,6 @@ mod tests {
         let events = read_kiro(&[db]).events;
         assert_eq!(events.len(), 1);
         assert!(events[0].timestamp.ends_with('Z'));
-        fs::remove_dir_all(&dir).ok();
     }
 
     #[test]
@@ -783,7 +780,6 @@ mod tests {
             read_kiro(&[db]).events.is_empty(),
             "sub-20-byte turns estimate to zero"
         );
-        fs::remove_dir_all(&dir).ok();
     }
 
     #[test]
@@ -801,7 +797,6 @@ mod tests {
         );
         let events = read_kiro(&[db]).events;
         assert_eq!(events.len(), 1, "the v2 table is read defensively");
-        fs::remove_dir_all(&dir).ok();
     }
 
     #[test]
@@ -823,7 +818,6 @@ mod tests {
         assert_eq!(events.len(), 1);
         assert_eq!(events[0].tokens.input, 10, "40 bytes rounds to 10");
         assert_eq!(events[0].tokens.output, 20, "60 bytes rounds to 20");
-        fs::remove_dir_all(&dir).ok();
     }
 
     #[test]
@@ -854,7 +848,6 @@ mod tests {
             result.warnings[0].message,
             format!("skipping malformed kiro record {db_str}:conversations:1\n")
         );
-        fs::remove_dir_all(&dir).ok();
     }
 
     fn build_db_two_tables(path: &Path, v2_rows: &[(&str, &str)], v1_rows: &[(&str, &str)]) {
@@ -895,7 +888,6 @@ mod tests {
             ],
             "the first malformed row of each table keeps a distinct table-scoped identity"
         );
-        fs::remove_dir_all(&dir).ok();
     }
 
     #[test]
@@ -916,7 +908,6 @@ mod tests {
             "a copy sharing conversation_id and index is a migration duplicate"
         );
         assert_eq!(events[0].message_id, "/home/u/proj:0");
-        fs::remove_dir_all(&dir).ok();
     }
 
     #[test]
@@ -939,7 +930,6 @@ mod tests {
             1,
             "an id-less byte-for-byte copy is suppressed by the content fingerprint"
         );
-        fs::remove_dir_all(&dir).ok();
     }
 
     #[test]
@@ -960,7 +950,6 @@ mod tests {
             2,
             "different conversation_ids at the same key and index are not duplicates"
         );
-        fs::remove_dir_all(&dir).ok();
     }
 
     #[test]
@@ -988,7 +977,6 @@ mod tests {
             2,
             "id-less turns with different content are distinct, not migration copies"
         );
-        fs::remove_dir_all(&dir).ok();
     }
 
     #[test]
@@ -1034,7 +1022,6 @@ mod tests {
             2,
             "distinct turns differing only by separator placement must not collide"
         );
-        fs::remove_dir_all(&dir).ok();
     }
 
     #[test]
@@ -1060,7 +1047,6 @@ mod tests {
             1,
             "the legacy copy sharing conversation_id is deduped against the current store"
         );
-        fs::remove_dir_all(&dir).ok();
     }
 
     #[test]
@@ -1098,7 +1084,6 @@ mod tests {
         let mut models: Vec<&str> = events.iter().map(|e| e.model.as_str()).collect();
         models.sort_unstable();
         assert_eq!(models, vec!["current-model", "legacy-model"]);
-        fs::remove_dir_all(&dir).ok();
     }
 
     #[test]
@@ -1131,7 +1116,6 @@ mod tests {
             2,
             "id-less turns differing only by timestamp are distinct across databases"
         );
-        fs::remove_dir_all(&dir).ok();
     }
 
     #[test]
@@ -1149,7 +1133,6 @@ mod tests {
                 .starts_with(&format!("unable to read kiro database {db_str}:"))
                 && result.warnings[0].message.ends_with('\n')
         );
-        fs::remove_dir_all(&dir).ok();
     }
 
     #[test]
@@ -1167,7 +1150,6 @@ mod tests {
             "an absent chat table is not a diagnostic"
         );
         assert!(result.skipped.is_empty());
-        fs::remove_dir_all(&dir).ok();
     }
 
     fn build_db_three_column(path: &Path, table: &str, rows: &[(&str, &str, Option<&str>)]) {
@@ -1209,7 +1191,6 @@ mod tests {
             "id-only-in-column copies sharing the column id dedupe across tables and dbs"
         );
         assert_eq!(events[0].message_id, "/home/u/proj:0");
-        fs::remove_dir_all(&dir).ok();
     }
 
     #[test]
@@ -1232,7 +1213,6 @@ mod tests {
             1,
             "the JSON conversation_id wins over the column id, so both rows share the same durable identity and dedupe to one"
         );
-        fs::remove_dir_all(&dir).ok();
     }
 
     fn state_json_request_metadata(
@@ -1266,7 +1246,6 @@ mod tests {
             events[0].timestamp, "2025-08-01T10:00:00.000Z",
             "the request_metadata start ms epoch is the timestamp when the user turn omits its own"
         );
-        fs::remove_dir_all(&dir).ok();
     }
 
     #[test]
@@ -1284,6 +1263,5 @@ mod tests {
             read_kiro(&[db]).events.is_empty(),
             "only completed history turns emit; the pending next_message does not"
         );
-        fs::remove_dir_all(&dir).ok();
     }
 }

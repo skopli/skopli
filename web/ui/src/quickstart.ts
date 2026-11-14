@@ -99,7 +99,7 @@ let priced = pricing.price_rollups(&by_model);`,
     install: "gem install skopli",
     source:
       'gem "skopli", git: "https://github.com/skopli/skopli", glob: "crates/skopli-ruby/*.gemspec"',
-    note: "Ruby 3.2+. Building from source needs a Rust toolchain.",
+    note: "Ruby 3.2+. The gem compiles on install and needs Rust 1.88+, a C compiler and libclang.",
     code: `require "skopli"
 
 result = Skopli.read_usage(
@@ -115,7 +115,7 @@ end`,
   {
     id: "java",
     registry: "GitHub Releases",
-    install: 'gh release download --repo skopli/skopli --pattern "skopli-[0-9]*[0-9].jar"',
+    install: 'gh release download --repo skopli/skopli --pattern "skopli-[0-9]*[^s].jar"',
     source:
       "git clone https://github.com/skopli/skopli && cargo build --manifest-path skopli/Cargo.toml -p skopli-capi --release && gradle -p skopli/sdks/java jar",
     note: "JDK 22+. sdks/java/README.md covers the jar and the run-time flags.",

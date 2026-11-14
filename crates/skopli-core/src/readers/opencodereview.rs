@@ -238,7 +238,6 @@ mod tests {
         assert_eq!(events[0].timestamp, "2026-08-01T10:00:00.000Z");
         assert_eq!(events[0].tokens.input, 10);
         assert_eq!(events[0].tokens.output, 5);
-        fs::remove_dir_all(&dir).ok();
     }
 
     #[test]
@@ -263,7 +262,6 @@ mod tests {
         assert_eq!(events[0].tokens.cache_read, 30);
         assert_eq!(events[0].tokens.cache_write, 20);
         assert_eq!(events[1].model, "m2");
-        fs::remove_dir_all(&dir).ok();
     }
 
     #[test]
@@ -278,7 +276,6 @@ mod tests {
         let events = read_opencodereview(&dir).events;
         assert_eq!(events.len(), 1);
         assert_eq!(events[0].model, "session-model");
-        fs::remove_dir_all(&dir).ok();
     }
 
     #[test]
@@ -291,7 +288,6 @@ mod tests {
             "{\"type\":\"session_start\",\"timestamp\":\"2026-08-04T09:00:00Z\",\"model\":\"m\"}\n{\"type\":\"llm_response\",\"model\":\"m\",\"usage\":{\"prompt_tokens\":0,\"completion_tokens\":0}}\n",
         );
         assert!(read_opencodereview(&dir).events.is_empty());
-        fs::remove_dir_all(&dir).ok();
     }
 
     #[test]
@@ -325,7 +321,6 @@ mod tests {
             result.warnings[0].message,
             format!("skipping malformed opencodereview record {file}:3\n")
         );
-        fs::remove_dir_all(&dir).ok();
     }
 
     #[test]
@@ -364,6 +359,5 @@ mod tests {
             result.warnings[0].message,
             format!("skipping malformed opencodereview record {file}:2\n")
         );
-        fs::remove_dir_all(&dir).ok();
     }
 }
