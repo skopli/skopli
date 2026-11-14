@@ -7,7 +7,8 @@ Every docs page carries one split control under its title: a `Copy page` button 
 - `actions-copy` fetches the page's `.md` twin, writes it to the clipboard and flips the label to `Copied` for 1.5 seconds.
   The label carries `aria-live="polite"` so the flip is announced.
 - `actions-menu` is the chevron button (`aria-label="More actions"`, `aria-haspopup="menu"`, `aria-expanded`).
-  Click, Enter, Space or ArrowDown open the `role="menu"` list and the keys move focus to its first item; ArrowUp opens it focused on the last item instead. Escape, whether focus is on the chevron or on an item, closes it and returns focus to the chevron; Tab out or an outside click closes it.
+  Click, Enter, Space or ArrowDown open the `role="menu"` list and the keys move focus to its first item; ArrowUp opens it focused on the last item instead.
+  Escape, whether focus is on the chevron or on an item, closes it and returns focus to the chevron; Tab out or an outside click closes it.
   Enter or Space on an item activates it; activating an item closes the menu and returns focus to the chevron.
 - `actions-view-md` is the first menu item and links to the page's `.md` twin.
 - `actions-copy-link` is the second menu item and copies the twin's public URL; the label flips to `Link copied`.
