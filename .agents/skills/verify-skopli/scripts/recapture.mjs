@@ -14,7 +14,10 @@ import {
   statSync,
   writeFileSync,
 } from "node:fs";
+import { connect } from "node:net";
 import { hostname, platform, userInfo } from "node:os";
+import { Readable } from "node:stream";
+import { pipeline } from "node:stream/promises";
 import { delimiter, dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { parseArgs } from "./cli.mjs";
@@ -28,7 +31,7 @@ steps (each idempotent; "all" runs them in order and always ends with stop):
   install   install every harness the manifest can install, write cli-versions.txt
   run       run the selected cells one at a time with an isolated home each
   report    write cell-notes.<os>.tsv, matrix.<os>.md and drift.json from the cell results
-  package   tar the run directory without the homes' node modules
+  package   tar the run directory without target copies, model or server binaries
   stop      stop the server and gateway this run started, by PID
   all       env, install, run, report, package, stop
 
@@ -36,10 +39,11 @@ options:
   --out <dir>        run directory (default .verify/recapture/<utc-stamp>; reuse it to resume)
   --cache <dir>      download cache shared across runs (default .verify/recapture/cache)
   --only <h[/shape]> restrict to a harness or one cell; repeatable
-  --os <os>          label outputs for linux, darwin or windows (default: this machine)
+  --os <os>          plan for linux, darwin or windows; only list and --dry-run accept another OS
   --timeout <s>      wall-clock budget per cell across all turns, in seconds (default 600)
   --resume           skip cells that already have result.json in --out
-  --baseline <dir>   a previous run directory; report flags CLI version changes against it
+  --baseline <dir>   a previous run directory; report flags CLI version changes against it and
+                     does not count a TODO it already reported
   --dry-run          print the resolved plan as JSON and exit
   --quiet            no progress lines on stderr
   --help             this text
@@ -63,8 +67,11 @@ const here = dirname(fileURLToPath(import.meta.url));
 const root = resolve(here, "../../../..");
 const manifest = JSON.parse(readFileSync(join(here, "../recapture/harnesses.json"), "utf8"));
 const seeds = join(here, "../recapture/seeds");
-const OS = args.one("--os", { linux: "linux", darwin: "darwin", win32: "windows" }[platform()]);
+const HOST = { linux: "linux", darwin: "darwin", win32: "windows" }[platform()];
+const OS = args.one("--os", HOST);
 if (!["linux", "darwin", "windows"].includes(OS)) args.usage(`unsupported os ${OS}`);
+if (OS !== HOST && step !== "list" && !args.dryRun)
+  args.usage(`--os ${OS} only plans; ${step} has to run on ${OS}`);
 const stamp = new Date().toISOString().replace(/[-:]/g, "").replace(/\.\d+/, "");
 const out = resolve(args.one("--out", join(root, ".verify/recapture", stamp)));
 const cache = resolve(args.one("--cache", join(root, ".verify/recapture/cache")));
@@ -72,17 +79,46 @@ const timeout = Number(args.one("--timeout", "600"));
 if (!(timeout > 0)) args.usage("--timeout must be a positive number of seconds");
 const only = args.many("--only");
 const say = args.log;
-// Global harness installs land in a pnpm home inside the cache, so a run never touches the machine's own globals.
-// The repo's own install keeps the caller's environment: on Windows pnpm derives its default store
-// from PNPM_HOME, so the redirected home would make it purge and refetch node_modules.
-const callerEnv = { ...process.env };
+// Harness installs land in the cache: a pnpm home for packages and a separate HOME for vendor scripts,
+// so a run never touches the machine's own globals or dotfiles.
+// The repo's own pnpm install keeps the caller's environment, since another PNPM_HOME means another store.
+const hostEnv = { ...process.env };
 process.env.PNPM_HOME = join(cache, "pnpm-home");
-// uv tool installs land beside it for the same reason; uv's default bin dir is not on PATH on Windows.
+const scriptHome = join(cache, "script-home");
 process.env.UV_TOOL_DIR = join(cache, "uv-tools");
 process.env.UV_TOOL_BIN_DIR = join(cache, "uv-bin");
-process.env.PATH = [process.env.PNPM_HOME, process.env.UV_TOOL_BIN_DIR, process.env.PATH].join(
-  delimiter,
-);
+const basePath = process.env.PATH;
+// Windows vendor installers record their bin dir in the user PATH in the registry, which a running
+// process never re-reads; the entries under the script home are the ones this run's installs added.
+const vendorPath = () =>
+  OS === "windows" && existsSync(scriptHome)
+    ? (
+        spawnSync(
+          "powershell",
+          ["-NoProfile", "-Command", "[Environment]::GetEnvironmentVariable('Path','User')"],
+          { encoding: "utf8" },
+        ).stdout ?? ""
+      )
+        .split(";")
+        .map((d) => d.trim())
+        .filter((d) => d && resolve(d).toLowerCase().startsWith(scriptHome.toLowerCase()))
+    : [];
+const toolPath = () => {
+  const dots = existsSync(scriptHome)
+    ? readdirSync(scriptHome).map((d) => join(scriptHome, d, "bin"))
+    : [];
+  process.env.PATH = [
+    process.env.PNPM_HOME,
+    ...[
+      process.env.UV_TOOL_BIN_DIR,
+      join(scriptHome, ".local/bin"),
+      ...dots,
+      ...vendorPath(),
+    ].filter((d) => existsSync(d)),
+    basePath,
+  ].join(delimiter);
+};
+toolPath();
 const LLAMA = {
   build: "b11720",
   port: 8090,
@@ -99,6 +135,10 @@ const LLAMA = {
 };
 const origin = `http://127.0.0.1:${LLAMA.gateway}`;
 const KEY = "sk-local";
+// Parent variables that would point a harness at a real home, account or provider are never passed to a cell.
+const LEAKY = /^(XDG_\w+|\w+_API_KEY|\w+_BASE_URL|\w+_TOKEN|CLAUDE_CONFIG_DIR|CODEX_HOME)$/;
+const cleanEnv = () =>
+  Object.fromEntries(Object.entries(process.env).filter(([k]) => !LEAKY.test(k)));
 
 const files = (dir, base = dir) =>
   existsSync(dir)
@@ -114,17 +154,20 @@ const seedDir = (name) =>
   [OS, ...({ linux: ["darwin"], darwin: ["linux"] }[OS] ?? [])]
     .map((o) => join(seeds, o, name))
     .find((d) => existsSync(d) && !files(d).some((f) => /^(Library|AppData)\//.test(f)));
+// A cell is TODO when a field still names a gap the recovered kit could not source on this OS.
 // An install channel can differ per OS (a PowerShell installer on Windows); installOs overrides install.
 const installOf = (h) => h.installOs?.[OS] ?? h.install;
-// A cell is TODO when a field still names a gap the recovered kit could not source on this OS.
 const todoOf = (h, c) =>
   c.first === "TODO" || c.next === "TODO"
     ? "command not recorded"
     : !installOf(h) || installOf(h).todo
       ? `install: ${installOf(h)?.todo ?? "channel not recorded"}`
-      : c.seed && !seedDir(c.seed) && !c.config?.kind
-        ? `no ${OS} config seed`
-        : null;
+      : OS === "windows" && installOf(h).script
+        ? "install: no Windows channel for the vendor script"
+        : c.seed && !seedDir(c.seed) && !c.config?.kind
+          ? `no ${OS} config seed`
+          : null;
+const storeOf = (h) => h.storeOs?.[OS] ?? h.store ?? [];
 const cells = Object.entries(manifest.harnesses)
   .flatMap(([harness, h]) =>
     Object.entries(h.shapes).map(([shape, c]) => {
@@ -143,85 +186,51 @@ const cells = Object.entries(manifest.harnesses)
     }),
   )
   .filter((x) => !only.length || only.some((o) => o === x.harness || o === x.id));
-if (only.length && !cells.length) args.usage(`--only matched no cell: ${only.join(" ")}`);
+const unmatched = only.filter((o) => !cells.some((x) => o === x.harness || o === x.id));
+if (unmatched.length) args.usage(`--only matched no cell: ${unmatched.join(" ")}`);
 
+// cmd.exe gets one command line with every argument double-quoted, because Node only joins
+// arguments when it spawns through a shell.
+const winLine = (argv) => argv.map((a) => `"${a.replaceAll('"', '""')}"`).join(" ");
 const state = join(out, "state.json");
 const readJson = (f, fallback) => (existsSync(f) ? JSON.parse(readFileSync(f, "utf8")) : fallback);
 const saveState = (patch) =>
   writeFileSync(state, JSON.stringify({ ...readJson(state, {}), ...patch }, null, 2));
-// With shell: true Node joins argv with spaces for cmd.exe, so each argument is quoted for the
-// MSVC argv parser first; otherwise a prompt or a path with a space splits into several arguments.
-const winArg = (a) =>
-  a && !/[\s"&|<>^()%!,;=]/.test(a)
-    ? a
-    : `"${a.replace(/(\\*)"/g, '$1$1\\"').replace(/(\\+)$/, "$1$1")}"`;
-const winArgv = (cmd, a) => [winArg(cmd), a.map(winArg)];
-const sh = (cmd, a, o = {}) => {
-  const viaCmd = OS === "windows" && !o.noShell;
-  const [c, rest] = viaCmd ? winArgv(cmd, a) : [cmd, a];
-  return spawnSync(c, rest, { encoding: "utf8", shell: viaCmd, ...o });
-};
-// Windows vendor installers add their bin dir to the user PATH in the registry (or, for goose, to
-// nothing: binDir names it), which a running process never sees, so both are folded into PATH.
-const windowsPath = () => {
-  if (OS !== "windows") return;
-  const have = new Set(process.env.PATH.split(delimiter).map((p) => p.toLowerCase()));
-  const user = spawnSync(
-    "powershell",
-    ["-NoProfile", "-Command", "[Environment]::GetEnvironmentVariable('Path','User')"],
-    { encoding: "utf8" },
-  ).stdout;
-  const dirs = [
-    ...(user ?? "").trim().split(";"),
-    ...Object.values(manifest.harnesses)
-      .map((h) => installOf(h)?.binDir)
-      .filter(Boolean)
-      .map((d) => join(userInfo().homedir, d)),
-  ].filter((d) => d && !have.has(d.toLowerCase()));
-  if (dirs.length) process.env.PATH = [process.env.PATH, ...dirs].join(delimiter);
-};
-windowsPath();
-// A bare "bash" on Windows resolves to System32's WSL launcher before Git for Windows' bash.
-const BASH =
-  OS === "windows"
-    ? join(
-        dirname(
-          dirname(
-            spawnSync("where", ["git"], { encoding: "utf8" }).stdout?.split(/\r?\n/)[0]?.trim() ||
-              "git",
-          ),
-        ),
-        "bin",
-        "bash.exe",
-      )
-    : "bash";
+const sh = (cmd, a, o = {}) =>
+  OS === "windows" && !o.noShell
+    ? spawnSync(winLine([cmd, ...a]), { encoding: "utf8", shell: true, ...o })
+    : spawnSync(cmd, a, { encoding: "utf8", ...o });
 const killTree = (pid) => {
   if (!pid) return;
   if (OS === "windows") sh("taskkill", ["/PID", String(pid), "/T", "/F"], { noShell: true });
   else {
     try {
       process.kill(-pid, "SIGKILL");
-    } catch {
-      try {
-        process.kill(pid, "SIGKILL");
-      } catch {}
-    }
+    } catch {}
   }
 };
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+// fail throws so the top level can still stop what an `all` run started before exiting 1.
 const fail = (message) => {
-  console.error(`recapture: ${message}`);
-  process.exit(1);
+  throw new Error(message);
 };
 
-const download = async (url, file) => {
+// Downloads land beside the target as .part and are renamed only when complete and the expected size.
+const download = async (url, file, bytes) => {
   const res = await fetch(url, { headers: { "user-agent": "skopli-recapture" } });
   if (!res.ok) fail(`download ${url} answered ${res.status}`);
   mkdirSync(dirname(file), { recursive: true });
-  const ws = createWriteStream(file);
-  for await (const chunk of res.body) ws.write(chunk);
-  await new Promise((r) => ws.end(r));
+  await pipeline(Readable.fromWeb(res.body), createWriteStream(`${file}.part`));
+  const got = statSync(`${file}.part`).size;
+  if (bytes && got !== bytes) fail(`${url} gave ${got} B, expected ${bytes} B`);
+  renameSync(`${file}.part`, file);
 };
+const portBusy = (port) =>
+  new Promise((r) => {
+    const c = connect(port, "127.0.0.1");
+    c.once("connect", () => (c.destroy(), r(true)));
+    c.once("error", () => r(false));
+  });
 const findFile = (dir, name) => {
   for (const e of readdirSync(dir, { withFileTypes: true })) {
     const p = join(dir, e.name);
@@ -246,8 +255,10 @@ const post = async (path, body, headers = {}) => {
   });
   return res.json();
 };
-const waitFor = async (url, seconds) => {
+// Ready means the process we started is still alive and the URL answers.
+const waitFor = async (url, seconds, child) => {
   for (let i = 0; i < seconds; i++) {
+    if (child.exitCode !== null || child.signalCode !== null) return false;
     try {
       if ((await fetch(url)).ok) return true;
     } catch {}
@@ -262,7 +273,7 @@ async function env() {
     ["install", "--frozen-lockfile"],
     ["run", "build"],
   ])
-    if (sh("pnpm", a, { cwd: root, env: callerEnv, stdio: "inherit" }).status !== 0)
+    if (sh("pnpm", a, { cwd: root, stdio: "inherit", env: hostEnv }).status !== 0)
       fail(`pnpm ${a.join(" ")} failed`);
   const bin = join(cache, `llama-${LLAMA.build}-${OS}`);
   let server =
@@ -277,9 +288,9 @@ async function env() {
         `no ${OS} asset in llama.cpp release ${LLAMA.build}${rel.message ? `: ${rel.message}` : ""}`,
       );
     const archive = join(cache, asset.name);
-    if (!existsSync(archive)) {
+    if (!existsSync(archive) || statSync(archive).size !== asset.size) {
       say(`download ${asset.name}`);
-      await download(asset.browser_download_url, archive);
+      await download(asset.browser_download_url, archive, asset.size);
     }
     mkdirSync(bin, { recursive: true });
     const x =
@@ -293,10 +304,8 @@ async function env() {
   const model = join(cache, LLAMA.model);
   if (!existsSync(model) || statSync(model).size !== LLAMA.bytes) {
     say(`download ${LLAMA.model}`);
-    await download(LLAMA.modelUrl, model);
+    await download(LLAMA.modelUrl, model, LLAMA.bytes);
   }
-  if (statSync(model).size !== LLAMA.bytes)
-    fail(`${LLAMA.model} is ${statSync(model).size} B, expected ${LLAMA.bytes} B`);
   const target = join(cache, "target/p-limit");
   if (
     !existsSync(target) &&
@@ -308,6 +317,8 @@ async function env() {
   const prior = readJson(state, {});
   if (prior.serverPid || prior.gatewayPid)
     fail(`server or gateway already recorded in ${state}; run stop first`);
+  for (const port of [LLAMA.port, LLAMA.gateway])
+    if (await portBusy(port)) fail(`port ${port} is already in use; stop whatever holds it`);
   const flags = [
     "-m",
     model,
@@ -338,8 +349,8 @@ async function env() {
     target,
     llama: { ...LLAMA, asset: undefined, flags: flags.slice(2) },
   });
-  if (!(await waitFor(`http://127.0.0.1:${LLAMA.port}/health`, 300)))
-    fail("llama-server not healthy after 300 s");
+  if (!(await waitFor(`http://127.0.0.1:${LLAMA.port}/health`, 300, srv)))
+    fail("llama-server exited or was not healthy after 300 s, see llama-server.txt");
   const gw = spawn(
     process.execPath,
     [
@@ -359,7 +370,8 @@ async function env() {
   );
   gw.unref();
   saveState({ gatewayPid: gw.pid });
-  if (!(await waitFor(`${origin}/v1/models`, 60))) fail("gateway not answering after 60 s");
+  if (!(await waitFor(`${origin}/v1/models`, 60, gw)))
+    fail("gateway exited or was not answering after 60 s, see gateway-stderr.txt");
   // Two turns with a shared prefix: turn two must report more cached prompt tokens than turn one.
   const system = `You answer questions about the p-limit package. ${"Keep answers short and factual. ".repeat(40)}`;
   const t1 = [
@@ -416,30 +428,32 @@ const which = (bin) =>
   sh(OS === "windows" ? "where" : "which", [bin], { noShell: true })
     .stdout?.split(/\r?\n/)[0]
     ?.trim() || null;
-// Store roots are HOME-relative; a harness whose store moves on one OS records it in storeOs.
-const storesOf = (h) => h.storeOs?.[OS] ?? h.store ?? [];
 const binOf = (c) => (Array.isArray(c.first) ? c.first[0] : null);
 function install() {
   mkdirSync(out, { recursive: true });
-  const harnesses = [
-    ...new Set(cells.filter((x) => x.plan !== "todo" || installOf(x.h)).map((x) => x.harness)),
-  ];
+  const harnesses = [...new Set(cells.filter((x) => x.plan === "run").map((x) => x.harness))];
   const lines = [];
   for (const id of harnesses) {
     const { shapes } = manifest.harnesses[id];
     const how = installOf(manifest.harnesses[id]);
     const bin = Object.values(shapes).map(binOf).find(Boolean);
     let r = null;
-    if (how?.pnpm) r = sh("pnpm", ["add", "-g", how.pnpm]);
+    mkdirSync(scriptHome, { recursive: true });
+    const env = { ...cleanEnv(), ...homeEnv(scriptHome) };
+    if (how?.pnpm) r = sh("pnpm", ["add", "-g", how.pnpm], { env });
     else if (how?.uv)
-      r = sh("uv", [
-        "tool",
-        "install",
-        "--python",
-        how.python,
-        ...(how.with ?? []).flatMap((w) => ["--with", w]),
-        how.uv,
-      ]);
+      r = sh(
+        "uv",
+        [
+          "tool",
+          "install",
+          "--python",
+          how.python,
+          ...(how.with ?? []).flatMap((w) => ["--with", w]),
+          how.uv,
+        ],
+        { env },
+      );
     else if (how?.ps1 && OS === "windows") {
       r = sh(
         "powershell",
@@ -450,14 +464,18 @@ function install() {
           "-Command",
           `& ([scriptblock]::Create((irm ${how.ps1}))) ${(how.args ?? []).join(" ")}`,
         ],
-        { noShell: true, timeout: 900000, env: { ...process.env, ...how.env } },
+        { noShell: true, timeout: 900000, env: { ...env, ...how.env } },
       );
-      windowsPath();
-    } else if (how?.script && OS !== "windows")
-      r = sh(BASH, ["-c", `curl -fsSL ${how.script} | bash`]);
+      toolPath();
+    } else if (how?.script && OS !== "windows") {
+      r = sh("bash", ["-c", `curl -fsSL ${how.script} | bash`], { env });
+      toolPath();
+    }
     if (r && r.status !== 0) say(`install ${id}: exit ${r.status}`);
     const path = bin && which(bin);
-    const v = path ? sh(bin, ["--version"], { timeout: 25000 }) : null;
+    const v = path
+      ? sh(bin, ["--version"], { timeout: 25000, env: { ...env, PATH: process.env.PATH } })
+      : null;
     lines.push(
       [
         id,
@@ -514,34 +532,68 @@ const CONFIG = {
     },
   }),
 };
-const homeEnv = (home) =>
-  Object.fromEntries(
+// On Windows the helper needs Git Bash; a WSL bash on PATH would report Linux paths.
+// CreateProcess searches System32 before PATH, so a bare "bash" there is the WSL launcher whatever
+// the PATH order; Git for Windows' bash is found from git instead.
+const BASH =
+  OS === "windows"
+    ? join(
+        dirname(
+          dirname(
+            spawnSync("where", ["git"], { encoding: "utf8" }).stdout?.split(/\r?\n/)[0]?.trim() ||
+              "git",
+          ),
+        ),
+        "bin",
+        "bash.exe",
+      )
+    : "bash";
+let bashChecked = OS !== "windows";
+const homeEnv = (home) => {
+  if (
+    !bashChecked &&
+    !/MINGW|MSYS|CYGWIN/.test(sh(BASH, ["-c", "uname -s"], { noShell: true }).stdout ?? "")
+  )
+    fail(`${BASH} is not Git Bash; install Git for Windows`);
+  bashChecked = true;
+  return Object.fromEntries(
     sh(BASH, [join(here, "os-home.sh"), "--plain", home], { noShell: true })
       .stdout.trim()
       .split("\n")
       .map((l) => [l.slice(0, l.indexOf("=")), l.slice(l.indexOf("=") + 1)]),
   );
+};
 
-const runTurn = (argv, envv, cwd, log, limit = timeout) =>
+// A turn ends when its leader exits; on Linux and macOS whatever it left in its process group is
+// killed then, so no stray outlives the turn or keeps its output pipes open.
+let turnPid = null;
+const runTurn = (argv, envv, cwd, log, limit) =>
   new Promise((done) => {
     const t0 = Date.now();
-    const [cmd, rest] =
-      OS === "windows" ? winArgv(argv[0], argv.slice(1)) : [argv[0], argv.slice(1)];
-    const child = spawn(cmd, rest, {
-      cwd,
-      env: envv,
-      detached: OS !== "windows",
-      stdio: ["ignore", "pipe", "pipe"],
-      shell: OS === "windows",
-      windowsHide: true,
-    });
+    const child =
+      OS === "windows"
+        ? spawn(winLine(argv), { cwd, env: envv, stdio: ["ignore", "pipe", "pipe"], shell: true })
+        : spawn(argv[0], argv.slice(1), {
+            cwd,
+            env: envv,
+            detached: true,
+            stdio: ["ignore", "pipe", "pipe"],
+          });
+    turnPid = child.pid;
     let text = "";
+    let timedOut = false;
+    let ended = false;
     child.stdout.on("data", (d) => (text += d));
     child.stderr.on("data", (d) => (text += d));
-    const timer = setTimeout(() => killTree(child.pid), limit * 1000);
+    const timer = setTimeout(() => {
+      timedOut = true;
+      killTree(child.pid);
+    }, limit * 1000);
     const finish = (code) => {
+      if (ended) return;
+      ended = true;
+      turnPid = null;
       clearTimeout(timer);
-      const timedOut = Date.now() - t0 >= limit * 1000;
       writeFileSync(
         log,
         `cmd: ${argv.join(" ")}\n${text}\nexit: ${code}${timedOut ? " (timeout)" : ""}\n`,
@@ -549,38 +601,57 @@ const runTurn = (argv, envv, cwd, log, limit = timeout) =>
       done({ code, timedOut, text, seconds: Math.round((Date.now() - t0) / 1000) });
     };
     child.on("error", () => finish(127));
+    // Windows cannot walk the tree of an exited leader, so there only a timeout kills the tree.
+    child.on("exit", (code) => {
+      if (OS !== "windows") killTree(child.pid);
+      setTimeout(() => {
+        child.stdout.destroy();
+        child.stderr.destroy();
+        finish(code ?? 137);
+      }, 5000).unref();
+    });
     child.on("close", (code) => finish(code ?? 137));
   });
 
-const scan = (home, stores) => {
+// Every spelling a path takes in a store: native, forward-slash, MSYS (/c/...) and JSON-escaped.
+const spellings = (p) => {
+  const fwd = p.replaceAll("\\", "/");
+  const msys = fwd.replace(/^([A-Za-z]):/, (_, d) => `/${d.toLowerCase()}`);
+  const all = [p, fwd, msys, p.replaceAll("\\", "\\\\")];
+  return [...new Set([...all, ...all.map((x) => x.replace(/^[A-Z]:/, (d) => d.toLowerCase()))])];
+};
+const scan = (home, cwd, paths) => {
   const needles = [
-    userInfo().username,
-    hostname(),
-    userInfo().homedir,
-    "git-manager.devin.ai/proxy",
-  ].filter((n) => n && n.length > 2);
+    ["username", [userInfo().username]],
+    ["hostname", [hostname()]],
+    ["home-path", spellings(userInfo().homedir)],
+    ["cell-home", spellings(home)],
+    ["cell-cwd", [...spellings(cwd), slug(cwd)]],
+    ["dummy-key", [KEY, "local-only-placeholder"]],
+    ["git-proxy", ["git-manager.devin.ai/proxy"]],
+  ].map(([k, v]) => [k, v.filter((n) => n && n.length > 2)]);
   const hits = new Set();
-  for (const s of stores)
-    for (const f of files(join(home, s))) {
-      const text = readFileSync(join(home, s, f)).toString("latin1");
-      for (const n of needles)
-        if (
-          text.includes(n) ||
-          text.includes(n.replaceAll("\\", "\\\\")) ||
-          text.includes(n.replaceAll("\\", "/"))
-        )
-          hits.add(
-            n === userInfo().username
-              ? "username"
-              : n === hostname()
-                ? "hostname"
-                : n === userInfo().homedir
-                  ? "home-path"
-                  : n,
-          );
-      if (/\b[A-Z0-9]{1,6}~\d\b/.test(text)) hits.add("8.3-alias");
+  for (const f of paths) {
+    const text = `${f}\n${readFileSync(join(home, f)).toString("latin1")}`;
+    for (const [k, v] of needles) if (v.some((n) => text.includes(n))) hits.add(k);
+    if (/\b[A-Z0-9]{1,6}~\d\b/.test(text)) hits.add("8.3-alias");
+  }
+  return [...hits].sort();
+};
+
+// A dead server or gateway would turn every later cell into a false capture-gap.
+const alive = async (s) => {
+  for (const pid of [s.serverPid, s.gatewayPid])
+    try {
+      process.kill(pid, 0);
+    } catch {
+      fail(`process ${pid} from the env step is gone; rerun env`);
     }
-  return [...hits];
+  const ok = await fetch(`http://127.0.0.1:${LLAMA.port}/health`).then(
+    (r) => r.ok,
+    () => false,
+  );
+  if (!ok) fail("llama-server stopped answering /health; rerun env");
 };
 
 async function run() {
@@ -589,7 +660,12 @@ async function run() {
   for (const cell of cells) {
     const dir = join(out, "cells", cell.harness, cell.shape);
     const resultFile = join(dir, "result.json");
-    if (args.flag("--resume") && existsSync(resultFile)) continue;
+    // --resume keeps finished cells and retries the ones a broken environment ended.
+    if (
+      args.flag("--resume") &&
+      !["error", "not-installed", undefined].includes(readJson(resultFile, {}).status)
+    )
+      continue;
     // A retry never reuses a home: the earlier attempt is kept beside it as <shape>.attemptN.
     if (existsSync(dir)) {
       let n = 1;
@@ -623,7 +699,7 @@ async function run() {
       session: "",
     };
     const envv = {
-      ...process.env,
+      ...Object.fromEntries(Object.entries(process.env).filter(([k]) => !LEAKY.test(k))),
       ...homeEnv(home),
       ...Object.fromEntries(Object.entries(cell.c.env ?? {}).map(([k, v]) => [k, fill(v, vars)])),
     };
@@ -639,17 +715,22 @@ async function run() {
       mkdirSync(dirname(f), { recursive: true });
       writeFileSync(f, JSON.stringify(CONFIG[cell.c.config.kind](cell.shape), null, 2));
     }
+    await alive(s);
     const gwlog = join(out, "gateway-usage.jsonl");
     const from = existsSync(gwlog) ? statSync(gwlog).size : 0;
+    const deadline = Date.now() + timeout * 1000;
     if (cell.c.setup)
       await runTurn(
         cell.c.setup.map((a) => fill(a, vars)),
         envv,
         cwd,
         join(dir, "setup.txt"),
+        timeout,
       );
+    // Files the runner or the setup command wrote are not evidence: only what the turns create or change counts.
+    const mtime = (f) => statSync(join(home, f)).mtimeMs;
+    const seeded = new Map(files(home).map((f) => [f, mtime(f)]));
     const turns = [];
-    const deadline = Date.now() + timeout * 1000;
     for (const [i, prompt] of manifest.prompts.entries()) {
       const left = Math.floor((deadline - Date.now()) / 1000);
       if (left < 20) {
@@ -662,16 +743,19 @@ async function run() {
       if (!i && cell.h.session) vars.session = sessionId(cell.h.session, t.text, home) ?? "";
       if (t.timedOut) break;
     }
-    const gw = existsSync(gwlog) ? readFileSync(gwlog).subarray(from).toString() : "";
-    writeFileSync(join(dir, "gateway-usage.jsonl"), gw);
-    const lines = gw
+    // An aborted line is a reply no harness received, possibly from the previous cell's killed turn.
+    const lines = (existsSync(gwlog) ? readFileSync(gwlog).subarray(from).toString() : "")
       .split("\n")
       .filter(Boolean)
       .map((l) => JSON.parse(l))
-      .filter((l) => l.route);
+      .filter((l) => l.route && !l.aborted);
+    writeFileSync(
+      join(dir, "gateway-usage.jsonl"),
+      lines.map((l) => `${JSON.stringify(l)}\n`).join(""),
+    );
     const node = (script, a) => sh(process.execPath, [join(here, script), ...a], { noShell: true });
     const hr = node("home.mjs", [home, "--out", dir]);
-    const summary = readJson(join(dir, "home-result.json"), { events: 0, detected: [] });
+    const summary = readJson(join(dir, "home-result.json"), null);
     const rc = node("reconcile.mjs", [
       home,
       cell.harness,
@@ -679,15 +763,26 @@ async function run() {
       "--quiet",
     ]);
     writeFileSync(join(dir, "reconcile.json"), rc.stdout ?? "");
-    const events = summary.byHarness?.[cell.harness]?.events ?? 0;
-    const stored = storesOf(cell.h).some((p) => existsSync(join(home, p)));
-    const status =
-      turns.some((t) => t.timedOut) && !events
+    const events = summary?.byHarness?.[cell.harness]?.events ?? 0;
+    const roots = storeOf(cell.h);
+    const written = files(home).filter(
+      (f) => roots.some((p) => f === p || f.startsWith(`${p}/`)) && seeded.get(f) !== mtime(f),
+    );
+    // home.mjs exits 0 unless it crashed; reconcile.mjs exits 0 on agreement and 1 on a delta.
+    const broken =
+      hr.status !== 0 || !summary
+        ? `home.mjs exit ${hr.status}`
+        : rc.status !== 0 && rc.status !== 1
+          ? `reconcile.mjs exit ${rc.status}`
+          : null;
+    const status = broken
+      ? "error"
+      : turns.some((t) => t.timedOut) && !events
         ? "hang"
         : !lines.length
           ? "capture-gap"
           : !events
-            ? stored
+            ? written.length
               ? "reader-gap"
               : "capture-gap"
             : rc.status === 0
@@ -696,34 +791,46 @@ async function run() {
     write({
       status,
       reason:
-        status === "capture-gap" && !lines.length ? "no request reached the gateway" : undefined,
+        broken ??
+        (status === "capture-gap" && !lines.length ? "no request reached the gateway" : undefined),
       turns,
       gatewayLines: lines.length,
       events,
-      sessions: summary.byHarness?.[cell.harness]?.sessions ?? 0,
-      diagnostics: summary.diagnostics,
-      detected: summary.detected,
+      sessions: summary?.byHarness?.[cell.harness]?.sessions ?? 0,
+      diagnostics: summary?.diagnostics,
+      detected: summary?.detected,
       homeExit: hr.status,
       reconcileExit: rc.status,
-      layout: layoutOf(files(home).filter((f) => storesOf(cell.h).some((p) => f.startsWith(p)))),
-      redaction: scan(home, storesOf(cell.h)),
+      layout: layoutOf(
+        written.filter((f) => !(cell.h.layoutIgnore ?? []).some((p) => f.startsWith(p))),
+        cwd,
+      ),
+      redaction: scan(home, cwd, written),
     });
   }
 }
-// A store layout is its set of path shapes: any segment carrying an id, a date or a cwd slug becomes *.
-const layoutOf = (paths) =>
+// A store layout is its set of path shapes. A segment that slugs the session cwd becomes <cwd>,
+// whichever cwd it was (golden cases were captured in /home/user/project), and any other segment
+// carrying an id or a date becomes *.
+const slug = (p) => p.replace(/[^A-Za-z0-9]/g, "-").replace(/^-+/, "");
+const layoutOf = (paths, cwd) =>
   [
     ...new Set(
       paths.map((f) =>
         f
           .split("/")
           .map((seg) =>
-            /\d/.test(seg) || /^-.*-$/.test(seg) ? `*${seg.match(/(\.[a-z]+)+$/)?.[0] ?? ""}` : seg,
+            seg.replace(/^-+/, "") === slug(cwd)
+              ? "<cwd>"
+              : /\d/.test(seg) || /^-.*-$/.test(seg)
+                ? `*${seg.match(/(\.[a-z]+)+$/)?.[0] ?? ""}`
+                : seg,
           )
           .join("/"),
       ),
     ),
   ].sort();
+const GOLDEN_CWD = "/home/user/project";
 const sessionId = (how, text, home) => {
   if (how.stdout) return text.match(new RegExp(how.stdout))?.[1] ?? null;
   const base = how.glob.split("/*")[0];
@@ -754,7 +861,7 @@ function report() {
   );
   const goldenLayout = (id) => {
     const d = join(root, "golden", id, "input");
-    return existsSync(d) ? layoutOf(files(d)) : null;
+    return existsSync(d) ? layoutOf(files(d), GOLDEN_CWD) : null;
   };
   const versions = (dir) =>
     Object.fromEntries(
@@ -800,8 +907,18 @@ function report() {
     }
     if (r.status === "todo")
       drift.push({ cell: r.cell, kind: "todo", reason: r.reason, lane: "agent" });
+    if (r.status === "error")
+      drift.push({ cell: r.cell, kind: "invariant", reason: r.reason, lane: "agent" });
   }
   const base = args.one("--baseline");
+  // A TODO the baseline already reported with the same reason is listed again but not counted.
+  const knownTodo = new Set(
+    (base ? readJson(join(resolve(base), "drift.json"), []) : [])
+      .filter((d) => d.kind === "todo")
+      .map((d) => `${d.cell}\t${d.reason}`),
+  );
+  for (const d of drift)
+    if (d.kind === "todo" && knownTodo.has(`${d.cell}\t${d.reason}`)) d.known = true;
   if (base) {
     const a = versions(resolve(base)),
       b = versions(out);
@@ -840,8 +957,15 @@ function report() {
   );
   writeFileSync(join(out, "drift.json"), JSON.stringify(drift, null, 2));
   const counts = results.reduce((a, r) => ({ ...a, [r.status]: (a[r.status] ?? 0) + 1 }), {});
-  console.log(JSON.stringify({ out, os: OS, counts, drift: drift.length }, null, 2));
-  return drift.length ? 3 : 0;
+  const open = drift.filter((d) => !d.known);
+  console.log(
+    JSON.stringify(
+      { out, os: OS, counts, drift: open.length, known: drift.length - open.length },
+      null,
+      2,
+    ),
+  );
+  return counts.error ? 1 : open.length ? 3 : 0;
 }
 
 function pack() {
@@ -851,6 +975,7 @@ function pack() {
       "czf",
       join(dirname(out), `${relative(dirname(out), out)}.tgz`),
       "--exclude=*/home/*/node_modules",
+      "--exclude=*/cells/*/*/work",
       "-C",
       dirname(out),
       relative(dirname(out), out),
@@ -876,10 +1001,19 @@ if (step === "list") {
   process.exit(0);
 }
 const steps = { env, install, run, report, package: pack, stop };
+for (const sig of ["SIGINT", "SIGTERM"])
+  process.on(sig, () => {
+    killTree(turnPid);
+    if (step === "all") stop();
+    process.exit(1);
+  });
 let code = 0;
 try {
   for (const s of step === "all" ? ["env", "install", "run", "report", "package"] : [step])
     code = (await steps[s]()) || code;
+} catch (e) {
+  console.error(`recapture: ${e.message}`);
+  code = 1;
 } finally {
   if (step === "all") stop();
 }
