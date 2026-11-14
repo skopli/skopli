@@ -21,7 +21,8 @@ case "$(uname -s | tr '[:upper:]' '[:lower:]')" in
   msys*|mingw*|cygwin*)
     mkdir -p "$home/AppData/Roaming" "$home/AppData/Local"
     win=$(cygpath -w "$home")
-    q HOME "$home"
+    # Programs that set the environment themselves get a Windows HOME; Git Bash converts /c/... only for its children.
+    if [ $plain = 1 ]; then q HOME "$(cygpath -m "$home")"; else q HOME "$home"; fi
     q USERPROFILE "$win"
     q APPDATA "$win\\AppData\\Roaming"
     q LOCALAPPDATA "$win\\AppData\\Local";;

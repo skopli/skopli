@@ -85,6 +85,8 @@ const say = args.log;
 const hostEnv = { ...process.env };
 process.env.PNPM_HOME = join(cache, "pnpm-home");
 const scriptHome = join(cache, "script-home");
+process.env.UV_TOOL_DIR = join(cache, "uv-tools");
+process.env.UV_TOOL_BIN_DIR = join(cache, "uv-bin");
 const basePath = process.env.PATH;
 const toolPath = () => {
   const dots = existsSync(scriptHome)
@@ -92,7 +94,9 @@ const toolPath = () => {
     : [];
   process.env.PATH = [
     process.env.PNPM_HOME,
-    ...[join(scriptHome, ".local/bin"), ...dots].filter((d) => existsSync(d)),
+    ...[process.env.UV_TOOL_BIN_DIR, join(scriptHome, ".local/bin"), ...dots].filter((d) =>
+      existsSync(d),
+    ),
     basePath,
   ].join(delimiter);
 };
@@ -115,6 +119,8 @@ const origin = `http://127.0.0.1:${LLAMA.gateway}`;
 const KEY = "sk-local";
 // Parent variables that would point a harness at a real home, account or provider are never passed to a cell.
 const LEAKY = /^(XDG_\w+|\w+_API_KEY|\w+_BASE_URL|\w+_TOKEN|CLAUDE_CONFIG_DIR|CODEX_HOME)$/;
+const cleanEnv = () =>
+  Object.fromEntries(Object.entries(process.env).filter(([k]) => !LEAKY.test(k)));
 
 const files = (dir, base = dir) =>
   existsSync(dir)
@@ -180,11 +186,7 @@ const killTree = (pid) => {
   else {
     try {
       process.kill(-pid, "SIGKILL");
-    } catch {
-      try {
-        process.kill(pid, "SIGKILL");
-      } catch {}
-    }
+    } catch {}
   }
 };
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -412,26 +414,31 @@ function install() {
     const { install: how, shapes } = manifest.harnesses[id];
     const bin = Object.values(shapes).map(binOf).find(Boolean);
     let r = null;
-    if (how?.pnpm) r = sh("pnpm", ["add", "-g", how.pnpm]);
+    mkdirSync(scriptHome, { recursive: true });
+    const env = { ...cleanEnv(), ...homeEnv(scriptHome) };
+    if (how?.pnpm) r = sh("pnpm", ["add", "-g", how.pnpm], { env });
     else if (how?.uv)
-      r = sh("uv", [
-        "tool",
-        "install",
-        "--python",
-        how.python,
-        ...(how.with ?? []).flatMap((w) => ["--with", w]),
-        how.uv,
-      ]);
+      r = sh(
+        "uv",
+        [
+          "tool",
+          "install",
+          "--python",
+          how.python,
+          ...(how.with ?? []).flatMap((w) => ["--with", w]),
+          how.uv,
+        ],
+        { env },
+      );
     else if (how?.script && OS !== "windows") {
-      mkdirSync(scriptHome, { recursive: true });
-      r = sh("bash", ["-c", `curl -fsSL ${how.script} | bash`], {
-        env: { ...process.env, ...homeEnv(scriptHome) },
-      });
+      r = sh("bash", ["-c", `curl -fsSL ${how.script} | bash`], { env });
       toolPath();
     }
     if (r && r.status !== 0) say(`install ${id}: exit ${r.status}`);
     const path = bin && which(bin);
-    const v = path ? sh(bin, ["--version"], { timeout: 25000 }) : null;
+    const v = path
+      ? sh(bin, ["--version"], { timeout: 25000, env: { ...env, PATH: process.env.PATH } })
+      : null;
     lines.push(
       [
         id,
@@ -488,17 +495,27 @@ const CONFIG = {
     },
   }),
 };
-const homeEnv = (home) =>
-  Object.fromEntries(
+// On Windows the helper needs Git Bash; a WSL bash on PATH would report Linux paths.
+let bashChecked = OS !== "windows";
+const homeEnv = (home) => {
+  if (
+    !bashChecked &&
+    !/MINGW|MSYS|CYGWIN/.test(sh("bash", ["-c", "uname -s"], { noShell: true }).stdout ?? "")
+  )
+    fail("bash on PATH is not Git Bash; put Git for Windows' bash first");
+  bashChecked = true;
+  return Object.fromEntries(
     sh("bash", [join(here, "os-home.sh"), "--plain", home], { noShell: true })
       .stdout.trim()
       .split("\n")
       .map((l) => [l.slice(0, l.indexOf("=")), l.slice(l.indexOf("=") + 1)]),
   );
+};
 
-// A turn ends when its leader exits; whatever the leader left in its process group is killed then,
-// so no stray outlives the turn or keeps its output pipes open.
-const runTurn = (argv, envv, cwd, log, limit = timeout) =>
+// A turn ends when its leader exits; on Linux and macOS whatever it left in its process group is
+// killed then, so no stray outlives the turn or keeps its output pipes open.
+let turnPid = null;
+const runTurn = (argv, envv, cwd, log, limit) =>
   new Promise((done) => {
     const t0 = Date.now();
     const child =
@@ -510,6 +527,7 @@ const runTurn = (argv, envv, cwd, log, limit = timeout) =>
             detached: true,
             stdio: ["ignore", "pipe", "pipe"],
           });
+    turnPid = child.pid;
     let text = "";
     let timedOut = false;
     let ended = false;
@@ -522,6 +540,7 @@ const runTurn = (argv, envv, cwd, log, limit = timeout) =>
     const finish = (code) => {
       if (ended) return;
       ended = true;
+      turnPid = null;
       clearTimeout(timer);
       writeFileSync(
         log,
@@ -530,8 +549,9 @@ const runTurn = (argv, envv, cwd, log, limit = timeout) =>
       done({ code, timedOut, text, seconds: Math.round((Date.now() - t0) / 1000) });
     };
     child.on("error", () => finish(127));
+    // Windows cannot walk the tree of an exited leader, so there only a timeout kills the tree.
     child.on("exit", (code) => {
-      killTree(child.pid);
+      if (OS !== "windows") killTree(child.pid);
       setTimeout(() => {
         child.stdout.destroy();
         child.stderr.destroy();
@@ -545,7 +565,8 @@ const runTurn = (argv, envv, cwd, log, limit = timeout) =>
 const spellings = (p) => {
   const fwd = p.replaceAll("\\", "/");
   const msys = fwd.replace(/^([A-Za-z]):/, (_, d) => `/${d.toLowerCase()}`);
-  return [...new Set([p, fwd, msys, p.replaceAll("\\", "\\\\")])];
+  const all = [p, fwd, msys, p.replaceAll("\\", "\\\\")];
+  return [...new Set([...all, ...all.map((x) => x.replace(/^[A-Z]:/, (d) => d.toLowerCase()))])];
 };
 const scan = (home, cwd, paths) => {
   const needles = [
@@ -553,17 +574,32 @@ const scan = (home, cwd, paths) => {
     ["hostname", [hostname()]],
     ["home-path", spellings(userInfo().homedir)],
     ["cell-home", spellings(home)],
-    ["cell-cwd", spellings(cwd)],
+    ["cell-cwd", [...spellings(cwd), slug(cwd)]],
     ["dummy-key", [KEY, "local-only-placeholder"]],
     ["git-proxy", ["git-manager.devin.ai/proxy"]],
   ].map(([k, v]) => [k, v.filter((n) => n && n.length > 2)]);
   const hits = new Set();
   for (const f of paths) {
-    const text = readFileSync(join(home, f)).toString("latin1");
+    const text = `${f}\n${readFileSync(join(home, f)).toString("latin1")}`;
     for (const [k, v] of needles) if (v.some((n) => text.includes(n))) hits.add(k);
     if (/\b[A-Z0-9]{1,6}~\d\b/.test(text)) hits.add("8.3-alias");
   }
   return [...hits].sort();
+};
+
+// A dead server or gateway would turn every later cell into a false capture-gap.
+const alive = async (s) => {
+  for (const pid of [s.serverPid, s.gatewayPid])
+    try {
+      process.kill(pid, 0);
+    } catch {
+      fail(`process ${pid} from the env step is gone; rerun env`);
+    }
+  const ok = await fetch(`http://127.0.0.1:${LLAMA.port}/health`).then(
+    (r) => r.ok,
+    () => false,
+  );
+  if (!ok) fail("llama-server stopped answering /health; rerun env");
 };
 
 async function run() {
@@ -572,7 +608,12 @@ async function run() {
   for (const cell of cells) {
     const dir = join(out, "cells", cell.harness, cell.shape);
     const resultFile = join(dir, "result.json");
-    if (args.flag("--resume") && existsSync(resultFile)) continue;
+    // --resume keeps finished cells and retries the ones a broken environment ended.
+    if (
+      args.flag("--resume") &&
+      !["error", "not-installed", undefined].includes(readJson(resultFile, {}).status)
+    )
+      continue;
     // A retry never reuses a home: the earlier attempt is kept beside it as <shape>.attemptN.
     if (existsSync(dir)) {
       let n = 1;
@@ -622,20 +663,22 @@ async function run() {
       mkdirSync(dirname(f), { recursive: true });
       writeFileSync(f, JSON.stringify(CONFIG[cell.c.config.kind](cell.shape), null, 2));
     }
-    // Files the runner wrote are not evidence: only what the harness creates or changes counts.
-    const mtime = (f) => statSync(join(home, f)).mtimeMs;
-    const seeded = new Map(files(home).map((f) => [f, mtime(f)]));
+    await alive(s);
     const gwlog = join(out, "gateway-usage.jsonl");
     const from = existsSync(gwlog) ? statSync(gwlog).size : 0;
+    const deadline = Date.now() + timeout * 1000;
     if (cell.c.setup)
       await runTurn(
         cell.c.setup.map((a) => fill(a, vars)),
         envv,
         cwd,
         join(dir, "setup.txt"),
+        timeout,
       );
+    // Files the runner or the setup command wrote are not evidence: only what the turns create or change counts.
+    const mtime = (f) => statSync(join(home, f)).mtimeMs;
+    const seeded = new Map(files(home).map((f) => [f, mtime(f)]));
     const turns = [];
-    const deadline = Date.now() + timeout * 1000;
     for (const [i, prompt] of manifest.prompts.entries()) {
       const left = Math.floor((deadline - Date.now()) / 1000);
       if (left < 20) {
@@ -648,13 +691,16 @@ async function run() {
       if (!i && cell.h.session) vars.session = sessionId(cell.h.session, t.text, home) ?? "";
       if (t.timedOut) break;
     }
-    const gw = existsSync(gwlog) ? readFileSync(gwlog).subarray(from).toString() : "";
-    writeFileSync(join(dir, "gateway-usage.jsonl"), gw);
-    const lines = gw
+    // An aborted line is a reply no harness received, possibly from the previous cell's killed turn.
+    const lines = (existsSync(gwlog) ? readFileSync(gwlog).subarray(from).toString() : "")
       .split("\n")
       .filter(Boolean)
       .map((l) => JSON.parse(l))
-      .filter((l) => l.route);
+      .filter((l) => l.route && !l.aborted);
+    writeFileSync(
+      join(dir, "gateway-usage.jsonl"),
+      lines.map((l) => `${JSON.stringify(l)}\n`).join(""),
+    );
     const node = (script, a) => sh(process.execPath, [join(here, script), ...a], { noShell: true });
     const hr = node("home.mjs", [home, "--out", dir]);
     const summary = readJson(join(dir, "home-result.json"), null);
@@ -668,7 +714,7 @@ async function run() {
     const events = summary?.byHarness?.[cell.harness]?.events ?? 0;
     const roots = storeOf(cell.h);
     const written = files(home).filter(
-      (f) => roots.some((p) => f.startsWith(`${p}/`)) && seeded.get(f) !== mtime(f),
+      (f) => roots.some((p) => f === p || f.startsWith(`${p}/`)) && seeded.get(f) !== mtime(f),
     );
     // home.mjs exits 0 unless it crashed; reconcile.mjs exits 0 on agreement and 1 on a delta.
     const broken =
@@ -903,12 +949,12 @@ if (step === "list") {
   process.exit(0);
 }
 const steps = { env, install, run, report, package: pack, stop };
-if (step === "all")
-  for (const sig of ["SIGINT", "SIGTERM"])
-    process.on(sig, () => {
-      stop();
-      process.exit(1);
-    });
+for (const sig of ["SIGINT", "SIGTERM"])
+  process.on(sig, () => {
+    killTree(turnPid);
+    if (step === "all") stop();
+    process.exit(1);
+  });
 let code = 0;
 try {
   for (const s of step === "all" ? ["env", "install", "run", "report", "package"] : [step])

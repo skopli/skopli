@@ -65,7 +65,8 @@
           "skip": "wrong-wire-shape",
           "note": "Codex has no Anthropic Messages client (OpenAI Responses/Chat providers only)"
         }
-      }
+      },
+      "layoutIgnore": [".codex/history.jsonl"]
     },
     "gemini": {
       "install": {
@@ -161,8 +162,7 @@
             "kind": "opencode",
             "path": ".config/mimocode/mimocode.json"
           },
-          "seed": "mimocode-openai-responses",
-          "nextFrom": "openai-chat"
+          "seed": "mimocode-openai-responses"
         },
         "anthropic-messages": {
           "first": ["mimo", "run", "--model", "llama/qwen", "{prompt}"],
@@ -177,7 +177,8 @@
           },
           "seed": "mimocode-anthropic-messages"
         }
-      }
+      },
+      "layoutIgnore": [".mimocode/data"]
     },
     "commandcode": {
       "install": {
@@ -462,13 +463,14 @@
       },
       "session": {
         "stdout": "\"session_id\":\"([0-9a-f-]+)\""
-      }
+      },
+      "layoutIgnore": [".factory/logs"]
     },
     "qwen": {
       "install": {
         "pnpm": "@qwen-code/qwen-code"
       },
-      "store": [".qwen/projects"],
+      "store": [".qwen/projects", ".qwen/usage"],
       "shapes": {
         "openai-chat": {
           "first": ["qwen", "-p", "{prompt}", "-y"],
@@ -697,7 +699,11 @@
       "install": {
         "pnpm": "@getkimchi/kimchi"
       },
-      "store": [".config/kimchi/agent/sessions", ".pi/agent/sessions"],
+      "store": [
+        ".config/kimchi/harness/sessions",
+        ".config/kimchi/agent/sessions",
+        ".pi/agent/sessions"
+      ],
       "shapes": {
         "openai-chat": {
           "first": ["kimchi", "-p", "--provider", "llama", "--model", "qwen", "{prompt}"],
@@ -770,7 +776,8 @@
             "darwin": "no-byok-endpoint"
           }
         }
-      }
+      },
+      "layoutIgnore": [".grok/logs"]
     },
     "augment": {
       "install": {
@@ -1084,7 +1091,8 @@
           },
           "seed": "kimi-anthropic-messages"
         }
-      }
+      },
+      "layoutIgnore": [".kimi-code/projects"]
     },
     "junie": {
       "install": {
@@ -1175,7 +1183,8 @@
           "skip": "wrong-wire-shape",
           "note": "Hermes \"anthropic\" provider has no base URL override for a local server"
         }
-      }
+      },
+      "layoutIgnore": [".hermes/sessions"]
     },
     "goose": {
       "install": {
