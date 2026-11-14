@@ -184,9 +184,11 @@ const readJson = (f, fallback) => {
     return fallback;
   }
 };
-// Git Bash puts its GNU tar first on PATH, which reads C:\... as a remote host and cannot open a zip.
+// Git Bash puts its GNU tar first on PATH, which reads a drive-letter path as a remote host and cannot open a zip.
 const TAR =
-  OS === "windows" ? join(process.env.SystemRoot ?? "C:\\Windows", "System32", "tar.exe") : "tar";
+  OS === "windows"
+    ? join(process.env.SystemRoot ?? process.env.windir ?? "", "System32", "tar.exe")
+    : "tar";
 const saveState = (patch) =>
   writeFileSync(state, JSON.stringify({ ...readJson(state, {}), ...patch }, null, 2));
 const sh = (cmd, a, o = {}) =>
