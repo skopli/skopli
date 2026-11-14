@@ -45,6 +45,6 @@ Preconditions:
   A missing addon fails with `skopli native addon not found`.
 - `golden/pricing/` holds pricing fixtures without `expected-events.json` and is not a valid case for this script.
 - The manifest's `home` is set to a nonexistent path when the case does not name one, so the run never reads the real home directory.
-- `home.mjs` passes an empty `env`, so environment overrides such as `CLAUDE_CONFIG_DIR` from the current shell never redirect a read; state that only an override would reach counts as not present.
+- `home.mjs` passes an `env` that is empty unless the home carries `AppData/Roaming` or `AppData/Local`; each dir independently puts its own variable (`APPDATA`, `LOCALAPPDATA`) inside the home the way Windows does - every Windows case in the corpus today carries `AppData/Roaming` only, so `LOCALAPPDATA` is never set. Environment overrides such as `CLAUDE_CONFIG_DIR` from the current shell never redirect a read, so state that only an override would reach counts as not present.
 - Two harnesses can share a sessions root (one is a fork of the other), in which case `detected` lists both and every event appears twice, once per harness name.
   Read the per-harness `events` and `sessions` under `byHarness` when that happens.

@@ -63,7 +63,7 @@ node .agents/skills/verify-skopli/scripts/browser.mjs --out .verify/evidence/<ru
   screenshot 03-mobile-open
 ```
 
-- The display is `"none"` before the click, `aria-expanded` is `"true"` after it, and the active element has class `pagefind-ui__search-input`.
+- The display is `"none"` before the click, `aria-expanded` is `"true"` after it, and the active element's `className` starts with `pagefind-ui__search-input` (a Svelte scoped-class suffix follows, so assert containment, not equality).
 - **Proof.** The transcripts hold the result list, the empty message and the toggle state; `01-results.png` shows the drawer under the header and `03-mobile-open.png` the revealed box.
 
 ## Gotchas
@@ -75,4 +75,5 @@ node .agents/skills/verify-skopli/scripts/browser.mjs --out .verify/evidence/<ru
   Click through `.pagefind-ui__result-link` so the proof follows the result and not the sidebar.
 - A dev server (`astro dev`) has no pagefind bundle, so the box never appears there.
   Verify against the built output launch serves.
+- Under msys/Git Bash on Windows, `text=/zzqxv/` is rewritten to `C:/msys64/zzqxv/` before it reaches the script; set `MSYS_NO_PATHCONV=1` for the empty-state drive.
 - The `Search` toggle and `Menu` button only exist in the DOM as visible controls at 860px and below.

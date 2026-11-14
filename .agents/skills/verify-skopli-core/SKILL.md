@@ -132,7 +132,7 @@ The formatting of a start into its key is `to_iso_string`, which allocates and i
 ## Readers
 
 Five tests live in `tests/readers.rs`; the mutation and judgement helpers live in `src/readers.rs`.
-The domain is the golden corpus: every `golden/<harness>/<case>/` with an `input-manifest.json`, 96 cases over all forty registered readers, copied into a scratch home and read through the real `Reader::read` with the context the manifest describes, exactly as `crates/skopli-core/tests/conformance.rs` builds it.
+The domain is the golden corpus: every `golden/<harness>/<case>/` with an `input-manifest.json`, 99 cases over all forty registered readers, copied into a scratch home and read through the real `Reader::read` with the context the manifest describes, exactly as `crates/skopli-core/tests/conformance.rs` builds it.
 The copy pins every file mtime to 2000-01-01T00:00:00Z, as the conformance sweep and the golden replay script pin the checkout's: a reader that consults mtimes (trae anchors naive timestamps on the file mtime) sees the same evidence on every machine, and a golden case never depends on when it was checked out.
 Nothing in the expectations comes from the reader under test: the token classes come from the cell names in the harness's own files, the event counts from `expected-events.json`, the timestamp grammar from the shared parser.
 
@@ -171,8 +171,8 @@ Three literal tables in the test keep the check honest:
 ### Bounds
 
 - One mutation per run: a single cell replaced or a single file damaged, never two at once.
-- 398,700 damaged inputs across the 96 cases, 260 of which leave the reader with an unusable timestamp that the wire read drops.
-- 3,820 live token cell mutations over 32 readers, 938 inert cells skipped, 36 ignored-by-design entries exercised, 4 known silent drops reproduced.
+- 407,230 damaged inputs across the 99 cases, 254 of which leave the reader with an unusable timestamp that the wire read drops.
+- 3,910 live token cell mutations over 32 readers, 946 inert cells skipped, 37 ignored-by-design entries exercised, 4 known silent drops reproduced.
 - Files the readers open through other means (SQLite databases, zstd streams) get only the byte-level damage, since they hold no JSON leaves to shift.
 
 Not covered: the token mapping of the eight readers in `NO_MAPPING_COVERAGE` (`cherrystudio`, `goose`, `hermes`, `kilo`, `kiro` and `zed` read SQLite only; `roo` and `kilocode` keep their counters inside a JSON string in `ui_messages.json`, which the leaf walk does not enter), two faults in one record, faults in file names or directory structure, records the golden case does not contain, readers' handling of a cell type they never see in the corpus, and the exact diagnostic text.

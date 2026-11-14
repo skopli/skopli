@@ -7,7 +7,7 @@ Every docs page carries one split control under its title: a `Copy page` button 
 - `actions-copy` fetches the page's `.md` twin, writes it to the clipboard and flips the label to `Copied` for 1.5 seconds.
   The label carries `aria-live="polite"` so the flip is announced.
 - `actions-menu` is the chevron button (`aria-label="More actions"`, `aria-haspopup="menu"`, `aria-expanded`).
-  Click, Enter, Space or ArrowDown open the `role="menu"` list and the keys move focus to its first item; Escape, whether focus is on the chevron or on an item, closes it and returns focus to the chevron; Tab out or an outside click closes it.
+  Click, Enter, Space or ArrowDown open the `role="menu"` list and the keys move focus to its first item; ArrowUp opens it focused on the last item instead. Escape, whether focus is on the chevron or on an item, closes it and returns focus to the chevron; Tab out or an outside click closes it.
   Enter or Space on an item activates it; activating an item closes the menu and returns focus to the chevron.
 - `actions-view-md` is the first menu item and links to the page's `.md` twin.
 - `actions-copy-link` is the second menu item and copies the twin's public URL; the label flips to `Link copied`.
@@ -115,5 +115,6 @@ Step 2 reads `false` (the script never ran), step 3 lists the seven rendered lin
   They leave the local origins and `browser.mjs` blocks them; the `href` values are the proof.
 - The menu is not a `<details>`; `aria-expanded` on `[data-more]` is its only state, and the stylesheet hides the list from that attribute once the group carries `data-enhanced`.
   The items ship without `tabindex`; the script sets `-1` on them, so a Tab that reaches an item means the script did not run.
-- A `Copy failed` label means the `.md` twin did not answer `200`; check the markdown-feeds feature before blaming the button.
+- A `Copy failed` label means the `.md` twin fetch failed or the clipboard `writeText` rejected; check the markdown-feeds feature first - `browser.mjs` already grants clipboard permissions to the local origins, so a rejection on `Copy page` points at the fetch.
+  The `Copy Markdown link` item shares the same label element but has no fetch, so a `Copy failed` there can only be a `writeText` rejection.
 - The clipboard is per browser profile, so each invocation starts empty.

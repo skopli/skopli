@@ -5,7 +5,7 @@ Every docs page has a Markdown twin at the same path with `.md` in place of the 
 ## Sub-features
 
 - `md-twin` serves `/skopli/<slug>.md` as `text/markdown` with the page title, description and body for all 13 pages.
-- `md-alternate` advertises the twin from each HTML page with `<link rel="alternate" type="text/markdown">`; the docs root adds a second alternate to `/skopli/llms.txt` and the marketing root advertises `/llms.txt`.
+- `md-alternate` advertises the twin from each HTML page with `<link rel="alternate" type="text/markdown">`; the docs root adds a second alternate to `/skopli/llms.txt` and the marketing root advertises `/llms-full.txt` and `/llms.txt`.
 - `llms-index` serves `/skopli/llms.txt` listing every page's twin with its description, plus the full-file link.
 - `llms-full` serves `/skopli/llms-full.txt` with all 13 pages separated by `---`.
 - `llms-site` serves `/llms.txt` on the marketing site pointing at its own `llms-full.txt` and the docs feeds.
@@ -15,7 +15,7 @@ Every docs page has a Markdown twin at the same path with `.md` in place of the 
 
 - Swap the trailing `/` of a docs URL for `.md`, for example `/skopli/guide/reading.md`.
 - Follow `View as Markdown` on a docs page or in its footer.
-- Follow `llms.txt` in the footer of either site; both footers lead to the docs feed, so the marketing site's own `/llms.txt` is reached by URL only.
+- Follow `llms.txt` in the footer of either site; the marketing footer leads to its own `/llms.txt`, the docs footer to the docs feed.
 - Request `/skopli/llms-full.txt` directly; `llms.txt` links to it as `Full docs in one file`.
 - Request `/llms-full.txt` on the marketing site directly; its `/llms.txt` links to it as `This page as Markdown`.
 
@@ -51,9 +51,9 @@ node .agents/skills/verify-skopli/scripts/browser.mjs --out .verify/evidence/<ru
 - **Full feed.** Step 7 saves `skopli_llms-full.txt` with 13 `# ` headings and 12 `---` separators.
 - **Marketing feed.** Step 8 saves `llms.txt` from the marketing site: `text/plain`, starts with `# Skopli`, links `https://skopli.com/llms-full.txt` and the docs `llms.txt` and `llms-full.txt`.
 - **Marketing full feed.** Step 9 saves `llms-full.txt` from the marketing site: `text/plain`, starts with `# Skopli:`, has the headings `## Three layers, used separately or together`, `## Cost math`, `## Harnesses`, `## Quickstart in each language` and `## Links`.
-- **Marketing alternate.** Steps 10 and 11 list the marketing root's alternates: `["https://skopli.com/llms.txt"]`.
+- **Marketing alternate.** Steps 10 and 11 list the marketing root's alternates: `["https://skopli.com/llms-full.txt","https://skopli.com/llms.txt"]` - the `markdown` prop adds the full-file link first.
 - **Marketing footer.** Step 12 reads the footer link.
-  Its href is `"https://docs.skopli.com/skopli/llms.txt"`, the docs feed, not the marketing file from step 8.
+  Its href is `"https://skopli.com/llms.txt"`, the marketing feed itself; the docs feed is linked inside that file instead.
 - **Proof.** The saved bodies next to the transcript are the proof; the transcript records status and content type for each.
 
 ## Gotchas
