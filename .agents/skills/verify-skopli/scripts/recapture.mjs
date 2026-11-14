@@ -41,7 +41,7 @@ options:
   --only <h[/shape]> restrict to a harness or one cell; repeatable
   --os <os>          plan for linux, darwin or windows; only list and --dry-run accept another OS
   --timeout <s>      wall-clock budget per cell across all turns, in seconds (default 600)
-  --resume           skip cells in --out that already ran; rerun error, not-installed, skip and todo
+  --resume           skip cells in --out that already ran; rerun error, not-installed and changed skips
   --baseline <dir>   a previous run directory; report flags CLI version changes against it and
                      does not count a TODO it already reported
   --dry-run          print the resolved plan as JSON and exit
@@ -118,7 +118,8 @@ const LLAMA = {
 const origin = `http://127.0.0.1:${LLAMA.gateway}`;
 const KEY = "sk-local";
 // Parent variables that would point a harness at a real home, account or provider are never passed to a cell.
-const LEAKY = /^(XDG_\w+|\w+_API_KEY|\w+_BASE_URL|\w+_TOKEN|CLAUDE_CONFIG_DIR|CODEX_HOME)$/;
+const LEAKY =
+  /^(XDG_\w+|AWS_\w+|\w+_API_KEY|\w+_API_BASE|\w+_BASE_URL|\w+_TOKEN|GOOGLE_APPLICATION_CREDENTIALS|CLAUDE_CONFIG_DIR|CODEX_HOME)$/;
 const cleanEnv = () =>
   Object.fromEntries(Object.entries(process.env).filter(([k]) => !LEAKY.test(k)));
 
@@ -240,7 +241,7 @@ const post = async (path, body, headers = {}) => {
 // Ready means the process we started is still alive and the URL answers.
 const waitFor = async (url, seconds, child) => {
   for (let i = 0; i < seconds; i++) {
-    if (child.exitCode !== null || child.signalCode !== null) return false;
+    if (child.exitCode !== null || child.signalCode !== null || child.spawnError) return false;
     try {
       if ((await fetch(url)).ok) return true;
     } catch {}
@@ -325,6 +326,7 @@ async function env() {
     windowsHide: true,
     stdio: ["ignore", slog, slog],
   });
+  srv.on("error", (e) => (srv.spawnError = e));
   srv.unref();
   saveState({
     serverPid: srv.pid,
@@ -352,6 +354,7 @@ async function env() {
       stdio: ["ignore", "ignore", openSync(join(out, "gateway-stderr.txt"), "w")],
     },
   );
+  gw.on("error", (e) => (gw.spawnError = e));
   gw.unref();
   saveState({ gatewayPid: gw.pid });
   if (!(await waitFor(`${origin}/v1/models`, 60, gw)))
@@ -620,12 +623,15 @@ async function run() {
   for (const cell of cells) {
     const dir = join(out, "cells", cell.harness, cell.shape);
     const resultFile = join(dir, "result.json");
-    // --resume keeps finished cells and retries the ones a broken environment ended.
+    // --resume keeps finished cells and unchanged skips, and retries the ones a broken environment ended.
+    const prev = readJson(resultFile, {});
+    const planned = cell.plan === "run" ? null : cell.todo ? "todo" : "skip";
     if (
       args.flag("--resume") &&
-      !["error", "not-installed", "skip", "todo", undefined].includes(
-        readJson(resultFile, {}).status,
-      )
+      prev.status &&
+      (planned
+        ? prev.status === planned && prev.reason === (cell.skip ?? cell.todo)
+        : !["error", "not-installed", "skip", "todo"].includes(prev.status))
     )
       continue;
     // A retry never reuses a home: the earlier attempt is kept beside it as <shape>.attemptN.
@@ -641,7 +647,7 @@ async function run() {
     };
     if (cell.plan !== "run") {
       write({
-        status: cell.todo ? "todo" : "skip",
+        status: planned,
         reason: cell.skip ?? cell.todo,
         note: cell.c.note,
       });
@@ -742,17 +748,21 @@ async function run() {
           : null;
     const status = broken
       ? "error"
-      : (setup?.timedOut || turns.some((t) => t.timedOut)) && !events
-        ? "hang"
-        : !lines.length
-          ? "capture-gap"
-          : !events
-            ? written.length
-              ? "reader-gap"
-              : "capture-gap"
-            : rc.status === 0
-              ? "captured"
-              : "captured-delta";
+      : setupFailed
+        ? setup.timedOut
+          ? "hang"
+          : "capture-gap"
+        : turns.some((t) => t.timedOut) && !events
+          ? "hang"
+          : !lines.length
+            ? "capture-gap"
+            : !events
+              ? written.length
+                ? "reader-gap"
+                : "capture-gap"
+              : rc.status === 0
+                ? "captured"
+                : "captured-delta";
     write({
       status,
       reason:
@@ -867,8 +877,13 @@ function report() {
     if (ok && !has) drift.push({ cell: r.cell, kind: "newly-capturable", lane: "decision" });
     if (r.status === "reader-gap" && !has)
       drift.push({ cell: r.cell, kind: "unread-store", lane: "decision" });
-    if (r.status === "not-run")
-      drift.push({ cell: r.cell, kind: "invariant", reason: "cell did not run", lane: "agent" });
+    if (r.status === "not-run" || r.status === "not-installed")
+      drift.push({
+        cell: r.cell,
+        kind: "invariant",
+        reason: r.status === "not-run" ? "cell did not run" : r.reason,
+        lane: "agent",
+      });
     else if (!ok && has && !["skip", "todo"].includes(r.status))
       drift.push({
         cell: r.cell,
@@ -949,7 +964,7 @@ function report() {
       2,
     ),
   );
-  return counts.error ? 1 : open.length ? 3 : 0;
+  return drift.some((d) => d.kind === "invariant") ? 1 : open.length ? 3 : 0;
 }
 
 function pack() {
@@ -958,7 +973,7 @@ function pack() {
     [
       "czf",
       join(dirname(out), `${relative(dirname(out), out)}.tgz`),
-      "--exclude=*/home/*/node_modules",
+      "--exclude=node_modules",
       "--exclude=*/cells/*/*/work",
       "-C",
       dirname(out),
