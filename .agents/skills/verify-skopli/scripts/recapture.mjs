@@ -204,6 +204,18 @@ const killTree = (pid) => {
     } catch {}
   }
 };
+// The OS start time tells a process we spawned apart from a later one that reused its PID.
+const started = (pid) =>
+  (OS === "windows"
+    ? sh(
+        "powershell",
+        ["-NoProfile", "-Command", `(Get-Process -Id ${pid}).StartTime.ToFileTimeUtc()`],
+        { noShell: true },
+      )
+    : sh("ps", ["-o", "lstart=", "-p", String(pid)], { noShell: true })
+  ).stdout?.trim() || null;
+const ours = (s, k) =>
+  !!s[`${k}Pid`] && !!s[`${k}Start`] && started(s[`${k}Pid`]) === s[`${k}Start`];
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 // fail throws so the top level can still stop what an `all` run started before exiting 1.
 const fail = (message) => {
@@ -342,6 +354,7 @@ async function env() {
   srv.unref();
   saveState({
     serverPid: srv.pid,
+    serverStart: srv.pid && started(srv.pid),
     os: OS,
     target,
     llama: { ...LLAMA, asset: undefined, flags: flags.slice(2) },
@@ -368,7 +381,7 @@ async function env() {
   );
   gw.on("error", (e) => (gw.spawnError = e));
   gw.unref();
-  saveState({ gatewayPid: gw.pid });
+  saveState({ gatewayPid: gw.pid, gatewayStart: gw.pid && started(gw.pid) });
   if (!(await waitFor(`${origin}/v1/models`, 60, gw)))
     fail("gateway exited or was not answering after 60 s, see gateway-stderr.txt");
   // Two turns with a shared prefix: turn two must report more cached prompt tokens than turn one.
@@ -415,12 +428,19 @@ async function env() {
   say(`env: ok, server ${srv.pid}, gateway ${gw.pid}, cache proof passed`);
 }
 
+// A recorded PID whose start time no longer matches belongs to someone else and is left alone.
 function stop() {
   const s = readJson(state, {});
-  killTree(s.gatewayPid);
-  killTree(s.serverPid);
-  if (existsSync(state)) saveState({ serverPid: null, gatewayPid: null });
-  say(`stop: ${s.serverPid ?? "-"} ${s.gatewayPid ?? "-"}`);
+  const done = ["server", "gateway"].map((k) => {
+    const pid = s[`${k}Pid`];
+    if (!pid) return "-";
+    if (!ours(s, k)) return `${pid} (not ours, left alone)`;
+    killTree(pid);
+    return String(pid);
+  });
+  if (existsSync(state))
+    saveState({ serverPid: null, serverStart: null, gatewayPid: null, gatewayStart: null });
+  say(`stop: ${done.join(" ")}`);
 }
 
 const which = (bin) =>
@@ -613,12 +633,8 @@ const scan = (home, cwd, paths) => {
 
 // A dead server or gateway would turn every later cell into a false capture-gap.
 const alive = async (s) => {
-  for (const pid of [s.serverPid, s.gatewayPid])
-    try {
-      process.kill(pid, 0);
-    } catch {
-      fail(`process ${pid} from the env step is gone; rerun env`);
-    }
+  for (const k of ["server", "gateway"])
+    if (!ours(s, k)) fail(`${k} process ${s[`${k}Pid`]} from the env step is gone; rerun env`);
   for (const url of [`http://127.0.0.1:${LLAMA.port}/health`, `${origin}/v1/models`])
     if (
       !(await fetch(url).then(

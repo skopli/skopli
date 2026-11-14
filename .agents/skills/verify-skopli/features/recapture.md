@@ -188,6 +188,7 @@ These rows describe what the November 2026 wave recorded; a recapture is what co
 
 - Run cells one at a time: four concurrent sessions saturated the 1.5B model on 8 cores and turned real captures into timeouts.
 - Never stop a harness or server by process name; the runner kills only the PIDs and process groups it started, and `stop` reads them from `state.json`.
+- `env` records each server and gateway PID with its OS start time, and `stop` leaves a PID alone when its start time no longer matches, since the OS may have reused it.
 - A turn killed mid-flight leaves nothing in most stores, so a capture can report fewer turns than ran.
 - Codex rejects `wire_api = "chat"`, Reasonix has no Responses shape, Command Code's Responses client never completes a stream against the gateway, and Trae's Chat Completions client crashes on a null `completion_tokens_details`; the last two still run so a fix upstream shows up as drift.
 - Grok needs a real sign-in on macOS, so its cells skip there.
