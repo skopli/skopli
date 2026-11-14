@@ -349,7 +349,8 @@
           },
           "seed": "copilot-anthropic-messages"
         }
-      }
+      },
+      "layoutIgnore": [".copilot/otel"]
     },
     "amp": {
       "install": {
@@ -624,7 +625,7 @@
     },
     "prime": {
       "install": {
-        "script": "https://astral.sh/uv/install.sh"
+        "todo": "installer URL not recorded; the macOS kit ran a saved copy of the upstream install script"
       },
       "store": [".prime/agent/sessions"],
       "shapes": {
@@ -1210,6 +1211,9 @@
             "GOOSE_DISABLE_KEYRING": "1"
           }
         }
+      },
+      "storeOs": {
+        "windows": ["AppData/Roaming/Block/goose"]
       }
     },
     "zed": {
@@ -1403,6 +1407,9 @@
           },
           "seed": "reasonix-anthropic-messages"
         }
+      },
+      "storeOs": {
+        "windows": ["AppData/Roaming/reasonix"]
       }
     },
     "kiro": {

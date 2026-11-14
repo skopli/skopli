@@ -14,7 +14,10 @@ import {
   statSync,
   writeFileSync,
 } from "node:fs";
+import { connect } from "node:net";
 import { hostname, platform, userInfo } from "node:os";
+import { Readable } from "node:stream";
+import { pipeline } from "node:stream/promises";
 import { delimiter, dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { parseArgs } from "./cli.mjs";
@@ -28,7 +31,7 @@ steps (each idempotent; "all" runs them in order and always ends with stop):
   install   install every harness the manifest can install, write cli-versions.txt
   run       run the selected cells one at a time with an isolated home each
   report    write cell-notes.<os>.tsv, matrix.<os>.md and drift.json from the cell results
-  package   tar the run directory without homes, model or server binaries
+  package   tar the run directory without target copies, model or server binaries
   stop      stop the server and gateway this run started, by PID
   all       env, install, run, report, package, stop
 
@@ -36,10 +39,11 @@ options:
   --out <dir>        run directory (default .verify/recapture/<utc-stamp>; reuse it to resume)
   --cache <dir>      download cache shared across runs (default .verify/recapture/cache)
   --only <h[/shape]> restrict to a harness or one cell; repeatable
-  --os <os>          label outputs for linux, darwin or windows (default: this machine)
+  --os <os>          plan for linux, darwin or windows; only list and --dry-run accept another OS
   --timeout <s>      wall-clock budget per cell across all turns, in seconds (default 600)
   --resume           skip cells that already have result.json in --out
-  --baseline <dir>   a previous run directory; report flags CLI version changes against it
+  --baseline <dir>   a previous run directory; report flags CLI version changes against it and
+                     does not count a TODO it already reported
   --dry-run          print the resolved plan as JSON and exit
   --quiet            no progress lines on stderr
   --help             this text
@@ -63,8 +67,11 @@ const here = dirname(fileURLToPath(import.meta.url));
 const root = resolve(here, "../../../..");
 const manifest = JSON.parse(readFileSync(join(here, "../recapture/harnesses.json"), "utf8"));
 const seeds = join(here, "../recapture/seeds");
-const OS = args.one("--os", { linux: "linux", darwin: "darwin", win32: "windows" }[platform()]);
+const HOST = { linux: "linux", darwin: "darwin", win32: "windows" }[platform()];
+const OS = args.one("--os", HOST);
 if (!["linux", "darwin", "windows"].includes(OS)) args.usage(`unsupported os ${OS}`);
+if (OS !== HOST && step !== "list" && !args.dryRun)
+  args.usage(`--os ${OS} only plans; ${step} has to run on ${OS}`);
 const stamp = new Date().toISOString().replace(/[-:]/g, "").replace(/\.\d+/, "");
 const out = resolve(args.one("--out", join(root, ".verify/recapture", stamp)));
 const cache = resolve(args.one("--cache", join(root, ".verify/recapture/cache")));
@@ -72,9 +79,24 @@ const timeout = Number(args.one("--timeout", "600"));
 if (!(timeout > 0)) args.usage("--timeout must be a positive number of seconds");
 const only = args.many("--only");
 const say = args.log;
-// Global harness installs land in a pnpm home inside the cache, so a run never touches the machine's own globals.
+// Harness installs land in the cache: a pnpm home for packages and a separate HOME for vendor scripts,
+// so a run never touches the machine's own globals or dotfiles.
+// The repo's own pnpm install keeps the caller's environment, since another PNPM_HOME means another store.
+const hostEnv = { ...process.env };
 process.env.PNPM_HOME = join(cache, "pnpm-home");
-process.env.PATH = `${process.env.PNPM_HOME}${delimiter}${process.env.PATH}`;
+const scriptHome = join(cache, "script-home");
+const basePath = process.env.PATH;
+const toolPath = () => {
+  const dots = existsSync(scriptHome)
+    ? readdirSync(scriptHome).map((d) => join(scriptHome, d, "bin"))
+    : [];
+  process.env.PATH = [
+    process.env.PNPM_HOME,
+    ...[join(scriptHome, ".local/bin"), ...dots].filter((d) => existsSync(d)),
+    basePath,
+  ].join(delimiter);
+};
+toolPath();
 const LLAMA = {
   build: "b11720",
   port: 8090,
@@ -91,6 +113,8 @@ const LLAMA = {
 };
 const origin = `http://127.0.0.1:${LLAMA.gateway}`;
 const KEY = "sk-local";
+// Parent variables that would point a harness at a real home, account or provider are never passed to a cell.
+const LEAKY = /^(XDG_\w+|\w+_API_KEY|\w+_BASE_URL|\w+_TOKEN|CLAUDE_CONFIG_DIR|CODEX_HOME)$/;
 
 const files = (dir, base = dir) =>
   existsSync(dir)
@@ -112,9 +136,12 @@ const todoOf = (h, c) =>
     ? "command not recorded"
     : !h.install || h.install.todo
       ? `install: ${h.install?.todo ?? "channel not recorded"}`
-      : c.seed && !seedDir(c.seed) && !c.config?.kind
-        ? `no ${OS} config seed`
-        : null;
+      : OS === "windows" && h.install.script
+        ? "install: no Windows channel for the vendor script"
+        : c.seed && !seedDir(c.seed) && !c.config?.kind
+          ? `no ${OS} config seed`
+          : null;
+const storeOf = (h) => h.storeOs?.[OS] ?? h.store ?? [];
 const cells = Object.entries(manifest.harnesses)
   .flatMap(([harness, h]) =>
     Object.entries(h.shapes).map(([shape, c]) => {
@@ -133,14 +160,20 @@ const cells = Object.entries(manifest.harnesses)
     }),
   )
   .filter((x) => !only.length || only.some((o) => o === x.harness || o === x.id));
-if (only.length && !cells.length) args.usage(`--only matched no cell: ${only.join(" ")}`);
+const unmatched = only.filter((o) => !cells.some((x) => o === x.harness || o === x.id));
+if (unmatched.length) args.usage(`--only matched no cell: ${unmatched.join(" ")}`);
 
+// cmd.exe gets one command line with every argument double-quoted, because Node only joins
+// arguments when it spawns through a shell.
+const winLine = (argv) => argv.map((a) => `"${a.replaceAll('"', '""')}"`).join(" ");
 const state = join(out, "state.json");
 const readJson = (f, fallback) => (existsSync(f) ? JSON.parse(readFileSync(f, "utf8")) : fallback);
 const saveState = (patch) =>
   writeFileSync(state, JSON.stringify({ ...readJson(state, {}), ...patch }, null, 2));
 const sh = (cmd, a, o = {}) =>
-  spawnSync(cmd, a, { encoding: "utf8", shell: OS === "windows" && !o.noShell, ...o });
+  OS === "windows" && !o.noShell
+    ? spawnSync(winLine([cmd, ...a]), { encoding: "utf8", shell: true, ...o })
+    : spawnSync(cmd, a, { encoding: "utf8", ...o });
 const killTree = (pid) => {
   if (!pid) return;
   if (OS === "windows") sh("taskkill", ["/PID", String(pid), "/T", "/F"], { noShell: true });
@@ -155,19 +188,27 @@ const killTree = (pid) => {
   }
 };
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+// fail throws so the top level can still stop what an `all` run started before exiting 1.
 const fail = (message) => {
-  console.error(`recapture: ${message}`);
-  process.exit(1);
+  throw new Error(message);
 };
 
-const download = async (url, file) => {
+// Downloads land beside the target as .part and are renamed only when complete and the expected size.
+const download = async (url, file, bytes) => {
   const res = await fetch(url, { headers: { "user-agent": "skopli-recapture" } });
   if (!res.ok) fail(`download ${url} answered ${res.status}`);
   mkdirSync(dirname(file), { recursive: true });
-  const ws = createWriteStream(file);
-  for await (const chunk of res.body) ws.write(chunk);
-  await new Promise((r) => ws.end(r));
+  await pipeline(Readable.fromWeb(res.body), createWriteStream(`${file}.part`));
+  const got = statSync(`${file}.part`).size;
+  if (bytes && got !== bytes) fail(`${url} gave ${got} B, expected ${bytes} B`);
+  renameSync(`${file}.part`, file);
 };
+const portBusy = (port) =>
+  new Promise((r) => {
+    const c = connect(port, "127.0.0.1");
+    c.once("connect", () => (c.destroy(), r(true)));
+    c.once("error", () => r(false));
+  });
 const findFile = (dir, name) => {
   for (const e of readdirSync(dir, { withFileTypes: true })) {
     const p = join(dir, e.name);
@@ -192,8 +233,10 @@ const post = async (path, body, headers = {}) => {
   });
   return res.json();
 };
-const waitFor = async (url, seconds) => {
+// Ready means the process we started is still alive and the URL answers.
+const waitFor = async (url, seconds, child) => {
   for (let i = 0; i < seconds; i++) {
+    if (child.exitCode !== null || child.signalCode !== null) return false;
     try {
       if ((await fetch(url)).ok) return true;
     } catch {}
@@ -208,7 +251,7 @@ async function env() {
     ["install", "--frozen-lockfile"],
     ["run", "build"],
   ])
-    if (sh("pnpm", a, { cwd: root, stdio: "inherit" }).status !== 0)
+    if (sh("pnpm", a, { cwd: root, stdio: "inherit", env: hostEnv }).status !== 0)
       fail(`pnpm ${a.join(" ")} failed`);
   const bin = join(cache, `llama-${LLAMA.build}-${OS}`);
   let server =
@@ -220,9 +263,9 @@ async function env() {
     const asset = rel.assets?.find((a) => LLAMA.asset[OS].test(a.name));
     if (!asset) fail(`no ${OS} asset in llama.cpp release ${LLAMA.build}`);
     const archive = join(cache, asset.name);
-    if (!existsSync(archive)) {
+    if (!existsSync(archive) || statSync(archive).size !== asset.size) {
       say(`download ${asset.name}`);
-      await download(asset.browser_download_url, archive);
+      await download(asset.browser_download_url, archive, asset.size);
     }
     mkdirSync(bin, { recursive: true });
     const x =
@@ -236,10 +279,8 @@ async function env() {
   const model = join(cache, LLAMA.model);
   if (!existsSync(model) || statSync(model).size !== LLAMA.bytes) {
     say(`download ${LLAMA.model}`);
-    await download(LLAMA.modelUrl, model);
+    await download(LLAMA.modelUrl, model, LLAMA.bytes);
   }
-  if (statSync(model).size !== LLAMA.bytes)
-    fail(`${LLAMA.model} is ${statSync(model).size} B, expected ${LLAMA.bytes} B`);
   const target = join(cache, "target/p-limit");
   if (
     !existsSync(target) &&
@@ -251,6 +292,8 @@ async function env() {
   const prior = readJson(state, {});
   if (prior.serverPid || prior.gatewayPid)
     fail(`server or gateway already recorded in ${state}; run stop first`);
+  for (const port of [LLAMA.port, LLAMA.gateway])
+    if (await portBusy(port)) fail(`port ${port} is already in use; stop whatever holds it`);
   const flags = [
     "-m",
     model,
@@ -281,8 +324,8 @@ async function env() {
     target,
     llama: { ...LLAMA, asset: undefined, flags: flags.slice(2) },
   });
-  if (!(await waitFor(`http://127.0.0.1:${LLAMA.port}/health`, 300)))
-    fail("llama-server not healthy after 300 s");
+  if (!(await waitFor(`http://127.0.0.1:${LLAMA.port}/health`, 300, srv)))
+    fail("llama-server exited or was not healthy after 300 s, see llama-server.txt");
   const gw = spawn(
     process.execPath,
     [
@@ -302,7 +345,8 @@ async function env() {
   );
   gw.unref();
   saveState({ gatewayPid: gw.pid });
-  if (!(await waitFor(`${origin}/v1/models`, 60))) fail("gateway not answering after 60 s");
+  if (!(await waitFor(`${origin}/v1/models`, 60, gw)))
+    fail("gateway exited or was not answering after 60 s, see gateway-stderr.txt");
   // Two turns with a shared prefix: turn two must report more cached prompt tokens than turn one.
   const system = `You answer questions about the p-limit package. ${"Keep answers short and factual. ".repeat(40)}`;
   const t1 = [
@@ -362,9 +406,7 @@ const which = (bin) =>
 const binOf = (c) => (Array.isArray(c.first) ? c.first[0] : null);
 function install() {
   mkdirSync(out, { recursive: true });
-  const harnesses = [
-    ...new Set(cells.filter((x) => x.plan !== "todo" || x.h.install).map((x) => x.harness)),
-  ];
+  const harnesses = [...new Set(cells.filter((x) => x.plan === "run").map((x) => x.harness))];
   const lines = [];
   for (const id of harnesses) {
     const { install: how, shapes } = manifest.harnesses[id];
@@ -380,8 +422,13 @@ function install() {
         ...(how.with ?? []).flatMap((w) => ["--with", w]),
         how.uv,
       ]);
-    else if (how?.script && OS !== "windows")
-      r = sh("bash", ["-c", `curl -fsSL ${how.script} | bash`]);
+    else if (how?.script && OS !== "windows") {
+      mkdirSync(scriptHome, { recursive: true });
+      r = sh("bash", ["-c", `curl -fsSL ${how.script} | bash`], {
+        env: { ...process.env, ...homeEnv(scriptHome) },
+      });
+      toolPath();
+    }
     if (r && r.status !== 0) say(`install ${id}: exit ${r.status}`);
     const path = bin && which(bin);
     const v = path ? sh(bin, ["--version"], { timeout: 25000 }) : null;
@@ -449,23 +496,33 @@ const homeEnv = (home) =>
       .map((l) => [l.slice(0, l.indexOf("=")), l.slice(l.indexOf("=") + 1)]),
   );
 
+// A turn ends when its leader exits; whatever the leader left in its process group is killed then,
+// so no stray outlives the turn or keeps its output pipes open.
 const runTurn = (argv, envv, cwd, log, limit = timeout) =>
   new Promise((done) => {
     const t0 = Date.now();
-    const child = spawn(argv[0], argv.slice(1), {
-      cwd,
-      env: envv,
-      detached: OS !== "windows",
-      stdio: ["ignore", "pipe", "pipe"],
-      shell: OS === "windows",
-    });
+    const child =
+      OS === "windows"
+        ? spawn(winLine(argv), { cwd, env: envv, stdio: ["ignore", "pipe", "pipe"], shell: true })
+        : spawn(argv[0], argv.slice(1), {
+            cwd,
+            env: envv,
+            detached: true,
+            stdio: ["ignore", "pipe", "pipe"],
+          });
     let text = "";
+    let timedOut = false;
+    let ended = false;
     child.stdout.on("data", (d) => (text += d));
     child.stderr.on("data", (d) => (text += d));
-    const timer = setTimeout(() => killTree(child.pid), limit * 1000);
+    const timer = setTimeout(() => {
+      timedOut = true;
+      killTree(child.pid);
+    }, limit * 1000);
     const finish = (code) => {
+      if (ended) return;
+      ended = true;
       clearTimeout(timer);
-      const timedOut = Date.now() - t0 >= limit * 1000;
       writeFileSync(
         log,
         `cmd: ${argv.join(" ")}\n${text}\nexit: ${code}${timedOut ? " (timeout)" : ""}\n`,
@@ -473,34 +530,40 @@ const runTurn = (argv, envv, cwd, log, limit = timeout) =>
       done({ code, timedOut, text, seconds: Math.round((Date.now() - t0) / 1000) });
     };
     child.on("error", () => finish(127));
+    child.on("exit", (code) => {
+      killTree(child.pid);
+      setTimeout(() => {
+        child.stdout.destroy();
+        child.stderr.destroy();
+        finish(code ?? 137);
+      }, 5000).unref();
+    });
     child.on("close", (code) => finish(code ?? 137));
   });
 
-const scan = (home, stores) => {
+// Every spelling a path takes in a store: native, forward-slash, MSYS (/c/...) and JSON-escaped.
+const spellings = (p) => {
+  const fwd = p.replaceAll("\\", "/");
+  const msys = fwd.replace(/^([A-Za-z]):/, (_, d) => `/${d.toLowerCase()}`);
+  return [...new Set([p, fwd, msys, p.replaceAll("\\", "\\\\")])];
+};
+const scan = (home, cwd, paths) => {
   const needles = [
-    userInfo().username,
-    hostname(),
-    userInfo().homedir,
-    "git-manager.devin.ai/proxy",
-  ].filter((n) => n && n.length > 2);
+    ["username", [userInfo().username]],
+    ["hostname", [hostname()]],
+    ["home-path", spellings(userInfo().homedir)],
+    ["cell-home", spellings(home)],
+    ["cell-cwd", spellings(cwd)],
+    ["dummy-key", [KEY, "local-only-placeholder"]],
+    ["git-proxy", ["git-manager.devin.ai/proxy"]],
+  ].map(([k, v]) => [k, v.filter((n) => n && n.length > 2)]);
   const hits = new Set();
-  for (const s of stores)
-    for (const f of files(join(home, s))) {
-      const text = readFileSync(join(home, s, f)).toString("latin1");
-      for (const n of needles)
-        if (text.includes(n) || text.includes(n.replaceAll("\\", "\\\\")))
-          hits.add(
-            n === userInfo().username
-              ? "username"
-              : n === hostname()
-                ? "hostname"
-                : n === userInfo().homedir
-                  ? "home-path"
-                  : n,
-          );
-      if (/\b[A-Z0-9]{1,6}~\d\b/.test(text)) hits.add("8.3-alias");
-    }
-  return [...hits];
+  for (const f of paths) {
+    const text = readFileSync(join(home, f)).toString("latin1");
+    for (const [k, v] of needles) if (v.some((n) => text.includes(n))) hits.add(k);
+    if (/\b[A-Z0-9]{1,6}~\d\b/.test(text)) hits.add("8.3-alias");
+  }
+  return [...hits].sort();
 };
 
 async function run() {
@@ -543,7 +606,7 @@ async function run() {
       session: "",
     };
     const envv = {
-      ...process.env,
+      ...Object.fromEntries(Object.entries(process.env).filter(([k]) => !LEAKY.test(k))),
       ...homeEnv(home),
       ...Object.fromEntries(Object.entries(cell.c.env ?? {}).map(([k, v]) => [k, fill(v, vars)])),
     };
@@ -559,6 +622,9 @@ async function run() {
       mkdirSync(dirname(f), { recursive: true });
       writeFileSync(f, JSON.stringify(CONFIG[cell.c.config.kind](cell.shape), null, 2));
     }
+    // Files the runner wrote are not evidence: only what the harness creates or changes counts.
+    const mtime = (f) => statSync(join(home, f)).mtimeMs;
+    const seeded = new Map(files(home).map((f) => [f, mtime(f)]));
     const gwlog = join(out, "gateway-usage.jsonl");
     const from = existsSync(gwlog) ? statSync(gwlog).size : 0;
     if (cell.c.setup)
@@ -591,7 +657,7 @@ async function run() {
       .filter((l) => l.route);
     const node = (script, a) => sh(process.execPath, [join(here, script), ...a], { noShell: true });
     const hr = node("home.mjs", [home, "--out", dir]);
-    const summary = readJson(join(dir, "home-result.json"), { events: 0, detected: [] });
+    const summary = readJson(join(dir, "home-result.json"), null);
     const rc = node("reconcile.mjs", [
       home,
       cell.harness,
@@ -599,15 +665,26 @@ async function run() {
       "--quiet",
     ]);
     writeFileSync(join(dir, "reconcile.json"), rc.stdout ?? "");
-    const events = summary.byHarness?.[cell.harness]?.events ?? 0;
-    const stored = (cell.h.store ?? []).some((p) => existsSync(join(home, p)));
-    const status =
-      turns.some((t) => t.timedOut) && !events
+    const events = summary?.byHarness?.[cell.harness]?.events ?? 0;
+    const roots = storeOf(cell.h);
+    const written = files(home).filter(
+      (f) => roots.some((p) => f.startsWith(`${p}/`)) && seeded.get(f) !== mtime(f),
+    );
+    // home.mjs exits 0 unless it crashed; reconcile.mjs exits 0 on agreement and 1 on a delta.
+    const broken =
+      hr.status !== 0 || !summary
+        ? `home.mjs exit ${hr.status}`
+        : rc.status !== 0 && rc.status !== 1
+          ? `reconcile.mjs exit ${rc.status}`
+          : null;
+    const status = broken
+      ? "error"
+      : turns.some((t) => t.timedOut) && !events
         ? "hang"
         : !lines.length
           ? "capture-gap"
           : !events
-            ? stored
+            ? written.length
               ? "reader-gap"
               : "capture-gap"
             : rc.status === 0
@@ -616,36 +693,46 @@ async function run() {
     write({
       status,
       reason:
-        status === "capture-gap" && !lines.length ? "no request reached the gateway" : undefined,
+        broken ??
+        (status === "capture-gap" && !lines.length ? "no request reached the gateway" : undefined),
       turns,
       gatewayLines: lines.length,
       events,
-      sessions: summary.byHarness?.[cell.harness]?.sessions ?? 0,
-      diagnostics: summary.diagnostics,
-      detected: summary.detected,
+      sessions: summary?.byHarness?.[cell.harness]?.sessions ?? 0,
+      diagnostics: summary?.diagnostics,
+      detected: summary?.detected,
       homeExit: hr.status,
       reconcileExit: rc.status,
       layout: layoutOf(
-        files(home).filter((f) => (cell.h.store ?? []).some((p) => f.startsWith(p))),
+        written.filter((f) => !(cell.h.layoutIgnore ?? []).some((p) => f.startsWith(p))),
+        cwd,
       ),
-      redaction: scan(home, cell.h.store ?? []),
+      redaction: scan(home, cwd, written),
     });
   }
 }
-// A store layout is its set of path shapes: any segment carrying an id, a date or a cwd slug becomes *.
-const layoutOf = (paths) =>
+// A store layout is its set of path shapes. A segment that slugs the session cwd becomes <cwd>,
+// whichever cwd it was (golden cases were captured in /home/user/project), and any other segment
+// carrying an id or a date becomes *.
+const slug = (p) => p.replace(/[^A-Za-z0-9]/g, "-").replace(/^-+/, "");
+const layoutOf = (paths, cwd) =>
   [
     ...new Set(
       paths.map((f) =>
         f
           .split("/")
           .map((seg) =>
-            /\d/.test(seg) || /^-.*-$/.test(seg) ? `*${seg.match(/(\.[a-z]+)+$/)?.[0] ?? ""}` : seg,
+            seg.replace(/^-+/, "") === slug(cwd)
+              ? "<cwd>"
+              : /\d/.test(seg) || /^-.*-$/.test(seg)
+                ? `*${seg.match(/(\.[a-z]+)+$/)?.[0] ?? ""}`
+                : seg,
           )
           .join("/"),
       ),
     ),
   ].sort();
+const GOLDEN_CWD = "/home/user/project";
 const sessionId = (how, text, home) => {
   if (how.stdout) return text.match(new RegExp(how.stdout))?.[1] ?? null;
   const base = how.glob.split("/*")[0];
@@ -676,7 +763,7 @@ function report() {
   );
   const goldenLayout = (id) => {
     const d = join(root, "golden", id, "input");
-    return existsSync(d) ? layoutOf(files(d)) : null;
+    return existsSync(d) ? layoutOf(files(d), GOLDEN_CWD) : null;
   };
   const versions = (dir) =>
     Object.fromEntries(
@@ -722,8 +809,18 @@ function report() {
     }
     if (r.status === "todo")
       drift.push({ cell: r.cell, kind: "todo", reason: r.reason, lane: "agent" });
+    if (r.status === "error")
+      drift.push({ cell: r.cell, kind: "invariant", reason: r.reason, lane: "agent" });
   }
   const base = args.one("--baseline");
+  // A TODO the baseline already reported with the same reason is listed again but not counted.
+  const knownTodo = new Set(
+    (base ? readJson(join(resolve(base), "drift.json"), []) : [])
+      .filter((d) => d.kind === "todo")
+      .map((d) => `${d.cell}\t${d.reason}`),
+  );
+  for (const d of drift)
+    if (d.kind === "todo" && knownTodo.has(`${d.cell}\t${d.reason}`)) d.known = true;
   if (base) {
     const a = versions(resolve(base)),
       b = versions(out);
@@ -762,8 +859,15 @@ function report() {
   );
   writeFileSync(join(out, "drift.json"), JSON.stringify(drift, null, 2));
   const counts = results.reduce((a, r) => ({ ...a, [r.status]: (a[r.status] ?? 0) + 1 }), {});
-  console.log(JSON.stringify({ out, os: OS, counts, drift: drift.length }, null, 2));
-  return drift.length ? 3 : 0;
+  const open = drift.filter((d) => !d.known);
+  console.log(
+    JSON.stringify(
+      { out, os: OS, counts, drift: open.length, known: drift.length - open.length },
+      null,
+      2,
+    ),
+  );
+  return counts.error ? 1 : open.length ? 3 : 0;
 }
 
 function pack() {
@@ -773,6 +877,7 @@ function pack() {
       "czf",
       join(dirname(out), `${relative(dirname(out), out)}.tgz`),
       "--exclude=*/home/*/node_modules",
+      "--exclude=*/cells/*/*/work",
       "-C",
       dirname(out),
       relative(dirname(out), out),
@@ -798,10 +903,19 @@ if (step === "list") {
   process.exit(0);
 }
 const steps = { env, install, run, report, package: pack, stop };
+if (step === "all")
+  for (const sig of ["SIGINT", "SIGTERM"])
+    process.on(sig, () => {
+      stop();
+      process.exit(1);
+    });
 let code = 0;
 try {
   for (const s of step === "all" ? ["env", "install", "run", "report", "package"] : [step])
     code = (await steps[s]()) || code;
+} catch (e) {
+  console.error(`recapture: ${e.message}`);
+  code = 1;
 } finally {
   if (step === "all") stop();
 }
