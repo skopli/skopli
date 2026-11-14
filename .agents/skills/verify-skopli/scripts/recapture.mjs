@@ -176,7 +176,17 @@ if (unmatched.length) args.usage(`--only matched no cell: ${unmatched.join(" ")}
 // arguments when it spawns through a shell.
 const winLine = (argv) => argv.map((a) => `"${a.replaceAll('"', '""')}"`).join(" ");
 const state = join(out, "state.json");
-const readJson = (f, fallback) => (existsSync(f) ? JSON.parse(readFileSync(f, "utf8")) : fallback);
+// A file cut short by a kill mid-write reads as missing.
+const readJson = (f, fallback) => {
+  try {
+    return JSON.parse(readFileSync(f, "utf8"));
+  } catch {
+    return fallback;
+  }
+};
+// Git Bash puts its GNU tar first on PATH, which reads C:\... as a remote host and cannot open a zip.
+const TAR =
+  OS === "windows" ? join(process.env.SystemRoot ?? "C:\\Windows", "System32", "tar.exe") : "tar";
 const saveState = (patch) =>
   writeFileSync(state, JSON.stringify({ ...readJson(state, {}), ...patch }, null, 2));
 const sh = (cmd, a, o = {}) =>
@@ -276,7 +286,7 @@ async function env() {
     const x =
       archive.endsWith(".zip") && OS === "linux"
         ? sh("unzip", ["-oq", archive, "-d", bin])
-        : sh("tar", ["xf", archive, "-C", bin]);
+        : sh(TAR, ["xf", archive, "-C", bin]);
     if (x.status !== 0) fail(`extract ${asset.name}: ${x.stderr}`);
     server = findFile(bin, OS === "windows" ? "llama-server.exe" : "llama-server");
     if (!server) fail(`llama-server not found in ${asset.name}`);
@@ -969,7 +979,7 @@ function report() {
 
 function pack() {
   const r = sh(
-    "tar",
+    TAR,
     [
       "czf",
       join(dirname(out), `${relative(dirname(out), out)}.tgz`),

@@ -68,7 +68,7 @@ Statuses in `result.json` and `cell-notes.<os>.tsv`:
 | `captured`       | Skopli read events and they reconcile exactly with the gateway.                                                                                       |
 | `captured-delta` | Skopli read events but the totals differ from the gateway.                                                                                            |
 | `reader-gap`     | Requests reached the gateway and the harness wrote its store, but Skopli read zero events.                                                            |
-| `capture-gap`    | No request reached the gateway, or the harness wrote nothing under its store roots.                                                                   |
+| `capture-gap`    | Setup exited non-zero, no request reached the gateway, or the harness wrote nothing under its store roots.                                            |
 | `hang`           | Setup ran out the budget, or a turn did and Skopli read nothing.                                                                                      |
 | `error`          | `home.mjs` crashed or `reconcile.mjs` exited with something other than agreement or a delta; `report` then exits `1`.                                 |
 | `not-installed`  | The harness binary is not on `PATH` after the install step.                                                                                           |
@@ -198,6 +198,6 @@ These rows describe what the November 2026 wave recorded; a recapture is what co
 - Redact before promoting: the cell home and target paths, the username and hostname, the dummy keys, Windows 8.3 aliases such as `ADMINI~1`, PATH snapshots in Hermes `state_meta`, git proxy hosts in URLs, and escaped Windows paths; `result.json` lists under `redaction` which needle kinds it found (`username`, `hostname`, `home-path`, `cell-home`, `cell-cwd`, `dummy-key`, `git-proxy`, `8.3-alias`) in every native, forward-slash, MSYS and JSON-escaped spelling, scanning only the files the harness wrote under its store roots for this OS.
 - A capture whose layout matches the Linux case is recorded as the same layout with its counts; only a differing layout becomes `golden/<harness>/<shape>-<os>/`, and the manifest keeps the shape name without the `-<os>` suffix.
 - The pnpm home and the HOME that vendor install scripts see are both inside `--cache`, so a run never touches the machine's global packages or dotfiles, and the cache can be reused across runs.
-- Cells never inherit `XDG_*`, `*_API_KEY`, `*_BASE_URL`, `*_TOKEN`, `CLAUDE_CONFIG_DIR` or `CODEX_HOME` from the parent environment.
+- Cells never inherit `XDG_*`, `AWS_*`, `*_API_KEY`, `*_API_BASE`, `*_BASE_URL`, `*_TOKEN`, `GOOGLE_APPLICATION_CREDENTIALS`, `CLAUDE_CONFIG_DIR` or `CODEX_HOME` from the parent environment.
 - The package keeps every cell home unredacted, so attach it only to the private run report, never to a public PR or issue.
 - On Windows each turn runs through `cmd.exe` with every argument double-quoted, so a prompt must not contain `%`.
