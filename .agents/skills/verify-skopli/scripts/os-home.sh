@@ -21,7 +21,8 @@ case "$(uname -s | tr '[:upper:]' '[:lower:]')" in
   msys*|mingw*|cygwin*)
     mkdir -p "$home/AppData/Roaming" "$home/AppData/Local"
     win=$(cygpath -w "$home")
-    q HOME "$home"
+    # Native Windows programs cannot resolve an MSYS path such as /c/Users, so HOME is mixed form.
+    q HOME "$(cygpath -m "$home")"
     q USERPROFILE "$win"
     q APPDATA "$win\\AppData\\Roaming"
     q LOCALAPPDATA "$win\\AppData\\Local";;

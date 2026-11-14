@@ -135,6 +135,7 @@
       "install": {
         "script": "https://mimo.xiaomi.com/install"
       },
+      "installOs": { "windows": { "ps1": "https://mimo.xiaomi.com/install.ps1" } },
       "store": [".local/share/mimocode", ".mimocode/data"],
       "shapes": {
         "openai-chat": {
@@ -375,6 +376,7 @@
       "install": {
         "script": "https://app.factory.ai/cli"
       },
+      "installOs": { "windows": { "ps1": "https://app.factory.ai/cli/windows" } },
       "store": [".factory/logs", ".factory/sessions"],
       "shapes": {
         "openai-chat": {
@@ -624,7 +626,10 @@
     },
     "prime": {
       "install": {
-        "script": "https://astral.sh/uv/install.sh"
+        "script": "https://app.primeintellect.ai/prime-agent/install.sh"
+      },
+      "installOs": {
+        "windows": { "ps1": "https://app.primeintellect.ai/prime-agent/install.ps1" }
       },
       "store": [".prime/agent/sessions"],
       "shapes": {
@@ -731,6 +736,7 @@
       "install": {
         "script": "https://x.ai/cli/install.sh"
       },
+      "installOs": { "windows": { "ps1": "https://x.ai/cli/install.ps1" } },
       "store": [".grok", ".grok/logs", ".grok/sessions"],
       "shapes": {
         "openai-chat": {
@@ -842,6 +848,7 @@
       "install": {
         "script": "https://jcode.sh/install"
       },
+      "installOs": { "windows": { "ps1": "https://jcode.sh/install.ps1" } },
       "store": [".jcode/sessions"],
       "shapes": {
         "openai-chat": {
@@ -1057,6 +1064,7 @@
       "install": {
         "script": "https://code.kimi.com/kimi-code/install.sh"
       },
+      "installOs": { "windows": { "ps1": "https://code.kimi.com/kimi-code/install.ps1" } },
       "store": [".kimi-code/projects", ".kimi-code/sessions"],
       "shapes": {
         "openai-chat": {
@@ -1127,7 +1135,13 @@
     },
     "hermes": {
       "install": {
-        "todo": "vendor installer URL not recorded"
+        "script": "https://hermes-agent.nousresearch.com/install.sh"
+      },
+      "installOs": {
+        "windows": {
+          "ps1": "https://hermes-agent.nousresearch.com/install.ps1",
+          "args": ["-NonInteractive"]
+        }
       },
       "store": [".hermes/sessions", ".hermes/state.db"],
       "shapes": {
@@ -1180,7 +1194,15 @@
       "install": {
         "script": "https://github.com/aaif-goose/goose/releases/download/stable/download_cli.sh"
       },
+      "installOs": {
+        "windows": {
+          "ps1": "https://raw.githubusercontent.com/aaif-goose/goose/main/download_cli.ps1",
+          "env": { "CONFIGURE": "false" },
+          "binDir": ".local/bin"
+        }
+      },
       "store": [".local/share/goose"],
+      "storeOs": { "windows": ["AppData/Roaming/Block/goose"] },
       "shapes": {
         "openai-chat": {
           "first": ["goose", "run", "-q", "-n", "p-limit", "-t", "{prompt}"],
@@ -1382,6 +1404,7 @@
         "pnpm": "reasonix"
       },
       "store": [".reasonix"],
+      "storeOs": { "windows": ["AppData/Roaming/reasonix"] },
       "shapes": {
         "openai-chat": {
           "first": ["reasonix", "-p", "--model", "qwen", "{prompt}"],

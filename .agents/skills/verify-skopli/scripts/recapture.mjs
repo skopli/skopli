@@ -28,7 +28,7 @@ steps (each idempotent; "all" runs them in order and always ends with stop):
   install   install every harness the manifest can install, write cli-versions.txt
   run       run the selected cells one at a time with an isolated home each
   report    write cell-notes.<os>.tsv, matrix.<os>.md and drift.json from the cell results
-  package   tar the run directory without homes, model or server binaries
+  package   tar the run directory without the homes' node modules
   stop      stop the server and gateway this run started, by PID
   all       env, install, run, report, package, stop
 
@@ -73,8 +73,16 @@ if (!(timeout > 0)) args.usage("--timeout must be a positive number of seconds")
 const only = args.many("--only");
 const say = args.log;
 // Global harness installs land in a pnpm home inside the cache, so a run never touches the machine's own globals.
+// The repo's own install keeps the caller's environment: on Windows pnpm derives its default store
+// from PNPM_HOME, so the redirected home would make it purge and refetch node_modules.
+const callerEnv = { ...process.env };
 process.env.PNPM_HOME = join(cache, "pnpm-home");
-process.env.PATH = `${process.env.PNPM_HOME}${delimiter}${process.env.PATH}`;
+// uv tool installs land beside it for the same reason; uv's default bin dir is not on PATH on Windows.
+process.env.UV_TOOL_DIR = join(cache, "uv-tools");
+process.env.UV_TOOL_BIN_DIR = join(cache, "uv-bin");
+process.env.PATH = [process.env.PNPM_HOME, process.env.UV_TOOL_BIN_DIR, process.env.PATH].join(
+  delimiter,
+);
 const LLAMA = {
   build: "b11720",
   port: 8090,
@@ -106,12 +114,14 @@ const seedDir = (name) =>
   [OS, ...({ linux: ["darwin"], darwin: ["linux"] }[OS] ?? [])]
     .map((o) => join(seeds, o, name))
     .find((d) => existsSync(d) && !files(d).some((f) => /^(Library|AppData)\//.test(f)));
+// An install channel can differ per OS (a PowerShell installer on Windows); installOs overrides install.
+const installOf = (h) => h.installOs?.[OS] ?? h.install;
 // A cell is TODO when a field still names a gap the recovered kit could not source on this OS.
 const todoOf = (h, c) =>
   c.first === "TODO" || c.next === "TODO"
     ? "command not recorded"
-    : !h.install || h.install.todo
-      ? `install: ${h.install?.todo ?? "channel not recorded"}`
+    : !installOf(h) || installOf(h).todo
+      ? `install: ${installOf(h)?.todo ?? "channel not recorded"}`
       : c.seed && !seedDir(c.seed) && !c.config?.kind
         ? `no ${OS} config seed`
         : null;
@@ -139,8 +149,52 @@ const state = join(out, "state.json");
 const readJson = (f, fallback) => (existsSync(f) ? JSON.parse(readFileSync(f, "utf8")) : fallback);
 const saveState = (patch) =>
   writeFileSync(state, JSON.stringify({ ...readJson(state, {}), ...patch }, null, 2));
-const sh = (cmd, a, o = {}) =>
-  spawnSync(cmd, a, { encoding: "utf8", shell: OS === "windows" && !o.noShell, ...o });
+// With shell: true Node joins argv with spaces for cmd.exe, so each argument is quoted for the
+// MSVC argv parser first; otherwise a prompt or a path with a space splits into several arguments.
+const winArg = (a) =>
+  a && !/[\s"&|<>^()%!,;=]/.test(a)
+    ? a
+    : `"${a.replace(/(\\*)"/g, '$1$1\\"').replace(/(\\+)$/, "$1$1")}"`;
+const winArgv = (cmd, a) => [winArg(cmd), a.map(winArg)];
+const sh = (cmd, a, o = {}) => {
+  const viaCmd = OS === "windows" && !o.noShell;
+  const [c, rest] = viaCmd ? winArgv(cmd, a) : [cmd, a];
+  return spawnSync(c, rest, { encoding: "utf8", shell: viaCmd, ...o });
+};
+// Windows vendor installers add their bin dir to the user PATH in the registry (or, for goose, to
+// nothing: binDir names it), which a running process never sees, so both are folded into PATH.
+const windowsPath = () => {
+  if (OS !== "windows") return;
+  const have = new Set(process.env.PATH.split(delimiter).map((p) => p.toLowerCase()));
+  const user = spawnSync(
+    "powershell",
+    ["-NoProfile", "-Command", "[Environment]::GetEnvironmentVariable('Path','User')"],
+    { encoding: "utf8" },
+  ).stdout;
+  const dirs = [
+    ...(user ?? "").trim().split(";"),
+    ...Object.values(manifest.harnesses)
+      .map((h) => installOf(h)?.binDir)
+      .filter(Boolean)
+      .map((d) => join(userInfo().homedir, d)),
+  ].filter((d) => d && !have.has(d.toLowerCase()));
+  if (dirs.length) process.env.PATH = [process.env.PATH, ...dirs].join(delimiter);
+};
+windowsPath();
+// A bare "bash" on Windows resolves to System32's WSL launcher before Git for Windows' bash.
+const BASH =
+  OS === "windows"
+    ? join(
+        dirname(
+          dirname(
+            spawnSync("where", ["git"], { encoding: "utf8" }).stdout?.split(/\r?\n/)[0]?.trim() ||
+              "git",
+          ),
+        ),
+        "bin",
+        "bash.exe",
+      )
+    : "bash";
 const killTree = (pid) => {
   if (!pid) return;
   if (OS === "windows") sh("taskkill", ["/PID", String(pid), "/T", "/F"], { noShell: true });
@@ -208,7 +262,7 @@ async function env() {
     ["install", "--frozen-lockfile"],
     ["run", "build"],
   ])
-    if (sh("pnpm", a, { cwd: root, stdio: "inherit" }).status !== 0)
+    if (sh("pnpm", a, { cwd: root, env: callerEnv, stdio: "inherit" }).status !== 0)
       fail(`pnpm ${a.join(" ")} failed`);
   const bin = join(cache, `llama-${LLAMA.build}-${OS}`);
   let server =
@@ -218,7 +272,10 @@ async function env() {
       await fetch(`https://api.github.com/repos/ggml-org/llama.cpp/releases/tags/${LLAMA.build}`)
     ).json();
     const asset = rel.assets?.find((a) => LLAMA.asset[OS].test(a.name));
-    if (!asset) fail(`no ${OS} asset in llama.cpp release ${LLAMA.build}`);
+    if (!asset)
+      fail(
+        `no ${OS} asset in llama.cpp release ${LLAMA.build}${rel.message ? `: ${rel.message}` : ""}`,
+      );
     const archive = join(cache, asset.name);
     if (!existsSync(archive)) {
       say(`download ${asset.name}`);
@@ -359,15 +416,18 @@ const which = (bin) =>
   sh(OS === "windows" ? "where" : "which", [bin], { noShell: true })
     .stdout?.split(/\r?\n/)[0]
     ?.trim() || null;
+// Store roots are HOME-relative; a harness whose store moves on one OS records it in storeOs.
+const storesOf = (h) => h.storeOs?.[OS] ?? h.store ?? [];
 const binOf = (c) => (Array.isArray(c.first) ? c.first[0] : null);
 function install() {
   mkdirSync(out, { recursive: true });
   const harnesses = [
-    ...new Set(cells.filter((x) => x.plan !== "todo" || x.h.install).map((x) => x.harness)),
+    ...new Set(cells.filter((x) => x.plan !== "todo" || installOf(x.h)).map((x) => x.harness)),
   ];
   const lines = [];
   for (const id of harnesses) {
-    const { install: how, shapes } = manifest.harnesses[id];
+    const { shapes } = manifest.harnesses[id];
+    const how = installOf(manifest.harnesses[id]);
     const bin = Object.values(shapes).map(binOf).find(Boolean);
     let r = null;
     if (how?.pnpm) r = sh("pnpm", ["add", "-g", how.pnpm]);
@@ -380,8 +440,21 @@ function install() {
         ...(how.with ?? []).flatMap((w) => ["--with", w]),
         how.uv,
       ]);
-    else if (how?.script && OS !== "windows")
-      r = sh("bash", ["-c", `curl -fsSL ${how.script} | bash`]);
+    else if (how?.ps1 && OS === "windows") {
+      r = sh(
+        "powershell",
+        [
+          "-NoProfile",
+          "-ExecutionPolicy",
+          "Bypass",
+          "-Command",
+          `& ([scriptblock]::Create((irm ${how.ps1}))) ${(how.args ?? []).join(" ")}`,
+        ],
+        { noShell: true, timeout: 900000, env: { ...process.env, ...how.env } },
+      );
+      windowsPath();
+    } else if (how?.script && OS !== "windows")
+      r = sh(BASH, ["-c", `curl -fsSL ${how.script} | bash`]);
     if (r && r.status !== 0) say(`install ${id}: exit ${r.status}`);
     const path = bin && which(bin);
     const v = path ? sh(bin, ["--version"], { timeout: 25000 }) : null;
@@ -443,7 +516,7 @@ const CONFIG = {
 };
 const homeEnv = (home) =>
   Object.fromEntries(
-    sh("bash", [join(here, "os-home.sh"), "--plain", home], { noShell: true })
+    sh(BASH, [join(here, "os-home.sh"), "--plain", home], { noShell: true })
       .stdout.trim()
       .split("\n")
       .map((l) => [l.slice(0, l.indexOf("=")), l.slice(l.indexOf("=") + 1)]),
@@ -452,12 +525,15 @@ const homeEnv = (home) =>
 const runTurn = (argv, envv, cwd, log, limit = timeout) =>
   new Promise((done) => {
     const t0 = Date.now();
-    const child = spawn(argv[0], argv.slice(1), {
+    const [cmd, rest] =
+      OS === "windows" ? winArgv(argv[0], argv.slice(1)) : [argv[0], argv.slice(1)];
+    const child = spawn(cmd, rest, {
       cwd,
       env: envv,
       detached: OS !== "windows",
       stdio: ["ignore", "pipe", "pipe"],
       shell: OS === "windows",
+      windowsHide: true,
     });
     let text = "";
     child.stdout.on("data", (d) => (text += d));
@@ -488,7 +564,11 @@ const scan = (home, stores) => {
     for (const f of files(join(home, s))) {
       const text = readFileSync(join(home, s, f)).toString("latin1");
       for (const n of needles)
-        if (text.includes(n) || text.includes(n.replaceAll("\\", "\\\\")))
+        if (
+          text.includes(n) ||
+          text.includes(n.replaceAll("\\", "\\\\")) ||
+          text.includes(n.replaceAll("\\", "/"))
+        )
           hits.add(
             n === userInfo().username
               ? "username"
@@ -600,7 +680,7 @@ async function run() {
     ]);
     writeFileSync(join(dir, "reconcile.json"), rc.stdout ?? "");
     const events = summary.byHarness?.[cell.harness]?.events ?? 0;
-    const stored = (cell.h.store ?? []).some((p) => existsSync(join(home, p)));
+    const stored = storesOf(cell.h).some((p) => existsSync(join(home, p)));
     const status =
       turns.some((t) => t.timedOut) && !events
         ? "hang"
@@ -625,10 +705,8 @@ async function run() {
       detected: summary.detected,
       homeExit: hr.status,
       reconcileExit: rc.status,
-      layout: layoutOf(
-        files(home).filter((f) => (cell.h.store ?? []).some((p) => f.startsWith(p))),
-      ),
-      redaction: scan(home, cell.h.store ?? []),
+      layout: layoutOf(files(home).filter((f) => storesOf(cell.h).some((p) => f.startsWith(p)))),
+      redaction: scan(home, storesOf(cell.h)),
     });
   }
 }
