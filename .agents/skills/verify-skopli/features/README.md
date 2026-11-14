@@ -54,3 +54,4 @@ Name only user paths, stable handles, required state, commands and observable pr
 - [Markdown twins and llms feeds](./markdown-feeds.md) covers the `.md` twin of every docs page and the `llms.txt` and `llms-full.txt` feeds on both sites.
 - [Discovery metadata](./discovery.md) covers `robots.txt`, the sitemaps, canonical URLs, Open Graph and Twitter cards with the generated images, and JSON-LD on every page.
 - [Library golden replay](./library-golden.md) covers reading and rolling up a golden case through the built facade, and reading a real home directory.
+- [Harness recapture](./recapture.md) covers rerunning the real harness CLIs against a local model with `recapture.mjs`, and reporting drift against the golden corpus.

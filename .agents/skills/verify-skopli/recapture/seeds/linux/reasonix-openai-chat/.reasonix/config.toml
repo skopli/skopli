@@ -1,0 +1,13 @@
+default_model = "qwen"
+max_output_tokens = 1024
+config_version = 6 # schema marker for diagnostics; old versions may ignore it
+
+[[providers]]
+name = "qwen"
+kind = "openai"
+base_url = "{origin}/v1"
+model = "qwen"
+api_key_env = "LLAMA_API_KEY"
+
+[tools]
+browser_tools = false

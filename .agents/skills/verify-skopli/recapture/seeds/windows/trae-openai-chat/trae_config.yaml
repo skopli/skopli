@@ -1,0 +1,25 @@
+agents:
+  trae_agent:
+    enable_lakeview: false
+    model: trae_agent_model
+    max_steps: 6
+    tools:
+      - bash
+      - str_replace_based_edit_tool
+      - sequentialthinking
+      - task_done
+model_providers:
+  llama:
+    api_key: sk-local
+    provider: openai
+    base_url: {origin}/v1
+models:
+  trae_agent_model:
+    model_provider: llama
+    model: qwen
+    max_tokens: 1024
+    temperature: 0.5
+    top_p: 1
+    top_k: 0
+    parallel_tool_calls: false
+    max_retries: 3

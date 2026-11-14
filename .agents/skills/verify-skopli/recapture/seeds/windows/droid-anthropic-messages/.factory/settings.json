@@ -1,0 +1,12 @@
+{
+  "customModels": [
+    {
+      "model": "qwen",
+      "displayName": "qwen",
+      "baseUrl": "{origin}",
+      "apiKey": "sk-local",
+      "provider": "anthropic",
+      "maxOutputTokens": 1024
+    }
+  ]
+}

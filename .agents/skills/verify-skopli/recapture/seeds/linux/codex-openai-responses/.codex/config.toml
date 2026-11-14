@@ -1,0 +1,13 @@
+model = "qwen"
+model_provider = "llama"
+approval_policy = "never"
+sandbox_mode = "danger-full-access"
+model_context_window = 32768
+[model_providers.llama]
+name = "llama.cpp"
+base_url = "{origin}/v1"
+env_key = "LLAMA_API_KEY"
+wire_api = "responses"
+
+[projects."{cwd}"]
+trust_level = "trusted"

@@ -1,0 +1,10 @@
+{
+  "providers": {
+    "llama": {
+      "baseUrl": "{origin}",
+      "api": "anthropic-messages",
+      "apiKey": "sk-local",
+      "models": [{ "id": "qwen", "name": "qwen", "contextWindow": 65536, "maxTokens": 4096 }]
+    }
+  }
+}

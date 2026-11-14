@@ -1,0 +1,11 @@
+[model.qwen]
+model = "qwen"
+name = "qwen"
+base_url = "{origin}/v1"
+api_key = "sk-local"
+api_backend = "chat_completions"
+context_window = 32768
+max_completion_tokens = 1024
+
+[marketplace]
+default_skills_installs_purged = true

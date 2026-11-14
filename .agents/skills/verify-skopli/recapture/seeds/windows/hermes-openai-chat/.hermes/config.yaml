@@ -1,0 +1,9 @@
+providers:
+  llama:
+    api: {origin}/v1
+    api_key: sk-local
+    transport: chat_completions
+    default_model: qwen
+    models:
+      qwen:
+        context_length: 65536

@@ -2,6 +2,7 @@
   "ignorePatterns": [
     "test/fixtures/**",
     "golden/**",
+    ".agents/skills/verify-skopli/recapture/seeds/**",
     "native/**",
     "**/bin/**",
     "**/obj/**",

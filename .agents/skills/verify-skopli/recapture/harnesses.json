@@ -1,0 +1,1453 @@
+{
+  "prompts": [
+    "What does index.js in this project export? Answer in one sentence.",
+    "Given what index.js exports, what does the concurrency argument control? One sentence.",
+    "Why does the limiter need a queue when more tasks arrive than the concurrency allows? One sentence.",
+    "Summarise the three answers you gave so far in one sentence."
+  ],
+  "harnesses": {
+    "claude": {
+      "install": {
+        "pnpm": "@anthropic-ai/claude-code"
+      },
+      "store": [".claude/projects"],
+      "shapes": {
+        "openai-chat": {
+          "skip": "wrong-wire-shape",
+          "note": "Claude Code speaks the Anthropic Messages API only (ANTHROPIC_BASE_URL); no OpenAI wire option"
+        },
+        "openai-responses": {
+          "skip": "wrong-wire-shape",
+          "note": "Claude Code speaks the Anthropic Messages API only; no OpenAI wire option"
+        },
+        "anthropic-messages": {
+          "first": [
+            "claude",
+            "-p",
+            "--dangerously-skip-permissions",
+            "--model",
+            "qwen",
+            "{prompt}"
+          ],
+          "next": [
+            "claude",
+            "-p",
+            "-c",
+            "--dangerously-skip-permissions",
+            "--model",
+            "qwen",
+            "{prompt}"
+          ],
+          "seed": "claude-anthropic-messages"
+        }
+      }
+    },
+    "codex": {
+      "install": {
+        "pnpm": "@openai/codex"
+      },
+      "store": [".codex/history.jsonl", ".codex/sessions"],
+      "shapes": {
+        "openai-chat": {
+          "skip": "wrong-wire-shape",
+          "note": "codex 0.163 rejects wire_api=\"chat\" in config.toml and exits asking for the Responses API; run.txt kept, no session written"
+        },
+        "openai-responses": {
+          "first": ["codex", "exec", "--skip-git-repo-check", "{prompt}"],
+          "next": ["codex", "exec", "resume", "--last", "--skip-git-repo-check", "{prompt}"],
+          "env": {
+            "LLAMA_API_KEY": "sk-local",
+            "CODEX_HOME": "{home}/.codex"
+          },
+          "seed": "codex-openai-responses"
+        },
+        "anthropic-messages": {
+          "skip": "wrong-wire-shape",
+          "note": "Codex has no Anthropic Messages client (OpenAI Responses/Chat providers only)"
+        }
+      }
+    },
+    "gemini": {
+      "install": {
+        "pnpm": "@google/gemini-cli"
+      },
+      "store": [".gemini/tmp"],
+      "shapes": {
+        "openai-chat": {
+          "skip": "wrong-wire-shape",
+          "note": "Gemini CLI speaks the Gemini generateContent API only (GEMINI_API_KEY / Vertex / Code Assist); no OpenAI-compatible provider setting"
+        },
+        "openai-responses": {
+          "skip": "wrong-wire-shape",
+          "note": "no OpenAI provider in Gemini CLI"
+        },
+        "anthropic-messages": {
+          "skip": "wrong-wire-shape",
+          "note": "no Anthropic provider in Gemini CLI"
+        }
+      }
+    },
+    "opencode": {
+      "install": {
+        "pnpm": "opencode-ai"
+      },
+      "store": [".local/share/opencode"],
+      "shapes": {
+        "openai-chat": {
+          "first": ["opencode", "run", "--model", "llama/qwen", "{prompt}"],
+          "next": ["opencode", "run", "--continue", "--model", "llama/qwen", "{prompt}"],
+          "env": {
+            "OPENCODE_CONFIG": "{home}/.config/opencode/opencode.json"
+          },
+          "config": {
+            "kind": "opencode",
+            "path": ".config/opencode/opencode.json"
+          },
+          "seed": "opencode-openai-chat"
+        },
+        "openai-responses": {
+          "first": ["opencode", "run", "--model", "llama/qwen", "{prompt}"],
+          "next": ["opencode", "run", "--continue", "--model", "llama/qwen", "{prompt}"],
+          "env": {
+            "OPENCODE_CONFIG": "{home}/.config/opencode/opencode.json"
+          },
+          "config": {
+            "kind": "opencode",
+            "path": ".config/opencode/opencode.json"
+          },
+          "seed": "opencode-openai-responses"
+        },
+        "anthropic-messages": {
+          "first": ["opencode", "run", "--model", "llama/qwen", "{prompt}"],
+          "next": ["opencode", "run", "--continue", "--model", "llama/qwen", "{prompt}"],
+          "env": {
+            "OPENCODE_CONFIG": "{home}/.config/opencode/opencode.json"
+          },
+          "config": {
+            "kind": "opencode",
+            "path": ".config/opencode/opencode.json"
+          },
+          "seed": "opencode-anthropic-messages"
+        }
+      }
+    },
+    "mimocode": {
+      "install": {
+        "script": "https://mimo.xiaomi.com/install"
+      },
+      "store": [".local/share/mimocode", ".mimocode/data"],
+      "shapes": {
+        "openai-chat": {
+          "first": ["mimo", "run", "--model", "llama/qwen", "{prompt}"],
+          "next": ["mimo", "run", "--continue", "--model", "llama/qwen", "{prompt}"],
+          "env": {
+            "MIMOCODE_CONFIG": "{home}/.config/mimocode/mimocode.json",
+            "OPENCODE_CONFIG": "{home}/.config/mimocode/mimocode.json"
+          },
+          "config": {
+            "kind": "opencode",
+            "path": ".config/mimocode/mimocode.json"
+          },
+          "seed": "mimocode-openai-chat"
+        },
+        "openai-responses": {
+          "first": ["mimo", "run", "--model", "llama/qwen", "{prompt}"],
+          "next": ["mimo", "run", "--continue", "--model", "llama/qwen", "{prompt}"],
+          "env": {
+            "MIMOCODE_CONFIG": "{home}/.config/mimocode/mimocode.json",
+            "OPENCODE_CONFIG": "{home}/.config/mimocode/mimocode.json"
+          },
+          "config": {
+            "kind": "opencode",
+            "path": ".config/mimocode/mimocode.json"
+          },
+          "seed": "mimocode-openai-responses",
+          "nextFrom": "openai-chat"
+        },
+        "anthropic-messages": {
+          "first": ["mimo", "run", "--model", "llama/qwen", "{prompt}"],
+          "next": ["mimo", "run", "--continue", "--model", "llama/qwen", "{prompt}"],
+          "env": {
+            "MIMOCODE_CONFIG": "{home}/.config/mimocode/mimocode.json",
+            "OPENCODE_CONFIG": "{home}/.config/mimocode/mimocode.json"
+          },
+          "config": {
+            "kind": "opencode",
+            "path": ".config/mimocode/mimocode.json"
+          },
+          "seed": "mimocode-anthropic-messages"
+        }
+      }
+    },
+    "commandcode": {
+      "install": {
+        "pnpm": "command-code"
+      },
+      "store": [".commandcode"],
+      "shapes": {
+        "openai-chat": {
+          "first": [
+            "commandcode",
+            "--local-only",
+            "--skip-onboarding",
+            "--no-auto-update",
+            "--yolo",
+            "-m",
+            "llama/qwen",
+            "-p",
+            "{prompt}"
+          ],
+          "next": [
+            "commandcode",
+            "--local-only",
+            "--skip-onboarding",
+            "--no-auto-update",
+            "--yolo",
+            "-m",
+            "llama/qwen",
+            "-c",
+            "-p",
+            "{prompt}"
+          ],
+          "env": {
+            "COMMAND_CODE_API_KEY": "local-only-placeholder"
+          },
+          "seed": "commandcode-openai-chat"
+        },
+        "openai-responses": {
+          "first": [
+            "commandcode",
+            "--local-only",
+            "--skip-onboarding",
+            "--no-auto-update",
+            "--yolo",
+            "-m",
+            "llama/qwen",
+            "-p",
+            "{prompt}"
+          ],
+          "next": [
+            "commandcode",
+            "--local-only",
+            "--skip-onboarding",
+            "--no-auto-update",
+            "--yolo",
+            "-m",
+            "llama/qwen",
+            "-c",
+            "-p",
+            "{prompt}"
+          ],
+          "env": {
+            "COMMAND_CODE_API_KEY": "local-only-placeholder"
+          },
+          "seed": "commandcode-openai-responses",
+          "note": "historically a capture gap: the Responses client never completes a stream against the gateway"
+        },
+        "anthropic-messages": {
+          "first": [
+            "commandcode",
+            "--local-only",
+            "--skip-onboarding",
+            "--no-auto-update",
+            "--yolo",
+            "-m",
+            "llama/qwen",
+            "-p",
+            "{prompt}"
+          ],
+          "next": [
+            "commandcode",
+            "--local-only",
+            "--skip-onboarding",
+            "--no-auto-update",
+            "--yolo",
+            "-m",
+            "llama/qwen",
+            "-c",
+            "-p",
+            "{prompt}"
+          ],
+          "env": {
+            "COMMAND_CODE_API_KEY": "local-only-placeholder"
+          },
+          "seed": "commandcode-anthropic-messages"
+        }
+      }
+    },
+    "copilot": {
+      "install": {
+        "pnpm": "@github/copilot"
+      },
+      "store": [".copilot"],
+      "shapes": {
+        "openai-chat": {
+          "first": ["copilot", "-p", "{prompt}", "--allow-all-tools", "--allow-all-paths"],
+          "next": [
+            "copilot",
+            "-p",
+            "{prompt}",
+            "--resume",
+            "--allow-all-tools",
+            "--allow-all-paths"
+          ],
+          "env": {
+            "COPILOT_OTEL_ENABLED": "true",
+            "COPILOT_OTEL_EXPORTER_TYPE": "file",
+            "COPILOT_OTEL_FILE_EXPORTER_PATH": "{home}/.copilot/otel",
+            "COPILOT_PROVIDER_BASE_URL": "{origin}/v1",
+            "COPILOT_PROVIDER_TYPE": "openai",
+            "COPILOT_PROVIDER_WIRE_API": "completions",
+            "COPILOT_PROVIDER_API_KEY": "sk-local",
+            "COPILOT_MODEL": "qwen",
+            "COPILOT_PROVIDER_MAX_PROMPT_TOKENS": "30000"
+          },
+          "seed": "copilot-openai-chat"
+        },
+        "openai-responses": {
+          "first": ["copilot", "-p", "{prompt}", "--allow-all-tools", "--allow-all-paths"],
+          "next": [
+            "copilot",
+            "-p",
+            "{prompt}",
+            "--resume",
+            "--allow-all-tools",
+            "--allow-all-paths"
+          ],
+          "env": {
+            "COPILOT_OTEL_ENABLED": "true",
+            "COPILOT_OTEL_EXPORTER_TYPE": "file",
+            "COPILOT_OTEL_FILE_EXPORTER_PATH": "{home}/.copilot/otel",
+            "COPILOT_PROVIDER_BASE_URL": "{origin}/v1",
+            "COPILOT_PROVIDER_TYPE": "openai",
+            "COPILOT_PROVIDER_WIRE_API": "responses",
+            "COPILOT_PROVIDER_API_KEY": "sk-local",
+            "COPILOT_MODEL": "qwen",
+            "COPILOT_PROVIDER_MAX_PROMPT_TOKENS": "30000"
+          },
+          "seed": "copilot-openai-responses"
+        },
+        "anthropic-messages": {
+          "first": ["copilot", "-p", "{prompt}", "--allow-all-tools", "--allow-all-paths"],
+          "next": [
+            "copilot",
+            "-p",
+            "{prompt}",
+            "--resume",
+            "--allow-all-tools",
+            "--allow-all-paths"
+          ],
+          "env": {
+            "COPILOT_OTEL_ENABLED": "true",
+            "COPILOT_OTEL_EXPORTER_TYPE": "file",
+            "COPILOT_OTEL_FILE_EXPORTER_PATH": "{home}/.copilot/otel",
+            "COPILOT_PROVIDER_BASE_URL": "{origin}",
+            "COPILOT_PROVIDER_TYPE": "anthropic",
+            "COPILOT_PROVIDER_API_KEY": "sk-local",
+            "COPILOT_MODEL": "qwen",
+            "COPILOT_PROVIDER_MAX_PROMPT_TOKENS": "30000"
+          },
+          "seed": "copilot-anthropic-messages"
+        }
+      }
+    },
+    "amp": {
+      "install": {
+        "pnpm": "@sourcegraph/amp"
+      },
+      "store": [".local/share/amp/threads"],
+      "shapes": {
+        "openai-chat": {
+          "skip": "no-byok-endpoint",
+          "note": "Amp CLI has no bring-your-own-endpoint setting; it only talks to ampcode.com after login (closed source, API key required)"
+        },
+        "openai-responses": {
+          "skip": "no-byok-endpoint",
+          "note": "no BYOK endpoint in Amp"
+        },
+        "anthropic-messages": {
+          "skip": "no-byok-endpoint",
+          "note": "no BYOK endpoint in Amp"
+        }
+      }
+    },
+    "droid": {
+      "install": {
+        "script": "https://app.factory.ai/cli"
+      },
+      "store": [".factory/logs", ".factory/sessions"],
+      "shapes": {
+        "openai-chat": {
+          "first": [
+            "droid",
+            "exec",
+            "--auto",
+            "high",
+            "-m",
+            "custom:qwen-0",
+            "--output-format",
+            "json",
+            "{prompt}"
+          ],
+          "next": [
+            "droid",
+            "exec",
+            "--auto",
+            "high",
+            "-m",
+            "custom:qwen-0",
+            "--output-format",
+            "json",
+            "-s",
+            "{session}",
+            "{prompt}"
+          ],
+          "seed": "droid-openai-chat"
+        },
+        "openai-responses": {
+          "first": [
+            "droid",
+            "exec",
+            "--auto",
+            "high",
+            "-m",
+            "custom:qwen-0",
+            "--output-format",
+            "json",
+            "{prompt}"
+          ],
+          "next": [
+            "droid",
+            "exec",
+            "--auto",
+            "high",
+            "-m",
+            "custom:qwen-0",
+            "--output-format",
+            "json",
+            "-s",
+            "{session}",
+            "{prompt}"
+          ],
+          "seed": "droid-openai-responses"
+        },
+        "anthropic-messages": {
+          "first": [
+            "droid",
+            "exec",
+            "--auto",
+            "high",
+            "-m",
+            "custom:qwen-0",
+            "--output-format",
+            "json",
+            "{prompt}"
+          ],
+          "next": [
+            "droid",
+            "exec",
+            "--auto",
+            "high",
+            "-m",
+            "custom:qwen-0",
+            "--output-format",
+            "json",
+            "-s",
+            "{session}",
+            "{prompt}"
+          ],
+          "seed": "droid-anthropic-messages"
+        }
+      },
+      "session": {
+        "stdout": "\"session_id\":\"([0-9a-f-]+)\""
+      }
+    },
+    "qwen": {
+      "install": {
+        "pnpm": "@qwen-code/qwen-code"
+      },
+      "store": [".qwen/projects"],
+      "shapes": {
+        "openai-chat": {
+          "first": ["qwen", "-p", "{prompt}", "-y"],
+          "next": ["qwen", "-p", "{prompt}", "-y", "--continue"],
+          "env": {
+            "OPENAI_BASE_URL": "{origin}/v1",
+            "OPENAI_API_KEY": "sk-local",
+            "OPENAI_MODEL": "qwen",
+            "QWEN_CODE_SUPPRESS_YOLO_WARNING": "1"
+          }
+        },
+        "openai-responses": {
+          "skip": "wrong-wire-shape",
+          "note": "Qwen Code (Gemini CLI fork) only has an OpenAI Chat Completions provider; no Responses wire option"
+        },
+        "anthropic-messages": {
+          "skip": "wrong-wire-shape",
+          "note": "no Anthropic provider in Qwen Code"
+        }
+      }
+    },
+    "pi": {
+      "install": {
+        "pnpm": "@mariozechner/pi-coding-agent"
+      },
+      "store": [".pi/agent/sessions"],
+      "shapes": {
+        "openai-chat": {
+          "first": [
+            "pi",
+            "-p",
+            "--provider",
+            "llama",
+            "--model",
+            "qwen",
+            "--no-extensions",
+            "--no-skills",
+            "{prompt}"
+          ],
+          "next": [
+            "pi",
+            "-p",
+            "-c",
+            "--provider",
+            "llama",
+            "--model",
+            "qwen",
+            "--no-extensions",
+            "--no-skills",
+            "{prompt}"
+          ],
+          "config": {
+            "kind": "pi",
+            "path": ".pi/agent/models.json"
+          },
+          "seed": "pi-openai-chat"
+        },
+        "openai-responses": {
+          "first": [
+            "pi",
+            "-p",
+            "--provider",
+            "llama",
+            "--model",
+            "qwen",
+            "--no-extensions",
+            "--no-skills",
+            "{prompt}"
+          ],
+          "next": [
+            "pi",
+            "-p",
+            "-c",
+            "--provider",
+            "llama",
+            "--model",
+            "qwen",
+            "--no-extensions",
+            "--no-skills",
+            "{prompt}"
+          ],
+          "config": {
+            "kind": "pi",
+            "path": ".pi/agent/models.json"
+          },
+          "seed": "pi-openai-responses"
+        },
+        "anthropic-messages": {
+          "first": [
+            "pi",
+            "-p",
+            "--provider",
+            "llama",
+            "--model",
+            "qwen",
+            "--no-extensions",
+            "--no-skills",
+            "{prompt}"
+          ],
+          "next": [
+            "pi",
+            "-p",
+            "-c",
+            "--provider",
+            "llama",
+            "--model",
+            "qwen",
+            "--no-extensions",
+            "--no-skills",
+            "{prompt}"
+          ],
+          "config": {
+            "kind": "pi",
+            "path": ".pi/agent/models.json"
+          },
+          "seed": "pi-anthropic-messages"
+        }
+      }
+    },
+    "omp": {
+      "install": {
+        "pnpm": "@oh-my-pi/pi-coding-agent"
+      },
+      "store": [".omp/agent/sessions"],
+      "shapes": {
+        "openai-chat": {
+          "first": ["omp", "-p", "--provider", "llama", "--model", "qwen", "{prompt}"],
+          "next": ["omp", "-p", "-c", "--provider", "llama", "--model", "qwen", "{prompt}"],
+          "config": {
+            "kind": "pi",
+            "path": ".omp/agent/models.json"
+          },
+          "seed": "omp-openai-chat"
+        },
+        "openai-responses": {
+          "first": ["omp", "-p", "--provider", "llama", "--model", "qwen", "{prompt}"],
+          "next": ["omp", "-p", "-c", "--provider", "llama", "--model", "qwen", "{prompt}"],
+          "config": {
+            "kind": "pi",
+            "path": ".omp/agent/models.json"
+          },
+          "seed": "omp-openai-responses"
+        },
+        "anthropic-messages": {
+          "first": ["omp", "-p", "--provider", "llama", "--model", "qwen", "{prompt}"],
+          "next": ["omp", "-p", "-c", "--provider", "llama", "--model", "qwen", "{prompt}"],
+          "config": {
+            "kind": "pi",
+            "path": ".omp/agent/models.json"
+          },
+          "seed": "omp-anthropic-messages"
+        }
+      }
+    },
+    "prime": {
+      "install": {
+        "script": "https://astral.sh/uv/install.sh"
+      },
+      "store": [".prime/agent/sessions"],
+      "shapes": {
+        "openai-chat": {
+          "first": ["prime-agent", "-p", "--provider", "llama", "--model", "qwen", "{prompt}"],
+          "next": ["prime-agent", "-p", "-c", "--provider", "llama", "--model", "qwen", "{prompt}"],
+          "config": {
+            "kind": "pi",
+            "path": ".prime/agent/models.json"
+          },
+          "seed": "prime-openai-chat"
+        },
+        "openai-responses": {
+          "first": ["prime-agent", "-p", "--provider", "llama", "--model", "qwen", "{prompt}"],
+          "next": ["prime-agent", "-p", "-c", "--provider", "llama", "--model", "qwen", "{prompt}"],
+          "config": {
+            "kind": "pi",
+            "path": ".prime/agent/models.json"
+          },
+          "seed": "prime-openai-responses"
+        },
+        "anthropic-messages": {
+          "first": ["prime-agent", "-p", "--provider", "llama", "--model", "qwen", "{prompt}"],
+          "next": ["prime-agent", "-p", "-c", "--provider", "llama", "--model", "qwen", "{prompt}"],
+          "config": {
+            "kind": "pi",
+            "path": ".prime/agent/models.json"
+          },
+          "seed": "prime-anthropic-messages"
+        }
+      }
+    },
+    "gajae": {
+      "install": {
+        "pnpm": "gajae-code"
+      },
+      "store": [".gjc/agent/sessions"],
+      "shapes": {
+        "openai-chat": {
+          "first": ["gjc", "-p", "--provider", "llama", "--model", "qwen", "{prompt}"],
+          "next": ["gjc", "-p", "-c", "--provider", "llama", "--model", "qwen", "{prompt}"],
+          "config": {
+            "kind": "pi",
+            "path": ".gjc/agent/models.json"
+          },
+          "seed": "gajae-openai-chat"
+        },
+        "openai-responses": {
+          "first": ["gjc", "-p", "--provider", "llama", "--model", "qwen", "{prompt}"],
+          "next": ["gjc", "-p", "-c", "--provider", "llama", "--model", "qwen", "{prompt}"],
+          "config": {
+            "kind": "pi",
+            "path": ".gjc/agent/models.json"
+          },
+          "seed": "gajae-openai-responses"
+        },
+        "anthropic-messages": {
+          "first": ["gjc", "-p", "--provider", "llama", "--model", "qwen", "{prompt}"],
+          "next": ["gjc", "-p", "-c", "--provider", "llama", "--model", "qwen", "{prompt}"],
+          "config": {
+            "kind": "pi",
+            "path": ".gjc/agent/models.json"
+          },
+          "seed": "gajae-anthropic-messages"
+        }
+      }
+    },
+    "kimchi": {
+      "install": {
+        "pnpm": "@getkimchi/kimchi"
+      },
+      "store": [".config/kimchi/agent/sessions", ".pi/agent/sessions"],
+      "shapes": {
+        "openai-chat": {
+          "first": ["kimchi", "-p", "--provider", "llama", "--model", "qwen", "{prompt}"],
+          "next": ["kimchi", "-p", "-c", "--provider", "llama", "--model", "qwen", "{prompt}"],
+          "config": {
+            "kind": "pi",
+            "path": ".config/kimchi/agent/models.json"
+          },
+          "seed": "kimchi-openai-chat"
+        },
+        "openai-responses": {
+          "first": ["kimchi", "-p", "--provider", "llama", "--model", "qwen", "{prompt}"],
+          "next": ["kimchi", "-p", "-c", "--provider", "llama", "--model", "qwen", "{prompt}"],
+          "config": {
+            "kind": "pi",
+            "path": ".config/kimchi/agent/models.json"
+          },
+          "seed": "kimchi-openai-responses"
+        },
+        "anthropic-messages": {
+          "first": ["kimchi", "-p", "--provider", "llama", "--model", "qwen", "{prompt}"],
+          "next": ["kimchi", "-p", "-c", "--provider", "llama", "--model", "qwen", "{prompt}"],
+          "config": {
+            "kind": "pi",
+            "path": ".config/kimchi/agent/models.json"
+          },
+          "seed": "kimchi-anthropic-messages"
+        }
+      }
+    },
+    "grok": {
+      "install": {
+        "script": "https://x.ai/cli/install.sh"
+      },
+      "store": [".grok", ".grok/logs", ".grok/sessions"],
+      "shapes": {
+        "openai-chat": {
+          "first": ["grok", "--always-approve", "-m", "qwen", "-p", "{prompt}"],
+          "next": ["grok", "--always-approve", "-m", "qwen", "--continue", "-p", "{prompt}"],
+          "env": {
+            "XAI_API_KEY": "sk-local",
+            "GROK_HOME": "{home}/.grok"
+          },
+          "seed": "grok-openai-chat",
+          "skipOs": {
+            "darwin": "no-byok-endpoint"
+          }
+        },
+        "openai-responses": {
+          "first": ["grok", "--always-approve", "-m", "qwen", "-p", "{prompt}"],
+          "next": ["grok", "--always-approve", "-m", "qwen", "--continue", "-p", "{prompt}"],
+          "env": {
+            "XAI_API_KEY": "sk-local",
+            "GROK_HOME": "{home}/.grok"
+          },
+          "seed": "grok-openai-responses",
+          "skipOs": {
+            "darwin": "no-byok-endpoint"
+          }
+        },
+        "anthropic-messages": {
+          "first": ["grok", "--always-approve", "-m", "qwen", "-p", "{prompt}"],
+          "next": ["grok", "--always-approve", "-m", "qwen", "--continue", "-p", "{prompt}"],
+          "env": {
+            "XAI_API_KEY": "sk-local",
+            "GROK_HOME": "{home}/.grok"
+          },
+          "seed": "grok-anthropic-messages",
+          "skipOs": {
+            "darwin": "no-byok-endpoint"
+          }
+        }
+      }
+    },
+    "augment": {
+      "install": {
+        "pnpm": "@augmentcode/auggie"
+      },
+      "store": [".augment/sessions"],
+      "shapes": {
+        "openai-chat": {
+          "skip": "no-byok-endpoint",
+          "note": "Auggie CLI is closed, subscription-licensed and talks only to Augment's own backend (login required); no custom model endpoint"
+        },
+        "openai-responses": {
+          "skip": "no-byok-endpoint",
+          "note": "no BYOK endpoint in Auggie"
+        },
+        "anthropic-messages": {
+          "skip": "no-byok-endpoint",
+          "note": "no BYOK endpoint in Auggie"
+        }
+      }
+    },
+    "codebuff": {
+      "install": {
+        "pnpm": "codebuff"
+      },
+      "store": [".config/manicode/projects"],
+      "shapes": {
+        "openai-chat": {
+          "skip": "no-byok-endpoint",
+          "note": "codebuff CLI routes every request through Codebuff's own backend (login + credits); no base URL or provider setting"
+        },
+        "openai-responses": {
+          "skip": "no-byok-endpoint",
+          "note": "no BYOK endpoint in codebuff"
+        },
+        "anthropic-messages": {
+          "skip": "no-byok-endpoint",
+          "note": "no BYOK endpoint in codebuff"
+        }
+      }
+    },
+    "codebuddy": {
+      "install": {
+        "pnpm": "@tencent-ai/codebuddy-code"
+      },
+      "store": [".codebuddy/projects"],
+      "shapes": {
+        "openai-chat": {
+          "first": ["codebuddy", "-p", "--model", "qwen", "-y", "{prompt}"],
+          "next": ["codebuddy", "-p", "-c", "--model", "qwen", "-y", "{prompt}"],
+          "env": {
+            "ANTHROPIC_BASE_URL": "{origin}",
+            "ANTHROPIC_API_KEY": "sk-local",
+            "ANTHROPIC_MODEL": "qwen",
+            "CODEBUDDY_API_KEY": "sk-local",
+            "CODEBUDDY_BASE_URL": "{origin}"
+          }
+        },
+        "openai-responses": {
+          "skip": "wrong-wire-shape",
+          "note": "no OpenAI Responses wire option in CodeBuddy Code"
+        },
+        "anthropic-messages": {
+          "skip": "wrong-wire-shape",
+          "note": "the Anthropic env route is the only base URL option and this build sends chat completions through it, so the run counts under openai-chat"
+        }
+      }
+    },
+    "jcode": {
+      "install": {
+        "script": "https://jcode.sh/install"
+      },
+      "store": [".jcode/sessions"],
+      "shapes": {
+        "openai-chat": {
+          "first": ["jcode", "run", "-p", "openai-compatible", "-m", "qwen", "{prompt}"],
+          "next": [
+            "jcode",
+            "run",
+            "-p",
+            "openai-compatible",
+            "-m",
+            "qwen",
+            "--resume",
+            "{session}",
+            "{prompt}"
+          ],
+          "env": {
+            "JCODE_OPENAI_COMPAT_API_BASE": "{origin}/v1",
+            "JCODE_OPENAI_COMPAT_DEFAULT_MODEL": "qwen",
+            "JCODE_OPENAI_COMPAT_LOCAL_ENABLED": "1",
+            "OPENAI_API_KEY": "sk-local"
+          }
+        },
+        "openai-responses": {
+          "skip": "wrong-wire-shape",
+          "note": "jcode's openai-compatible provider is Chat Completions only; its native \"openai\" provider is OAuth/Responses against api.openai.com with no base URL override found"
+        },
+        "anthropic-messages": {
+          "first": ["jcode", "run", "-p", "anthropic-api", "-m", "claude-sonnet-4-5", "{prompt}"],
+          "next": [
+            "jcode",
+            "run",
+            "-p",
+            "anthropic-api",
+            "-m",
+            "claude-sonnet-4-5",
+            "--resume",
+            "{session}",
+            "{prompt}"
+          ],
+          "env": {
+            "ANTHROPIC_BASE_URL": "{origin}",
+            "ANTHROPIC_API_KEY": "sk-local"
+          }
+        }
+      },
+      "session": {
+        "glob": ".jcode/sessions/session_*.json",
+        "pattern": "(session_[a-z]+_\\d+_[0-9a-f]+)\\.json$"
+      }
+    },
+    "mux": {
+      "install": null,
+      "store": [".mux/sessions"],
+      "shapes": {
+        "openai-chat": {
+          "skip": "gui-only",
+          "note": "Xum/mux (coder/xum) is an Electron desktop multiplexer; no CLI run mode installed (GUI only)"
+        },
+        "openai-responses": {
+          "skip": "gui-only",
+          "note": "GUI only"
+        },
+        "anthropic-messages": {
+          "skip": "gui-only",
+          "note": "GUI only"
+        }
+      }
+    },
+    "zcode": {
+      "install": null,
+      "store": [".zcode/cli/db/db.sqlite"],
+      "shapes": {
+        "openai-chat": {
+          "skip": "gui-only",
+          "note": "ZCode ships only desktop (dmg/exe) releases; the CLI in apps/zcode-cli has no published Linux binary and was not built (no build requested)"
+        },
+        "openai-responses": {
+          "skip": "gui-only",
+          "note": "same as openai-chat"
+        },
+        "anthropic-messages": {
+          "skip": "gui-only",
+          "note": "same as openai-chat"
+        }
+      }
+    },
+    "roo": {
+      "install": null,
+      "store": null,
+      "shapes": {
+        "openai-chat": {
+          "skip": "gui-only",
+          "note": "Roo Code is a VS Code extension (GUI only); logs live in VS Code globalStorage"
+        },
+        "openai-responses": {
+          "skip": "gui-only",
+          "note": "GUI only"
+        },
+        "anthropic-messages": {
+          "skip": "gui-only",
+          "note": "GUI only"
+        }
+      }
+    },
+    "cline": {
+      "install": {
+        "pnpm": "cline"
+      },
+      "store": [".cline"],
+      "shapes": {
+        "openai-chat": {
+          "first": ["cline", "-y", "-m", "qwen", "{prompt}"],
+          "next": ["cline", "-y", "-m", "qwen", "{prompt}"],
+          "setup": ["cline", "auth", "openai", "-k", "sk-local", "-m", "qwen", "-b", "{origin}/v1"]
+        },
+        "openai-responses": {
+          "skip": "wrong-wire-shape",
+          "note": "Cline's OpenAI-compatible provider is Chat Completions only; its \"openai-native\" provider has no base URL override"
+        },
+        "anthropic-messages": {
+          "first": ["cline", "-y", "-m", "qwen", "{prompt}"],
+          "next": ["cline", "-y", "-m", "qwen", "{prompt}"],
+          "setup": ["cline", "auth", "anthropic", "-k", "sk-local", "-m", "qwen", "-b", "{origin}"]
+        }
+      }
+    },
+    "kilo": {
+      "install": {
+        "pnpm": "@kilocode/cli"
+      },
+      "store": [".local/share/kilo"],
+      "shapes": {
+        "openai-chat": {
+          "first": ["kilo", "run", "--model", "llama/qwen", "{prompt}"],
+          "next": ["kilo", "run", "--continue", "--model", "llama/qwen", "{prompt}"],
+          "env": {
+            "KILO_CONFIG": "{home}/.config/kilo/kilo.json",
+            "OPENCODE_CONFIG": "{home}/.config/kilo/kilo.json"
+          },
+          "config": {
+            "kind": "opencode",
+            "path": ".config/kilo/kilo.json"
+          },
+          "seed": "kilo-openai-chat"
+        },
+        "openai-responses": {
+          "first": ["kilo", "run", "--model", "llama/qwen", "{prompt}"],
+          "next": ["kilo", "run", "--continue", "--model", "llama/qwen", "{prompt}"],
+          "env": {
+            "KILO_CONFIG": "{home}/.config/kilo/kilo.json",
+            "OPENCODE_CONFIG": "{home}/.config/kilo/kilo.json"
+          },
+          "config": {
+            "kind": "opencode",
+            "path": ".config/kilo/kilo.json"
+          },
+          "seed": "kilo-openai-responses"
+        },
+        "anthropic-messages": {
+          "first": ["kilo", "run", "--model", "llama/qwen", "{prompt}"],
+          "next": ["kilo", "run", "--continue", "--model", "llama/qwen", "{prompt}"],
+          "env": {
+            "KILO_CONFIG": "{home}/.config/kilo/kilo.json",
+            "OPENCODE_CONFIG": "{home}/.config/kilo/kilo.json"
+          },
+          "config": {
+            "kind": "opencode",
+            "path": ".config/kilo/kilo.json"
+          },
+          "seed": "kilo-anthropic-messages"
+        }
+      }
+    },
+    "kilocode": {
+      "install": null,
+      "store": null,
+      "shapes": {
+        "openai-chat": {
+          "skip": "gui-only",
+          "note": "Kilo Code is a VS Code extension (GUI only); the CLI is the separate `kilo` row above"
+        },
+        "openai-responses": {
+          "skip": "gui-only",
+          "note": "GUI only"
+        },
+        "anthropic-messages": {
+          "skip": "gui-only",
+          "note": "GUI only"
+        }
+      }
+    },
+    "openclaw": {
+      "install": {
+        "pnpm": "openclaw"
+      },
+      "store": [".openclaw"],
+      "shapes": {
+        "openai-chat": {
+          "skip": "interactive-config",
+          "note": "OpenClaw 2026.10.4 is a gateway daemon driven by messaging channels; `openclaw agent --local` needs an onboarding wizard and a running gateway, not completed within budget"
+        },
+        "openai-responses": {
+          "skip": "interactive-config",
+          "note": "same as openai-chat"
+        },
+        "anthropic-messages": {
+          "skip": "interactive-config",
+          "note": "same as openai-chat"
+        }
+      }
+    },
+    "kimi": {
+      "install": {
+        "script": "https://code.kimi.com/kimi-code/install.sh"
+      },
+      "store": [".kimi-code/projects", ".kimi-code/sessions"],
+      "shapes": {
+        "openai-chat": {
+          "first": ["kimi", "-m", "llama/qwen", "-p", "{prompt}"],
+          "next": ["kimi", "-m", "llama/qwen", "-c", "-p", "{prompt}"],
+          "env": {
+            "KIMI_CODE_HOME": "{home}/.kimi-code"
+          },
+          "seed": "kimi-openai-chat"
+        },
+        "openai-responses": {
+          "first": ["kimi", "-m", "llama/qwen", "-p", "{prompt}"],
+          "next": ["kimi", "-m", "llama/qwen", "-c", "-p", "{prompt}"],
+          "env": {
+            "KIMI_CODE_HOME": "{home}/.kimi-code"
+          },
+          "seed": "kimi-openai-responses"
+        },
+        "anthropic-messages": {
+          "first": ["kimi", "-m", "llama/qwen", "-p", "{prompt}"],
+          "next": ["kimi", "-m", "llama/qwen", "-c", "-p", "{prompt}"],
+          "env": {
+            "KIMI_CODE_HOME": "{home}/.kimi-code"
+          },
+          "seed": "kimi-anthropic-messages"
+        }
+      }
+    },
+    "junie": {
+      "install": {
+        "pnpm": "@jetbrains/junie"
+      },
+      "store": [".junie/sessions"],
+      "shapes": {
+        "openai-chat": {
+          "skip": "wrong-wire-shape",
+          "note": "Junie CLI is closed and authenticates against JetBrains AI Service only; no custom model endpoint"
+        },
+        "openai-responses": {
+          "skip": "no-byok-endpoint",
+          "note": "no BYOK endpoint in Junie"
+        },
+        "anthropic-messages": {
+          "skip": "no-byok-endpoint",
+          "note": "no BYOK endpoint in Junie"
+        }
+      }
+    },
+    "devin": {
+      "install": {
+        "todo": "vendor installer URL not recorded"
+      },
+      "store": [".local/share/devin/cli/sessions.db"],
+      "shapes": {
+        "openai-chat": {
+          "skip": "no-byok-endpoint",
+          "note": "Devin CLI is closed and talks only to Cognition's Devin service (login required); no local model endpoint"
+        },
+        "openai-responses": {
+          "skip": "no-byok-endpoint",
+          "note": "no BYOK endpoint in Devin CLI"
+        },
+        "anthropic-messages": {
+          "skip": "no-byok-endpoint",
+          "note": "no BYOK endpoint in Devin CLI"
+        }
+      }
+    },
+    "hermes": {
+      "install": {
+        "todo": "vendor installer URL not recorded"
+      },
+      "store": [".hermes/sessions", ".hermes/state.db"],
+      "shapes": {
+        "openai-chat": {
+          "first": [
+            "hermes",
+            "chat",
+            "-Q",
+            "--oneshot",
+            "--provider",
+            "custom",
+            "-m",
+            "qwen",
+            "-q",
+            "{prompt}"
+          ],
+          "next": [
+            "hermes",
+            "chat",
+            "-Q",
+            "--oneshot",
+            "--provider",
+            "custom",
+            "-m",
+            "qwen",
+            "--continue",
+            "-q",
+            "{prompt}"
+          ],
+          "env": {
+            "HERMES_HOME": "{home}/.hermes",
+            "OPENAI_API_KEY": "sk-local",
+            "OPENAI_BASE_URL": "{origin}/v1",
+            "CUSTOM_BASE_URL": "{origin}/v1",
+            "CUSTOM_API_KEY": "sk-local"
+          },
+          "seed": "hermes-openai-chat"
+        },
+        "openai-responses": {
+          "skip": "wrong-wire-shape",
+          "note": "Hermes custom provider is OpenAI Chat Completions only"
+        },
+        "anthropic-messages": {
+          "skip": "wrong-wire-shape",
+          "note": "Hermes \"anthropic\" provider has no base URL override for a local server"
+        }
+      }
+    },
+    "goose": {
+      "install": {
+        "script": "https://github.com/aaif-goose/goose/releases/download/stable/download_cli.sh"
+      },
+      "store": [".local/share/goose"],
+      "shapes": {
+        "openai-chat": {
+          "first": ["goose", "run", "-q", "-n", "p-limit", "-t", "{prompt}"],
+          "next": ["goose", "run", "-q", "-n", "p-limit", "-r", "-t", "{prompt}"],
+          "env": {
+            "GOOSE_PROVIDER": "openai",
+            "GOOSE_MODEL": "qwen",
+            "OPENAI_HOST": "{origin}",
+            "OPENAI_API_KEY": "sk-local",
+            "GOOSE_MODE": "auto",
+            "GOOSE_DISABLE_KEYRING": "1"
+          }
+        },
+        "openai-responses": {
+          "skip": "wrong-wire-shape",
+          "note": "goose's openai provider uses Chat Completions only (no Responses toggle)"
+        },
+        "anthropic-messages": {
+          "first": ["goose", "run", "-q", "-n", "p-limit", "-t", "{prompt}"],
+          "next": ["goose", "run", "-q", "-n", "p-limit", "-r", "-t", "{prompt}"],
+          "env": {
+            "GOOSE_PROVIDER": "anthropic",
+            "GOOSE_MODEL": "qwen",
+            "ANTHROPIC_HOST": "{origin}",
+            "ANTHROPIC_API_KEY": "sk-local",
+            "GOOSE_MODE": "auto",
+            "GOOSE_DISABLE_KEYRING": "1"
+          }
+        }
+      }
+    },
+    "zed": {
+      "install": null,
+      "store": [".local/share/zed/threads/threads.db"],
+      "shapes": {
+        "openai-chat": {
+          "skip": "gui-only",
+          "note": "Zed is a desktop editor (GUI only); threads.db lives under ~/.local/share/zed/threads"
+        },
+        "openai-responses": {
+          "skip": "gui-only",
+          "note": "GUI only"
+        },
+        "anthropic-messages": {
+          "skip": "gui-only",
+          "note": "GUI only"
+        }
+      }
+    },
+    "cherrystudio": {
+      "install": null,
+      "store": [".config/CherryStudio/Data/cherrystudio.sqlite"],
+      "shapes": {
+        "openai-chat": {
+          "skip": "gui-only",
+          "note": "Cherry Studio is an Electron desktop app (GUI only)"
+        },
+        "openai-responses": {
+          "skip": "gui-only",
+          "note": "GUI only"
+        },
+        "anthropic-messages": {
+          "skip": "gui-only",
+          "note": "GUI only"
+        }
+      }
+    },
+    "opencodereview": {
+      "install": null,
+      "store": [".opencodereview/sessions"],
+      "shapes": {
+        "openai-chat": {
+          "skip": "not-an-agent",
+          "note": "@opencodereview/cli (raye-deng/open-code-review) is a code-review quality gate, not an agent CLI; it was not installed and has no local-model run mode matching Skopli's ~/.opencodereview/sessions format"
+        },
+        "openai-responses": {
+          "skip": "not-an-agent",
+          "note": "same as openai-chat"
+        },
+        "anthropic-messages": {
+          "skip": "not-an-agent",
+          "note": "same as openai-chat"
+        }
+      }
+    },
+    "trae": {
+      "install": {
+        "uv": "git+https://github.com/bytedance/trae-agent",
+        "python": "3.12"
+      },
+      "store": ["trajectories"],
+      "shapes": {
+        "openai-chat": {
+          "first": [
+            "trae-cli",
+            "run",
+            "{prompt}",
+            "--config-file",
+            "{home}/trae_config.yaml",
+            "--working-dir",
+            "{cwd}",
+            "--trajectory-file",
+            "{home}/trajectories/trajectory_run1.json"
+          ],
+          "next": [
+            "trae-cli",
+            "run",
+            "{prompt}",
+            "--config-file",
+            "{home}/trae_config.yaml",
+            "--working-dir",
+            "{cwd}",
+            "--trajectory-file",
+            "{home}/trajectories/trajectory_run2.json"
+          ],
+          "seed": "trae-openai-chat",
+          "note": "historically a capture gap: the Chat Completions client crashes on a null completion_tokens_details; only the Anthropic wire captured",
+          "env": {
+            "TZ": "UTC"
+          }
+        },
+        "openai-responses": {
+          "skip": "wrong-wire-shape",
+          "note": "trae-agent's openai client is Chat Completions only"
+        },
+        "anthropic-messages": {
+          "first": [
+            "trae-cli",
+            "run",
+            "{prompt}",
+            "--config-file",
+            "{home}/trae_config.yaml",
+            "--working-dir",
+            "{cwd}",
+            "--trajectory-file",
+            "{home}/trajectories/trajectory_run1.json"
+          ],
+          "next": [
+            "trae-cli",
+            "run",
+            "{prompt}",
+            "--config-file",
+            "{home}/trae_config.yaml",
+            "--working-dir",
+            "{cwd}",
+            "--trajectory-file",
+            "{home}/trajectories/trajectory_run2.json"
+          ],
+          "seed": "trae-anthropic-messages",
+          "env": {
+            "TZ": "UTC"
+          }
+        }
+      },
+      "note": "trae-agent also needs Docker and pexpect on the machine; naive local timestamps, so TZ is pinned"
+    },
+    "deepseek": {
+      "install": {
+        "pnpm": "@deepseek-ai/dsh"
+      },
+      "store": [".dsh/sessions"],
+      "shapes": {
+        "openai-chat": {
+          "first": ["dsh", "--profile", "headless", "{prompt}"],
+          "next": ["dsh", "--profile", "headless", "--session-id", "{session}", "{prompt}"],
+          "env": {
+            "LLAMA_API_KEY": "sk-local",
+            "DSH_HOME": "{home}/.dsh"
+          },
+          "seed": "deepseek-openai-chat"
+        },
+        "openai-responses": {
+          "first": ["dsh", "--profile", "headless", "{prompt}"],
+          "next": ["dsh", "--profile", "headless", "--session-id", "{session}", "{prompt}"],
+          "env": {
+            "LLAMA_API_KEY": "sk-local",
+            "DSH_HOME": "{home}/.dsh"
+          },
+          "seed": "deepseek-openai-responses"
+        },
+        "anthropic-messages": {
+          "first": ["dsh", "--profile", "headless", "{prompt}"],
+          "next": ["dsh", "--profile", "headless", "--session-id", "{session}", "{prompt}"],
+          "env": {
+            "LLAMA_API_KEY": "sk-local",
+            "DSH_HOME": "{home}/.dsh"
+          },
+          "seed": "deepseek-anthropic-messages"
+        }
+      },
+      "session": {
+        "glob": ".dsh/sessions/*/session-*",
+        "pattern": "(session-[0-9a-f-]+)$"
+      }
+    },
+    "reasonix": {
+      "install": {
+        "pnpm": "reasonix"
+      },
+      "store": [".reasonix"],
+      "shapes": {
+        "openai-chat": {
+          "first": ["reasonix", "-p", "--model", "qwen", "{prompt}"],
+          "next": ["reasonix", "run", "-c", "--model", "qwen", "--max-steps", "4", "{prompt}"],
+          "env": {
+            "LLAMA_API_KEY": "sk-local"
+          },
+          "seed": "reasonix-openai-chat"
+        },
+        "openai-responses": {
+          "skip": "wrong-wire-shape",
+          "note": "Reasonix providers are kind=openai (Chat Completions) or kind=anthropic only"
+        },
+        "anthropic-messages": {
+          "first": ["reasonix", "-p", "--model", "qwen", "{prompt}"],
+          "next": ["reasonix", "run", "-c", "--model", "qwen", "--max-steps", "4", "{prompt}"],
+          "env": {
+            "LLAMA_API_KEY": "sk-local"
+          },
+          "seed": "reasonix-anthropic-messages"
+        }
+      }
+    },
+    "kiro": {
+      "install": {
+        "script": "https://prod.download.cli.kiro.dev"
+      },
+      "store": [".kiro/data.sqlite3"],
+      "shapes": {
+        "openai-chat": {
+          "skip": "wrong-wire-shape",
+          "note": "Kiro CLI 2.32.0 is closed and authenticates only against AWS Builder ID / Kiro backend; no custom model endpoint"
+        },
+        "openai-responses": {
+          "skip": "no-byok-endpoint",
+          "note": "no BYOK endpoint in Kiro CLI"
+        },
+        "anthropic-messages": {
+          "skip": "no-byok-endpoint",
+          "note": "no BYOK endpoint in Kiro CLI"
+        }
+      }
+    },
+    "fx": {
+      "install": {
+        "todo": "vendor installer URL not recorded"
+      },
+      "store": [".fx/sessions"],
+      "shapes": {
+        "openai-chat": {
+          "first": ["fx", "ask", "{prompt}"],
+          "next": ["fx", "ask", "--resume", "last", "{prompt}"],
+          "env": {
+            "FX_SESSIONS_V2": "1"
+          },
+          "seed": "fx-openai-chat"
+        },
+        "openai-responses": {
+          "skip": "wrong-wire-shape",
+          "note": "fx custom connections are OpenAI Chat Completions only"
+        },
+        "anthropic-messages": {
+          "skip": "wrong-wire-shape",
+          "note": "fx custom connections are OpenAI Chat Completions only"
+        }
+      },
+      "note": "fx writes a cumulative v2 set:usage log, so the reader takes deltas between records"
+    }
+  }
+}

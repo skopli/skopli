@@ -1,0 +1,9 @@
+config_version = 6 # schema marker for diagnostics; old versions may ignore it
+[[providers]]
+name = "llama"
+kind = "anthropic"
+base_url = "{origin}"
+api_key_env = "LLAMA_API_KEY"
+models = ["qwen"]
+[agent]
+default_model = "llama/qwen"

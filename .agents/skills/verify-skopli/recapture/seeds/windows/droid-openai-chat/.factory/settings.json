@@ -1,0 +1,12 @@
+{
+  "customModels": [
+    {
+      "model": "qwen",
+      "displayName": "qwen",
+      "baseUrl": "{origin}/v1",
+      "apiKey": "sk-local",
+      "provider": "generic-chat-completion-api",
+      "maxOutputTokens": 1024
+    }
+  ]
+}

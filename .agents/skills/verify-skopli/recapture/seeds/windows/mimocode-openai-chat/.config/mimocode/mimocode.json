@@ -1,0 +1,13 @@
+{
+  "$schema": "https://mimo.xiaomi.com/mimocode/config.json",
+  "model": "llama/qwen",
+  "permission": { "*": "allow" },
+  "provider": {
+    "llama": {
+      "npm": "@ai-sdk/openai-compatible",
+      "name": "llama.cpp",
+      "options": { "baseURL": "{origin}/v1", "apiKey": "sk-local" },
+      "models": { "qwen": { "name": "qwen", "limit": { "context": 32768, "output": 1024 } } }
+    }
+  }
+}

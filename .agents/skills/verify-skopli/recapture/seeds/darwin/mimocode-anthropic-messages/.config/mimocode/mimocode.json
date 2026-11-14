@@ -1,0 +1,18 @@
+{
+  "provider": {
+    "llama": {
+      "npm": "@ai-sdk/anthropic",
+      "name": "llama",
+      "options": {
+        "baseURL": "{origin}/v1",
+        "apiKey": "sk-local"
+      },
+      "models": {
+        "qwen": {
+          "name": "qwen"
+        }
+      }
+    }
+  },
+  "$schema": "https://mimo.xiaomi.com/mimocode/config.json"
+}

@@ -1,0 +1,12 @@
+{
+  "customModels": [
+    {
+      "model": "qwen",
+      "displayName": "qwen",
+      "baseUrl": "{origin}/v1",
+      "apiKey": "sk-local",
+      "provider": "openai",
+      "maxOutputTokens": 1024
+    }
+  ]
+}

@@ -1,0 +1,6 @@
+[model.qwen]
+api_backend = "responses"
+base_url = "{origin}/v1"
+
+[marketplace]
+default_skills_installs_purged = true

@@ -1,0 +1,189 @@
+# Harness recapture
+
+A maintainer reruns the real harness CLIs against a local model on one machine, and Skopli's readers are checked against what those CLIs write today, so provider binary drift shows up as a report instead of a silent miss.
+One command owns the whole wave, and an agent only steps in when the run exits with a TODO, an unknown layout, changed auth or config, or a failed invariant.
+
+## Sub-features
+
+- `recapture-env` downloads llama.cpp `b11720` and `Qwen2.5-1.5B-Instruct` `q4_k_m` (exactly 1,117,320,736 bytes), clones the target project, starts `llama-server` and the usage gateway, and proves the cache counters rise on a second turn on both OpenAI Chat Completions and Anthropic Messages.
+- `recapture-install` installs every harness the manifest can install into a pnpm home inside the cache and writes `cli-versions.txt`.
+- `recapture-run` runs each harness and wire-shape cell serially, with an isolated home, four turns, a 600 second budget per cell, and cleanup by PID.
+- `recapture-report` writes `cell-notes.<os>.tsv`, `matrix.<os>.md` and `drift.json`, and compares each cell with `golden/README.md`, the case directories under `golden/`, and an optional earlier run.
+- `recapture-package` tars the run directory, without node modules, for upload as one attachment.
+- `recapture-lanes` sorts every drift entry into one of three lanes: none, mechanical, or decision.
+
+## How to get to it (user POV)
+
+- `node .agents/skills/verify-skopli/scripts/recapture.mjs all --out .verify/recapture/<utc-stamp>` runs the whole wave and always ends by stopping what it started.
+- `node .agents/skills/verify-skopli/scripts/recapture.mjs list` prints every cell with its planned outcome on this OS.
+- The steps `env`, `install`, `run`, `report`, `package` and `stop` run one at a time against the same `--out`.
+- `--only <harness>` or `--only <harness>/<shape>` (repeatable) selects a subset, `--os` labels outputs for another OS, `--resume` skips cells that already have `result.json`, `--baseline <dir>` adds CLI version changes against an earlier run, `--dry-run` prints the resolved plan as JSON, and `--timeout <s>` changes the per-cell budget.
+- Exit codes: `0` ran and found no drift, `1` an invariant failed (download, byte size, server or gateway readiness, cache proof, build), `2` usage error, `3` drift or a TODO cell needs an agent.
+- The data lives in `recapture/harnesses.json` (install channel, store roots, per-shape commands, env, skip codes) and `recapture/seeds/<os>/<harness>-<shape>/` (the pre-run config files, written relative to the cell home with `{origin}`, `{home}` and `{cwd}` placeholders).
+- `scripts/os-home.sh <cell-home>` prints the environment that points a harness at an isolated home on Linux, macOS or Windows, and `--plain` prints `NAME=value` lines for programs.
+
+## Driving it with recapture.mjs
+
+Preconditions:
+
+- A Linux, macOS or Windows (Git Bash) machine with Node 24, pnpm, git, curl and tar, network access to GitHub, Hugging Face and the npm registry, and about 3 GB free.
+- No secrets: every cell uses the dummy key `sk-local` (or `local-only-placeholder` for Command Code), and the gateway accepts any key.
+- Nothing else listening on ports 8090 and 8091.
+
+- **Plan.** Run `node .agents/skills/verify-skopli/scripts/recapture.mjs list`.
+  Each line is `<harness>/<shape>`, then `run`, `skip:<code>` or `todo`, then the reason.
+- **Environment.** Run `node .agents/skills/verify-skopli/scripts/recapture.mjs env --out .verify/recapture/<run>`.
+  Stderr ends with `env: ok, server <pid>, gateway <pid>, cache proof passed`, and `cache-proof.json` shows `prompt_tokens_details.cached_tokens` and `cache_read_input_tokens` higher on turn two than on turn one.
+  The step runs `pnpm install --frozen-lockfile` and `pnpm run build` first, because the readers run through the built facade.
+  The server runs with `-c 131072 -np 2 --rope-scaling yarn --rope-scale 2 --yarn-orig-ctx 32768 --alias qwen`, which gives each slot the 64K window Hermes requires.
+- **Install.** Run `node .agents/skills/verify-skopli/scripts/recapture.mjs install --out .verify/recapture/<run>`.
+  `cli-versions.txt` has one line per harness: id, binary path or `MISSING`, first line of `--version`.
+- **One cell.** Run `node .agents/skills/verify-skopli/scripts/recapture.mjs run --out .verify/recapture/<run> --only pi/openai-chat`.
+  Stderr prints `pi/openai-chat: captured`, and `cells/pi/openai-chat/result.json` shows `"events": 4`, `"reconcileExit": 0` and `"detected": ["pi"]`.
+- **Whole matrix.** Run `node .agents/skills/verify-skopli/scripts/recapture.mjs all --out .verify/recapture/<run>`.
+  Cells run one at a time; the run takes hours on CPU inference.
+- **Report.** Run `node .agents/skills/verify-skopli/scripts/recapture.mjs report --out .verify/recapture/<run> --baseline <earlier-run>`.
+  Stdout is a JSON summary with status counts and the drift count, and the exit code is `0` or `3`.
+
+The cell procedure the runner follows:
+
+1. A rerun of a cell moves the earlier directory to `<shape>.attemptN` and starts with a fresh home; nothing resumes in place.
+2. The target project is copied into `cells/<harness>/<shape>/work`, and the home is `cells/<harness>/<shape>/home` with the `os-home.sh` redirects applied.
+3. The seed for this OS is copied into the home with placeholders filled; Linux and macOS seeds stand in for each other when the seed writes nothing under `Library/` or `AppData/`; the opencode and pi families get their config from a writer instead.
+4. An optional setup command runs (for example `cline auth openai ...`), then the four prompts in `harnesses.json` run, the first with `first` and the rest with `next`, sharing one 600 second budget.
+5. A turn that outlives the budget is killed with its process group (`taskkill /T` by PID on Windows), and later turns are recorded as skipped.
+6. The gateway log is sliced from the byte offset at cell start into `gateway-usage.jsonl`.
+7. `home.mjs` writes `home-result.json`, and `reconcile.mjs` writes `reconcile.json` comparing Skopli's totals with the gateway's.
+8. `result.json` records the status, turns, gateway lines, events, sessions, diagnostics, the store layout as path shapes, and the redaction needles found in the store.
+
+Statuses in `result.json` and `cell-notes.<os>.tsv`:
+
+| status           | meaning                                                                                                                                               |
+| ---------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `captured`       | Skopli read events and they reconcile exactly with the gateway.                                                                                       |
+| `captured-delta` | Skopli read events but the totals differ from the gateway.                                                                                            |
+| `reader-gap`     | Requests reached the gateway and the harness wrote its store, but Skopli read zero events.                                                            |
+| `capture-gap`    | No request reached the gateway, or the harness wrote nothing under its store roots.                                                                   |
+| `hang`           | A turn ran out the budget and Skopli read nothing.                                                                                                    |
+| `not-installed`  | The harness binary is not on `PATH` after the install step.                                                                                           |
+| `skip`           | The manifest says the cell cannot run; the reason is one of `gui-only`, `no-byok-endpoint`, `wrong-wire-shape`, `interactive-config`, `not-an-agent`. |
+| `todo`           | The recovered kit could not source a field for this OS: the install channel, a command, or a config seed.                                             |
+
+Run outputs, all under `--out` and never committed:
+
+- `cell-notes.<os>.tsv`: three tab-separated columns, harness, shape, then free text that starts with the status and continues with the reason, gateway and event counts, store layout and redaction needles.
+- `matrix.<os>.md`: one row per cell with status, detected harnesses, events, sessions, diagnostics, gateway lines, reconcile result, the `golden/README.md` status and the reason.
+- `drift.json`: one entry per finding, each with a `kind` and a `lane`.
+- `cli-versions.txt`, `cache-proof.json`, `llama-server.txt`, `gateway-usage.jsonl`, `gateway-stderr.txt`, `state.json`, and per cell `run-N.txt`, `gateway-usage.jsonl`, `home-result.json`, `reconcile.json`, `result.json` and the home itself.
+
+Drift kinds and their lanes:
+
+| kind               | when                                                                              | lane                                                      |
+| ------------------ | --------------------------------------------------------------------------------- | --------------------------------------------------------- |
+| `newly-capturable` | A cell captured with no golden case for it.                                       | decision                                                  |
+| `regressed`        | A cell with a golden case now ends in anything other than captured, skip or todo. | mechanical candidate for `reader-gap`, decision otherwise |
+| `reconcile-delta`  | Skopli's totals differ from the gateway's.                                        | decision                                                  |
+| `layout-changed`   | The store holds path shapes the golden case does not.                             | mechanical candidate                                      |
+| `version-changed`  | A CLI version differs from `--baseline`.                                          | mechanical candidate                                      |
+| `todo`             | A cell could not be planned.                                                      | agent                                                     |
+
+### The three lanes
+
+- **No drift.** The run exits `0`; publish `matrix.<os>.md` and the package as the run's evidence, and open no product PR.
+- **Mechanical drift.** The finding is version metadata, fixture bytes, or a known store path or schema adaptation, and exact reconciliation and every invariant still hold after the change.
+  The scheduled session may change golden cases, readers or core code in its own implementation PR with before and after recapture evidence, independent review convergence, and the full CI and security checks.
+  It may merge that PR only if branch policy allows it and zero findings remain.
+- **Decision drift.** The finding is ambiguous or changed token semantics, a loss of authoritative usage, new auth, licensing or terms, an unsupported or new endpoint decision, or anything the scripts cannot establish as safe.
+  Open a draft PR or an issue with the evidence if it helps, do not merge, and escalate to the user.
+- A golden case is never rewritten just to turn a failing check green; a changed expectation needs a recapture that proves it.
+
+### Agent judgment that is not scripted yet
+
+- Choosing the lane for a `mechanical-candidate` entry: the script can say the layout or version changed, not whether the new layout carries the same token semantics.
+- A `todo` cell: finding an install channel (Hermes and fx vendor installer URLs, Windows vendor installers) or a missing seed, then adding it to `harnesses.json` or `recapture/seeds/`.
+- A changed auth flow or onboarding prompt, which shows up as `capture-gap` with a harness error in `run-N.txt`.
+- Promotion with `promote.mjs`, because picking the redaction flags and writing the case README needs a reading of the captured store.
+- Machine setup the scripts cannot do on every OS: Trae needs Docker and pexpect, and Windows vendor installers need winget, scoop or a manual step.
+
+### Spawning the scheduled run
+
+Launch one cloud session per OS that clones `skopli/skopli`; it needs no attachments and no secrets.
+The brief, with `<os>` set to `linux`, `darwin` or `windows`:
+
+```text
+Run the Skopli harness recapture on <os>.
+Clone skopli/skopli, then run:
+  node .agents/skills/verify-skopli/scripts/recapture.mjs all --out .verify/recapture/<utc-stamp> --baseline <previous run directory if you have it>
+Attach the .tgz the package step prints and matrix.<os>.md to your final report.
+Exit 0: report no drift and stop.
+Exit 1: read the failing step's stderr, fix the environment, and rerun the same command with --resume.
+Exit 3: read drift.json and follow the lanes in .agents/skills/verify-skopli/features/recapture.md.
+Treat a mechanical finding as such only when reconcile is exact after the change; open a separate PR for it.
+Treat everything else as decision drift: open a draft PR or issue with the evidence, do not merge, and escalate.
+Never rewrite a golden case only to make a check pass.
+Run cells one at a time; never kill processes by name.
+```
+
+### Per-harness reference
+
+Install, store roots and the planned outcome per wire shape, generated from `recapture/harnesses.json` and `golden/README.md`.
+In the shape columns, `seed` lists the OSes with a recorded config seed (L Linux, D macOS, W Windows), `writer` means the runner writes the opencode or pi family config, and `env only` means the cell needs no file.
+The store roots are relative to the cell home on Linux and macOS; Windows roots differ for some harnesses and are listed under Gotchas.
+These rows describe what the November 2026 wave recorded; a recapture is what confirms them today.
+
+| harness        | install                                                                                             | store under the cell home                             | openai-chat                                   | openai-responses                              | anthropic-messages                            | golden/README.md today                                                                                                                              |
+| -------------- | --------------------------------------------------------------------------------------------------- | ----------------------------------------------------- | --------------------------------------------- | --------------------------------------------- | --------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| amp            | pnpm `@sourcegraph/amp`                                                                             | `.local/share/amp/threads`                            | skip `no-byok-endpoint`                       | skip `no-byok-endpoint`                       | skip `no-byok-endpoint`                       | basic not captured                                                                                                                                  |
+| augment        | pnpm `@augmentcode/auggie`                                                                          | `.augment/sessions`                                   | skip `no-byok-endpoint`                       | skip `no-byok-endpoint`                       | skip `no-byok-endpoint`                       | basic not captured                                                                                                                                  |
+| cherrystudio   | TODO                                                                                                | `.config/CherryStudio/Data/cherrystudio.sqlite`       | skip `gui-only`                               | skip `gui-only`                               | skip `gui-only`                               | basic not captured                                                                                                                                  |
+| claude         | pnpm `@anthropic-ai/claude-code`                                                                    | `.claude/projects`                                    | skip `wrong-wire-shape`                       | skip `wrong-wire-shape`                       | run, seed LDW                                 | anthropic-messages captured; basic not captured                                                                                                     |
+| cline          | pnpm `cline`                                                                                        | `.cline`                                              | run, setup command                            | skip `wrong-wire-shape`                       | run, setup command                            | ext-basic not captured; openai-chat captured                                                                                                        |
+| codebuddy      | pnpm `@tencent-ai/codebuddy-code`                                                                   | `.codebuddy/projects`                                 | run, env only                                 | skip `wrong-wire-shape`                       | skip `wrong-wire-shape`                       | basic not captured; openai-chat captured                                                                                                            |
+| codebuff       | pnpm `codebuff`                                                                                     | `.config/manicode/projects`                           | skip `no-byok-endpoint`                       | skip `no-byok-endpoint`                       | skip `no-byok-endpoint`                       | basic not captured                                                                                                                                  |
+| codex          | pnpm `@openai/codex`                                                                                | `.codex/history.jsonl`, `.codex/sessions`             | skip `wrong-wire-shape`                       | run, seed LDW                                 | skip `wrong-wire-shape`                       | archived not captured; basic captured, not promoted; openai-responses captured                                                                      |
+| commandcode    | pnpm `command-code`                                                                                 | `.commandcode`                                        | run, seed L                                   | run, seed L                                   | run, seed L                                   | anthropic-messages captured; openai-chat captured                                                                                                   |
+| copilot        | pnpm `@github/copilot`                                                                              | `.copilot`                                            | run, seed LDW                                 | run, seed LDW                                 | run, seed LDW                                 | anthropic-messages captured; basic not captured; openai-chat captured; openai-responses captured                                                    |
+| deepseek       | pnpm `@deepseek-ai/dsh`                                                                             | `.dsh/sessions`                                       | run, seed DW                                  | run, seed DW                                  | run, seed DW                                  | anthropic-messages captured; basic not captured; openai-chat captured; openai-responses captured; sqlite not captured                               |
+| devin          | TODO: vendor installer URL not recorded                                                             | `.local/share/devin/cli/sessions.db`                  | skip `no-byok-endpoint`                       | skip `no-byok-endpoint`                       | skip `no-byok-endpoint`                       | db-basic not captured; desktop-basic not captured                                                                                                   |
+| droid          | vendor script `app.factory.ai/cli` (Windows TODO)                                                   | `.factory/logs`, `.factory/sessions`                  | run, seed LDW                                 | run, seed LDW                                 | run, seed LDW                                 | anthropic-messages captured; basic not captured; openai-chat captured; openai-responses captured                                                    |
+| fx             | TODO: vendor installer URL not recorded                                                             | `.fx/sessions`                                        | run, seed LD                                  | skip `wrong-wire-shape`                       | skip `wrong-wire-shape`                       | basic not captured; openai-chat captured                                                                                                            |
+| gajae          | pnpm `gajae-code`                                                                                   | `.gjc/agent/sessions`                                 | run, seed DW, pi writer                       | run, seed DW, pi writer                       | run, seed DW, pi writer                       | anthropic-messages captured; basic not captured; openai-chat captured; openai-responses captured                                                    |
+| gemini         | pnpm `@google/gemini-cli`                                                                           | `.gemini/tmp`                                         | skip `wrong-wire-shape`                       | skip `wrong-wire-shape`                       | skip `wrong-wire-shape`                       | basic not captured                                                                                                                                  |
+| goose          | vendor script `github.com/aaif-goose/goose/releases/download/stable/download_cli.sh` (Windows TODO) | `.local/share/goose`                                  | run, env only                                 | skip `wrong-wire-shape`                       | run, env only                                 | anthropic-messages-windows captured; basic not captured; openai-chat captured; openai-chat-windows captured                                         |
+| grok           | vendor script `x.ai/cli/install.sh` (Windows TODO)                                                  | `.grok`, `.grok/logs`, `.grok/sessions`               | run, seed LDW, darwin skip `no-byok-endpoint` | run, seed LDW, darwin skip `no-byok-endpoint` | run, seed LDW, darwin skip `no-byok-endpoint` | anthropic-messages captured; basic captured, not promoted; openai-chat captured                                                                     |
+| hermes         | TODO: vendor installer URL not recorded                                                             | `.hermes/sessions`, `.hermes/state.db`                | run, seed LW                                  | skip `wrong-wire-shape`                       | skip `wrong-wire-shape`                       | multi-home captured, not promoted; openai-chat captured                                                                                             |
+| jcode          | vendor script `jcode.sh/install` (Windows TODO)                                                     | `.jcode/sessions`                                     | run, env only                                 | skip `wrong-wire-shape`                       | run, env only                                 | anthropic-messages captured; basic not captured; openai-chat captured                                                                               |
+| junie          | pnpm `@jetbrains/junie`                                                                             | `.junie/sessions`                                     | skip `wrong-wire-shape`                       | skip `no-byok-endpoint`                       | skip `no-byok-endpoint`                       | basic not captured                                                                                                                                  |
+| kilo           | pnpm `@kilocode/cli`                                                                                | `.local/share/kilo`                                   | run, seed DW, opencode writer                 | run, seed DW, opencode writer                 | run, seed DW, opencode writer                 | anthropic-messages captured; basic not captured; openai-chat captured; openai-responses captured                                                    |
+| kilocode       | TODO                                                                                                | TODO                                                  | skip `gui-only`                               | skip `gui-only`                               | skip `gui-only`                               | basic not captured                                                                                                                                  |
+| kimchi         | pnpm `@getkimchi/kimchi`                                                                            | `.config/kimchi/agent/sessions`, `.pi/agent/sessions` | run, seed DW, pi writer                       | run, seed DW, pi writer                       | run, seed DW, pi writer                       | anthropic-messages captured; basic captured, not promoted; openai-chat captured; openai-responses captured                                          |
+| kimi           | vendor script `code.kimi.com/kimi-code/install.sh` (Windows TODO)                                   | `.kimi-code/projects`, `.kimi-code/sessions`          | run, seed LDW                                 | run, seed LDW                                 | run, seed LDW                                 | anthropic-messages captured; basic captured, not promoted; openai-chat captured; openai-responses captured                                          |
+| kiro           | vendor script `prod.download.cli.kiro.dev` (Windows TODO)                                           | `.kiro/data.sqlite3`                                  | skip `wrong-wire-shape`                       | skip `no-byok-endpoint`                       | skip `no-byok-endpoint`                       | basic not captured                                                                                                                                  |
+| mimocode       | vendor script `mimo.xiaomi.com/install` (Windows TODO)                                              | `.local/share/mimocode`, `.mimocode/data`             | run, seed DW, opencode writer                 | run, seed DW, opencode writer                 | run, seed DW, opencode writer                 | json-basic not captured; openai-chat captured                                                                                                       |
+| mux            | TODO                                                                                                | `.mux/sessions`                                       | skip `gui-only`                               | skip `gui-only`                               | skip `gui-only`                               | basic not captured                                                                                                                                  |
+| omp            | pnpm `@oh-my-pi/pi-coding-agent`                                                                    | `.omp/agent/sessions`                                 | run, seed DW, pi writer                       | run, seed DW, pi writer                       | run, seed DW, pi writer                       | anthropic-messages captured; basic not captured; openai-chat captured; openai-responses captured                                                    |
+| openclaw       | pnpm `openclaw`                                                                                     | `.openclaw`                                           | skip `interactive-config`                     | skip `interactive-config`                     | skip `interactive-config`                     | basic not captured                                                                                                                                  |
+| opencode       | pnpm `opencode-ai`                                                                                  | `.local/share/opencode`                               | run, seed DW, opencode writer                 | run, seed DW, opencode writer                 | run, seed DW, opencode writer                 | anthropic-messages captured; db-basic not captured; json-basic not captured; openai-chat captured; openai-responses captured; v2-basic not captured |
+| opencodereview | TODO                                                                                                | `.opencodereview/sessions`                            | skip `not-an-agent`                           | skip `not-an-agent`                           | skip `not-an-agent`                           | basic not captured                                                                                                                                  |
+| pi             | pnpm `@mariozechner/pi-coding-agent`                                                                | `.pi/agent/sessions`                                  | run, seed DW, pi writer                       | run, seed DW, pi writer                       | run, seed DW, pi writer                       | anthropic-messages captured; basic not captured; openai-chat captured; openai-responses captured                                                    |
+| prime          | vendor script `astral.sh/uv/install.sh` (Windows TODO)                                              | `.prime/agent/sessions`                               | run, seed DW, pi writer                       | run, seed DW, pi writer                       | run, seed DW, pi writer                       | anthropic-messages captured; basic not captured; openai-chat captured; openai-responses captured                                                    |
+| qwen           | pnpm `@qwen-code/qwen-code`                                                                         | `.qwen/projects`                                      | run, env only                                 | skip `wrong-wire-shape`                       | skip `wrong-wire-shape`                       | basic not captured; openai-chat captured                                                                                                            |
+| reasonix       | pnpm `reasonix`                                                                                     | `.reasonix`                                           | run, seed LDW                                 | skip `wrong-wire-shape`                       | run, seed LDW                                 | anthropic-messages captured; anthropic-messages-windows captured; basic not captured; openai-chat captured; openai-chat-windows captured            |
+| roo            | TODO                                                                                                | TODO                                                  | skip `gui-only`                               | skip `gui-only`                               | skip `gui-only`                               | basic not captured                                                                                                                                  |
+| trae           | uv tool, Python 3.12                                                                                | `trajectories`                                        | run, seed LDW                                 | skip `wrong-wire-shape`                       | run, seed LDW                                 | anthropic-messages captured; basic not captured                                                                                                     |
+| zcode          | TODO                                                                                                | `.zcode/cli/db/db.sqlite`                             | skip `gui-only`                               | skip `gui-only`                               | skip `gui-only`                               | jsonl-basic not captured                                                                                                                            |
+| zed            | TODO                                                                                                | `.local/share/zed/threads/threads.db`                 | skip `gui-only`                               | skip `gui-only`                               | skip `gui-only`                               | basic not captured                                                                                                                                  |
+
+## Gotchas
+
+- Run cells one at a time: four concurrent sessions saturated the 1.5B model on 8 cores and turned real captures into timeouts.
+- Never stop a harness or server by process name; the runner kills only the PIDs and process groups it started, and `stop` reads them from `state.json`.
+- A turn killed mid-flight leaves nothing in most stores, so a capture can report fewer turns than ran.
+- Codex rejects `wire_api = "chat"`, Reasonix has no Responses shape, Command Code's Responses client never completes a stream against the gateway, and Trae's Chat Completions client crashes on a null `completion_tokens_details`; the last two still run so a fix upstream shows up as drift.
+- Grok needs a real sign-in on macOS, so its cells skip there.
+- Hermes refuses to start when the server advertises less than a 64K window, which is why the server uses YaRN scaling.
+- fx writes a cumulative `set:usage` log, so its reader takes deltas; cline can leave orphaned host processes on macOS that the runner does not own.
+- On Windows, `os-home.sh` sets `USERPROFILE`, `APPDATA` and `LOCALAPPDATA` from `cygpath -w`; goose and Reasonix keep their stores under `APPDATA`, and mimocode follows the redirected home.
+- Redact before promoting: the cell home and target paths, the username and hostname, the dummy keys, Windows 8.3 aliases such as `ADMINI~1`, PATH snapshots in Hermes `state_meta`, git proxy hosts in URLs, and escaped Windows paths; `result.json` lists the needles it found.
+- A capture whose layout matches the Linux case is recorded as the same layout with its counts; only a differing layout becomes `golden/<harness>/<shape>-<os>/`, and the manifest keeps the shape name without the `-<os>` suffix.
+- The pnpm home for harness installs is inside `--cache`, so a run never touches the machine's global packages, and the cache can be reused across runs.
