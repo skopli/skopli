@@ -41,7 +41,7 @@ options:
   --only <h[/shape]> restrict to a harness or one cell; repeatable
   --os <os>          plan for linux, darwin or windows; only list and --dry-run accept another OS
   --timeout <s>      wall-clock budget per cell across all turns, in seconds (default 600)
-  --resume           skip cells that already have result.json in --out
+  --resume           skip cells in --out that already ran; rerun error, not-installed, skip and todo
   --baseline <dir>   a previous run directory; report flags CLI version changes against it and
                      does not count a TODO it already reported
   --dry-run          print the resolved plan as JSON and exit
@@ -94,9 +94,9 @@ const toolPath = () => {
     : [];
   process.env.PATH = [
     process.env.PNPM_HOME,
-    ...[process.env.UV_TOOL_BIN_DIR, join(scriptHome, ".local/bin"), ...dots].filter((d) =>
-      existsSync(d),
-    ),
+    process.env.UV_TOOL_BIN_DIR,
+    join(scriptHome, ".local/bin"),
+    ...dots,
     basePath,
   ].join(delimiter);
 };
@@ -125,9 +125,11 @@ const cleanEnv = () =>
 const files = (dir, base = dir) =>
   existsSync(dir)
     ? readdirSync(dir, { withFileTypes: true }).flatMap((e) =>
-        e.isDirectory()
-          ? files(join(dir, e.name), base)
-          : [relative(base, join(dir, e.name)).replaceAll("\\", "/")],
+        e.isSymbolicLink()
+          ? []
+          : e.isDirectory()
+            ? files(join(dir, e.name), base)
+            : [relative(base, join(dir, e.name)).replaceAll("\\", "/")],
       )
     : [];
 // Seeds are recorded per OS. Linux and macOS share a HOME-relative layout, so either may stand in
@@ -318,7 +320,11 @@ async function env() {
     ...(OS === "windows" ? ["-n", "1024"] : []),
   ];
   const slog = openSync(join(out, "llama-server.txt"), "w");
-  const srv = spawn(server, flags, { detached: OS !== "windows", stdio: ["ignore", slog, slog] });
+  const srv = spawn(server, flags, {
+    detached: true,
+    windowsHide: true,
+    stdio: ["ignore", slog, slog],
+  });
   srv.unref();
   saveState({
     serverPid: srv.pid,
@@ -341,7 +347,8 @@ async function env() {
       "--quiet",
     ],
     {
-      detached: OS !== "windows",
+      detached: true,
+      windowsHide: true,
       stdio: ["ignore", "ignore", openSync(join(out, "gateway-stderr.txt"), "w")],
     },
   );
@@ -430,10 +437,9 @@ function install() {
         ],
         { env },
       );
-    else if (how?.script && OS !== "windows") {
+    else if (how?.script && OS !== "windows")
       r = sh("bash", ["-c", `curl -fsSL ${how.script} | bash`], { env });
-      toolPath();
-    }
+    toolPath();
     if (r && r.status !== 0) say(`install ${id}: exit ${r.status}`);
     const path = bin && which(bin);
     const v = path
@@ -504,12 +510,15 @@ const homeEnv = (home) => {
   )
     fail("bash on PATH is not Git Bash; put Git for Windows' bash first");
   bashChecked = true;
-  return Object.fromEntries(
-    sh("bash", [join(here, "os-home.sh"), "--plain", home], { noShell: true })
-      .stdout.trim()
+  const r = sh("bash", [join(here, "os-home.sh"), "--plain", home], { noShell: true });
+  const env = Object.fromEntries(
+    (r.stdout ?? "")
+      .trim()
       .split("\n")
       .map((l) => [l.slice(0, l.indexOf("=")), l.slice(l.indexOf("=") + 1)]),
   );
+  if (r.status !== 0 || !env.HOME) fail(`os-home.sh failed for ${home}: ${r.stderr?.trim()}`);
+  return env;
 };
 
 // A turn ends when its leader exits; on Linux and macOS whatever it left in its process group is
@@ -595,11 +604,14 @@ const alive = async (s) => {
     } catch {
       fail(`process ${pid} from the env step is gone; rerun env`);
     }
-  const ok = await fetch(`http://127.0.0.1:${LLAMA.port}/health`).then(
-    (r) => r.ok,
-    () => false,
-  );
-  if (!ok) fail("llama-server stopped answering /health; rerun env");
+  for (const url of [`http://127.0.0.1:${LLAMA.port}/health`, `${origin}/v1/models`])
+    if (
+      !(await fetch(url).then(
+        (r) => r.ok,
+        () => false,
+      ))
+    )
+      fail(`${url} stopped answering; rerun env`);
 };
 
 async function run() {
@@ -611,7 +623,9 @@ async function run() {
     // --resume keeps finished cells and retries the ones a broken environment ended.
     if (
       args.flag("--resume") &&
-      !["error", "not-installed", undefined].includes(readJson(resultFile, {}).status)
+      !["error", "not-installed", "skip", "todo", undefined].includes(
+        readJson(resultFile, {}).status,
+      )
     )
       continue;
     // A retry never reuses a home: the earlier attempt is kept beside it as <shape>.attemptN.
@@ -667,22 +681,24 @@ async function run() {
     const gwlog = join(out, "gateway-usage.jsonl");
     const from = existsSync(gwlog) ? statSync(gwlog).size : 0;
     const deadline = Date.now() + timeout * 1000;
-    if (cell.c.setup)
-      await runTurn(
+    const setup =
+      cell.c.setup &&
+      (await runTurn(
         cell.c.setup.map((a) => fill(a, vars)),
         envv,
         cwd,
         join(dir, "setup.txt"),
         timeout,
-      );
+      ));
+    const setupFailed = setup && (setup.timedOut || setup.code !== 0);
     // Files the runner or the setup command wrote are not evidence: only what the turns create or change counts.
     const mtime = (f) => statSync(join(home, f)).mtimeMs;
     const seeded = new Map(files(home).map((f) => [f, mtime(f)]));
     const turns = [];
     for (const [i, prompt] of manifest.prompts.entries()) {
       const left = Math.floor((deadline - Date.now()) / 1000);
-      if (left < 20) {
-        turns.push({ skipped: "cell budget spent" });
+      if (setupFailed || left < 20) {
+        turns.push({ skipped: setupFailed ? "setup failed" : "cell budget spent" });
         continue;
       }
       const argv = (i ? cell.c.next : cell.c.first).map((a) => fill(a, { ...vars, prompt }));
@@ -701,7 +717,8 @@ async function run() {
       join(dir, "gateway-usage.jsonl"),
       lines.map((l) => `${JSON.stringify(l)}\n`).join(""),
     );
-    const node = (script, a) => sh(process.execPath, [join(here, script), ...a], { noShell: true });
+    const node = (script, a) =>
+      sh(process.execPath, [join(here, script), ...a], { noShell: true, timeout: 120000 });
     const hr = node("home.mjs", [home, "--out", dir]);
     const summary = readJson(join(dir, "home-result.json"), null);
     const rc = node("reconcile.mjs", [
@@ -725,7 +742,7 @@ async function run() {
           : null;
     const status = broken
       ? "error"
-      : turns.some((t) => t.timedOut) && !events
+      : (setup?.timedOut || turns.some((t) => t.timedOut)) && !events
         ? "hang"
         : !lines.length
           ? "capture-gap"
@@ -740,7 +757,16 @@ async function run() {
       status,
       reason:
         broken ??
-        (status === "capture-gap" && !lines.length ? "no request reached the gateway" : undefined),
+        (setupFailed
+          ? setup.timedOut
+            ? "setup timed out"
+            : `setup exit ${setup.code}`
+          : status === "capture-gap" && !lines.length
+            ? "no request reached the gateway"
+            : undefined),
+      setup: setup
+        ? { exit: setup.code, timedOut: setup.timedOut, seconds: setup.seconds }
+        : undefined,
       turns,
       gatewayLines: lines.length,
       events,
@@ -750,7 +776,9 @@ async function run() {
       homeExit: hr.status,
       reconcileExit: rc.status,
       layout: layoutOf(
-        written.filter((f) => !(cell.h.layoutIgnore ?? []).some((p) => f.startsWith(p))),
+        written.filter(
+          (f) => !(cell.h.layoutIgnore ?? []).some((p) => f === p || f.startsWith(`${p}/`)),
+        ),
         cwd,
       ),
       redaction: scan(home, cwd, written),
@@ -761,21 +789,24 @@ async function run() {
 // whichever cwd it was (golden cases were captured in /home/user/project), and any other segment
 // carrying an id or a date becomes *.
 const slug = (p) => p.replace(/[^A-Za-z0-9]/g, "-").replace(/^-+/, "");
+// SQLite -wal, -shm and -journal sidecars are transient, so no golden case keeps them.
 const layoutOf = (paths, cwd) =>
   [
     ...new Set(
-      paths.map((f) =>
-        f
-          .split("/")
-          .map((seg) =>
-            seg.replace(/^-+/, "") === slug(cwd)
-              ? "<cwd>"
-              : /\d/.test(seg) || /^-.*-$/.test(seg)
-                ? `*${seg.match(/(\.[a-z]+)+$/)?.[0] ?? ""}`
-                : seg,
-          )
-          .join("/"),
-      ),
+      paths
+        .filter((f) => !/\.db-(wal|shm|journal)$|\.sqlite3?-(wal|shm|journal)$/.test(f))
+        .map((f) =>
+          f
+            .split("/")
+            .map((seg) =>
+              seg.replace(/^-+/, "") === slug(cwd)
+                ? "<cwd>"
+                : /\d/.test(seg) || /^-.*-$/.test(seg)
+                  ? `*${seg.match(/(\.[a-z]+)+$/)?.[0] ?? ""}`
+                  : seg,
+            )
+            .join("/"),
+        ),
     ),
   ].sort();
 const GOLDEN_CWD = "/home/user/project";
@@ -795,7 +826,8 @@ function report() {
   const results = cells.map((c) =>
     readJson(join(out, "cells", c.harness, c.shape, "result.json"), {
       cell: c.id,
-      status: "not-run",
+      status: c.plan === "run" ? "not-run" : c.plan.split(":")[0],
+      reason: c.plan === "todo" ? c.todo : undefined,
     }),
   );
   const readme = readFileSync(join(root, "golden/README.md"), "utf8");
@@ -833,7 +865,11 @@ function report() {
     const has = existsSync(join(root, "golden", caseId));
     const ok = r.status === "captured" || r.status === "captured-delta";
     if (ok && !has) drift.push({ cell: r.cell, kind: "newly-capturable", lane: "decision" });
-    if (!ok && has && !["skip", "todo"].includes(r.status))
+    if (r.status === "reader-gap" && !has)
+      drift.push({ cell: r.cell, kind: "unread-store", lane: "decision" });
+    if (r.status === "not-run")
+      drift.push({ cell: r.cell, kind: "invariant", reason: "cell did not run", lane: "agent" });
+    else if (!ok && has && !["skip", "todo"].includes(r.status))
       drift.push({
         cell: r.cell,
         kind: "regressed",

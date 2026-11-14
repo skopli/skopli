@@ -17,7 +17,7 @@ One command owns the whole wave, and an agent only steps in when the run exits w
 - `node .agents/skills/verify-skopli/scripts/recapture.mjs all --out .verify/recapture/<utc-stamp>` runs the whole wave and always ends by stopping what it started.
 - `node .agents/skills/verify-skopli/scripts/recapture.mjs list` prints every cell with its planned outcome on this OS.
 - The steps `env`, `install`, `run`, `report`, `package` and `stop` run one at a time against the same `--out`.
-- `--only <harness>` or `--only <harness>/<shape>` (repeatable) selects a subset, `--os` plans for another OS with `list` or `--dry-run` only, `--resume` skips cells that already have a `result.json`, except those that ended `error` or `not-installed`, `--baseline <dir>` adds CLI version changes against an earlier run, `--dry-run` prints the resolved plan as JSON, and `--timeout <s>` changes the per-cell budget.
+- `--only <harness>` or `--only <harness>/<shape>` (repeatable) selects a subset, `--os` plans for another OS with `list` or `--dry-run` only, `--resume` skips cells that already ran, and reruns those whose `result.json` is missing or says `error`, `not-installed`, `skip` or `todo`, `--baseline <dir>` adds CLI version changes against an earlier run, `--dry-run` prints the resolved plan as JSON, and `--timeout <s>` changes the per-cell budget.
 - Exit codes: `0` ran and found no new drift, `1` an invariant failed (download, byte size, a bound port, server or gateway readiness, cache proof, build, a crashed `home.mjs` or `reconcile.mjs`), `2` usage error, `3` new drift or a new TODO cell needs an agent.
 - A run with TODO cells exits `3` until those cells are sourced, unless `--baseline` names a run whose `drift.json` already lists the same TODO with the same reason; such entries stay in `drift.json` with `"known": true` and do not count.
 - The data lives in `recapture/harnesses.json` (install channel, store roots, per-shape commands, env, skip codes) and `recapture/seeds/<os>/<harness>-<shape>/` (the pre-run config files, written relative to the cell home with `{origin}`, `{home}` and `{cwd}` placeholders).
@@ -27,7 +27,7 @@ One command owns the whole wave, and an agent only steps in when the run exits w
 
 Preconditions:
 
-- A Linux, macOS or Windows (Git Bash) machine with Node 24, pnpm, git, curl and tar, network access to GitHub, Hugging Face and the npm registry, and about 3 GB free.
+- A Linux, macOS or Windows (Git Bash) machine with Node 24, pnpm, git, curl, tar, `unzip` on Linux and `uv` for trae, network access to GitHub, Hugging Face and the npm registry, and about 3 GB free.
 - No secrets: every cell uses the dummy key `sk-local` (or `local-only-placeholder` for Command Code), and the gateway accepts any key.
 - Nothing else listening on ports 8090 and 8091; `env` refuses a bound port, and readiness only counts while the server and gateway it started are alive.
 
@@ -54,6 +54,7 @@ The cell procedure the runner follows:
 3. The seed for this OS is copied into the home with placeholders filled; Linux and macOS seeds stand in for each other when the seed writes nothing under `Library/` or `AppData/`; the opencode and pi families get their config from a writer instead.
 4. The runner checks that the server and gateway from `env` are still alive and that `/health` answers, and fails with exit `1` otherwise.
 5. An optional setup command runs (for example `cline auth openai ...`), then the four prompts in `harnesses.json` run, the first with `first` and the rest with `next`, sharing one 600 second budget.
+   A setup that times out makes the cell a `hang`, and a setup that exits non-zero skips the turns and records `setup exit N` as the reason.
 6. A turn that outlives the budget is killed with its process group (`taskkill /T` by PID on Windows), and later turns are recorded as skipped.
 7. The gateway log is sliced from the byte offset at cell start into `gateway-usage.jsonl`, without `aborted` lines, which are replies no harness received.
 8. `home.mjs` writes `home-result.json`, and `reconcile.mjs` writes `reconcile.json` comparing Skopli's totals with the gateway's.
@@ -83,15 +84,16 @@ Run outputs, all under `--out` and never committed:
 
 Drift kinds and their lanes:
 
-| kind               | when                                                                              | lane                                                          |
-| ------------------ | --------------------------------------------------------------------------------- | ------------------------------------------------------------- |
-| `newly-capturable` | A cell captured with no golden case for it.                                       | decision                                                      |
-| `regressed`        | A cell with a golden case now ends in anything other than captured, skip or todo. | `mechanical-candidate` for `reader-gap`, `decision` otherwise |
-| `reconcile-delta`  | Skopli's totals differ from the gateway's.                                        | decision                                                      |
-| `layout-changed`   | The store holds path shapes the golden case does not.                             | `mechanical-candidate`                                        |
-| `version-changed`  | A CLI version differs from `--baseline`.                                          | `mechanical-candidate`                                        |
-| `todo`             | A cell could not be planned.                                                      | agent                                                         |
-| `invariant`        | A cell ended `error`.                                                             | agent                                                         |
+| kind               | when                                                                                             | lane                                                          |
+| ------------------ | ------------------------------------------------------------------------------------------------ | ------------------------------------------------------------- |
+| `newly-capturable` | A cell captured with no golden case for it.                                                      | decision                                                      |
+| `unread-store`     | A cell with no golden case wrote its store and reached the gateway, but Skopli read zero events. | decision                                                      |
+| `regressed`        | A cell with a golden case now ends in anything other than captured, skip or todo.                | `mechanical-candidate` for `reader-gap`, `decision` otherwise |
+| `reconcile-delta`  | Skopli's totals differ from the gateway's.                                                       | decision                                                      |
+| `layout-changed`   | The store holds path shapes the golden case does not.                                            | `mechanical-candidate`                                        |
+| `version-changed`  | A CLI version differs from `--baseline`.                                                         | `mechanical-candidate`                                        |
+| `todo`             | A cell could not be planned.                                                                     | agent                                                         |
+| `invariant`        | A cell ended `error`, or a planned cell has no result.                                           | agent                                                         |
 
 ### The three lanes
 

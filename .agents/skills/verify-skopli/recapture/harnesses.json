@@ -974,7 +974,8 @@
           "next": ["cline", "-y", "-m", "qwen", "{prompt}"],
           "setup": ["cline", "auth", "anthropic", "-k", "sk-local", "-m", "qwen", "-b", "{origin}"]
         }
-      }
+      },
+      "layoutIgnore": [".cline/data/cache", ".cline/data/logs", ".cline/data/settings"]
     },
     "kilo": {
       "install": {
