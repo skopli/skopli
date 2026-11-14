@@ -103,7 +103,7 @@ Drift kinds and their lanes:
 - A `todo` cell: finding an install channel (Hermes and fx vendor installer URLs, Windows vendor installers) or a missing seed, then adding it to `harnesses.json` or `recapture/seeds/`.
 - A changed auth flow or onboarding prompt, which shows up as `capture-gap` with a harness error in `run-N.txt`.
 - Promotion with `promote.mjs`, because picking the redaction flags and writing the case README needs a reading of the captured store.
-- Machine setup the scripts cannot do on every OS: Trae needs Docker and pexpect, and Windows vendor installers need winget, scoop or a manual step.
+- Machine setup the scripts cannot do on every OS: Windows vendor installers need winget, scoop or a manual step, and `uv` must already be on `PATH` for Trae.
 
 ### Spawning the scheduled run
 

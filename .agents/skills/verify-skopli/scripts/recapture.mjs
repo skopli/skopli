@@ -371,7 +371,15 @@ function install() {
     const bin = Object.values(shapes).map(binOf).find(Boolean);
     let r = null;
     if (how?.pnpm) r = sh("pnpm", ["add", "-g", how.pnpm]);
-    else if (how?.uv) r = sh("uv", ["tool", "install", "--python", how.python, how.uv]);
+    else if (how?.uv)
+      r = sh("uv", [
+        "tool",
+        "install",
+        "--python",
+        how.python,
+        ...(how.with ?? []).flatMap((w) => ["--with", w]),
+        how.uv,
+      ]);
     else if (how?.script && OS !== "windows")
       r = sh("bash", ["-c", `curl -fsSL ${how.script} | bash`]);
     if (r && r.status !== 0) say(`install ${id}: exit ${r.status}`);

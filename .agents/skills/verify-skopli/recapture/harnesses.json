@@ -1269,7 +1269,8 @@
     "trae": {
       "install": {
         "uv": "git+https://github.com/bytedance/trae-agent",
-        "python": "3.12"
+        "python": "3.12",
+        "with": ["docker", "pexpect", "pydantic==2.11.7"]
       },
       "store": ["trajectories"],
       "shapes": {
@@ -1335,7 +1336,7 @@
           }
         }
       },
-      "note": "trae-agent also needs Docker and pexpect on the machine; naive local timestamps, so TZ is pinned"
+      "note": "trae-agent imports docker and pexpect at startup, so they install with it; naive local timestamps, so TZ is pinned"
     },
     "deepseek": {
       "install": {
