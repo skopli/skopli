@@ -306,7 +306,7 @@ if (unmatched.length) args.usage(`--only matched no cell: ${unmatched.join(" ")}
 // The command itself stays bare when it can: cmd.exe resolves %~dp0 of a quoted .cmd shim found on
 // PATH against the working directory, so a quoted "pnpm" runs corepack from the wrong folder.
 const winLine = (argv) =>
-  argv.map((a, i) => (!i && /^[\w.:\/-]+$/.test(a) ? a : `"${a.replaceAll('"', '""')}"`)).join(" ");
+  argv.map((a, i) => (!i && /^[\w.-]+$/.test(a) ? a : `"${a.replaceAll('"', '""')}"`)).join(" ");
 const state = join(out, "state.json");
 // A file cut short by a kill mid-write reads as missing.
 const readJson = (f, fallback) => {
