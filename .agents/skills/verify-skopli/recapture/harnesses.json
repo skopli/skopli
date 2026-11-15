@@ -38,6 +38,7 @@
             "qwen",
             "{prompt}"
           ],
+          "env": { "ANTHROPIC_BASE_URL": "{origin}", "ANTHROPIC_API_KEY": "sk-local" },
           "seed": "claude-anthropic-messages"
         }
       }
@@ -1189,7 +1190,8 @@
     },
     "goose": {
       "install": {
-        "script": "https://github.com/aaif-goose/goose/releases/download/stable/download_cli.sh"
+        "script": "https://github.com/aaif-goose/goose/releases/download/stable/download_cli.sh",
+        "env": { "CONFIGURE": "false" }
       },
       "store": [".local/share/goose"],
       "shapes": {
