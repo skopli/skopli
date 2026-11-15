@@ -627,9 +627,7 @@
       }
     },
     "prime": {
-      "install": {
-        "todo": "installer URL not recorded; the macOS kit ran a saved copy of the upstream install script"
-      },
+      "install": { "script": "https://app.primeintellect.ai/prime-agent/install.sh" },
       "store": [".prime/agent/sessions"],
       "shapes": {
         "openai-chat": {
@@ -1138,7 +1136,8 @@
     },
     "hermes": {
       "install": {
-        "todo": "vendor installer URL not recorded"
+        "script": "https://hermes-agent.nousresearch.com/install.sh",
+        "args": ["--non-interactive", "--skip-browser", "--skip-computer-use"]
       },
       "store": [".hermes/sessions", ".hermes/state.db"],
       "shapes": {
@@ -1426,7 +1425,7 @@
     },
     "kiro": {
       "install": {
-        "script": "https://prod.download.cli.kiro.dev"
+        "script": "https://cli.kiro.dev/install"
       },
       "store": [".kiro/data.sqlite3"],
       "shapes": {
@@ -1445,9 +1444,7 @@
       }
     },
     "fx": {
-      "install": {
-        "todo": "vendor installer URL not recorded"
-      },
+      "install": { "script": "https://fx.sh/setup.sh" },
       "store": [".fx/sessions"],
       "shapes": {
         "openai-chat": {
