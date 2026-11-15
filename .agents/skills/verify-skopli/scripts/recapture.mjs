@@ -109,17 +109,17 @@ const vendorPath = () => {
     return [];
   }
 };
+// Case-insensitive, because Windows and default macOS volumes ignore case.
+const under = (p, root) =>
+  resolve(p)
+    .toLowerCase()
+    .startsWith(resolve(root).toLowerCase() + sep);
 // A ps1 installer adds its bin dir to the operator's user PATH. Only the entries under the script
 // home are moved out (into vendor-path.json, put on PATH for turns), before and after each install,
 // so an interrupted install is undone by the next and edits made meanwhile are kept. The kind read
 // before the install is written back, in case the installer turned REG_EXPAND_SZ into REG_SZ.
 // Vendor installers scan PATH (kimi's migrates kimi shims it finds there, mimo's skips the install
 // when a mimo already runs), so they see only the cache dirs, System32 and Git.
-// Case-insensitive, because Windows and default macOS volumes ignore case.
-const under = (p, root) =>
-  resolve(p)
-    .toLowerCase()
-    .startsWith(resolve(root).toLowerCase() + sep);
 const installerPath = () => {
   const sys = join(process.env.SystemRoot ?? process.env.windir ?? "", "System32");
   return [
@@ -201,7 +201,7 @@ const moveVendorPath = (id, before, ienv = {}, post = false) => {
       JSON.stringify([
         ...new Set([
           ...vendorPath(),
-          ...vend.map((d) => expand(d, lower).trim().replace(/^"|"$/g, "")),
+          ...vend.map((d) => expand(d, lower).trim().replace(/^"|"$/g, "")).filter(existsSync),
         ]),
       ]),
     );
@@ -295,13 +295,19 @@ const KEY = "sk-local";
 // passed to a cell: the store overrides src/detect.ts honours, and each harness's own prefix.
 // The match ignores case because Windows variable names do.
 const LEAKY =
-  /^(XDG_\w+|AWS_\w+|\w+_API_KEY|\w+_API_BASE|\w+_BASE_URL|\w+_TOKEN|\w+_(CONFIG|DATA|SESSIONS?|SESSION_DATA|CODING_AGENT|AGENT)_DIR|GOOGLE_APPLICATION_CREDENTIALS|CODEX_HOME|OPENCLAW_DIR|CLINE_\w+|CODEBUDDY_\w+|COPILOT_\w+|DSH_\w+|GJC_\w+|GOOSE_\w+|GROK_\w+|HERMES_\w+|JCODE_\w+|KILO_\w+|KIMI_\w+|MIMOCODE_\w+|MIMO_\w+|OPENCODE_\w+|PRIME_AGENT_\w+|QWEN_\w+|REASONIX_\w+|UV_INSTALL_DIR|UV_UNMANAGED_INSTALL)$/i;
+  /^(XDG_\w+|AWS_\w+|\w+_API_KEY|\w+_API_BASE|\w+_BASE_URL|\w+_TOKEN|\w+_(CONFIG|DATA|SESSIONS?|SESSION_DATA|CODING_AGENT|AGENT)_DIR|GOOGLE_APPLICATION_CREDENTIALS|CODEX_HOME|OPENCLAW_DIR|CLINE_\w+|CODEBUDDY_\w+|COPILOT_\w+|DEVIN_\w+|DSH_\w+|GJC_\w+|GOOSE_\w+|GROK_\w+|HERMES_\w+|JCODE_\w+|KILO_\w+|KIMI_\w+|MIMOCODE_\w+|MIMO_\w+|OPENCODE_\w+|PRIME_AGENT_\w+|QWEN_\w+|REASONIX_\w+|UV_INSTALL_DIR|UV_UNMANAGED_INSTALL)$/i;
 const cleanEnv = () =>
   Object.fromEntries(Object.entries(process.env).filter(([k]) => !LEAKY.test(k)));
 // Turns and probes get a temp dir under --out, so nothing they leave lands in the operator's temp.
 // macOS keeps its per-user TMPDIR: a socket path under --out would pass the 104-byte sun_path limit.
 const tempEnv = (dir, fresh = false) => {
-  if (fresh) rmSync(dir, { recursive: true, force: true });
+  // A stray from an earlier run can still hold a file there on Windows; then the cell gets a new dir.
+  if (fresh)
+    try {
+      rmSync(dir, { recursive: true, force: true });
+    } catch {
+      dir = `${dir}-${Date.now()}`;
+    }
   mkdirSync(dir, { recursive: true });
   return { TEMP: dir, TMP: dir, ...(OS === "darwin" ? {} : { TMPDIR: dir }) };
 };
@@ -672,21 +678,36 @@ const which = (bin) => {
 };
 const binOf = (c) => (Array.isArray(c.first) ? c.first[0] : null);
 const INSTALL_LIMIT = 900;
-// spawnSync's timeout kills only its child, so on Linux and macOS the installer runs as the leader of
-// its own process group and the whole group goes when it ends or times out; Windows reaps what the
-// install started from the cache. Exit 124 means the limit was hit, as with timeout(1).
-const GROUP = `const [s, c, ...a] = process.argv.slice(1);
-const p = require("child_process").spawn(c, a, { stdio: "inherit", detached: true });
-const k = () => { try { process.kill(-p.pid, "SIGKILL"); } catch {} };
+// spawnSync's timeout kills only its child, so the installer runs under a small node wrapper that
+// kills its whole tree when the limit is hit or the wrapper is interrupted: on Linux and macOS the
+// installer leads its own process group, which also goes when it exits; on Windows taskkill walks
+// the tree while the leader lives, and reapSince takes what the install started from the cache.
+// Exit 124 means the limit was hit, as with timeout(1); the spawnSync timeout is the backstop for
+// a process that left the tree but holds the output pipe.
+const GROUP = `const [s, shell, c, ...a] = process.argv.slice(1);
+const cp = require("child_process");
+const win = process.platform === "win32";
+const p = cp.spawn(c, a, { stdio: "inherit", detached: !win, shell: shell === "1" });
+const k = () => { try { if (win) cp.execFileSync("taskkill", ["/PID", String(p.pid), "/T", "/F"], { stdio: "ignore" }); else process.kill(-p.pid, "SIGKILL"); } catch {} };
 const t = setTimeout(() => { k(); process.exit(124); }, s * 1000);
+for (const sig of ["SIGINT", "SIGTERM", "SIGHUP"]) process.on(sig, () => { k(); process.exit(130); });
 p.on("error", () => process.exit(127));
-p.on("exit", (code) => { clearTimeout(t); k(); process.exit(code ?? 137); });`;
+p.on("exit", (code) => { clearTimeout(t); if (!win) k(); process.exit(code ?? 137); });`;
 const installSh = (cmd, a, o) => {
-  if (OS !== "windows")
-    return sh(process.execPath, ["-e", GROUP, String(INSTALL_LIMIT), cmd, ...a], o);
+  const shell = OS === "windows" && !o.noShell;
   const t0 = new Date();
-  const r = sh(cmd, a, { ...o, timeout: INSTALL_LIMIT * 1000 });
-  reapSince(t0, [cache]);
+  const r = sh(
+    process.execPath,
+    [
+      "-e",
+      GROUP,
+      String(INSTALL_LIMIT),
+      shell ? "1" : "0",
+      ...(shell ? [winLine([cmd, ...a])] : [cmd, ...a]),
+    ],
+    { ...o, noShell: true, timeout: (INSTALL_LIMIT + 30) * 1000 },
+  );
+  if (OS === "windows") reapSince(t0, [cache]);
   return r.error?.code === "ETIMEDOUT" ? { ...r, status: 124 } : r;
 };
 function install() {
@@ -965,7 +986,7 @@ const spellings = (p) => {
 let remoteHost;
 const originHost = () =>
   (remoteHost ??=
-    /^(?:https?:\/\/(?:[^@/]+@)?|[^@/:]+@)([^/:]+)/
+    /^(?:[a-z+]+:\/\/(?:[^@/]+@)?|(?![a-z+]+:\/\/)(?:[^@/:]+@)?)([^/:]+)/
       .exec(
         sh("git", ["-C", root, "remote", "get-url", "origin"], { noShell: true }).stdout?.trim() ??
           "",
@@ -974,7 +995,7 @@ const originHost = () =>
 const scan = (home, cwd, paths) => {
   const needles = [
     // A username that is a common store word ("user" in every chat role) would match everything.
-    ["username", [userInfo().username].filter((u) => !["user", "root", "admin"].includes(u))],
+    ["username", [userInfo().username].filter((u) => !["user", "root"].includes(u))],
     ["hostname", [hostname()]],
     ["home-path", spellings(userInfo().homedir)],
     ["cell-home", spellings(home)],
