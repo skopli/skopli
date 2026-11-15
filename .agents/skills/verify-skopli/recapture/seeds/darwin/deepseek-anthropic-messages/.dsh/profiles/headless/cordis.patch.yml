@@ -9,7 +9,7 @@
         providers:
           llama:
             api: anthropic-messages
-            baseURL: { origin }
+            baseURL: {origin}
             apiKeyEnv: LLAMA_API_KEY
             models:
               - id: qwen

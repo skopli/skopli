@@ -11,6 +11,7 @@ import {
   readFileSync,
   readdirSync,
   renameSync,
+  rmSync,
   statSync,
   writeFileSync,
 } from "node:fs";
@@ -26,7 +27,7 @@ const help = `usage: recapture.mjs <step> [options]
 
 steps (each idempotent; "all" runs them in order and always ends with stop):
   list      print every cell with its planned outcome and exit
-  env       download the pinned llama.cpp build and model (byte-size checked), clone the
+  env       download the pinned llama.cpp build and model (model byte-size checked), clone the
             target project, start llama-server and the usage gateway, prove the cache rises
   install   install every harness the manifest can install, write cli-versions.txt
   run       run the selected cells one at a time with an isolated home each
@@ -94,6 +95,8 @@ const toolPath = () => {
     : [];
   process.env.PATH = [
     process.env.PNPM_HOME,
+    // Newer pnpm links global bins into PNPM_HOME/bin and refuses `add -g` unless it is on PATH.
+    join(process.env.PNPM_HOME, "bin"),
     process.env.UV_TOOL_BIN_DIR,
     join(scriptHome, ".local/bin"),
     ...dots,
@@ -109,11 +112,7 @@ const LLAMA = {
   bytes: 1117320736,
   modelUrl:
     "https://huggingface.co/Qwen/Qwen2.5-1.5B-Instruct-GGUF/resolve/main/qwen2.5-1.5b-instruct-q4_k_m.gguf",
-  asset: {
-    linux: /bin-ubuntu-x64\.(zip|tar\.gz)$/,
-    darwin: /bin-macos-arm64\.(zip|tar\.gz)$/,
-    windows: /bin-win-cpu-x64\.zip$/,
-  },
+  asset: { linux: "ubuntu-x64.tar.gz", darwin: "macos-arm64.tar.gz", windows: "win-cpu-x64.zip" },
 };
 const origin = `http://127.0.0.1:${LLAMA.gateway}`;
 const KEY = "sk-local";
@@ -276,32 +275,37 @@ const waitFor = async (url, seconds, child) => {
 
 async function env() {
   // home.mjs and reconcile.mjs read through the built facade and native addon.
-  for (const a of [
-    ["install", "--frozen-lockfile"],
-    ["run", "build"],
+  // Without a TTY pnpm aborts instead of recreating node_modules; CI=true lets the install proceed.
+  for (const [a, env] of [
+    [["install", "--frozen-lockfile"], { ...hostEnv, CI: "true" }],
+    [["run", "build"], hostEnv],
   ])
-    if (sh("pnpm", a, { cwd: root, stdio: "inherit", env: hostEnv }).status !== 0)
+    if (sh("pnpm", a, { cwd: root, stdio: "inherit", env }).status !== 0)
       fail(`pnpm ${a.join(" ")} failed`);
   const bin = join(cache, `llama-${LLAMA.build}-${OS}`);
   let server =
     existsSync(bin) && findFile(bin, OS === "windows" ? "llama-server.exe" : "llama-server");
   if (!server) {
-    const rel = await (
-      await fetch(`https://api.github.com/repos/ggml-org/llama.cpp/releases/tags/${LLAMA.build}`)
-    ).json();
-    const asset = rel.assets?.find((a) => LLAMA.asset[OS].test(a.name));
-    if (!asset) fail(`no ${OS} asset in llama.cpp release ${LLAMA.build}`);
+    // The pinned build fixes the asset URL; the GitHub API rate-limits anonymous callers.
+    // download() keeps the archive as .part until the transfer completes.
+    const asset = { name: `llama-${LLAMA.build}-bin-${LLAMA.asset[OS]}` };
     const archive = join(cache, asset.name);
-    if (!existsSync(archive) || statSync(archive).size !== asset.size) {
+    if (!existsSync(archive)) {
       say(`download ${asset.name}`);
-      await download(asset.browser_download_url, archive, asset.size);
+      await download(
+        `https://github.com/ggml-org/llama.cpp/releases/download/${LLAMA.build}/${asset.name}`,
+        archive,
+      );
     }
     mkdirSync(bin, { recursive: true });
-    const x =
-      archive.endsWith(".zip") && OS === "linux"
-        ? sh("unzip", ["-oq", archive, "-d", bin])
-        : sh(TAR, ["xf", archive, "-C", bin]);
-    if (x.status !== 0) fail(`extract ${asset.name}: ${x.stderr}`);
+    const x = sh(TAR, ["xf", archive, "-C", bin]);
+    if (x.status !== 0) {
+      // Without the API there is no size to check, so a bad archive and its partial extraction are
+      // dropped for the next env run.
+      rmSync(archive, { force: true });
+      rmSync(bin, { recursive: true, force: true });
+      fail(`extract ${asset.name}: ${x.stderr}`);
+    }
     server = findFile(bin, OS === "windows" ? "llama-server.exe" : "llama-server");
     if (!server) fail(`llama-server not found in ${asset.name}`);
   }
@@ -343,6 +347,9 @@ async function env() {
     "--alias",
     "qwen",
     ...(OS === "windows" ? ["-n", "1024"] : []),
+    // Recapture runs macOS in a VM, whose paravirtual Metal generates at about 1 token/s against
+    // about 70 on the CPU, so darwin always infers on the CPU.
+    ...(OS === "darwin" ? ["-ngl", "0"] : []),
   ];
   const slog = openSync(join(out, "llama-server.txt"), "w");
   const srv = spawn(server, flags, {
@@ -458,7 +465,16 @@ function install() {
     let r = null;
     mkdirSync(scriptHome, { recursive: true });
     const env = { ...cleanEnv(), ...homeEnv(scriptHome) };
-    if (how?.pnpm) r = sh("pnpm", ["add", "-g", how.pnpm], { env });
+    const agents = join(scriptHome, "Library/LaunchAgents");
+    const plists = () =>
+      existsSync(agents)
+        ? readdirSync(agents)
+            .filter((f) => f.endsWith(".plist"))
+            .map((f) => `${f}:${statSync(join(agents, f)).mtimeMs}`)
+        : [];
+    const before = new Set(plists());
+    // pnpm 10+ skips build scripts unless allowed; claude, opencode and kimchi fetch their binary in one.
+    if (how?.pnpm) r = sh("pnpm", ["add", "-g", `--allow-build=${how.pnpm}`, how.pnpm], { env });
     else if (how?.uv)
       r = sh(
         "uv",
@@ -473,7 +489,18 @@ function install() {
         { env },
       );
     else if (how?.script && OS !== "windows")
-      r = sh("bash", ["-c", `curl -fsSL ${how.script} | bash`], { env });
+      r = sh("bash", ["-c", `curl -fsSL ${how.script} | bash`], { env: { ...env, ...how.env } });
+    // launchd is per user, not per HOME: jcode's installer bootstraps a hotkey LaunchAgent from the
+    // script home into the real login session. Unload only a job this install wrote and launchd
+    // loaded from that plist, so an operator's own agent under the same label stays.
+    if (OS === "darwin")
+      for (const f of plists().filter((p) => !before.has(p))) {
+        const plist = join(agents, f.slice(0, f.lastIndexOf(":")));
+        const label = sh("plutil", ["-extract", "Label", "raw", plist]).stdout.trim();
+        const job = label && sh("launchctl", ["print", `gui/${userInfo().uid}/${label}`]);
+        if (job?.status === 0 && job.stdout.includes(`path = ${plist}\n`))
+          sh("launchctl", ["bootout", `gui/${userInfo().uid}/${label}`]);
+      }
     toolPath();
     if (r && r.status !== 0) say(`install ${id}: exit ${r.status}`);
     const path = bin && which(bin);
@@ -635,14 +662,20 @@ const scan = (home, cwd, paths) => {
 const alive = async (s) => {
   for (const k of ["server", "gateway"])
     if (!ours(s, k)) fail(`${k} process ${s[`${k}Pid`]} from the env step is gone; rerun env`);
-  for (const url of [`http://127.0.0.1:${LLAMA.port}/health`, `${origin}/v1/models`])
-    if (
-      !(await fetch(url).then(
+  // On darwin the first probe after a long idle can reuse a pooled socket the server already closed.
+  const answers = async (url) => {
+    for (let i = 0; i < 3; i++) {
+      if (i) await new Promise((r) => setTimeout(r, 1000));
+      const ok = await fetch(url, { headers: { connection: "close" } }).then(
         (r) => r.ok,
         () => false,
-      ))
-    )
-      fail(`${url} stopped answering; rerun env`);
+      );
+      if (ok) return true;
+    }
+    return false;
+  };
+  for (const url of [`http://127.0.0.1:${LLAMA.port}/health`, `${origin}/v1/models`])
+    if (!(await answers(url))) fail(`${url} stopped answering; rerun env`);
 };
 
 async function run() {
@@ -827,6 +860,9 @@ async function run() {
 // whichever cwd it was (golden cases were captured in /home/user/project), and any other segment
 // carrying an id or a date becomes *.
 const slug = (p) => p.replace(/[^A-Za-z0-9]/g, "-").replace(/^-+/, "");
+// Harnesses slug the cwd differently (droid and reasonix keep dots, commandcode lowercases and splits
+// digit runs), so a store directory is matched on its letters and digits alone.
+const cwdKey = (p) => p.toLowerCase().replace(/[^a-z0-9]/g, "");
 // SQLite -wal, -shm and -journal sidecars are transient, so no golden case keeps them.
 const layoutOf = (paths, cwd) =>
   [
@@ -837,7 +873,7 @@ const layoutOf = (paths, cwd) =>
           f
             .split("/")
             .map((seg) =>
-              seg.replace(/^-+/, "") === slug(cwd)
+              cwdKey(seg) === cwdKey(cwd)
                 ? "<cwd>"
                 : /\d/.test(seg) || /^-.*-$/.test(seg)
                   ? `*${seg.match(/(\.[a-z]+)+$/)?.[0] ?? ""}`
@@ -850,7 +886,8 @@ const layoutOf = (paths, cwd) =>
 const GOLDEN_CWD = "/home/user/project";
 const sessionId = (how, text, home) => {
   if (how.stdout) return text.match(new RegExp(how.stdout))?.[1] ?? null;
-  const base = how.glob.split("/*")[0];
+  // The fixed directory before the first wildcard segment, so `sessions/session_*.json` scans `sessions`.
+  const base = how.glob.slice(0, how.glob.indexOf("*")).replace(/\/[^/]*$/, "");
   for (const f of files(join(home, base)))
     for (const p of [f, dirname(f)]) {
       const m = `${base}/${p}`.match(new RegExp(how.pattern));
