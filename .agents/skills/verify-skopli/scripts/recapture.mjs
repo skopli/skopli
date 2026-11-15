@@ -89,21 +89,23 @@ const scriptHome = join(cache, "script-home");
 process.env.UV_TOOL_DIR = join(cache, "uv-tools");
 process.env.UV_TOOL_BIN_DIR = join(cache, "uv-bin");
 const basePath = process.env.PATH;
-// Windows vendor installers record their bin dir in the user PATH in the registry, which a running
-// process never re-reads; the entries under the script home are the ones this run's installs added.
+// Windows vendor installers append their bin dir to the user PATH in the registry; install() moves
+// the entries an installer added into this file and restores the operator's user PATH.
+const vendorFile = join(cache, "vendor-path.json");
 const vendorPath = () =>
-  OS === "windows" && existsSync(scriptHome)
-    ? (
-        spawnSync(
-          "powershell",
-          ["-NoProfile", "-Command", "[Environment]::GetEnvironmentVariable('Path','User')"],
-          { encoding: "utf8" },
-        ).stdout ?? ""
-      )
-        .split(";")
-        .map((d) => d.trim())
-        .filter((d) => d && resolve(d).toLowerCase().startsWith(scriptHome.toLowerCase()))
-    : [];
+  OS === "windows" && existsSync(vendorFile) ? JSON.parse(readFileSync(vendorFile, "utf8")) : [];
+const userPath = (set) =>
+  spawnSync(
+    "powershell",
+    [
+      "-NoProfile",
+      "-Command",
+      set === undefined
+        ? "[Environment]::GetEnvironmentVariable('Path','User')"
+        : "[Environment]::SetEnvironmentVariable('Path',$env:RECAPTURE_USER_PATH,'User')",
+    ],
+    { encoding: "utf8", env: { ...process.env, RECAPTURE_USER_PATH: set ?? "" } },
+  ).stdout?.trim() ?? "";
 const toolPath = () => {
   const dots = existsSync(scriptHome)
     ? readdirSync(scriptHome).map((d) => join(scriptHome, d, "bin"))
@@ -111,8 +113,8 @@ const toolPath = () => {
   process.env.PATH = [
     process.env.PNPM_HOME,
     // Newer pnpm links global bins into PNPM_HOME/bin and refuses `add -g` unless it is on PATH.
+    join(process.env.PNPM_HOME, "bin"),
     ...[
-      join(process.env.PNPM_HOME, "bin"),
       process.env.UV_TOOL_BIN_DIR,
       join(scriptHome, ".local/bin"),
       ...dots,
@@ -515,7 +517,8 @@ function install() {
         ],
         { env },
       );
-    else if (how?.ps1 && OS === "windows")
+    else if (how?.ps1 && OS === "windows") {
+      const before = userPath();
       r = sh(
         "powershell",
         [
@@ -527,7 +530,14 @@ function install() {
         ],
         { noShell: true, timeout: 900000, cwd: scriptHome, env: { ...env, ...how.env } },
       );
-    else if (how?.script && OS !== "windows")
+      const after = userPath();
+      if (after !== before) {
+        const old = new Set(before.split(";"));
+        const added = after.split(";").filter((d) => d && !old.has(d));
+        writeFileSync(vendorFile, JSON.stringify([...new Set([...vendorPath(), ...added])]));
+        userPath(before);
+      }
+    } else if (how?.script && OS !== "windows")
       r = sh(
         "bash",
         ["-c", `curl -fsSL ${how.script} | bash -s -- ${(how.args ?? []).join(" ")}`],
@@ -606,21 +616,18 @@ const CONFIG = {
     },
   }),
 };
-// On Windows the helper needs Git Bash; a WSL bash on PATH would report Linux paths.
-// CreateProcess searches System32 before PATH, so a bare "bash" there is the WSL launcher whatever
-// the PATH order; Git for Windows' bash is found from git instead.
+// On Windows the helper needs Git Bash; a bare "bash" can resolve to the WSL launcher in System32,
+// which would report Linux paths. Git for Windows' bash.exe is found above git's own directories.
 const BASH =
   OS === "windows"
-    ? join(
-        dirname(
-          dirname(
-            spawnSync("where", ["git"], { encoding: "utf8" }).stdout?.split(/\r?\n/)[0]?.trim() ||
-              "git",
-          ),
-        ),
-        "bin",
-        "bash.exe",
-      )
+    ? ([
+        spawnSync("git", ["--exec-path"], { encoding: "utf8" }).stdout,
+        ...(spawnSync("where", ["git"], { encoding: "utf8" }).stdout?.split(/\r?\n/) ?? []),
+      ]
+        .map((p) => p?.trim())
+        .filter(Boolean)
+        .flatMap((p) => [1, 2, 3].map((n) => resolve(p, ...Array(n).fill(".."), "bin", "bash.exe")))
+        .find((b) => existsSync(b)) ?? "bash")
     : "bash";
 let bashChecked = OS !== "windows";
 const homeEnv = (home) => {
@@ -651,6 +658,29 @@ const winExe = (bin, envv) =>
     .map((l) => l.trim())
     .find((l) => l)
     ?.match(/^.+\.exe$/i)?.[0];
+// Windows has no process group to kill, so after a turn the processes started since its start from
+// an executable under the cache or run directory are killed by PID (hermes leaves a gateway daemon).
+const reapSince = (t0, roots) => {
+  const r = spawnSync(
+    "powershell",
+    [
+      "-NoProfile",
+      "-Command",
+      "$since = [datetime]::Parse($env:RECAPTURE_SINCE); $roots = $env:RECAPTURE_ROOTS -split ';'; " +
+        "Get-CimInstance Win32_Process | Where-Object { $e = $_.ExecutablePath; $_.CreationDate -ge $since -and $e -and " +
+        "($roots | Where-Object { $_ -and $e.StartsWith($_, 'OrdinalIgnoreCase') }) } | ForEach-Object { $_.ProcessId }",
+    ],
+    {
+      encoding: "utf8",
+      env: {
+        ...process.env,
+        RECAPTURE_SINCE: new Date(t0).toISOString(),
+        RECAPTURE_ROOTS: roots.map((d) => resolve(d) + "\\").join(";"),
+      },
+    },
+  );
+  for (const pid of (r.stdout ?? "").split(/\s+/).filter(Boolean)) killTree(Number(pid));
+};
 let turnPid = null;
 const runTurn = (argv, envv, cwd, log, limit) =>
   new Promise((done) => {
@@ -696,6 +726,7 @@ const runTurn = (argv, envv, cwd, log, limit) =>
     // Windows cannot walk the tree of an exited leader, so there only a timeout kills the tree.
     child.on("exit", (code) => {
       if (OS !== "windows") killTree(child.pid);
+      else reapSince(t0, [cache, out]);
       setTimeout(() => {
         child.stdout.destroy();
         child.stderr.destroy();
@@ -805,9 +836,14 @@ async function run() {
       continue;
     }
     // A shim on PATH can still be unusable (a runtime it needs is missing, a skipped postinstall).
-    const probe = versionOf(binOf(cell.c));
+    // A Windows shim can resolve on PATH yet fail to start (a skipped native postinstall, an
+    // unsupported binary), which would otherwise read as a capture gap.
+    const probe = OS === "windows" ? versionOf(binOf(cell.c)) : { status: 0 };
     if (probe.status !== 0) {
-      write({ status: "not-installed", reason: `${binOf(cell.c)} --version exit ${probe.status}` });
+      write({
+        status: "not-installed",
+        reason: `${binOf(cell.c)} --version ${probe.error?.code === "ETIMEDOUT" ? "timed out" : `exit ${probe.status}`}`,
+      });
       continue;
     }
     const home = join(dir, "home");
