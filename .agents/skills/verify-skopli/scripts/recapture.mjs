@@ -837,10 +837,10 @@ async function run() {
 // whichever cwd it was (golden cases were captured in /home/user/project), and any other segment
 // carrying an id or a date becomes *.
 const slug = (p) => p.replace(/[^A-Za-z0-9]/g, "-").replace(/^-+/, "");
-// SQLite -wal, -shm and -journal sidecars are transient, so no golden case keeps them.
 // Harnesses slug the cwd differently (droid and reasonix keep dots, commandcode lowercases and splits
 // digit runs), so a store directory is matched on its letters and digits alone.
 const cwdKey = (p) => p.toLowerCase().replace(/[^a-z0-9]/g, "");
+// SQLite -wal, -shm and -journal sidecars are transient, so no golden case keeps them.
 const layoutOf = (paths, cwd) =>
   [
     ...new Set(
