@@ -294,7 +294,8 @@ const LLAMA = {
 const origin = `http://127.0.0.1:${LLAMA.gateway}`;
 const KEY = "sk-local";
 // Parent variables that would point a harness at a real home, store, account or provider are never
-// passed to a cell: the store overrides src/detect.ts honours, and each harness's own prefix.
+// passed to a cell: the store overrides src/detect.ts honours, and the harness prefixes known to
+// redirect a store, a model or an endpoint.
 // The match ignores case because Windows variable names do.
 const LEAKY =
   /^(XDG_\w+|AWS_\w+|\w+_API_KEY|\w+_API_BASE|\w+_BASE_URL|\w+_TOKEN|\w+_(CONFIG|DATA|SESSIONS?|SESSION_DATA|CODING_AGENT|AGENT)_DIR|GOOGLE_APPLICATION_CREDENTIALS|ANTHROPIC_\w+|OPENAI_\w+|CLAUDE_CODE_\w+|NODE_OPTIONS|CODEX_HOME|OPENCLAW_DIR|CLINE_\w+|CODEBUDDY_\w+|COPILOT_\w+|DEVIN_\w+|DSH_\w+|GJC_\w+|GOOSE_\w+|GROK_\w+|HERMES_\w+|JCODE_\w+|KILO_\w+|KIMI_\w+|MIMOCODE_\w+|MIMO_\w+|OPENCODE_\w+|PRIME_AGENT_\w+|QWEN_\w+|REASONIX_\w+|UV_INSTALL_DIR|UV_UNMANAGED_INSTALL)$/i;
@@ -433,7 +434,7 @@ const spawnedAt = (pid, what) => {
   if (t) return t;
   killTree(pid);
   return fail(
-    `env: cannot read the ${what}'s start time: it exited at once or ${OS === "windows" ? "PowerShell" : "ps"} failed, see the ${what} log`,
+    `env: cannot read the ${what}'s start time: it exited at once or ${{ windows: "PowerShell", linux: "/proc", darwin: "ps" }[OS]} failed, see the ${what} log`,
   );
 };
 const ours = (s, k) =>
@@ -697,8 +698,8 @@ const PY_UTF8 = OS === "windows" ? { PYTHONUTF8: "1", PYTHONIOENCODING: "utf-8" 
 // spawnSync's timeout kills only its child, so the installer runs under a small node wrapper that
 // kills its whole tree when the limit is hit or the wrapper is interrupted: on Linux and macOS the
 // installer leads its own process group, which also goes when it exits; on Windows taskkill walks
-// the tree while the leader lives. Exit 124 means the limit was hit, as with timeout(1), and 130 an
-// interrupt. The wrapper relays the output and exits with the leader, so a process that left the
+// the tree while the leader lives. Exit 124 means the limit was hit, as with timeout(1), and an
+// interrupt ends the wrapper by the same signal (exit 130 on Windows). The wrapper relays the output and exits with the leader, so a process that left the
 // tree but holds the output pipe cannot hold up the step; the spawnSync timeout is a backstop.
 const GROUP = `const [s, shell, c, ...a] = process.argv.slice(1);
 const cp = require("child_process");
@@ -708,7 +709,7 @@ p.stdout.pipe(process.stdout);
 p.stderr.pipe(process.stderr);
 const k = () => { try { if (win) cp.execFileSync("taskkill", ["/PID", String(p.pid), "/T", "/F"], { stdio: "ignore" }); else process.kill(-p.pid, "SIGKILL"); } catch {} };
 const t = setTimeout(() => { k(); process.exit(124); }, s * 1000);
-for (const sig of ["SIGINT", "SIGTERM", "SIGHUP"]) process.on(sig, () => { k(); process.exit(130); });
+for (const sig of ["SIGINT", "SIGTERM", "SIGHUP"]) process.on(sig, () => { k(); process.removeAllListeners(sig); win ? process.exit(130) : process.kill(process.pid, sig); });
 p.on("error", () => process.exit(127));
 p.on("exit", (code) => {
   clearTimeout(t);
@@ -717,16 +718,10 @@ p.on("exit", (code) => {
   p.on("close", end);
   setTimeout(end, 2000).unref();
 });`;
-// A process an install started from the cache that left its tree (a daemon) is killed afterwards.
-const underCache = () =>
-  sh("ps", ["-A", "-o", "pid=,args="], { noShell: true })
-    .stdout.split("\n")
-    .filter((l) => l.includes(cache + sep))
-    .map((l) => Number.parseInt(l, 10));
 const installSh = (cmd, a, o) => {
   const shell = OS === "windows" && !o.noShell;
   const t0 = new Date();
-  const had = OS === "windows" ? [] : underCache();
+  const had = procsUnder([cache]);
   const r = sh(
     process.execPath,
     [
@@ -738,13 +733,12 @@ const installSh = (cmd, a, o) => {
     ],
     { ...o, noShell: true, timeout: (INSTALL_LIMIT + 30) * 1000 },
   );
-  if (OS === "windows") reapSince(t0, [cache]);
-  else
-    for (const pid of underCache().filter((p) => !had.includes(p) && p !== process.pid))
-      try {
-        process.kill(pid, "SIGKILL");
-      } catch {}
-  return r.error?.code === "ETIMEDOUT" ? { ...r, status: 124 } : r;
+  reap(t0, had, [cache]);
+  return {
+    ...r,
+    status: r.error?.code === "ETIMEDOUT" ? 124 : r.status,
+    interrupted: !!r.signal || (OS === "windows" && r.status === 130),
+  };
 };
 function install() {
   mkdirSync(out, { recursive: true });
@@ -858,7 +852,7 @@ function install() {
       mkdirSync(join(out, "install"), { recursive: true });
       writeFileSync(join(out, "install", `${id}.log`), `${r.stdout ?? ""}${r.stderr ?? ""}`);
     }
-    if (r?.status === 130) throw new Error(`install ${id}: interrupted`);
+    if (r?.interrupted) throw new Error(`install ${id}: interrupted`);
     if (r && r.status !== 0)
       say(
         `install ${id}: ${r.status === 124 ? `timed out after ${INSTALL_LIMIT} s` : `exit ${r.status}`}, see install/${id}.log`,
@@ -957,10 +951,29 @@ const reapSince = (t0, roots) => {
   );
   for (const pid of (r.stdout ?? "").split(/\s+/).filter(Boolean)) killTree(Number(pid));
 };
+// On Linux and macOS a process that left its group (setsid, a daemon) is found by the --cache or
+// --out path on its command line, and killed when it was not there before.
+const procsUnder = (roots) =>
+  OS === "windows"
+    ? []
+    : (sh("ps", ["-A", "-ww", "-o", "pid=,args="], { noShell: true }).stdout ?? "")
+        .split("\n")
+        .filter((l) => roots.some((d) => l.includes(resolve(d) + sep)))
+        .map((l) => Number.parseInt(l, 10))
+        .filter((p) => p && p !== process.pid);
+const reap = (t0, before, roots) => {
+  if (OS === "windows") return reapSince(t0, roots);
+  for (const pid of procsUnder(roots))
+    if (!before.includes(pid))
+      try {
+        process.kill(pid, "SIGKILL");
+      } catch {}
+};
 let turnPid = null;
 const runTurn = (argv, envv, cwd, log, limit) =>
   new Promise((done) => {
     const t0 = Date.now();
+    const had = procsUnder([cache, out]);
     const exe = OS === "windows" && winExe(argv[0], envv, cwd);
     const child =
       OS === "windows"
@@ -1000,10 +1013,10 @@ const runTurn = (argv, envv, cwd, log, limit) =>
     };
     child.on("error", () => finish(127));
     // Windows cannot walk the tree of an exited leader: a timeout kills the tree, and after an exit
-    // reapSince kills what the turn started from the cache or run directory.
+    // reap kills what the turn started from the cache or run directory, as it does strays elsewhere.
     child.on("exit", (code) => {
       if (OS !== "windows") killTree(child.pid);
-      else reapSince(t0, [cache, out]);
+      reap(t0, had, [cache, out]);
       setTimeout(() => {
         child.stdout.destroy();
         child.stderr.destroy();
@@ -1088,8 +1101,9 @@ const versionOf = (bin, h) => {
   // A native .exe is probed directly, so a timeout kills the CLI rather than only cmd.exe.
   const exe = OS === "windows" && winExe(bin, env);
   const t0 = new Date();
+  const had = procsUnder([cache, out]);
   const r = sh(exe || bin, ["--version"], { timeout: 25000, env, noShell: !!exe });
-  if (OS === "windows") reapSince(t0, [cache, out]);
+  reap(t0, had, [cache, out]);
   // A failure is not cached, so a first launch slowed by a virus scan is probed again.
   if (r.status === 0) versions.set(bin, r);
   return r;
