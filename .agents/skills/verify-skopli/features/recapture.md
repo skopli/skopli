@@ -142,7 +142,7 @@ The worker brief, with `<os>` set to the platform:
 
 ```text
 Run the Skopli harness recapture on <os>.
-Clone skopli/skopli at main; read AGENTS.md, CONTRIBUTING.md, .agents/skills/verify-skopli/SKILL.md and .agents/skills/verify-skopli/features/recapture.md before acting.
+Clone skopli/skopli at main; read CONTRIBUTING.md, .agents/skills/verify-skopli/SKILL.md and .agents/skills/verify-skopli/features/recapture.md before acting.
 Run:
   node .agents/skills/verify-skopli/scripts/recapture.mjs all --out .verify/recapture/<utc-stamp> --baseline <previous run directory if you have it>
 Run cells one at a time; never kill processes by name.
