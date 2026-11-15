@@ -11,6 +11,7 @@ import {
   readFileSync,
   readdirSync,
   renameSync,
+  rmSync,
   statSync,
   writeFileSync,
 } from "node:fs";
@@ -26,7 +27,7 @@ const help = `usage: recapture.mjs <step> [options]
 
 steps (each idempotent; "all" runs them in order and always ends with stop):
   list      print every cell with its planned outcome and exit
-  env       download the pinned llama.cpp build and model (byte-size checked), clone the
+  env       download the pinned llama.cpp build and model (model byte-size checked), clone the
             target project, start llama-server and the usage gateway, prove the cache rises
   install   install every harness the manifest can install, write cli-versions.txt
   run       run the selected cells one at a time with an isolated home each
@@ -41,7 +42,7 @@ options:
   --only <h[/shape]> restrict to a harness or one cell; repeatable
   --os <os>          plan for linux, darwin or windows; only list and --dry-run accept another OS
   --timeout <s>      wall-clock budget per cell across all turns, in seconds (default 600)
-  --resume           skip cells that already have result.json in --out
+  --resume           skip cells in --out that already ran; rerun error, not-installed and changed skips
   --baseline <dir>   a previous run directory; report flags CLI version changes against it and
                      does not count a TODO it already reported
   --dry-run          print the resolved plan as JSON and exit
@@ -109,7 +110,9 @@ const toolPath = () => {
     : [];
   process.env.PATH = [
     process.env.PNPM_HOME,
+    // Newer pnpm links global bins into PNPM_HOME/bin and refuses `add -g` unless it is on PATH.
     ...[
+      join(process.env.PNPM_HOME, "bin"),
       process.env.UV_TOOL_BIN_DIR,
       join(scriptHome, ".local/bin"),
       ...dots,
@@ -127,25 +130,24 @@ const LLAMA = {
   bytes: 1117320736,
   modelUrl:
     "https://huggingface.co/Qwen/Qwen2.5-1.5B-Instruct-GGUF/resolve/main/qwen2.5-1.5b-instruct-q4_k_m.gguf",
-  asset: {
-    linux: /bin-ubuntu-x64\.(zip|tar\.gz)$/,
-    darwin: /bin-macos-arm64\.(zip|tar\.gz)$/,
-    windows: /bin-win-cpu-x64\.zip$/,
-  },
+  asset: { linux: "ubuntu-x64.tar.gz", darwin: "macos-arm64.tar.gz", windows: "win-cpu-x64.zip" },
 };
 const origin = `http://127.0.0.1:${LLAMA.gateway}`;
 const KEY = "sk-local";
 // Parent variables that would point a harness at a real home, account or provider are never passed to a cell.
-const LEAKY = /^(XDG_\w+|\w+_API_KEY|\w+_BASE_URL|\w+_TOKEN|CLAUDE_CONFIG_DIR|CODEX_HOME)$/;
+const LEAKY =
+  /^(XDG_\w+|AWS_\w+|\w+_API_KEY|\w+_API_BASE|\w+_BASE_URL|\w+_TOKEN|GOOGLE_APPLICATION_CREDENTIALS|CLAUDE_CONFIG_DIR|CODEX_HOME)$/;
 const cleanEnv = () =>
   Object.fromEntries(Object.entries(process.env).filter(([k]) => !LEAKY.test(k)));
 
 const files = (dir, base = dir) =>
   existsSync(dir)
     ? readdirSync(dir, { withFileTypes: true }).flatMap((e) =>
-        e.isDirectory()
-          ? files(join(dir, e.name), base)
-          : [relative(base, join(dir, e.name)).replaceAll("\\", "/")],
+        e.isSymbolicLink()
+          ? []
+          : e.isDirectory()
+            ? files(join(dir, e.name), base)
+            : [relative(base, join(dir, e.name)).replaceAll("\\", "/")],
       )
     : [];
 // Seeds are recorded per OS. Linux and macOS share a HOME-relative layout, so either may stand in
@@ -199,7 +201,19 @@ if (unmatched.length) args.usage(`--only matched no cell: ${unmatched.join(" ")}
 const winLine = (argv) =>
   argv.map((a, i) => (!i && /^[\w.:\/-]+$/.test(a) ? a : `"${a.replaceAll('"', '""')}"`)).join(" ");
 const state = join(out, "state.json");
-const readJson = (f, fallback) => (existsSync(f) ? JSON.parse(readFileSync(f, "utf8")) : fallback);
+// A file cut short by a kill mid-write reads as missing.
+const readJson = (f, fallback) => {
+  try {
+    return JSON.parse(readFileSync(f, "utf8"));
+  } catch {
+    return fallback;
+  }
+};
+// Git Bash puts its GNU tar first on PATH, which reads a drive-letter path as a remote host and cannot open a zip.
+const TAR =
+  OS === "windows"
+    ? join(process.env.SystemRoot ?? process.env.windir ?? "", "System32", "tar.exe")
+    : "tar";
 const saveState = (patch) =>
   writeFileSync(state, JSON.stringify({ ...readJson(state, {}), ...patch }, null, 2));
 const sh = (cmd, a, o = {}) =>
@@ -215,6 +229,18 @@ const killTree = (pid) => {
     } catch {}
   }
 };
+// The OS start time tells a process we spawned apart from a later one that reused its PID.
+const started = (pid) =>
+  (OS === "windows"
+    ? sh(
+        "powershell",
+        ["-NoProfile", "-Command", `(Get-Process -Id ${pid}).StartTime.ToFileTimeUtc()`],
+        { noShell: true },
+      )
+    : sh("ps", ["-o", "lstart=", "-p", String(pid)], { noShell: true })
+  ).stdout?.trim() || null;
+const ours = (s, k) =>
+  !!s[`${k}Pid`] && !!s[`${k}Start`] && started(s[`${k}Pid`]) === s[`${k}Start`];
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 // fail throws so the top level can still stop what an `all` run started before exiting 1.
 const fail = (message) => {
@@ -264,7 +290,7 @@ const post = async (path, body, headers = {}) => {
 // Ready means the process we started is still alive and the URL answers.
 const waitFor = async (url, seconds, child) => {
   for (let i = 0; i < seconds; i++) {
-    if (child.exitCode !== null || child.signalCode !== null) return false;
+    if (child.exitCode !== null || child.signalCode !== null || child.spawnError) return false;
     try {
       if ((await fetch(url)).ok) return true;
     } catch {}
@@ -275,35 +301,37 @@ const waitFor = async (url, seconds, child) => {
 
 async function env() {
   // home.mjs and reconcile.mjs read through the built facade and native addon.
-  for (const a of [
-    ["install", "--frozen-lockfile"],
-    ["run", "build"],
+  // Without a TTY pnpm aborts instead of recreating node_modules; CI=true lets the install proceed.
+  for (const [a, env] of [
+    [["install", "--frozen-lockfile"], { ...hostEnv, CI: "true" }],
+    [["run", "build"], hostEnv],
   ])
-    if (sh("pnpm", a, { cwd: root, stdio: "inherit", env: hostEnv }).status !== 0)
+    if (sh("pnpm", a, { cwd: root, stdio: "inherit", env }).status !== 0)
       fail(`pnpm ${a.join(" ")} failed`);
   const bin = join(cache, `llama-${LLAMA.build}-${OS}`);
   let server =
     existsSync(bin) && findFile(bin, OS === "windows" ? "llama-server.exe" : "llama-server");
   if (!server) {
-    const rel = await (
-      await fetch(`https://api.github.com/repos/ggml-org/llama.cpp/releases/tags/${LLAMA.build}`)
-    ).json();
-    const asset = rel.assets?.find((a) => LLAMA.asset[OS].test(a.name));
-    if (!asset)
-      fail(
-        `no ${OS} asset in llama.cpp release ${LLAMA.build}${rel.message ? `: ${rel.message}` : ""}`,
-      );
+    // The pinned build fixes the asset URL; the GitHub API rate-limits anonymous callers.
+    // download() keeps the archive as .part until the transfer completes.
+    const asset = { name: `llama-${LLAMA.build}-bin-${LLAMA.asset[OS]}` };
     const archive = join(cache, asset.name);
-    if (!existsSync(archive) || statSync(archive).size !== asset.size) {
+    if (!existsSync(archive)) {
       say(`download ${asset.name}`);
-      await download(asset.browser_download_url, archive, asset.size);
+      await download(
+        `https://github.com/ggml-org/llama.cpp/releases/download/${LLAMA.build}/${asset.name}`,
+        archive,
+      );
     }
     mkdirSync(bin, { recursive: true });
-    const x =
-      archive.endsWith(".zip") && OS === "linux"
-        ? sh("unzip", ["-oq", archive, "-d", bin])
-        : sh("tar", ["xf", archive, "-C", bin]);
-    if (x.status !== 0) fail(`extract ${asset.name}: ${x.stderr}`);
+    const x = sh(TAR, ["xf", archive, "-C", bin]);
+    if (x.status !== 0) {
+      // Without the API there is no size to check, so a bad archive and its partial extraction are
+      // dropped for the next env run.
+      rmSync(archive, { force: true });
+      rmSync(bin, { recursive: true, force: true });
+      fail(`extract ${asset.name}: ${x.stderr}`);
+    }
     server = findFile(bin, OS === "windows" ? "llama-server.exe" : "llama-server");
     if (!server) fail(`llama-server not found in ${asset.name}`);
   }
@@ -345,12 +373,21 @@ async function env() {
     "--alias",
     "qwen",
     ...(OS === "windows" ? ["-n", "1024"] : []),
+    // Recapture runs macOS in a VM, whose paravirtual Metal generates at about 1 token/s against
+    // about 70 on the CPU, so darwin always infers on the CPU.
+    ...(OS === "darwin" ? ["-ngl", "0"] : []),
   ];
   const slog = openSync(join(out, "llama-server.txt"), "w");
-  const srv = spawn(server, flags, { detached: OS !== "windows", stdio: ["ignore", slog, slog] });
+  const srv = spawn(server, flags, {
+    detached: true,
+    windowsHide: true,
+    stdio: ["ignore", slog, slog],
+  });
+  srv.on("error", (e) => (srv.spawnError = e));
   srv.unref();
   saveState({
     serverPid: srv.pid,
+    serverStart: srv.pid && started(srv.pid),
     os: OS,
     target,
     llama: { ...LLAMA, asset: undefined, flags: flags.slice(2) },
@@ -370,12 +407,14 @@ async function env() {
       "--quiet",
     ],
     {
-      detached: OS !== "windows",
+      detached: true,
+      windowsHide: true,
       stdio: ["ignore", "ignore", openSync(join(out, "gateway-stderr.txt"), "w")],
     },
   );
+  gw.on("error", (e) => (gw.spawnError = e));
   gw.unref();
-  saveState({ gatewayPid: gw.pid });
+  saveState({ gatewayPid: gw.pid, gatewayStart: gw.pid && started(gw.pid) });
   if (!(await waitFor(`${origin}/v1/models`, 60, gw)))
     fail("gateway exited or was not answering after 60 s, see gateway-stderr.txt");
   // Two turns with a shared prefix: turn two must report more cached prompt tokens than turn one.
@@ -422,12 +461,19 @@ async function env() {
   say(`env: ok, server ${srv.pid}, gateway ${gw.pid}, cache proof passed`);
 }
 
+// A recorded PID whose start time no longer matches belongs to someone else and is left alone.
 function stop() {
   const s = readJson(state, {});
-  killTree(s.gatewayPid);
-  killTree(s.serverPid);
-  if (existsSync(state)) saveState({ serverPid: null, gatewayPid: null });
-  say(`stop: ${s.serverPid ?? "-"} ${s.gatewayPid ?? "-"}`);
+  const done = ["server", "gateway"].map((k) => {
+    const pid = s[`${k}Pid`];
+    if (!pid) return "-";
+    if (!ours(s, k)) return `${pid} (not ours, left alone)`;
+    killTree(pid);
+    return String(pid);
+  });
+  if (existsSync(state))
+    saveState({ serverPid: null, serverStart: null, gatewayPid: null, gatewayStart: null });
+  say(`stop: ${done.join(" ")}`);
 }
 
 const which = (bin) =>
@@ -446,7 +492,15 @@ function install() {
     let r = null;
     mkdirSync(scriptHome, { recursive: true });
     const env = { ...cleanEnv(), ...homeEnv(scriptHome) };
-    // pnpm 10 skips dependency build scripts unless allowed, and several CLIs fetch their native binary in postinstall.
+    const agents = join(scriptHome, "Library/LaunchAgents");
+    const plists = () =>
+      existsSync(agents)
+        ? readdirSync(agents)
+            .filter((f) => f.endsWith(".plist"))
+            .map((f) => `${f}:${statSync(join(agents, f)).mtimeMs}`)
+        : [];
+    const before = new Set(plists());
+    // pnpm 10+ skips build scripts unless allowed; claude, opencode and kimchi fetch their binary in one.
     if (how?.pnpm) r = sh("pnpm", ["add", "-g", `--allow-build=${how.pnpm}`, how.pnpm], { env });
     else if (how?.uv)
       r = sh(
@@ -461,7 +515,7 @@ function install() {
         ],
         { env },
       );
-    else if (how?.ps1 && OS === "windows") {
+    else if (how?.ps1 && OS === "windows")
       r = sh(
         "powershell",
         [
@@ -473,12 +527,19 @@ function install() {
         ],
         { noShell: true, timeout: 900000, cwd: scriptHome, env: { ...env, ...how.env } },
       );
-      toolPath();
-    } else if (how?.script && OS !== "windows") {
-      r = sh("bash", ["-c", `curl -fsSL ${how.script} | bash`], { env });
-      toolPath();
-    }
-    // The uv bin dir and the vendor bin dirs only exist once something is installed into them.
+    else if (how?.script && OS !== "windows")
+      r = sh("bash", ["-c", `curl -fsSL ${how.script} | bash`], { env: { ...env, ...how.env } });
+    // launchd is per user, not per HOME: jcode's installer bootstraps a hotkey LaunchAgent from the
+    // script home into the real login session. Unload only a job this install wrote and launchd
+    // loaded from that plist, so an operator's own agent under the same label stays.
+    if (OS === "darwin")
+      for (const f of plists().filter((p) => !before.has(p))) {
+        const plist = join(agents, f.slice(0, f.lastIndexOf(":")));
+        const label = sh("plutil", ["-extract", "Label", "raw", plist]).stdout.trim();
+        const job = label && sh("launchctl", ["print", `gui/${userInfo().uid}/${label}`]);
+        if (job?.status === 0 && job.stdout.includes(`path = ${plist}\n`))
+          sh("launchctl", ["bootout", `gui/${userInfo().uid}/${label}`]);
+      }
     toolPath();
     if (r && r.status !== 0) say(`install ${id}: exit ${r.status}`);
     const path = bin && which(bin);
@@ -563,12 +624,15 @@ const homeEnv = (home) => {
   )
     fail(`${BASH} is not Git Bash; install Git for Windows`);
   bashChecked = true;
-  return Object.fromEntries(
-    sh(BASH, [join(here, "os-home.sh"), "--plain", home], { noShell: true })
-      .stdout.trim()
+  const r = sh(BASH, [join(here, "os-home.sh"), "--plain", home], { noShell: true });
+  const env = Object.fromEntries(
+    (r.stdout ?? "")
+      .trim()
       .split("\n")
       .map((l) => [l.slice(0, l.indexOf("=")), l.slice(l.indexOf("=") + 1)]),
   );
+  if (r.status !== 0 || !env.HOME) fail(`os-home.sh failed for ${home}: ${r.stderr?.trim()}`);
+  return env;
 };
 
 // A turn ends when its leader exits; on Linux and macOS whatever it left in its process group is
@@ -648,17 +712,22 @@ const scan = (home, cwd, paths) => {
 
 // A dead server or gateway would turn every later cell into a false capture-gap.
 const alive = async (s) => {
-  for (const pid of [s.serverPid, s.gatewayPid])
-    try {
-      process.kill(pid, 0);
-    } catch {
-      fail(`process ${pid} from the env step is gone; rerun env`);
+  for (const k of ["server", "gateway"])
+    if (!ours(s, k)) fail(`${k} process ${s[`${k}Pid`]} from the env step is gone; rerun env`);
+  // On darwin the first probe after a long idle can reuse a pooled socket the server already closed.
+  const answers = async (url) => {
+    for (let i = 0; i < 3; i++) {
+      if (i) await new Promise((r) => setTimeout(r, 1000));
+      const ok = await fetch(url, { headers: { connection: "close" } }).then(
+        (r) => r.ok,
+        () => false,
+      );
+      if (ok) return true;
     }
-  const ok = await fetch(`http://127.0.0.1:${LLAMA.port}/health`).then(
-    (r) => r.ok,
-    () => false,
-  );
-  if (!ok) fail("llama-server stopped answering /health; rerun env");
+    return false;
+  };
+  for (const url of [`http://127.0.0.1:${LLAMA.port}/health`, `${origin}/v1/models`])
+    if (!(await answers(url))) fail(`${url} stopped answering; rerun env`);
 };
 
 const versions = new Map();
@@ -680,10 +749,15 @@ async function run() {
   for (const cell of cells) {
     const dir = join(out, "cells", cell.harness, cell.shape);
     const resultFile = join(dir, "result.json");
-    // --resume keeps finished cells and retries the ones a broken environment ended.
+    // --resume keeps finished cells and unchanged skips, and retries the ones a broken environment ended.
+    const prev = readJson(resultFile, {});
+    const planned = cell.plan === "run" ? null : cell.todo ? "todo" : "skip";
     if (
       args.flag("--resume") &&
-      !["error", "not-installed", undefined].includes(readJson(resultFile, {}).status)
+      prev.status &&
+      (planned
+        ? prev.status === planned && prev.reason === (cell.skip ?? cell.todo)
+        : !["error", "not-installed", "skip", "todo"].includes(prev.status))
     )
       continue;
     // A retry never reuses a home: the earlier attempt is kept beside it as <shape>.attemptN.
@@ -699,7 +773,7 @@ async function run() {
     };
     if (cell.plan !== "run") {
       write({
-        status: cell.todo ? "todo" : "skip",
+        status: planned,
         reason: cell.skip ?? cell.todo,
         note: cell.c.note,
       });
@@ -745,22 +819,24 @@ async function run() {
     const gwlog = join(out, "gateway-usage.jsonl");
     const from = existsSync(gwlog) ? statSync(gwlog).size : 0;
     const deadline = Date.now() + timeout * 1000;
-    if (cell.c.setup)
-      await runTurn(
+    const setup =
+      cell.c.setup &&
+      (await runTurn(
         cell.c.setup.map((a) => fill(a, vars)),
         envv,
         cwd,
         join(dir, "setup.txt"),
         timeout,
-      );
+      ));
+    const setupFailed = setup && (setup.timedOut || setup.code !== 0);
     // Files the runner or the setup command wrote are not evidence: only what the turns create or change counts.
     const mtime = (f) => statSync(join(home, f)).mtimeMs;
     const seeded = new Map(files(home).map((f) => [f, mtime(f)]));
     const turns = [];
     for (const [i, prompt] of manifest.prompts.entries()) {
       const left = Math.floor((deadline - Date.now()) / 1000);
-      if (left < 20) {
-        turns.push({ skipped: "cell budget spent" });
+      if (setupFailed || left < 20) {
+        turns.push({ skipped: setupFailed ? "setup failed" : "cell budget spent" });
         continue;
       }
       const argv = (i ? cell.c.next : cell.c.first).map((a) => fill(a, { ...vars, prompt }));
@@ -779,7 +855,8 @@ async function run() {
       join(dir, "gateway-usage.jsonl"),
       lines.map((l) => `${JSON.stringify(l)}\n`).join(""),
     );
-    const node = (script, a) => sh(process.execPath, [join(here, script), ...a], { noShell: true });
+    const node = (script, a) =>
+      sh(process.execPath, [join(here, script), ...a], { noShell: true, timeout: 120000 });
     const hr = node("home.mjs", [home, "--out", dir]);
     const summary = readJson(join(dir, "home-result.json"), null);
     const rc = node("reconcile.mjs", [
@@ -803,22 +880,35 @@ async function run() {
           : null;
     const status = broken
       ? "error"
-      : turns.some((t) => t.timedOut) && !events
-        ? "hang"
-        : !lines.length
-          ? "capture-gap"
-          : !events
-            ? written.length
-              ? "reader-gap"
-              : "capture-gap"
-            : rc.status === 0
-              ? "captured"
-              : "captured-delta";
+      : setupFailed
+        ? setup.timedOut
+          ? "hang"
+          : "capture-gap"
+        : turns.some((t) => t.timedOut) && !events
+          ? "hang"
+          : !lines.length
+            ? "capture-gap"
+            : !events
+              ? written.length
+                ? "reader-gap"
+                : "capture-gap"
+              : rc.status === 0
+                ? "captured"
+                : "captured-delta";
     write({
       status,
       reason:
         broken ??
-        (status === "capture-gap" && !lines.length ? "no request reached the gateway" : undefined),
+        (setupFailed
+          ? setup.timedOut
+            ? "setup timed out"
+            : `setup exit ${setup.code}`
+          : status === "capture-gap" && !lines.length
+            ? "no request reached the gateway"
+            : undefined),
+      setup: setup
+        ? { exit: setup.code, timedOut: setup.timedOut, seconds: setup.seconds }
+        : undefined,
       turns,
       gatewayLines: lines.length,
       events,
@@ -828,7 +918,9 @@ async function run() {
       homeExit: hr.status,
       reconcileExit: rc.status,
       layout: layoutOf(
-        written.filter((f) => !(cell.h.layoutIgnore ?? []).some((p) => f.startsWith(p))),
+        written.filter(
+          (f) => !(cell.h.layoutIgnore ?? []).some((p) => f === p || f.startsWith(`${p}/`)),
+        ),
         cwd,
       ),
       redaction: scan(home, cwd, written),
@@ -839,27 +931,34 @@ async function run() {
 // whichever cwd it was (golden cases were captured in /home/user/project), and any other segment
 // carrying an id or a date becomes *.
 const slug = (p) => p.replace(/[^A-Za-z0-9]/g, "-").replace(/^-+/, "");
+// Harnesses slug the cwd differently (droid and reasonix keep dots, commandcode lowercases and splits
+// digit runs), so a store directory is matched on its letters and digits alone.
+const cwdKey = (p) => p.toLowerCase().replace(/[^a-z0-9]/g, "");
+// SQLite -wal, -shm and -journal sidecars are transient, so no golden case keeps them.
 const layoutOf = (paths, cwd) =>
   [
     ...new Set(
-      paths.map((f) =>
-        f
-          .split("/")
-          .map((seg) =>
-            seg.replace(/^-+/, "") === slug(cwd)
-              ? "<cwd>"
-              : /\d/.test(seg) || /^-.*-$/.test(seg)
-                ? `*${seg.match(/(\.[a-z]+)+$/)?.[0] ?? ""}`
-                : seg,
-          )
-          .join("/"),
-      ),
+      paths
+        .filter((f) => !/\.db-(wal|shm|journal)$|\.sqlite3?-(wal|shm|journal)$/.test(f))
+        .map((f) =>
+          f
+            .split("/")
+            .map((seg) =>
+              cwdKey(seg) === cwdKey(cwd)
+                ? "<cwd>"
+                : /\d/.test(seg) || /^-.*-$/.test(seg)
+                  ? `*${seg.match(/(\.[a-z]+)+$/)?.[0] ?? ""}`
+                  : seg,
+            )
+            .join("/"),
+        ),
     ),
   ].sort();
 const GOLDEN_CWD = "/home/user/project";
 const sessionId = (how, text, home) => {
   if (how.stdout) return text.match(new RegExp(how.stdout))?.[1] ?? null;
-  const base = how.glob.split("/*")[0];
+  // The fixed directory before the first wildcard segment, so `sessions/session_*.json` scans `sessions`.
+  const base = how.glob.slice(0, how.glob.indexOf("*")).replace(/\/[^/]*$/, "");
   for (const f of files(join(home, base)))
     for (const p of [f, dirname(f)]) {
       const m = `${base}/${p}`.match(new RegExp(how.pattern));
@@ -873,7 +972,8 @@ function report() {
   const results = cells.map((c) =>
     readJson(join(out, "cells", c.harness, c.shape, "result.json"), {
       cell: c.id,
-      status: "not-run",
+      status: c.plan === "run" ? "not-run" : c.plan.split(":")[0],
+      reason: c.plan === "todo" ? c.todo : undefined,
     }),
   );
   const readme = readFileSync(join(root, "golden/README.md"), "utf8");
@@ -911,7 +1011,16 @@ function report() {
     const has = existsSync(join(root, "golden", caseId));
     const ok = r.status === "captured" || r.status === "captured-delta";
     if (ok && !has) drift.push({ cell: r.cell, kind: "newly-capturable", lane: "decision" });
-    if (!ok && has && !["skip", "todo"].includes(r.status))
+    if (r.status === "reader-gap" && !has)
+      drift.push({ cell: r.cell, kind: "unread-store", lane: "decision" });
+    if (r.status === "not-run" || r.status === "not-installed")
+      drift.push({
+        cell: r.cell,
+        kind: "invariant",
+        reason: r.status === "not-run" ? "cell did not run" : r.reason,
+        lane: "agent",
+      });
+    else if (!ok && has && !["skip", "todo"].includes(r.status))
       drift.push({
         cell: r.cell,
         kind: "regressed",
@@ -991,16 +1100,16 @@ function report() {
       2,
     ),
   );
-  return counts.error ? 1 : open.length ? 3 : 0;
+  return drift.some((d) => d.kind === "invariant") ? 1 : open.length ? 3 : 0;
 }
 
 function pack() {
   const r = sh(
-    "tar",
+    TAR,
     [
       "czf",
       join(dirname(out), `${relative(dirname(out), out)}.tgz`),
-      "--exclude=*/home/*/node_modules",
+      "--exclude=node_modules",
       "--exclude=*/cells/*/*/work",
       "-C",
       dirname(out),

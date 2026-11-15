@@ -17,8 +17,8 @@ One command owns the whole wave, and an agent only steps in when the run exits w
 - `node .agents/skills/verify-skopli/scripts/recapture.mjs all --out .verify/recapture/<utc-stamp>` runs the whole wave and always ends by stopping what it started.
 - `node .agents/skills/verify-skopli/scripts/recapture.mjs list` prints every cell with its planned outcome on this OS.
 - The steps `env`, `install`, `run`, `report`, `package` and `stop` run one at a time against the same `--out`.
-- `--only <harness>` or `--only <harness>/<shape>` (repeatable) selects a subset, `--os` plans for another OS with `list` or `--dry-run` only, `--resume` skips cells that already have a `result.json`, except those that ended `error` or `not-installed`, `--baseline <dir>` adds CLI version changes against an earlier run, `--dry-run` prints the resolved plan as JSON, and `--timeout <s>` changes the per-cell budget.
-- Exit codes: `0` ran and found no new drift, `1` an invariant failed (download, byte size, a bound port, server or gateway readiness, cache proof, build, a crashed `home.mjs` or `reconcile.mjs`), `2` usage error, `3` new drift or a new TODO cell needs an agent.
+- `--only <harness>` or `--only <harness>/<shape>` (repeatable) selects a subset, `--os` plans for another OS with `list` or `--dry-run` only, `--resume` skips cells that already ran, and reruns those whose `result.json` is missing, says `error` or `not-installed`, or holds a skip or TODO the manifest no longer plans, `--baseline <dir>` adds CLI version changes against an earlier run, `--dry-run` prints the resolved plan as JSON, and `--timeout <s>` changes the per-cell budget.
+- Exit codes: `0` ran and found no new drift, `1` an invariant failed (download, byte size, a bound port, server or gateway readiness, cache proof, build, a crashed `home.mjs` or `reconcile.mjs`, a harness not installed, a planned cell with no result), `2` usage error, `3` new drift or a new TODO cell needs an agent.
 - A run with TODO cells exits `3` until those cells are sourced, unless `--baseline` names a run whose `drift.json` already lists the same TODO with the same reason; such entries stay in `drift.json` with `"known": true` and do not count.
 - The data lives in `recapture/harnesses.json` (install channel, store roots, per-shape commands, env, skip codes) and `recapture/seeds/<os>/<harness>-<shape>/` (the pre-run config files, written relative to the cell home with `{origin}`, `{home}` and `{cwd}` placeholders).
 - `scripts/os-home.sh <cell-home>` prints the environment that points a harness at an isolated home on Linux, macOS or Windows, and `--plain` prints `NAME=value` lines for programs.
@@ -27,7 +27,7 @@ One command owns the whole wave, and an agent only steps in when the run exits w
 
 Preconditions:
 
-- A Linux, macOS or Windows (Git Bash) machine with Node 24, pnpm, git, curl and tar, network access to GitHub, Hugging Face and the npm registry, and about 3 GB free.
+- A Linux, macOS or Windows (Git Bash) machine with Node 24, pnpm, git, curl, tar, `unzip` on Linux and `uv` for trae, network access to GitHub, Hugging Face and the npm registry, and about 3 GB free.
 - No secrets: every cell uses the dummy key `sk-local` (or `local-only-placeholder` for Command Code), and the gateway accepts any key.
 - Nothing else listening on ports 8090 and 8091; `env` refuses a bound port, and readiness only counts while the server and gateway it started are alive.
 
@@ -45,15 +45,16 @@ Preconditions:
 - **Whole matrix.** Run `node .agents/skills/verify-skopli/scripts/recapture.mjs all --out .verify/recapture/<run>`.
   Cells run one at a time; the run takes hours on CPU inference.
 - **Report.** Run `node .agents/skills/verify-skopli/scripts/recapture.mjs report --out .verify/recapture/<run> --baseline <earlier-run>`.
-  Stdout is a JSON summary with status counts and the drift count, and the exit code is `0` or `3`.
+  Stdout is a JSON summary with status counts and the drift count, and the exit code is `0`, `1` or `3`.
 
 The cell procedure the runner follows:
 
 1. A rerun of a cell moves the earlier directory to `<shape>.attemptN` and starts with a fresh home; nothing resumes in place.
 2. The target project is copied into `cells/<harness>/<shape>/work`, and the home is `cells/<harness>/<shape>/home` with the `os-home.sh` redirects applied.
 3. The seed for this OS is copied into the home with placeholders filled; Linux and macOS seeds stand in for each other when the seed writes nothing under `Library/` or `AppData/`; the opencode and pi families get their config from a writer instead.
-4. The runner checks that the server and gateway from `env` are still alive and that `/health` answers, and fails with exit `1` otherwise.
+4. The runner checks that the server and gateway from `env` are still alive and that the server's `/health` and the gateway's `/v1/models` answer, and fails with exit `1` otherwise.
 5. An optional setup command runs (for example `cline auth openai ...`), then the four prompts in `harnesses.json` run, the first with `first` and the rest with `next`, sharing one 600 second budget.
+   A setup that times out makes the cell a `hang`, and a setup that exits non-zero skips the turns and records `setup exit N` as the reason.
 6. A turn that outlives the budget is killed with its process group (`taskkill /T` by PID on Windows), and later turns are recorded as skipped.
 7. The gateway log is sliced from the byte offset at cell start into `gateway-usage.jsonl`, without `aborted` lines, which are replies no harness received.
 8. `home.mjs` writes `home-result.json`, and `reconcile.mjs` writes `reconcile.json` comparing Skopli's totals with the gateway's.
@@ -67,8 +68,8 @@ Statuses in `result.json` and `cell-notes.<os>.tsv`:
 | `captured`       | Skopli read events and they reconcile exactly with the gateway.                                                                                       |
 | `captured-delta` | Skopli read events but the totals differ from the gateway.                                                                                            |
 | `reader-gap`     | Requests reached the gateway and the harness wrote its store, but Skopli read zero events.                                                            |
-| `capture-gap`    | No request reached the gateway, or the harness wrote nothing under its store roots.                                                                   |
-| `hang`           | A turn ran out the budget and Skopli read nothing.                                                                                                    |
+| `capture-gap`    | Setup exited non-zero, no request reached the gateway, or the harness wrote nothing under its store roots.                                            |
+| `hang`           | Setup ran out the budget, or a turn did and Skopli read nothing.                                                                                      |
 | `error`          | `home.mjs` crashed or `reconcile.mjs` exited with something other than agreement or a delta; `report` then exits `1`.                                 |
 | `not-installed`  | The harness binary is not on `PATH` after the install step.                                                                                           |
 | `skip`           | The manifest says the cell cannot run; the reason is one of `gui-only`, `no-byok-endpoint`, `wrong-wire-shape`, `interactive-config`, `not-an-agent`. |
@@ -83,15 +84,16 @@ Run outputs, all under `--out` and never committed:
 
 Drift kinds and their lanes:
 
-| kind               | when                                                                              | lane                                                          |
-| ------------------ | --------------------------------------------------------------------------------- | ------------------------------------------------------------- |
-| `newly-capturable` | A cell captured with no golden case for it.                                       | decision                                                      |
-| `regressed`        | A cell with a golden case now ends in anything other than captured, skip or todo. | `mechanical-candidate` for `reader-gap`, `decision` otherwise |
-| `reconcile-delta`  | Skopli's totals differ from the gateway's.                                        | decision                                                      |
-| `layout-changed`   | The store holds path shapes the golden case does not.                             | `mechanical-candidate`                                        |
-| `version-changed`  | A CLI version differs from `--baseline`.                                          | `mechanical-candidate`                                        |
-| `todo`             | A cell could not be planned.                                                      | agent                                                         |
-| `invariant`        | A cell ended `error`.                                                             | agent                                                         |
+| kind               | when                                                                                             | lane                                                          |
+| ------------------ | ------------------------------------------------------------------------------------------------ | ------------------------------------------------------------- |
+| `newly-capturable` | A cell captured with no golden case for it.                                                      | decision                                                      |
+| `unread-store`     | A cell with no golden case wrote its store and reached the gateway, but Skopli read zero events. | decision                                                      |
+| `regressed`        | A cell with a golden case now ends in anything other than captured, skip or todo.                | `mechanical-candidate` for `reader-gap`, `decision` otherwise |
+| `reconcile-delta`  | Skopli's totals differ from the gateway's.                                                       | decision                                                      |
+| `layout-changed`   | The store holds path shapes the golden case does not.                                            | `mechanical-candidate`                                        |
+| `version-changed`  | A CLI version differs from `--baseline`.                                                         | `mechanical-candidate`                                        |
+| `todo`             | A cell could not be planned.                                                                     | agent                                                         |
+| `invariant`        | A cell ended `error` or `not-installed`, or a planned cell has no result; `report` exits `1`.    | agent                                                         |
 
 ### The three lanes
 
@@ -186,6 +188,7 @@ These rows describe what the November 2026 wave recorded; a recapture is what co
 
 - Run cells one at a time: four concurrent sessions saturated the 1.5B model on 8 cores and turned real captures into timeouts.
 - Never stop a harness or server by process name; the runner kills only the PIDs and process groups it started, and `stop` reads them from `state.json`.
+- `env` records each server and gateway PID with its OS start time, and `stop` leaves a PID alone when its start time no longer matches, since the OS may have reused it.
 - A turn killed mid-flight leaves nothing in most stores, so a capture can report fewer turns than ran.
 - Codex rejects `wire_api = "chat"`, Reasonix has no Responses shape, Command Code's Responses client never completes a stream against the gateway, and Trae's Chat Completions client crashes on a null `completion_tokens_details`; the last two still run so a fix upstream shows up as drift.
 - Grok needs a real sign-in on macOS, so its cells skip there.
@@ -196,6 +199,6 @@ These rows describe what the November 2026 wave recorded; a recapture is what co
 - Redact before promoting: the cell home and target paths, the username and hostname, the dummy keys, Windows 8.3 aliases such as `ADMINI~1`, PATH snapshots in Hermes `state_meta`, git proxy hosts in URLs, and escaped Windows paths; `result.json` lists under `redaction` which needle kinds it found (`username`, `hostname`, `home-path`, `cell-home`, `cell-cwd`, `dummy-key`, `git-proxy`, `8.3-alias`) in every native, forward-slash, MSYS and JSON-escaped spelling, scanning only the files the harness wrote under its store roots for this OS.
 - A capture whose layout matches the Linux case is recorded as the same layout with its counts; only a differing layout becomes `golden/<harness>/<shape>-<os>/`, and the manifest keeps the shape name without the `-<os>` suffix.
 - The pnpm home and the HOME that vendor install scripts see are both inside `--cache`, so a run never touches the machine's global packages or dotfiles, and the cache can be reused across runs.
-- Cells never inherit `XDG_*`, `*_API_KEY`, `*_BASE_URL`, `*_TOKEN`, `CLAUDE_CONFIG_DIR` or `CODEX_HOME` from the parent environment.
+- Cells never inherit `XDG_*`, `AWS_*`, `*_API_KEY`, `*_API_BASE`, `*_BASE_URL`, `*_TOKEN`, `GOOGLE_APPLICATION_CREDENTIALS`, `CLAUDE_CONFIG_DIR` or `CODEX_HOME` from the parent environment.
 - The package keeps every cell home unredacted, so attach it only to the private run report, never to a public PR or issue.
 - On Windows each turn runs through `cmd.exe` with every argument double-quoted, so a prompt must not contain `%`.
