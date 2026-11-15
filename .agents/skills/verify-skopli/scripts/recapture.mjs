@@ -478,6 +478,12 @@ function install() {
       );
     else if (how?.script && OS !== "windows")
       r = sh("bash", ["-c", `curl -fsSL ${how.script} | bash`], { env: { ...env, ...how.env } });
+    // launchd is per user, not per HOME: jcode's installer bootstraps a hotkey LaunchAgent from the
+    // script home into the real login session, so unload whatever an installer left there.
+    const agents = join(scriptHome, "Library/LaunchAgents");
+    if (OS === "darwin" && existsSync(agents))
+      for (const f of readdirSync(agents).filter((f) => f.endsWith(".plist")))
+        sh("launchctl", ["bootout", `gui/${userInfo().uid}`, join(agents, f)], { env });
     toolPath();
     if (r && r.status !== 0) say(`install ${id}: exit ${r.status}`);
     const path = bin && which(bin);
