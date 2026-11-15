@@ -92,6 +92,7 @@ const basePath = process.env.PATH;
 // Windows vendor installers append their bin dir to the user PATH in the registry; install() moves
 // the entries an installer added into this file and restores the operator's user PATH.
 const vendorFile = join(cache, "vendor-path.json");
+const pathBeforeFile = join(cache, "user-path-before.json");
 const vendorPath = () => {
   try {
     return OS === "windows" ? JSON.parse(readFileSync(vendorFile, "utf8")) : [];
@@ -142,11 +143,14 @@ const moveVendorPath = (id, before, ienv = {}) => {
   const mine = entries.filter(
     (d) => !spelling.has(d.toLowerCase()) && resolve(d).toLowerCase().startsWith(root),
   );
-  const keep = [
-    ...new Set(
-      entries.filter((d) => !mine.includes(d)).map((d) => spelling.get(d.toLowerCase()) ?? d),
-    ),
-  ];
+  const keep = entries
+    .filter((d) => !mine.includes(d))
+    .map((d) => spelling.get(d.toLowerCase()) ?? d);
+  const added = before ? keep.filter((d) => !spelling.has(d.toLowerCase())) : [];
+  if (added.length)
+    console.error(
+      `install ${id}: left new user PATH entries outside the script home: ${added.join(";")}`,
+    );
   const kind = before?.kind ?? cur.kind;
   const raw =
     keep.length || (before ? before.raw !== null : cur.raw !== null) ? keep.join(";") : null;
@@ -154,14 +158,14 @@ const moveVendorPath = (id, before, ienv = {}) => {
     writeFileSync(`${vendorFile}.tmp`, JSON.stringify([...new Set([...vendorPath(), ...mine])]));
     renameSync(`${vendorFile}.tmp`, vendorFile);
   }
-  if (
-    (mine.length || kind !== cur.kind || (before && raw !== cur.raw)) &&
-    !restoreUserPath({ raw, kind })
-  )
+  const changed = mine.length || kind !== cur.kind || (before && raw !== cur.raw);
+  if (changed && !restoreUserPath({ raw, kind })) {
     console.error(
       `install ${id}: could not restore the user PATH (script-home entries: ${mine.join(";")})`,
     );
-  return cur;
+    return null;
+  }
+  return { raw: changed ? raw : cur.raw, kind };
 };
 // The raw value and its registry kind are written as given, so %VAR% entries stay unexpanded;
 // null means the read failed, and then nothing is moved or restored.
@@ -619,25 +623,38 @@ function install() {
         { env },
       );
     else if (how?.ps1 && OS === "windows") {
-      const pathBefore = moveVendorPath(id, null);
-      const ienv = { ...env, ...how.env, RECAPTURE_PS1: how.ps1, PATH: installerPath() };
-      r = sh(
-        "powershell",
-        [
-          "-NoProfile",
-          "-ExecutionPolicy",
-          "Bypass",
-          "-Command",
-          `$ProgressPreference = "SilentlyContinue"; & ([scriptblock]::Create((irm $env:RECAPTURE_PS1))) ${(how.args ?? []).join(" ")}`,
-        ],
-        {
-          noShell: true,
-          timeout: 900000,
-          cwd: scriptHome,
-          env: ienv,
-        },
-      );
-      if (pathBefore) moveVendorPath(id, pathBefore, ienv);
+      const ienv = {
+        ...Object.fromEntries(Object.entries(env).filter(([k]) => k.toUpperCase() !== "PATH")),
+        ...how.env,
+        RECAPTURE_PS1: how.ps1,
+        PATH: installerPath(),
+      };
+      const saved = existsSync(pathBeforeFile) && JSON.parse(readFileSync(pathBeforeFile, "utf8"));
+      const pathBefore = saved
+        ? moveVendorPath(id, saved, ienv) && saved
+        : moveVendorPath(id, null);
+      if (!pathBefore) {
+        console.error(`install ${id}: skipped, the user PATH could not be read or restored`);
+      } else {
+        if (!saved) writeFileSync(pathBeforeFile, JSON.stringify(pathBefore));
+        r = sh(
+          "powershell",
+          [
+            "-NoProfile",
+            "-ExecutionPolicy",
+            "Bypass",
+            "-Command",
+            `$ProgressPreference = "SilentlyContinue"; & ([scriptblock]::Create((irm $env:RECAPTURE_PS1))) ${(how.args ?? []).map((a) => (a.startsWith("-") ? a : `'${a.replaceAll("'", "''")}'`)).join(" ")}`,
+          ],
+          {
+            noShell: true,
+            timeout: 900000,
+            cwd: scriptHome,
+            env: ienv,
+          },
+        );
+        if (moveVendorPath(id, pathBefore, ienv)) rmSync(pathBeforeFile, { force: true });
+      }
     } else if (how?.script && OS !== "windows")
       r = sh(
         "bash",
