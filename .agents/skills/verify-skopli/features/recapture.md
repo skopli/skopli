@@ -17,7 +17,8 @@ One command owns the whole wave, and an agent only steps in when the run exits w
 - `node .agents/skills/verify-skopli/scripts/recapture.mjs all --out .verify/recapture/<utc-stamp>` runs the whole wave and always ends by stopping what it started.
 - `node .agents/skills/verify-skopli/scripts/recapture.mjs list` prints every cell with its planned outcome on this OS.
 - The steps `env`, `install`, `run`, `report`, `package` and `stop` run one at a time against the same `--out`.
-- `--only <harness>` or `--only <harness>/<shape>` (repeatable) selects a subset, `--os` plans for another OS with `list` or `--dry-run` only, `--resume` skips cells that already ran, and reruns those whose `result.json` is missing, says `error` or `not-installed`, or holds a skip or TODO the manifest no longer plans, `--baseline <dir>` adds CLI version changes against an earlier run on the same OS (a directory without that OS's report is a usage error), `--dry-run` prints the resolved plan as JSON, and `--timeout <s>` changes the per-cell budget.
+  A failed `env` stops the server and gateway it started.
+- `--only <harness>` or `--only <harness>/<shape>` (repeatable) selects a subset, `--os` plans for another OS with `list` or `--dry-run` only, `--resume` skips cells that already ran, and reruns those whose `result.json` is missing, says `error` or `not-installed`, or holds a skip or TODO the manifest no longer plans, `--baseline <dir>` adds CLI version changes against an earlier run on the same OS (a directory without that OS's report is a usage error), `--dry-run` prints the resolved plan as JSON, and `--timeout <s>` changes the per-cell budget, a whole number of seconds from 60 to 86400.
 - Exit codes: `0` ran and found no new drift, `1` an invariant failed (download, byte size, a bound port, server or gateway readiness, cache proof, build, a crashed `home.mjs` or `reconcile.mjs`, a harness not installed, a planned cell with no result), `2` usage error, `3` new drift or a new TODO cell needs an agent.
   The cell outcomes (not installed, no result, drift, TODO) are judged by `report`, so a standalone `run` exits `0` once its cells have finished, and `all` exits with what `report` found.
 - A run with TODO cells exits `3` until those cells are sourced, unless `--baseline` names a run whose `drift.json` already lists the same TODO, or the same `regressed` cell, with the same status and reason; such entries stay in `drift.json` with `"known": true` and do not count.
@@ -64,7 +65,7 @@ The cell procedure the runner follows:
 2. The target project is copied into `cells/<harness>/<shape>/work`, and the home is `cells/<harness>/<shape>/home` with the `os-home.sh` redirects applied.
 3. The seed for this OS is copied into the home with placeholders filled; Linux and macOS seeds stand in for each other when the seed writes nothing under `Library/` or `AppData/`.
 4. The runner checks that the server and gateway from `env` are still alive and that the server's `/health` and the gateway's `/v1/models` answer, and fails with exit `1` otherwise.
-5. An optional setup command runs (for example `cline auth openai ...`), then the four prompts in `harnesses.json` run, the first with `first` and the rest with `next`, sharing one 600 second budget.
+5. An optional setup command runs (for example `cline auth openai ...`), then the four prompts in `harnesses.json` run, the first with `first` and the rest with `next`, sharing one `--timeout` budget, 600 seconds by default.
    A setup that times out makes the cell a `hang`, and a setup that exits non-zero skips the turns and records `setup exit N` as the reason.
 6. A turn that outlives the budget is killed with its process group (`taskkill /T` by PID on Windows), and the turns after it are recorded as skipped.
 7. The gateway log is sliced from the byte offset at cell start into `gateway-usage.jsonl`, without `aborted` lines, which are replies no harness received.
@@ -91,7 +92,7 @@ Run outputs, all under `--out` and never committed:
 - `cell-notes.<os>.tsv`: three tab-separated columns, harness, shape, then free text that starts with the status and continues with the reason, gateway and event counts, store layout and redaction needles.
 - `matrix.<os>.md`: one row per cell with status, detected harnesses, events, sessions, diagnostics, gateway lines, reconcile result, the `golden/README.md` status and the reason.
 - `drift.json`: one entry per finding, each with a `kind` and a `lane`.
-- `cli-versions.txt`, `install/<id>.log`, `cache-proof.json`, `llama-server.txt`, `gateway-usage.jsonl`, `gateway-stderr.txt`, `state.json`, the run-scoped `tmp/`, and per cell `run-N.txt`, `gateway-usage.jsonl`, `home-read.json`, `home-result.json`, `reconcile.json`, `result.json`, the `work` directory the turns run in and the home itself.
+- `cli-versions.txt`, `install/<id>.log`, `cache-proof.json`, `llama-server.txt`, `gateway-usage.jsonl`, `gateway-stderr.txt`, `state.json`, the run-scoped `tmp/`, and per cell `setup.txt`, `run-N.txt`, `gateway-usage.jsonl`, `home-read.json`, `home-result.json`, `reconcile.json`, `result.json`, the `work` directory the turns run in and the home itself.
 
 Drift kinds and their lanes:
 
@@ -147,7 +148,7 @@ Run cells one at a time; never kill processes by name.
 
 ### Per-harness reference
 
-Install, store roots and the planned outcome per wire shape, generated from `recapture/harnesses.json` and `golden/README.md`.
+Install, store roots and the planned outcome per wire shape, kept by hand in step with `recapture/harnesses.json` and `golden/README.md`; the manifest is what the runner reads.
 In the shape columns, `seed` lists the OSes with a recorded config seed (L Linux, D macOS, W Windows) and `env only` means the cell needs no file.
 The store roots are relative to the cell home on Linux and macOS; Windows roots differ for some harnesses and are given in their rows.
 These rows describe what the November 2026 wave recorded; a recapture is what confirms them today.
@@ -198,7 +199,7 @@ These rows describe what the November 2026 wave recorded; a recapture is what co
 ## Gotchas
 
 - Run cells one at a time: four concurrent sessions saturated the 1.5B model on 8 cores and turned real captures into timeouts.
-- Never stop a harness or server by process name; the runner kills only the PIDs and process groups it started (on Windows also every process started since the turn began from an executable under `--cache` or `--out`), and `stop` reads them from `state.json`.
+- Never stop a harness or server by process name; the runner kills only the PIDs and process groups it started, plus the strays below, and `stop` reads them from `state.json`.
 - `env` records each server and gateway PID with its OS start time (the start in clock ticks from `/proc/<pid>/stat` on Linux, which a clock step cannot move, `ps -o lstart=` on macOS, the PowerShell `StartTime` of the process on Windows), and `stop` leaves a PID alone when its start time no longer matches, since the OS may have reused it.
 - A turn killed mid-flight leaves nothing in most stores, so a capture can report fewer turns than ran.
 - Codex rejects `wire_api = "chat"`, Reasonix has no Responses shape, Command Code's Responses client never completes a stream against the gateway, and Trae's Chat Completions client crashes on a null `completion_tokens_details`; the last two still run so a fix upstream shows up as drift.
@@ -208,8 +209,9 @@ These rows describe what the November 2026 wave recorded; a recapture is what co
 - fx writes a cumulative `set:usage` log, so its reader takes deltas; cline can leave orphaned host processes on macOS, which the runner kills with the turn's process group, or by their `--cache` or `--out` path when they started a session of their own.
 - On Windows `taskkill /T` cannot walk the tree of a leader that already exited, so a turn's tree is killed on timeout, and after an exit only the processes started since the turn from an executable under `--cache` or `--out` are reaped; a stray hosted by the system `node.exe` (a pnpm `.cmd` shim) survives.
   A `--version` probe of a `.cmd` shim that times out leaves its `node.exe` child running the same way.
-- Never share `--cache` between concurrent runs, and point `--out` at a dedicated run directory: after each install, turn and version probe the runner kills every new process started from under either (Windows) or naming either on its command line (Linux and macOS), so a process of another run would go too.
-  A vendor installer gets `TEMP` and `TMP` inside the script home, and what it leaves running after it exits or times out is reaped the same way from under `--cache`.
+- After each install, turn and version probe the runner kills the strays that left the process group: on Linux and macOS every process that was not there before and carries this invocation's `RECAPTURE_TAG` in its environment, which every install, turn and probe sets, and on Windows, which has no such lookup, every process started since then from an executable under `--cache` or `--out`.
+  So on Windows never share `--cache` between concurrent runs, and point `--out` at a dedicated run directory, or a process of another run would go too.
+  Every installer gets `TEMP`, `TMP` and `TMPDIR` (not `TMPDIR` on macOS) under `<out>/tmp`, except a Windows `install.ps1`, which gets them inside the script home.
 - Each cell's turns get `TEMP`, `TMP` and `TMPDIR` set to `<out>/tmp/<n>`, where `n` is the cell's position in this invocation's plan and the directory is emptied when the cell starts, and `--version` probes get `<out>/tmp`, so nothing a harness leaves there lands in the operator's temp dir; `package` leaves `<out>/tmp` out.
   The path is short because Linux allows 108 bytes for a socket path, and macOS keeps its per-user `TMPDIR`, because it allows only 104.
 - On Windows, `os-home.sh` sets `USERPROFILE`, `APPDATA` and `LOCALAPPDATA` from `cygpath -w`; goose and Reasonix keep their stores under `APPDATA`, and mimocode follows the redirected home.

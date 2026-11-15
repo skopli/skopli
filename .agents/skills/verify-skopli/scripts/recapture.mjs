@@ -86,7 +86,8 @@ if (base && !existsSync(join(resolve(base), `matrix.${OS}.md`)))
   args.usage(`--baseline ${base} has no ${OS} report`);
 const cache = resolve(args.one("--cache", join(root, ".verify/recapture/cache")));
 const timeout = Number(args.one("--timeout", "600"));
-if (!(timeout > 0)) args.usage("--timeout must be a positive number of seconds");
+if (!(Number.isInteger(timeout) && timeout >= 60 && timeout <= 86400))
+  args.usage("--timeout must be a whole number of seconds from 60 to 86400");
 const only = args.many("--only");
 const say = args.log;
 // Harness installs land in the cache: a pnpm home for packages and a separate HOME for vendor scripts,
@@ -299,8 +300,12 @@ const KEY = "sk-local";
 // The match ignores case because Windows variable names do.
 const LEAKY =
   /^(XDG_\w+|AWS_\w+|\w+_API_KEY|\w+_API_BASE|\w+_BASE_URL|\w+_TOKEN|\w+_(CONFIG|DATA|SESSIONS?|SESSION_DATA|CODING_AGENT|AGENT)_DIR|GOOGLE_APPLICATION_CREDENTIALS|ANTHROPIC_\w+|OPENAI_\w+|CLAUDE_CODE_\w+|NODE_OPTIONS|CODEX_HOME|OPENCLAW_DIR|CLINE_\w+|CODEBUDDY_\w+|COPILOT_\w+|DEVIN_\w+|DSH_\w+|GJC_\w+|GOOSE_\w+|GROK_\w+|HERMES_\w+|JCODE_\w+|KILO_\w+|KIMI_\w+|MIMOCODE_\w+|MIMO_\w+|OPENCODE_\w+|PRIME_AGENT_\w+|QWEN_\w+|REASONIX_\w+|UV_INSTALL_DIR|UV_UNMANAGED_INSTALL)$/i;
-const cleanEnv = () =>
-  Object.fromEntries(Object.entries(process.env).filter(([k]) => !LEAKY.test(k)));
+// Every install, turn and probe carries TAG, so a process that escaped its group is still known as ours.
+const TAG = `${process.pid}-${Date.now()}`;
+const cleanEnv = () => ({
+  ...Object.fromEntries(Object.entries(process.env).filter(([k]) => !LEAKY.test(k))),
+  RECAPTURE_TAG: TAG,
+});
 // Turns and probes get a temp dir under --out, so nothing they leave lands in the operator's temp.
 // macOS keeps its per-user TMPDIR: a socket path under --out would pass the 104-byte sun_path limit.
 const tempEnv = (dir, fresh = false) => {
@@ -721,7 +726,7 @@ p.on("exit", (code) => {
 const installSh = (cmd, a, o) => {
   const shell = OS === "windows" && !o.noShell;
   const t0 = new Date();
-  const had = procsUnder([cache]);
+  const had = tagged();
   const r = sh(
     process.execPath,
     [
@@ -737,7 +742,8 @@ const installSh = (cmd, a, o) => {
   return {
     ...r,
     status: r.error?.code === "ETIMEDOUT" ? 124 : r.status,
-    interrupted: !!r.signal || (OS === "windows" && r.status === 130),
+    // A signal on the wrapper itself, not spawnSync's own backstop kill, is an operator interrupt.
+    interrupted: (!!r.signal && !r.error) || (OS === "windows" && r.status === 130),
   };
 };
 function install() {
@@ -759,6 +765,7 @@ function install() {
         ),
       ),
       ...homeEnv(scriptHome),
+      ...tempEnv(join(out, "tmp")),
     };
     const agents = join(scriptHome, "Library/LaunchAgents");
     const plists = () =>
@@ -951,19 +958,31 @@ const reapSince = (t0, roots) => {
   );
   for (const pid of (r.stdout ?? "").split(/\s+/).filter(Boolean)) killTree(Number(pid));
 };
-// On Linux and macOS a process that left its group (setsid, a daemon) is found by the --cache or
-// --out path on its command line, and killed when it was not there before.
-const procsUnder = (roots) =>
-  OS === "windows"
-    ? []
-    : (sh("ps", ["-A", "-ww", "-o", "pid=,args="], { noShell: true }).stdout ?? "")
-        .split("\n")
-        .filter((l) => roots.some((d) => l.includes(resolve(d) + sep)))
-        .map((l) => Number.parseInt(l, 10))
-        .filter((p) => p && p !== process.pid);
+// On Linux and macOS a process that left its group (setsid, a daemon) is found by TAG in its
+// environment, and killed when it was not there before.
+const tagged = () => {
+  const mark = `RECAPTURE_TAG=${TAG}`;
+  const pids =
+    OS === "linux"
+      ? readdirSync("/proc")
+          .filter((d) => /^\d+$/.test(d))
+          .filter((d) => {
+            try {
+              return readFileSync(`/proc/${d}/environ`, "latin1").split("\0").includes(mark);
+            } catch {
+              return false;
+            }
+          })
+      : OS === "darwin"
+        ? (sh("ps", ["-A", "-wwE", "-o", "pid=,command="], { noShell: true }).stdout ?? "")
+            .split("\n")
+            .filter((l) => l.includes(` ${mark}`))
+        : [];
+  return pids.map((l) => Number.parseInt(l, 10)).filter((p) => p && p !== process.pid);
+};
 const reap = (t0, before, roots) => {
   if (OS === "windows") return reapSince(t0, roots);
-  for (const pid of procsUnder(roots))
+  for (const pid of tagged())
     if (!before.includes(pid))
       try {
         process.kill(pid, "SIGKILL");
@@ -973,7 +992,7 @@ let turnPid = null;
 const runTurn = (argv, envv, cwd, log, limit) =>
   new Promise((done) => {
     const t0 = Date.now();
-    const had = procsUnder([cache, out]);
+    const had = tagged();
     const exe = OS === "windows" && winExe(argv[0], envv, cwd);
     const child =
       OS === "windows"
@@ -1101,7 +1120,7 @@ const versionOf = (bin, h) => {
   // A native .exe is probed directly, so a timeout kills the CLI rather than only cmd.exe.
   const exe = OS === "windows" && winExe(bin, env);
   const t0 = new Date();
-  const had = procsUnder([cache, out]);
+  const had = tagged();
   const r = sh(exe || bin, ["--version"], { timeout: 25000, env, noShell: !!exe });
   reap(t0, had, [cache, out]);
   // A failure is not cached, so a first launch slowed by a virus scan is probed again.
@@ -1362,6 +1381,8 @@ function report() {
       .filter((c) => c[1] !== "harness")
       .map((c) => [`${c[1]}/${c[2]}`, c[3]]),
   );
+  const caseOf = (cell) =>
+    OS !== "linux" && existsSync(join(root, "golden", `${cell}-${OS}`)) ? `${cell}-${OS}` : cell;
   const goldenLayout = (id) => {
     const d = join(root, "golden", id, "input");
     return existsSync(d) ? layoutOf(files(d), GOLDEN_CWD) : null;
@@ -1379,12 +1400,7 @@ function report() {
     );
   const drift = [];
   for (const r of results) {
-    const caseId =
-      OS === "linux"
-        ? r.cell
-        : existsSync(join(root, "golden", `${r.cell}-${OS}`))
-          ? `${r.cell}-${OS}`
-          : r.cell;
+    const caseId = caseOf(r.cell);
     const has = existsSync(join(root, "golden", caseId));
     const ok = r.status === "captured" || r.status === "captured-delta";
     if (ok && !has) drift.push({ cell: r.cell, kind: "newly-capturable", lane: "decision" });
@@ -1462,7 +1478,7 @@ function report() {
       .join("\n") + "\n",
   );
   const row = (r) =>
-    `| ${r.cell.replace("/", " | ")} | ${r.status} | ${(r.detected ?? []).join(",") || "-"} | ${r.events ?? "-"} | ${r.sessions ?? "-"} | ${r.diagnostics ?? "-"} | ${r.gatewayLines ?? "-"} | ${r.reconcileExit === 0 ? "exact" : r.reconcileExit === 1 ? "delta" : "-"} | ${golden.get(r.cell) ?? "-"} | ${(r.reason ?? r.note ?? "").replaceAll("|", "/")} |`;
+    `| ${r.cell.replace("/", " | ")} | ${r.status} | ${(r.detected ?? []).join(",") || "-"} | ${r.events ?? "-"} | ${r.sessions ?? "-"} | ${r.diagnostics ?? "-"} | ${r.gatewayLines ?? "-"} | ${r.reconcileExit === 0 ? "exact" : r.reconcileExit === 1 ? "delta" : "-"} | ${golden.get(caseOf(r.cell)) ?? "-"} | ${(r.reason ?? r.note ?? "").replaceAll("|", "/")} |`;
   writeFileSync(
     join(out, `matrix.${OS}.md`),
     `# Recapture matrix (${OS})\n\n| harness | shape | status | detected | events | sessions | diagnostics | gateway lines | reconcile | golden status | reason |\n|---|---|---|---|---|---|---|---|---|---|---|\n${results.map(row).join("\n")}\n`,
@@ -1487,7 +1503,7 @@ function pack() {
       "czf",
       join(dirname(out), `${basename(out)}.tgz`),
       "--exclude=node_modules",
-      "--exclude=*/cells/*/*/work",
+      ...cells.map((c) => `--exclude=${basename(out)}/cells/${c.harness}/${c.shape}/work`),
       `--exclude=${basename(out)}/tmp`,
       "-C",
       dirname(out),
@@ -1528,6 +1544,7 @@ try {
   console.error(`recapture: ${e.message}`);
   code = 1;
 } finally {
-  if (step === "all") stop();
+  // A failed env would leave its server and gateway for the next env to trip over.
+  if (step === "all" || (step === "env" && code)) stop();
 }
 process.exit(code);
