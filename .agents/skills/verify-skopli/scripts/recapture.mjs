@@ -135,7 +135,7 @@ const installerPath = () => {
 // Installers rewrite the whole value read through .NET, which expands %VAR% with the script-home
 // USERPROFILE, so after an install each entry equal to an expansion of a pre-install entry gets its
 // raw spelling back, and only new entries under the script home count as the installer's.
-const moveVendorPath = (id, before, ienv = {}, post = false) => {
+const moveVendorPath = (id, before, ienv = {}, afterInstall = false) => {
   const cur = readUserPath();
   if (!cur) {
     console.error(`install ${id}: could not read the user PATH; check it for script-home entries`);
@@ -161,7 +161,7 @@ const moveVendorPath = (id, before, ienv = {}, post = false) => {
   );
   // A bin dir under the script home goes on the run PATH even when its expansion matches an operator
   // entry (an operator %LOCALAPPDATA%\jcode\bin), since the installer put the binary there.
-  const vend = post
+  const vend = afterInstall
     ? segs.filter((d) => d.trim() && under(norm(expand(d, lower)), scriptHome))
     : mine;
   let keep = segs
@@ -182,7 +182,7 @@ const moveVendorPath = (id, before, ienv = {}, post = false) => {
       ...(before.raw?.endsWith(";") ? [""] : []),
     ];
   }
-  const added = post ? keep.filter((d) => d.trim() && !spelling.has(norm(d))) : [];
+  const added = afterInstall ? keep.filter((d) => d.trim() && !spelling.has(norm(d))) : [];
   if (added.length)
     console.error(
       `install ${id}: left new user PATH entries outside the script home: ${added.join(";")}`,
@@ -301,7 +301,8 @@ const KEY = "sk-local";
 const LEAKY =
   /^(XDG_\w+|AWS_\w+|\w+_API_KEY|\w+_API_BASE|\w+_BASE_URL|\w+_TOKEN|\w+_(CONFIG|DATA|SESSIONS?|SESSION_DATA|CODING_AGENT|AGENT)_DIR|GOOGLE_APPLICATION_CREDENTIALS|ANTHROPIC_\w+|OPENAI_\w+|CLAUDE_CODE_\w+|NODE_OPTIONS|CODEX_HOME|OPENCLAW_DIR|CLINE_\w+|CODEBUDDY_\w+|COPILOT_\w+|DEVIN_\w+|DSH_\w+|GJC_\w+|GOOSE_\w+|GROK_\w+|HERMES_\w+|JCODE_\w+|KILO_\w+|KIMI_\w+|MIMOCODE_\w+|MIMO_\w+|OPENCODE_\w+|PRIME_AGENT_\w+|QWEN_\w+|REASONIX_\w+|UV_INSTALL_DIR|UV_UNMANAGED_INSTALL)$/i;
 // Every install, turn and probe carries TAG, so a process that escaped its group is still known as ours.
-const TAG = `${process.pid}-${Date.now()}`;
+const T0 = new Date();
+const TAG = `${process.pid}-${T0.getTime()}`;
 const cleanEnv = () => ({
   ...Object.fromEntries(Object.entries(process.env).filter(([k]) => !LEAKY.test(k))),
   RECAPTURE_TAG: TAG,
@@ -410,6 +411,13 @@ const killTree = (pid) => {
   }
 };
 // The OS start time tells a process we spawned apart from a later one that reused its PID.
+const readOr = (f) => {
+  try {
+    return readFileSync(f, "latin1");
+  } catch {
+    return "";
+  }
+};
 const started = (pid) =>
   (OS === "windows"
     ? sh(
@@ -419,15 +427,7 @@ const started = (pid) =>
       )
     : OS === "linux"
       ? // Clock ticks since boot, which a wall-clock step cannot move, unlike ps lstart.
-        {
-          stdout: (() => {
-            try {
-              return readFileSync(`/proc/${pid}/stat`, "utf8").split(") ").pop().split(" ")[19];
-            } catch {
-              return "";
-            }
-          })(),
-        }
+        { stdout: readOr(`/proc/${pid}/stat`).split(") ").pop().split(" ")[19] }
       : sh("ps", ["-o", "lstart=", "-p", String(pid)], {
           noShell: true,
           env: { ...process.env, TZ: "UTC", LC_ALL: "C" },
@@ -503,14 +503,15 @@ const waitFor = async (url, seconds, child) => {
   return false;
 };
 
+let startedEnv = false;
 async function env() {
   // home.mjs and reconcile.mjs read through the built facade and native addon.
   // Without a TTY pnpm aborts instead of recreating node_modules; CI=true lets the install proceed.
-  for (const [a, env] of [
+  for (const [a, e] of [
     [["install", "--frozen-lockfile"], { ...hostEnv, CI: "true" }],
     [["run", "build"], hostEnv],
   ])
-    if (sh("pnpm", a, { cwd: root, stdio: "inherit", env }).status !== 0)
+    if (sh("pnpm", a, { cwd: root, stdio: "inherit", env: e }).status !== 0)
       fail(`pnpm ${a.join(" ")} failed`);
   const bin = join(cache, `llama-${LLAMA.build}-${OS}`);
   let server =
@@ -582,6 +583,7 @@ async function env() {
     ...(OS === "darwin" ? ["-ngl", "0"] : []),
   ];
   const slog = openSync(join(out, "llama-server.txt"), "w");
+  startedEnv = true;
   const srv = spawn(server, flags, {
     detached: true,
     windowsHide: true,
@@ -714,7 +716,7 @@ p.stdout.pipe(process.stdout);
 p.stderr.pipe(process.stderr);
 const k = () => { try { if (win) cp.execFileSync("taskkill", ["/PID", String(p.pid), "/T", "/F"], { stdio: "ignore" }); else process.kill(-p.pid, "SIGKILL"); } catch {} };
 const t = setTimeout(() => { k(); process.exit(124); }, s * 1000);
-for (const sig of ["SIGINT", "SIGTERM", "SIGHUP"]) process.on(sig, () => { k(); process.removeAllListeners(sig); win ? process.exit(130) : process.kill(process.pid, sig); });
+for (const sig of ["SIGINT", "SIGTERM", "SIGHUP"]) process.on(sig, () => { k(); process.removeAllListeners(sig); if (!win) return process.kill(process.pid, sig); process.stderr.write("\\nrecapture: interrupted\\n"); process.exit(130); });
 p.on("error", () => process.exit(127));
 p.on("exit", (code) => {
   clearTimeout(t);
@@ -742,8 +744,12 @@ const installSh = (cmd, a, o) => {
   return {
     ...r,
     status: r.error?.code === "ETIMEDOUT" ? 124 : r.status,
-    // A signal on the wrapper itself, not spawnSync's own backstop kill, is an operator interrupt.
-    interrupted: (!!r.signal && !r.error) || (OS === "windows" && r.status === 130),
+    // The wrapper re-raises the operator's signal on Linux and macOS, and says so on Windows.
+    interrupted:
+      (["SIGINT", "SIGTERM", "SIGHUP"].includes(r.signal) && !r.error) ||
+      (OS === "windows" &&
+        r.status === 130 &&
+        (r.stderr ?? "").endsWith("recapture: interrupted\n")),
   };
 };
 function install() {
@@ -801,6 +807,7 @@ function install() {
         ...Object.fromEntries(Object.entries(env).filter(([k]) => k.toUpperCase() !== "PATH")),
         TEMP: temp,
         TMP: temp,
+        TMPDIR: temp,
         ...extra,
         RECAPTURE_PS1: how.ps1,
         PATH: installerPath(),
@@ -966,13 +973,7 @@ const tagged = () => {
     OS === "linux"
       ? readdirSync("/proc")
           .filter((d) => /^\d+$/.test(d))
-          .filter((d) => {
-            try {
-              return readFileSync(`/proc/${d}/environ`, "latin1").split("\0").includes(mark);
-            } catch {
-              return false;
-            }
-          })
+          .filter((d) => readOr(`/proc/${d}/environ`).split("\0").includes(mark))
       : OS === "darwin"
         ? (sh("ps", ["-A", "-wwE", "-o", "pid=,command="], { noShell: true }).stdout ?? "")
             .split("\n")
@@ -1061,7 +1062,8 @@ const originHost = () =>
         sh("git", ["-C", root, "remote", "get-url", "origin"], { noShell: true }).stdout?.trim() ??
           "",
       )?.[1]
-      ?.replace(/^github\.com$/, "") ?? "");
+      // A loopback proxy host names no one, and every store holds the 127.0.0.1 gateway origin.
+      ?.replace(/^(github\.com|localhost|127\.0\.0\.1|\[::1\])$/, "") ?? "");
 const scan = (home, cwd, paths) => {
   const needles = [
     // A username that is a common store word ("user" in every chat role) would match everything.
@@ -1089,7 +1091,7 @@ const alive = async (s) => {
   // On darwin the first probe after a long idle can reuse a pooled socket the server already closed.
   const answers = async (url) => {
     for (let i = 0; i < 3; i++) {
-      if (i) await new Promise((r) => setTimeout(r, 1000));
+      if (i) await sleep(1000);
       const ok = await fetch(url, { headers: { connection: "close" } }).then(
         (r) => r.ok,
         () => false,
@@ -1503,7 +1505,12 @@ function pack() {
       "czf",
       join(dirname(out), `${basename(out)}.tgz`),
       "--exclude=node_modules",
-      ...cells.map((c) => `--exclude=${basename(out)}/cells/${c.harness}/${c.shape}/work`),
+      // Every cell dir on disk, retried .attemptN copies and cells outside --only included.
+      ...(existsSync(join(out, "cells")) ? readdirSync(join(out, "cells")) : []).flatMap((h) =>
+        readdirSync(join(out, "cells", h)).map(
+          (d) => `--exclude=${basename(out)}/cells/${h}/${d}/work`,
+        ),
+      ),
       `--exclude=${basename(out)}/tmp`,
       "-C",
       dirname(out),
@@ -1526,14 +1533,15 @@ if (args.dryRun) {
   process.exit(0);
 }
 if (step === "list") {
-  for (const p of plan) console.log([p.cell, p.plan, p.reason ?? p.todo ?? ""].join("\t"));
+  for (const p of plan) console.log([p.cell, p.plan, p.todo ?? ""].join("\t"));
   process.exit(0);
 }
 const steps = { env, install, run, report, package: pack, stop };
 for (const sig of ["SIGINT", "SIGTERM", "SIGHUP"])
   process.on(sig, () => {
     killTree(turnPid);
-    if (step === "all") stop();
+    reap(T0, [], [cache, out]);
+    if (step === "all" || startedEnv) stop();
     process.exit(1);
   });
 let code = 0;
@@ -1544,7 +1552,7 @@ try {
   console.error(`recapture: ${e.message}`);
   code = 1;
 } finally {
-  // A failed env would leave its server and gateway for the next env to trip over.
-  if (step === "all" || (step === "env" && code)) stop();
+  // A failed env would leave the server and gateway it started for the next env to trip over.
+  if (step === "all" || (startedEnv && code)) stop();
 }
 process.exit(code);

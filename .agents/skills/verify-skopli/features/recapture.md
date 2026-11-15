@@ -17,7 +17,7 @@ One command owns the whole wave, and an agent only steps in when the run exits w
 - `node .agents/skills/verify-skopli/scripts/recapture.mjs all --out .verify/recapture/<utc-stamp>` runs the whole wave and always ends by stopping what it started.
 - `node .agents/skills/verify-skopli/scripts/recapture.mjs list` prints every cell with its planned outcome on this OS.
 - The steps `env`, `install`, `run`, `report`, `package` and `stop` run one at a time against the same `--out`.
-  A failed `env` stops the server and gateway it started.
+  A failed or interrupted step stops the server and gateway when that invocation started them (`all`, or an `env` that got as far as starting the server), and an interrupt also kills the current turn and every process of the run that carries its `RECAPTURE_TAG`.
 - `--only <harness>` or `--only <harness>/<shape>` (repeatable) selects a subset, `--os` plans for another OS with `list` or `--dry-run` only, `--resume` skips cells that already ran, and reruns those whose `result.json` is missing, says `error` or `not-installed`, or holds a skip or TODO the manifest no longer plans, `--baseline <dir>` adds CLI version changes against an earlier run on the same OS (a directory without that OS's report is a usage error), `--dry-run` prints the resolved plan as JSON, and `--timeout <s>` changes the per-cell budget, a whole number of seconds from 60 to 86400.
 - Exit codes: `0` ran and found no new drift, `1` an invariant failed (download, byte size, a bound port, server or gateway readiness, cache proof, build, a crashed `home.mjs` or `reconcile.mjs`, a harness not installed, a planned cell with no result), `2` usage error, `3` new drift or a new TODO cell needs an agent.
   The cell outcomes (not installed, no result, drift, TODO) are judged by `report`, so a standalone `run` exits `0` once its cells have finished, and `all` exits with what `report` found.
@@ -29,7 +29,7 @@ One command owns the whole wave, and an agent only steps in when the run exits w
 
 Preconditions:
 
-- A Linux, macOS or Windows (Git Bash) machine with Node 24, pnpm, git, curl, tar, `uv` for trae, and `ps` and `which` on Linux and macOS, network access to GitHub, Hugging Face and the npm registry, and about 3 GB free.
+- A Linux, macOS or Windows (Git Bash) machine with Node 24, pnpm, git, curl, tar, `uv` for trae, `which` on Linux and macOS and `ps` on macOS, network access to GitHub, Hugging Face and the npm registry, and about 3 GB free.
 - No secrets: every cell uses the dummy key `sk-local` (or `local-only-placeholder` for Command Code), and the gateway accepts any key.
 - Nothing else listening on ports 8090 and 8091; `env` refuses a bound port, and readiness only counts while the server and gateway it started are alive.
 
@@ -46,7 +46,7 @@ Preconditions:
 - **Install.** Run `node .agents/skills/verify-skopli/scripts/recapture.mjs install --out .verify/recapture/<run>`.
   `cli-versions.txt` has one line per harness: id, binary path or `MISSING`, first line of `--version`.
   A `pnpm` channel runs `pnpm add -g --allow-build=<package>`, a `uv` channel runs `uv tool install` with the pinned Python and `--with` packages, and a `script` channel runs `curl -fsSL <url> | bash -s -- <args>`.
-  Each install is bounded at 900 s and reported as `timed out after 900 s` when it hits the limit; a small node wrapper kills the installer's whole tree at the limit or on an interrupt (on Linux and macOS its process group, which also goes when the installer exits; on Windows `taskkill /T` while the leader lives), and new processes from `--cache` that left the tree are killed afterwards.
+  Each install is bounded at 900 s and reported as `timed out after 900 s` when it hits the limit; a small node wrapper kills the installer's whole tree at the limit or on an interrupt (on Linux and macOS its process group, which also goes when the installer exits; on Windows `taskkill /T` while the leader lives), and the new processes that left the tree are killed afterwards, as described under the stray sweep below.
   As with timeout(1), an installer that itself exits 124 reads as a timeout.
   The installer's output goes to `<out>/install/<id>.log`, and an interrupt stops the whole step.
   A script installer runs with HOME set to the script home inside `--cache` and with the harness's `install.env` added to its environment, for example `CONFIGURE=false`, which stops goose's installer from starting its interactive configuration.
@@ -206,7 +206,7 @@ These rows describe what the November 2026 wave recorded; a recapture is what co
 - Grok needs a real sign-in on macOS, so its cells skip there.
 - Hermes refuses to start when the server advertises less than a 64K window, which is why the server uses YaRN scaling.
 - On Windows Hermes ends its turns with `Gateway inaccessible: windows_breakaway_unavailable` even when spawned directly rather than through `cmd.exe`, so `hermes/openai-chat` records a `capture-gap` there (the message is in `run-N.txt`, and `result.json` says `no request reached the gateway`), which `--baseline` then carries as known; the likely cause is the job object of its vendor launcher, since `CREATE_BREAKAWAY_FROM_JOB` succeeded from Node and failed from Python under Git Bash on the proof host.
-- fx writes a cumulative `set:usage` log, so its reader takes deltas; cline can leave orphaned host processes on macOS, which the runner kills with the turn's process group, or by their `--cache` or `--out` path when they started a session of their own.
+- fx writes a cumulative `set:usage` log, so its reader takes deltas; cline can leave orphaned host processes on macOS, which the runner kills with the turn's process group, or by the run's `RECAPTURE_TAG` in their environment when they started a session of their own.
 - On Windows `taskkill /T` cannot walk the tree of a leader that already exited, so a turn's tree is killed on timeout, and after an exit only the processes started since the turn from an executable under `--cache` or `--out` are reaped; a stray hosted by the system `node.exe` (a pnpm `.cmd` shim) survives.
   A `--version` probe of a `.cmd` shim that times out leaves its `node.exe` child running the same way.
 - After each install, turn and version probe the runner kills the strays that left the process group: on Linux and macOS every process that was not there before and carries this invocation's `RECAPTURE_TAG` in its environment, which every install, turn and probe sets, and on Windows, which has no such lookup, every process started since then from an executable under `--cache` or `--out`.
