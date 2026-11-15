@@ -11,6 +11,7 @@ import {
   readFileSync,
   readdirSync,
   renameSync,
+  rmSync,
   statSync,
   writeFileSync,
 } from "node:fs";
@@ -26,7 +27,7 @@ const help = `usage: recapture.mjs <step> [options]
 
 steps (each idempotent; "all" runs them in order and always ends with stop):
   list      print every cell with its planned outcome and exit
-  env       download the pinned llama.cpp build and model (byte-size checked), clone the
+  env       download the pinned llama.cpp build and model (model byte-size checked), clone the
             target project, start llama-server and the usage gateway, prove the cache rises
   install   install every harness the manifest can install, write cli-versions.txt
   run       run the selected cells one at a time with an isolated home each
@@ -297,11 +298,12 @@ async function env() {
       );
     }
     mkdirSync(bin, { recursive: true });
-    const x =
-      archive.endsWith(".zip") && OS === "linux"
-        ? sh("unzip", ["-oq", archive, "-d", bin])
-        : sh(TAR, ["xf", archive, "-C", bin]);
-    if (x.status !== 0) fail(`extract ${asset.name}: ${x.stderr}`);
+    const x = sh(TAR, ["xf", archive, "-C", bin]);
+    if (x.status !== 0) {
+      // Without the API there is no size to check, so a bad archive is dropped for the next env run.
+      rmSync(archive, { force: true });
+      fail(`extract ${asset.name}: ${x.stderr}`);
+    }
     server = findFile(bin, OS === "windows" ? "llama-server.exe" : "llama-server");
     if (!server) fail(`llama-server not found in ${asset.name}`);
   }
@@ -461,6 +463,14 @@ function install() {
     let r = null;
     mkdirSync(scriptHome, { recursive: true });
     const env = { ...cleanEnv(), ...homeEnv(scriptHome) };
+    const agents = join(scriptHome, "Library/LaunchAgents");
+    const plists = () =>
+      existsSync(agents)
+        ? readdirSync(agents)
+            .filter((f) => f.endsWith(".plist"))
+            .map((f) => `${f}:${statSync(join(agents, f)).mtimeMs}`)
+        : [];
+    const before = new Set(plists());
     // pnpm 10+ skips build scripts unless allowed; claude, opencode and kimchi fetch their binary in one.
     if (how?.pnpm) r = sh("pnpm", ["add", "-g", `--allow-build=${how.pnpm}`, how.pnpm], { env });
     else if (how?.uv)
@@ -479,11 +489,16 @@ function install() {
     else if (how?.script && OS !== "windows")
       r = sh("bash", ["-c", `curl -fsSL ${how.script} | bash`], { env: { ...env, ...how.env } });
     // launchd is per user, not per HOME: jcode's installer bootstraps a hotkey LaunchAgent from the
-    // script home into the real login session, so unload whatever an installer left there.
-    const agents = join(scriptHome, "Library/LaunchAgents");
-    if (OS === "darwin" && existsSync(agents))
-      for (const f of readdirSync(agents).filter((f) => f.endsWith(".plist")))
-        sh("launchctl", ["bootout", `gui/${userInfo().uid}`, join(agents, f)], { env });
+    // script home into the real login session. Unload only a job this install wrote and launchd
+    // loaded from that plist, so an operator's own agent under the same label stays.
+    if (OS === "darwin")
+      for (const f of plists().filter((p) => !before.has(p))) {
+        const plist = join(agents, f.slice(0, f.lastIndexOf(":")));
+        const label = sh("plutil", ["-extract", "Label", "raw", plist]).stdout.trim();
+        const job = label && sh("launchctl", ["print", `gui/${userInfo().uid}/${label}`]);
+        if (job?.status === 0 && job.stdout.includes(`path = ${plist}\n`))
+          sh("launchctl", ["bootout", `gui/${userInfo().uid}/${label}`]);
+      }
     toolPath();
     if (r && r.status !== 0) say(`install ${id}: exit ${r.status}`);
     const path = bin && which(bin);
