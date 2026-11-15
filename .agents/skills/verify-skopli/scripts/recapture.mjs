@@ -156,10 +156,14 @@ const moveVendorPath = (id, before, ienv = {}, post = false) => {
       `install ${id}: left new user PATH entries outside the script home: ${added.join(";")}`,
     );
   const kind = before?.kind ?? cur.kind;
+  const kept = keep.filter((d) => d.trim());
+  // With no other edit the saved value goes back verbatim, undoing an installer's ";" trimming too.
   const raw =
-    keep.some((d) => d.trim()) || (before ? before.raw !== null : cur.raw !== null)
-      ? keep.join(";")
-      : null;
+    before && kept.length === pre.length && kept.every((d, i) => norm(d) === norm(pre[i]))
+      ? before.raw
+      : kept.length || (before ? before.raw !== null : cur.raw !== null)
+        ? keep.join(";")
+        : null;
   if (mine.length) {
     writeFileSync(
       `${vendorFile}.tmp`,
@@ -621,7 +625,13 @@ function install() {
     const bin = Object.values(shapes).map(binOf).find(Boolean);
     let r = null;
     mkdirSync(scriptHome, { recursive: true });
-    const env = { ...cleanEnv(), ...homeEnv(scriptHome) };
+    // mimocode's installers read a generic VERSION as a version pin.
+    const env = {
+      ...Object.fromEntries(
+        Object.entries(cleanEnv()).filter(([k]) => k.toUpperCase() !== "VERSION"),
+      ),
+      ...homeEnv(scriptHome),
+    };
     const agents = join(scriptHome, "Library/LaunchAgents");
     const plists = () =>
       existsSync(agents)
@@ -649,10 +659,7 @@ function install() {
       const temp = join(scriptHome, "AppData", "Local", "Temp");
       mkdirSync(temp, { recursive: true });
       const ienv = {
-        // mimocode's installer reads a generic VERSION as a version pin.
-        ...Object.fromEntries(
-          Object.entries(env).filter(([k]) => !["PATH", "VERSION"].includes(k.toUpperCase())),
-        ),
+        ...Object.fromEntries(Object.entries(env).filter(([k]) => k.toUpperCase() !== "PATH")),
         TEMP: temp,
         TMP: temp,
         ...Object.fromEntries(
@@ -688,7 +695,7 @@ function install() {
             "-ExecutionPolicy",
             "Bypass",
             "-Command",
-            `[Net.ServicePointManager]::SecurityProtocol = [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12; $ProgressPreference = "SilentlyContinue"; & ([scriptblock]::Create((irm $env:RECAPTURE_PS1))) ${(how.args ?? []).map((a) => (/^-\w+$/.test(a) ? a : `'${a.replaceAll("'", "''")}'`)).join(" ")}`,
+            `[Net.ServicePointManager]::SecurityProtocol = [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12; $ProgressPreference = "SilentlyContinue"; & ([scriptblock]::Create((irm $env:RECAPTURE_PS1))) ${(how.args ?? []).map((a) => (/^-\w+$/.test(a) ? a : `'${a.replace(/['\u2018\u2019\u201A\u201B]/g, (q) => q + q)}'`)).join(" ")}`,
           ],
           {
             noShell: true,
