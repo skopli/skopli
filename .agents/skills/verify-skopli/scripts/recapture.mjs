@@ -29,7 +29,7 @@ steps ("all" runs them in order and always ends with stop):
   list      print every cell with its planned outcome and exit
   env       download the pinned llama.cpp build and model (model byte-size checked), clone the
             target project, start llama-server and the usage gateway, prove the cache rises
-  install   install every harness the manifest can install, write cli-versions.txt
+  install   install every harness a selected runnable cell needs, write cli-versions.txt
   run       run the selected cells one at a time with an isolated home each
   report    write cell-notes.<os>.tsv, matrix.<os>.md and drift.json from the cell results
   package   tar the run directory without target copies, node modules or the runner's tmp
@@ -452,13 +452,12 @@ const spawnedAt = (pid, what) => {
 };
 const ours = (s, k) =>
   !!s[`${k}Pid`] && !!s[`${k}Start`] && started(s[`${k}Pid`]) === s[`${k}Start`];
-// Signal 0 succeeds only for a live process this user may signal, which a reused PID of another
-// user or SYSTEM is not.
+// EPERM means the PID is live but owned by another user or SYSTEM.
 const isAlive = (pid) => {
   try {
     return process.kill(pid, 0);
-  } catch {
-    return false;
+  } catch (e) {
+    return e.code === "EPERM";
   }
 };
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -885,7 +884,7 @@ async function install() {
             "-Command",
             `[Net.ServicePointManager]::SecurityProtocol = [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12; $ProgressPreference = "SilentlyContinue"; & ([scriptblock]::Create((irm $env:RECAPTURE_PS1))) ${(how.args ?? []).map((a) => (/^-\w+$/.test(a) ? a : `'${a.replace(/['\u2018\u2019\u201A\u201B]/g, (q) => q + q)}'`)).join(" ")}`,
           ],
-          { noShell: true, cwd: scriptHome, env: ienv },
+          { noShell: true, env: ienv },
         );
         if (moveVendorPath(id, pathBefore, ienv, true)) rmSync(pathBeforeFile, { force: true });
       }
@@ -1455,6 +1454,8 @@ function report() {
         .split("\n")
         .filter(Boolean)
         .map((l) => l.split("\t"))
+        // Only an installed binary's --version counts, not "-" or a probe's error code.
+        .filter((c) => !["MISSING", "INSTALL-FAILED"].includes(c[1]) && !/^(-|E[A-Z]+)$/.test(c[2]))
         .map((c) => [c[0], c[2]]),
     );
   const drift = [];

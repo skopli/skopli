@@ -203,5 +203,5 @@ It checks every input in a small finite domain against the documented promises a
 | `scripts/recapture.mjs` | `node .agents/skills/verify-skopli/scripts/recapture.mjs all --out <dir>`           | rerun the harness matrix and report drift, see `features/recapture.md` |
 | `scripts/os-home.sh`    | `eval "$(bash .agents/skills/verify-skopli/scripts/os-home.sh <cell-home>)"`        | point a harness at an isolated home on Linux, macOS or Windows         |
 
-Run by hand, the scripts other than `os-home.sh` work on Linux only, and they depend on `bash`, `curl`, `ss`, `/proc`, `git`, Node 24 and the repository's dev dependencies.
+Run by hand, the scripts other than `os-home.sh` and `recapture.mjs` work on Linux only, and they depend on `bash`, `curl`, `ss`, `/proc`, `git`, Node 24 and the repository's dev dependencies.
 `recapture.mjs` also runs `gateway.ts`, `home.mjs` and `reconcile.mjs` on macOS and Windows.
