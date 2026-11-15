@@ -44,7 +44,7 @@ options:
   --only <h[/shape]> restrict to a harness or one cell; repeatable
   --os <os>          plan for linux, darwin or windows; only list and --dry-run accept another OS
   --timeout <s>      wall-clock budget per cell across all turns, in seconds (default 600)
-  --resume           skip cells in --out that already ran; rerun error, not-installed and changed skips
+  --resume           skip cells in --out that already ran; rerun error, not-installed and changed skips or TODOs
   --baseline <dir>   a previous run directory; report flags CLI version changes against it and
                      does not count a TODO or regression it already reported
   --dry-run          print the resolved plan as JSON and exit
@@ -680,17 +680,14 @@ const recoverUserPath = () => {
 // A recorded PID whose start time no longer matches belongs to someone else and is left alone.
 function stop() {
   const s = readJson(state, {});
-  const kept = {};
   const done = ["server", "gateway"].map((k) => {
     const pid = s[`${k}Pid`];
     if (!pid) return "-";
     if (!ours(s, k)) {
-      // A live PID whose start time could not be read stays recorded for the next stop.
-      if (started(pid) === null && isAlive(pid)) {
-        Object.assign(kept, { [`${k}Pid`]: pid, [`${k}Start`]: s[`${k}Start`] });
-        return `${pid} (start time unreadable, kept in state.json)`;
-      }
-      return `${pid} (not ours, left alone)`;
+      if (!isAlive(pid)) return `${pid} (already gone)`;
+      return started(pid) === null
+        ? `${pid} (start time unreadable, left running)`
+        : `${pid} (not ours, left alone)`;
     }
     killTree(pid);
     return String(pid);
@@ -701,7 +698,6 @@ function stop() {
       serverStart: null,
       gatewayPid: null,
       gatewayStart: null,
-      ...kept,
     });
   recoverUserPath();
   say(`stop: ${done.join(" ")}`);
@@ -795,6 +791,12 @@ async function install() {
     const how = installOf(manifest.harnesses[id]);
     const bin = Object.values(shapes).map(binOf).find(Boolean);
     let r = null;
+    let skipped = false;
+    // Written first, so an interrupted or skipped install also keeps run off a copy an earlier run
+    // left in --cache.
+    const failed = join(out, "install", `${id}.failed`);
+    mkdirSync(join(out, "install"), { recursive: true });
+    if (how) writeFileSync(failed, "install did not finish");
     mkdirSync(scriptHome, { recursive: true });
     // mimocode's installers read a generic VERSION as a version pin, goose's CANARY as a channel switch.
     const env = {
@@ -847,6 +849,7 @@ async function install() {
       };
       const pathBefore = !existsSync(pathBeforeFile) && moveVendorPath(id, null);
       if (!pathBefore) {
+        skipped = true;
         console.error(
           `install ${id}: skipped, the user PATH could not be read or restored (pending ${pathBeforeFile})`,
         );
@@ -895,19 +898,15 @@ async function install() {
           sh("launchctl", ["bootout", `gui/${userInfo().uid}/${label}`]);
       }
     toolPath();
-    if (r) {
-      mkdirSync(join(out, "install"), { recursive: true });
-      writeFileSync(join(out, "install", `${id}.log`), `${r.stdout ?? ""}${r.stderr ?? ""}`);
-    }
+    if (r) writeFileSync(join(out, "install", `${id}.log`), `${r.stdout ?? ""}${r.stderr ?? ""}`);
     if (r?.interrupted) throw new Error(`install ${id}: interrupted`);
     if (r && r.status !== 0)
       say(
         `install ${id}: ${r.status === 124 ? `timed out after ${INSTALL_LIMIT} s` : `exit ${r.status}`}, see install/${id}.log`,
       );
-    // A failed update must not let the run test the copy an earlier run left in --cache.
-    const failed = join(out, "install", `${id}.failed`);
     if (r && r.status !== 0) writeFileSync(failed, `install failed: exit ${r.status}`);
-    else if (r) rmSync(failed, { force: true });
+    else if (skipped) writeFileSync(failed, "install skipped: the user PATH could not be read");
+    else rmSync(failed, { force: true });
     const path = bin && which(bin);
     const v = path ? versionOf(bin, manifest.harnesses[id]) : null;
     lines.push(
@@ -1592,7 +1591,8 @@ for (const sig of ["SIGINT", "SIGTERM", "SIGHUP"])
     // The install wrapper kills its own group on a signal; on Windows only taskkill reaches the tree.
     if (installChild && OS === "windows") killTree(installChild.pid);
     else installChild?.kill(sig);
-    reap(T0, [], [cache, out]);
+    // The wrapper is spared so its own handler can kill the installer's whole group.
+    reap(T0, installChild ? [installChild.pid] : [], [cache, out]);
     if (startedEnv) stop();
     process.exit(1);
   });

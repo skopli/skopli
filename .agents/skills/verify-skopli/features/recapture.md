@@ -49,7 +49,7 @@ Preconditions:
   Each install is bounded at 900 s and reported as `timed out after 900 s` when it hits the limit; a small node wrapper kills the installer's whole tree at the limit or on an interrupt (on Linux and macOS its process group, which also goes when the installer exits; on Windows `taskkill /T` while the leader lives), and the new processes that left the tree are killed afterwards, as described under the stray sweep below.
   As with timeout(1), an installer that itself exits 124 reads as a timeout.
   The installer's output goes to `<out>/install/<id>.log`, and an interrupt or a signal sent to the runner alone stops the whole step.
-  A failed install leaves `<out>/install/<id>.failed`, and `run` records that harness's cells as `not-installed` with the failure as the reason instead of testing a copy an earlier run left in `--cache`, so `report` raises an `invariant`.
+  A failed, timed-out, interrupted or skipped install leaves `<out>/install/<id>.failed`, and `run` records that harness's cells as `not-installed` with the failure as the reason instead of testing a copy an earlier run left in `--cache`, so `report` raises an `invariant`.
   A script installer runs with HOME set to the script home inside `--cache` and with the harness's `install.env` added to its environment, for example `CONFIGURE=false`, which stops goose's installer from starting its interactive configuration.
   On Windows a `script` channel does not run; an `installOs.windows.ps1` channel runs `irm <url>` in PowerShell from the script home with its `args` and `env`, and a harness with neither plans as `todo` there.
   On macOS, launchd is per user rather than per HOME, so after each install the runner boots out any LaunchAgent whose plist that install wrote under the script home and that launchd loaded from that plist; an agent the operator loaded under the same label is left alone.
@@ -76,24 +76,24 @@ The cell procedure the runner follows:
 
 Statuses in `result.json` and `cell-notes.<os>.tsv`:
 
-| status           | meaning                                                                                                                                               |
-| ---------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `captured`       | Skopli read events and they reconcile exactly with the gateway.                                                                                       |
-| `captured-delta` | Skopli read events but the totals differ from the gateway.                                                                                            |
-| `reader-gap`     | Requests reached the gateway and the harness wrote its store, but Skopli read zero events.                                                            |
-| `capture-gap`    | Setup exited non-zero, no request reached the gateway, or the harness wrote nothing under its store roots.                                            |
-| `hang`           | Setup ran out the budget, or a turn did and Skopli read nothing.                                                                                      |
-| `error`          | `home.mjs` crashed or `reconcile.mjs` exited with something other than agreement or a delta; `report` then exits `1`.                                 |
-| `not-installed`  | The harness binary is not under `--cache` after the install step, or on Windows its `--version` probe failed or timed out.                            |
-| `skip`           | The manifest says the cell cannot run; the reason is one of `gui-only`, `no-byok-endpoint`, `wrong-wire-shape`, `interactive-config`, `not-an-agent`. |
-| `todo`           | The recovered kit could not source a field for this OS: the install channel, a command, or a config seed.                                             |
+| status           | meaning                                                                                                                                                                                                       |
+| ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `captured`       | Skopli read events and they reconcile exactly with the gateway.                                                                                                                                               |
+| `captured-delta` | Skopli read events but the totals differ from the gateway.                                                                                                                                                    |
+| `reader-gap`     | Requests reached the gateway and the harness wrote its store, but Skopli read zero events.                                                                                                                    |
+| `capture-gap`    | Setup exited non-zero, no request reached the gateway, or the harness wrote nothing under its store roots.                                                                                                    |
+| `hang`           | Setup ran out the budget, or a turn did and Skopli read nothing.                                                                                                                                              |
+| `error`          | `home.mjs` crashed or `reconcile.mjs` exited with something other than agreement or a delta; `report` then exits `1`.                                                                                         |
+| `not-installed`  | The harness binary is not under `--cache` after the install step, its install failed, timed out, was interrupted or skipped (`install/<id>.failed`), or on Windows its `--version` probe failed or timed out. |
+| `skip`           | The manifest says the cell cannot run; the reason is one of `gui-only`, `no-byok-endpoint`, `wrong-wire-shape`, `interactive-config`, `not-an-agent`.                                                         |
+| `todo`           | The recovered kit could not source a field for this OS: the install channel, a command, or a config seed.                                                                                                     |
 
 Run outputs, all under `--out` and never committed:
 
 - `cell-notes.<os>.tsv`: three tab-separated columns, harness, shape, then free text that starts with the status and continues with the reason, gateway and event counts, store layout and redaction needles.
 - `matrix.<os>.md`: one row per cell with status, detected harnesses, events, sessions, diagnostics, gateway lines, reconcile result, the `golden/README.md` status and the reason.
 - `drift.json`: one entry per finding, each with a `kind` and a `lane`.
-- `cli-versions.txt`, `install/<id>.log`, `cache-proof.json`, `llama-server.txt`, `gateway-usage.jsonl`, `gateway-stderr.txt`, `state.json`, the run-scoped `tmp/`, and per cell `setup.txt`, `run-N.txt`, `gateway-usage.jsonl`, `home-read.json`, `home-result.json`, `reconcile.json`, `result.json`, the `work` directory the turns run in and the home itself.
+- `cli-versions.txt`, `install/<id>.log`, `install/<id>.failed`, `cache-proof.json`, `llama-server.txt`, `gateway-usage.jsonl`, `gateway-stderr.txt`, `state.json`, the run-scoped `tmp/`, and per cell `setup.txt`, `run-N.txt`, `gateway-usage.jsonl`, `home-read.json`, `home-result.json`, `reconcile.json`, `result.json`, the `work` directory the turns run in and the home itself.
 
 Drift kinds and their lanes:
 
@@ -202,7 +202,7 @@ These rows describe what the November 2026 wave recorded; a recapture is what co
 - Run cells one at a time: four concurrent sessions saturated the 1.5B model on 8 cores and turned real captures into timeouts.
 - Never stop a harness or server by process name; the runner kills only the PIDs and process groups it started, plus the strays below, and `stop` reads them from `state.json`.
 - `env` records each server and gateway PID with its OS start time (the start in clock ticks from `/proc/<pid>/stat` on Linux, which a clock step cannot move, `ps -o lstart=` on macOS, the PowerShell `StartTime` of the process on Windows), and `stop` leaves a PID alone when its start time no longer matches, since the OS may have reused it.
-  A live PID that this user may signal but whose start time cannot be read stays in `state.json` for the next `stop`, and `stop` says so.
+  `stop` always clears the record and says which PIDs were already gone, which were not ours, and which it left running because their start time could not be read.
 - A turn killed mid-flight leaves nothing in most stores, so a capture can report fewer turns than ran.
 - Codex rejects `wire_api = "chat"`, Reasonix has no Responses shape, Command Code's Responses client never completes a stream against the gateway, and Trae's Chat Completions client crashes on a null `completion_tokens_details`; the last two still run so a fix upstream shows up as drift.
 - Grok needs a real sign-in on macOS, so its cells skip there.
