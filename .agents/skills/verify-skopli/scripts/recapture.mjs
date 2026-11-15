@@ -199,10 +199,12 @@ const moveVendorPath = (id, before, ienv = {}, post = false) => {
     writeFileSync(
       `${vendorFile}.tmp`,
       JSON.stringify([
-        ...new Set([
-          ...vendorPath(),
-          ...vend.map((d) => expand(d, lower).trim().replace(/^"|"$/g, "")).filter(existsSync),
-        ]),
+        ...new Set(
+          [
+            ...vendorPath(),
+            ...vend.map((d) => expand(d, lower).trim().replace(/^"|"$/g, "")),
+          ].filter(existsSync),
+        ),
       ]),
     );
     renameSync(`${vendorFile}.tmp`, vendorFile);
@@ -295,7 +297,7 @@ const KEY = "sk-local";
 // passed to a cell: the store overrides src/detect.ts honours, and each harness's own prefix.
 // The match ignores case because Windows variable names do.
 const LEAKY =
-  /^(XDG_\w+|AWS_\w+|\w+_API_KEY|\w+_API_BASE|\w+_BASE_URL|\w+_TOKEN|\w+_(CONFIG|DATA|SESSIONS?|SESSION_DATA|CODING_AGENT|AGENT)_DIR|GOOGLE_APPLICATION_CREDENTIALS|CODEX_HOME|OPENCLAW_DIR|CLINE_\w+|CODEBUDDY_\w+|COPILOT_\w+|DEVIN_\w+|DSH_\w+|GJC_\w+|GOOSE_\w+|GROK_\w+|HERMES_\w+|JCODE_\w+|KILO_\w+|KIMI_\w+|MIMOCODE_\w+|MIMO_\w+|OPENCODE_\w+|PRIME_AGENT_\w+|QWEN_\w+|REASONIX_\w+|UV_INSTALL_DIR|UV_UNMANAGED_INSTALL)$/i;
+  /^(XDG_\w+|AWS_\w+|\w+_API_KEY|\w+_API_BASE|\w+_BASE_URL|\w+_TOKEN|\w+_(CONFIG|DATA|SESSIONS?|SESSION_DATA|CODING_AGENT|AGENT)_DIR|GOOGLE_APPLICATION_CREDENTIALS|ANTHROPIC_\w+|OPENAI_\w+|CLAUDE_CODE_\w+|NODE_OPTIONS|CODEX_HOME|OPENCLAW_DIR|CLINE_\w+|CODEBUDDY_\w+|COPILOT_\w+|DEVIN_\w+|DSH_\w+|GJC_\w+|GOOSE_\w+|GROK_\w+|HERMES_\w+|JCODE_\w+|KILO_\w+|KIMI_\w+|MIMOCODE_\w+|MIMO_\w+|OPENCODE_\w+|PRIME_AGENT_\w+|QWEN_\w+|REASONIX_\w+|UV_INSTALL_DIR|UV_UNMANAGED_INSTALL)$/i;
 const cleanEnv = () =>
   Object.fromEntries(Object.entries(process.env).filter(([k]) => !LEAKY.test(k)));
 // Turns and probes get a temp dir under --out, so nothing they leave lands in the operator's temp.
@@ -409,10 +411,21 @@ const started = (pid) =>
         ["-NoProfile", "-Command", `(Get-Process -Id ${pid}).StartTime.ToFileTimeUtc()`],
         { noShell: true },
       )
-    : sh("ps", ["-o", "lstart=", "-p", String(pid)], {
-        noShell: true,
-        env: { ...process.env, TZ: "UTC", LC_ALL: "C" },
-      })
+    : OS === "linux"
+      ? // Clock ticks since boot, which a wall-clock step cannot move, unlike ps lstart.
+        {
+          stdout: (() => {
+            try {
+              return readFileSync(`/proc/${pid}/stat`, "utf8").split(") ").pop().split(" ")[19];
+            } catch {
+              return "";
+            }
+          })(),
+        }
+      : sh("ps", ["-o", "lstart=", "-p", String(pid)], {
+          noShell: true,
+          env: { ...process.env, TZ: "UTC", LC_ALL: "C" },
+        })
   ).stdout?.trim() || null;
 // A process whose start time cannot be read could never be stopped by identity, so kill it now.
 const spawnedAt = (pid, what) => {
@@ -678,24 +691,42 @@ const which = (bin) => {
 };
 const binOf = (c) => (Array.isArray(c.first) ? c.first[0] : null);
 const INSTALL_LIMIT = 900;
+const homeFill = (v) => fill(v, { home: scriptHome.replaceAll("\\", "/") });
+// Python CLIs on Windows write to a pipe in the ANSI code page and crash on non-Latin-1 output.
+const PY_UTF8 = OS === "windows" ? { PYTHONUTF8: "1", PYTHONIOENCODING: "utf-8" } : {};
 // spawnSync's timeout kills only its child, so the installer runs under a small node wrapper that
 // kills its whole tree when the limit is hit or the wrapper is interrupted: on Linux and macOS the
 // installer leads its own process group, which also goes when it exits; on Windows taskkill walks
-// the tree while the leader lives, and reapSince takes what the install started from the cache.
-// Exit 124 means the limit was hit, as with timeout(1); the spawnSync timeout is the backstop for
-// a process that left the tree but holds the output pipe.
+// the tree while the leader lives. Exit 124 means the limit was hit, as with timeout(1), and 130 an
+// interrupt. The wrapper relays the output and exits with the leader, so a process that left the
+// tree but holds the output pipe cannot hold up the step; the spawnSync timeout is a backstop.
 const GROUP = `const [s, shell, c, ...a] = process.argv.slice(1);
 const cp = require("child_process");
 const win = process.platform === "win32";
-const p = cp.spawn(c, a, { stdio: "inherit", detached: !win, shell: shell === "1" });
+const p = cp.spawn(c, a, { stdio: ["inherit", "pipe", "pipe"], detached: !win, shell: shell === "1" });
+p.stdout.pipe(process.stdout);
+p.stderr.pipe(process.stderr);
 const k = () => { try { if (win) cp.execFileSync("taskkill", ["/PID", String(p.pid), "/T", "/F"], { stdio: "ignore" }); else process.kill(-p.pid, "SIGKILL"); } catch {} };
 const t = setTimeout(() => { k(); process.exit(124); }, s * 1000);
 for (const sig of ["SIGINT", "SIGTERM", "SIGHUP"]) process.on(sig, () => { k(); process.exit(130); });
 p.on("error", () => process.exit(127));
-p.on("exit", (code) => { clearTimeout(t); if (!win) k(); process.exit(code ?? 137); });`;
+p.on("exit", (code) => {
+  clearTimeout(t);
+  if (!win) k();
+  const end = () => process.exit(code ?? 137);
+  p.on("close", end);
+  setTimeout(end, 2000).unref();
+});`;
+// A process an install started from the cache that left its tree (a daemon) is killed afterwards.
+const underCache = () =>
+  sh("ps", ["-A", "-o", "pid=,args="], { noShell: true })
+    .stdout.split("\n")
+    .filter((l) => l.includes(cache + sep))
+    .map((l) => Number.parseInt(l, 10));
 const installSh = (cmd, a, o) => {
   const shell = OS === "windows" && !o.noShell;
   const t0 = new Date();
+  const had = OS === "windows" ? [] : underCache();
   const r = sh(
     process.execPath,
     [
@@ -708,6 +739,11 @@ const installSh = (cmd, a, o) => {
     { ...o, noShell: true, timeout: (INSTALL_LIMIT + 30) * 1000 },
   );
   if (OS === "windows") reapSince(t0, [cache]);
+  else
+    for (const pid of underCache().filter((p) => !had.includes(p) && p !== process.pid))
+      try {
+        process.kill(pid, "SIGKILL");
+      } catch {}
   return r.error?.code === "ETIMEDOUT" ? { ...r, status: 124 } : r;
 };
 function install() {
@@ -738,13 +774,10 @@ function install() {
             .map((f) => `${f}:${statSync(join(agents, f)).mtimeMs}`)
         : [];
     const before = new Set(plists());
-    // pnpm 10+ skips build scripts unless allowed; claude, opencode and kimchi fetch their binary in one.
     const extra = Object.fromEntries(
-      Object.entries(how?.env ?? {}).map(([k, v]) => [
-        k,
-        fill(v, { home: scriptHome.replaceAll("\\", "/") }),
-      ]),
+      Object.entries(how?.env ?? {}).map(([k, v]) => [k, homeFill(v)]),
     );
+    // pnpm 10+ skips build scripts unless allowed; claude, opencode and kimchi fetch their binary in one.
     if (how?.pnpm)
       r = installSh("pnpm", ["add", "-g", `--allow-build=${how.pnpm}`, how.pnpm], { env });
     else if (how?.uv)
@@ -821,9 +854,14 @@ function install() {
           sh("launchctl", ["bootout", `gui/${userInfo().uid}/${label}`]);
       }
     toolPath();
+    if (r) {
+      mkdirSync(join(out, "install"), { recursive: true });
+      writeFileSync(join(out, "install", `${id}.log`), `${r.stdout ?? ""}${r.stderr ?? ""}`);
+    }
+    if (r?.status === 130) throw new Error(`install ${id}: interrupted`);
     if (r && r.status !== 0)
       say(
-        `install ${id}: ${r.status === 124 ? `timed out after ${INSTALL_LIMIT} s` : `exit ${r.status}`}`,
+        `install ${id}: ${r.status === 124 ? `timed out after ${INSTALL_LIMIT} s` : `exit ${r.status}`}, see install/${id}.log`,
       );
     const path = bin && which(bin);
     const v = path ? versionOf(bin, manifest.harnesses[id]) : null;
@@ -1039,13 +1077,13 @@ const versionOf = (bin, h) => {
   const homes = Object.values(h?.shapes ?? {})
     .flatMap((s) => Object.entries(s.env ?? {}))
     .filter(([k]) => k.endsWith("_HOME"))
-    .map(([k, v]) => [k, fill(v, { home: scriptHome.replaceAll("\\", "/") })]);
+    .map(([k, v]) => [k, homeFill(v)]);
   const env = {
     ...cleanEnv(),
     ...homeEnv(scriptHome),
     ...tempEnv(join(out, "tmp")),
     ...Object.fromEntries(homes),
-    ...(OS === "windows" ? { PYTHONUTF8: "1", PYTHONIOENCODING: "utf-8" } : {}),
+    ...PY_UTF8,
   };
   // A native .exe is probed directly, so a timeout kills the CLI rather than only cmd.exe.
   const exe = OS === "windows" && winExe(bin, env);
@@ -1118,11 +1156,13 @@ async function run() {
       session: "",
     };
     const envv = {
-      ...cleanEnv(),
+      // Turns talk only to the local gateway, so an operator proxy cannot reroute them.
+      ...Object.fromEntries(
+        Object.entries(cleanEnv()).filter(([k]) => !/^(https?|all)_proxy$/i.test(k)),
+      ),
       ...homeEnv(home),
       ...tempEnv(join(out, "tmp", String(cells.indexOf(cell))), true),
-      // Python CLIs on Windows write to a pipe in the ANSI code page and crash on non-Latin-1 output.
-      ...(OS === "windows" ? { PYTHONUTF8: "1", PYTHONIOENCODING: "utf-8" } : {}),
+      ...PY_UTF8,
       ...Object.fromEntries(Object.entries(cell.c.env ?? {}).map(([k, v]) => [k, fill(v, vars)])),
     };
     const seed = cell.c.seed && seedDir(cell.c.seed);
@@ -1312,7 +1352,7 @@ function report() {
     const d = join(root, "golden", id, "input");
     return existsSync(d) ? layoutOf(files(d), GOLDEN_CWD) : null;
   };
-  const versions = (dir) =>
+  const versionsIn = (dir) =>
     Object.fromEntries(
       (existsSync(join(dir, "cli-versions.txt"))
         ? readFileSync(join(dir, "cli-versions.txt"), "utf8")
@@ -1378,8 +1418,8 @@ function report() {
   );
   for (const d of drift) if (key(d) && known.has(key(d))) d.known = true;
   if (base) {
-    const a = versions(resolve(base)),
-      b = versions(out);
+    const a = versionsIn(resolve(base)),
+      b = versionsIn(out);
     for (const k of Object.keys(b))
       if (a[k] && a[k] !== b[k])
         drift.push({
@@ -1460,7 +1500,7 @@ if (step === "list") {
   process.exit(0);
 }
 const steps = { env, install, run, report, package: pack, stop };
-for (const sig of ["SIGINT", "SIGTERM"])
+for (const sig of ["SIGINT", "SIGTERM", "SIGHUP"])
   process.on(sig, () => {
     killTree(turnPid);
     if (step === "all") stop();
