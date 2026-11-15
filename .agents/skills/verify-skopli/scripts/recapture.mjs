@@ -629,7 +629,12 @@ function install() {
         ...Object.fromEntries(Object.entries(env).filter(([k]) => k.toUpperCase() !== "PATH")),
         TEMP: temp,
         TMP: temp,
-        ...how.env,
+        ...Object.fromEntries(
+          Object.entries(how.env ?? {}).map(([k, v]) => [
+            k,
+            fill(v, { home: scriptHome.replaceAll("\\", "/") }),
+          ]),
+        ),
         RECAPTURE_PS1: how.ps1,
         PATH: installerPath(),
       };
@@ -779,12 +784,22 @@ const homeEnv = (home) => {
 // killed then, so no stray outlives the turn or keeps its output pipes open.
 // A native .exe is spawned directly: under cmd.exe a CLI that needs CREATE_BREAKAWAY_FROM_JOB
 // (hermes starts its gateway daemon that way) gets access denied.
-const winExe = (bin, envv, cwd) =>
-  spawnSync("where", [bin], { encoding: "utf8", env: envv, cwd })
-    .stdout?.split(/\r?\n/)
+// `where` lists a directory's matches by name, so the one cmd.exe would run is picked by PATHEXT.
+const winExe = (bin, envv, cwd) => {
+  const hits = (spawnSync("where", [bin], { encoding: "utf8", env: envv, cwd }).stdout ?? "")
+    .split(/\r?\n/)
     .map((l) => l.trim())
-    .find((l) => l)
-    ?.match(/^.+\.exe$/i)?.[0];
+    .filter(Boolean);
+  if (!hits.length) return undefined;
+  const local = hits.filter((l) => dirname(l).toLowerCase() === dirname(hits[0]).toLowerCase());
+  const exts = (process.env.PATHEXT ?? ".COM;.EXE;.BAT;.CMD").toLowerCase().split(";");
+  const rank = (l) => {
+    const i = exts.findIndex((e) => e && l.toLowerCase().endsWith(e));
+    return i < 0 ? exts.length : i;
+  };
+  const pick = local.reduce((a, l) => (rank(l) < rank(a) ? l : a));
+  return /\.exe$/i.test(pick) ? pick : undefined;
+};
 // Windows has no process group to kill, so after a turn the processes started since its start from
 // an executable under the cache or run directory are killed by PID (hermes leaves a gateway daemon).
 const reapSince = (t0, roots) => {

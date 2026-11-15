@@ -855,7 +855,12 @@
       "install": {
         "script": "https://jcode.sh/install"
       },
-      "installOs": { "windows": { "ps1": "https://jcode.sh/install.ps1" } },
+      "installOs": {
+        "windows": {
+          "ps1": "https://jcode.sh/install.ps1",
+          "env": { "JCODE_HOME": "{home}/.jcode", "JCODE_SKIP_SERVER_RELOAD": "1" }
+        }
+      },
       "store": [".jcode/sessions"],
       "shapes": {
         "openai-chat": {
