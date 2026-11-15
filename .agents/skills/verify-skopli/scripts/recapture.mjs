@@ -92,20 +92,53 @@ const basePath = process.env.PATH;
 // Windows vendor installers append their bin dir to the user PATH in the registry; install() moves
 // the entries an installer added into this file and restores the operator's user PATH.
 const vendorFile = join(cache, "vendor-path.json");
-const vendorPath = () =>
-  OS === "windows" && existsSync(vendorFile) ? JSON.parse(readFileSync(vendorFile, "utf8")) : [];
-const userPath = (set) =>
+const vendorPath = () => {
+  try {
+    return OS === "windows" ? JSON.parse(readFileSync(vendorFile, "utf8")) : [];
+  } catch {
+    return [];
+  }
+};
+// The raw value and its registry kind are restored as read, so %VAR% entries stay unexpanded;
+// null means the read failed, and then nothing is moved or restored.
+const readUserPath = () => {
+  const r = spawnSync(
+    "powershell",
+    [
+      "-NoProfile",
+      "-Command",
+      "$k = Get-Item HKCU:\Environment; $raw = $k.GetValue('Path', $null, 'DoNotExpandEnvironmentNames'); " +
+        "ConvertTo-Json -Compress @{ raw = $raw; kind = $(if ($raw -ne $null) { [string]$k.GetValueKind('Path') } else { 'ExpandString' }); " +
+        "expanded = [Environment]::GetEnvironmentVariable('Path', 'User') }",
+    ],
+    { encoding: "utf8" },
+  );
+  try {
+    return r.status === 0 ? JSON.parse(r.stdout) : null;
+  } catch {
+    return null;
+  }
+};
+const restoreUserPath = ({ raw, kind }) =>
   spawnSync(
     "powershell",
     [
       "-NoProfile",
       "-Command",
-      set === undefined
-        ? "[Environment]::GetEnvironmentVariable('Path','User')"
-        : "[Environment]::SetEnvironmentVariable('Path',$env:RECAPTURE_USER_PATH,'User')",
+      "$k = [Microsoft.Win32.Registry]::CurrentUser.OpenSubKey('Environment', $true); " +
+        "if ($env:RECAPTURE_USER_PATH_SET -eq '1') { $k.SetValue('Path', $env:RECAPTURE_USER_PATH, [Microsoft.Win32.RegistryValueKind]$env:RECAPTURE_USER_PATH_KIND) } " +
+        "else { $k.DeleteValue('Path', $false) }",
     ],
-    { encoding: "utf8", env: { ...process.env, RECAPTURE_USER_PATH: set ?? "" } },
-  ).stdout?.trim() ?? "";
+    {
+      encoding: "utf8",
+      env: {
+        ...process.env,
+        RECAPTURE_USER_PATH: raw ?? "",
+        RECAPTURE_USER_PATH_SET: raw === null || raw === undefined ? "0" : "1",
+        RECAPTURE_USER_PATH_KIND: kind,
+      },
+    },
+  ).status === 0;
 const toolPath = () => {
   const dots = existsSync(scriptHome)
     ? readdirSync(scriptHome).map((d) => join(scriptHome, d, "bin"))
@@ -138,7 +171,7 @@ const origin = `http://127.0.0.1:${LLAMA.gateway}`;
 const KEY = "sk-local";
 // Parent variables that would point a harness at a real home, account or provider are never passed to a cell.
 const LEAKY =
-  /^(XDG_\w+|AWS_\w+|\w+_API_KEY|\w+_API_BASE|\w+_BASE_URL|\w+_TOKEN|GOOGLE_APPLICATION_CREDENTIALS|CLAUDE_CONFIG_DIR|CODEX_HOME)$/;
+  /^(XDG_\w+|AWS_\w+|\w+_API_KEY|\w+_API_BASE|\w+_BASE_URL|\w+_TOKEN|GOOGLE_APPLICATION_CREDENTIALS|CLAUDE_CONFIG_DIR|CODEX_HOME|HERMES_HOME|JCODE_HOME|KIMI_\w+|GOOSE_\w+|PRIME_AGENT_\w+|GROK_\w+|CURSOR_CONFIG_DIR)$/;
 const cleanEnv = () =>
   Object.fromEntries(Object.entries(process.env).filter(([k]) => !LEAKY.test(k)));
 
@@ -518,7 +551,7 @@ function install() {
         { env },
       );
     else if (how?.ps1 && OS === "windows") {
-      const before = userPath();
+      const pathBefore = readUserPath();
       r = sh(
         "powershell",
         [
@@ -530,12 +563,21 @@ function install() {
         ],
         { noShell: true, timeout: 900000, cwd: scriptHome, env: { ...env, ...how.env } },
       );
-      const after = userPath();
-      if (after !== before) {
-        const old = new Set(before.split(";"));
-        const added = after.split(";").filter((d) => d && !old.has(d));
-        writeFileSync(vendorFile, JSON.stringify([...new Set([...vendorPath(), ...added])]));
-        userPath(before);
+      const pathAfter = readUserPath();
+      if (!pathBefore || !pathAfter)
+        console.error(
+          `install ${id}: could not read the user PATH; check it for script-home entries`,
+        );
+      else if (pathAfter.raw !== pathBefore.raw) {
+        const old = new Set((pathBefore.expanded ?? "").split(";"));
+        const added = (pathAfter.expanded ?? "").split(";").filter((d) => d && !old.has(d));
+        writeFileSync(
+          `${vendorFile}.tmp`,
+          JSON.stringify([...new Set([...vendorPath(), ...added])]),
+        );
+        renameSync(`${vendorFile}.tmp`, vendorFile);
+        if (!restoreUserPath(pathBefore))
+          console.error(`install ${id}: could not restore the user PATH`);
       }
     } else if (how?.script && OS !== "windows")
       r = sh(
@@ -723,7 +765,8 @@ const runTurn = (argv, envv, cwd, log, limit) =>
       done({ code, timedOut, text, seconds: Math.round((Date.now() - t0) / 1000) });
     };
     child.on("error", () => finish(127));
-    // Windows cannot walk the tree of an exited leader, so there only a timeout kills the tree.
+    // Windows cannot walk the tree of an exited leader: a timeout kills the tree, and after an exit
+    // reapSince kills what the turn started from the cache or run directory.
     child.on("exit", (code) => {
       if (OS !== "windows") killTree(child.pid);
       else reapSince(t0, [cache, out]);
@@ -835,7 +878,6 @@ async function run() {
       write({ status: "not-installed", reason: binOf(cell.c) });
       continue;
     }
-    // A shim on PATH can still be unusable (a runtime it needs is missing, a skipped postinstall).
     // A Windows shim can resolve on PATH yet fail to start (a skipped native postinstall, an
     // unsupported binary), which would otherwise read as a capture gap.
     const probe = OS === "windows" ? versionOf(binOf(cell.c)) : { status: 0 };

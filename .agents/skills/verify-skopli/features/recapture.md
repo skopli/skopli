@@ -44,7 +44,7 @@ Preconditions:
   `cli-versions.txt` has one line per harness: id, binary path or `MISSING`, first line of `--version`.
   A `pnpm` channel runs `pnpm add -g --allow-build=<package>`, a `uv` channel runs `uv tool install` with the pinned Python and `--with` packages, and a `script` channel runs `curl -fsSL <url> | bash -s -- <args>`.
   A script installer runs with HOME set to the script home inside `--cache` and with the harness's `install.env` added to its environment, for example `CONFIGURE=false`, which stops goose's installer from starting its interactive configuration.
-  On Windows a `script` channel does not run; an `installOs.windows.ps1` channel runs `irm <url>` in PowerShell from the script home with its `args`, and a harness with neither plans as `todo` there.
+  On Windows a `script` channel does not run; an `installOs.windows.ps1` channel runs `irm <url>` in PowerShell from the script home with its `args` and `env`, and a harness with neither plans as `todo` there.
   On macOS, launchd is per user rather than per HOME, so after each install the runner boots out any LaunchAgent whose plist that install wrote under the script home and that launchd loaded from that plist; an agent the operator loaded under the same label is left alone.
 - **One cell.** Run `node .agents/skills/verify-skopli/scripts/recapture.mjs run --out .verify/recapture/<run> --only pi/openai-chat`.
   Stderr prints `pi/openai-chat: captured`, and `cells/pi/openai-chat/result.json` shows `"events": 4`, `"reconcileExit": 0` and `"detected": ["pi"]`.
@@ -116,7 +116,7 @@ Drift kinds and their lanes:
 ### Agent judgment that is not scripted yet
 
 - Choosing the lane for a `mechanical-candidate` entry: the script can say the layout or version changed, not whether the new layout carries the same token semantics.
-- A `todo` cell: finding an install channel (the fx and kiro Windows installers) or a missing seed, then adding it to `harnesses.json` or `recapture/seeds/`.
+- A `todo` cell: finding an install channel (the fx Windows installer) or a missing seed, then adding it to `harnesses.json` or `recapture/seeds/`.
 - A changed auth flow or onboarding prompt, which shows up as `capture-gap` with a harness error in `run-N.txt`.
 - Promotion with `promote.mjs`, because picking the redaction flags and writing the case README needs a reading of the captured store.
 - Machine setup the scripts cannot do on every OS: `uv` must already be on `PATH` for Trae, and on Windows bun for omp and gajae and long paths enabled for the Hermes installer.
@@ -193,21 +193,21 @@ These rows describe what the November 2026 wave recorded; a recapture is what co
 ## Gotchas
 
 - Run cells one at a time: four concurrent sessions saturated the 1.5B model on 8 cores and turned real captures into timeouts.
-- Never stop a harness or server by process name; the runner kills only the PIDs and process groups it started, and `stop` reads them from `state.json`.
+- Never stop a harness or server by process name; the runner kills only the PIDs and process groups it started (on Windows also the processes a turn started from an executable under `--cache` or `--out`), and `stop` reads them from `state.json`.
 - `env` records each server and gateway PID with its OS start time, and `stop` leaves a PID alone when its start time no longer matches, since the OS may have reused it.
 - A turn killed mid-flight leaves nothing in most stores, so a capture can report fewer turns than ran.
 - Codex rejects `wire_api = "chat"`, Reasonix has no Responses shape, Command Code's Responses client never completes a stream against the gateway, and Trae's Chat Completions client crashes on a null `completion_tokens_details`; the last two still run so a fix upstream shows up as drift.
 - Grok needs a real sign-in on macOS, so its cells skip there.
 - Hermes refuses to start when the server advertises less than a 64K window, which is why the server uses YaRN scaling.
 - fx writes a cumulative `set:usage` log, so its reader takes deltas; cline can leave orphaned host processes on macOS, which the runner kills with the turn's process group unless they started a session of their own.
-- On Windows a turn's tree is only killed on timeout, because `taskkill /T` cannot walk the tree of a leader that already exited, so a stray left by a turn that exited on its own survives.
+- On Windows `taskkill /T` cannot walk the tree of a leader that already exited, so a turn's tree is killed on timeout, and after an exit only the processes started since the turn from an executable under `--cache` or `--out` are reaped; a stray hosted by the system `node.exe` (a pnpm `.cmd` shim) survives.
 - On Windows, `os-home.sh` sets `USERPROFILE`, `APPDATA` and `LOCALAPPDATA` from `cygpath -w`; goose and Reasonix keep their stores under `APPDATA`, and mimocode follows the redirected home.
 - Redact before promoting: the cell home and target paths, the username and hostname, the dummy keys, Windows 8.3 aliases such as `ADMINI~1`, PATH snapshots in Hermes `state_meta`, git proxy hosts in URLs, and escaped Windows paths; `result.json` lists under `redaction` which needle kinds it found (`username`, `hostname`, `home-path`, `cell-home`, `cell-cwd`, `dummy-key`, `git-proxy`, `8.3-alias`) in every native, forward-slash, MSYS and JSON-escaped spelling, scanning only the files the harness wrote under its store roots for this OS.
 - A capture whose layout matches the Linux case is recorded as the same layout with its counts; only a differing layout becomes `golden/<harness>/<shape>-<os>/`, and the manifest keeps the shape name without the `-<os>` suffix.
 - The pnpm home and the HOME that vendor install scripts see are both inside `--cache`, so a run never touches the machine's global packages or dotfiles, and the cache can be reused across runs.
-- Cells never inherit `XDG_*`, `AWS_*`, `*_API_KEY`, `*_API_BASE`, `*_BASE_URL`, `*_TOKEN`, `GOOGLE_APPLICATION_CREDENTIALS`, `CLAUDE_CONFIG_DIR` or `CODEX_HOME` from the parent environment.
+- Cells never inherit `XDG_*`, `AWS_*`, `*_API_KEY`, `*_API_BASE`, `*_BASE_URL`, `*_TOKEN`, `GOOGLE_APPLICATION_CREDENTIALS`, `CLAUDE_CONFIG_DIR`, `CODEX_HOME`, `HERMES_HOME`, `JCODE_HOME`, `KIMI_*`, `GOOSE_*`, `PRIME_AGENT_*`, `GROK_*` or `CURSOR_CONFIG_DIR` from the parent environment, and vendor installers do not see them either.
 - The package keeps every cell home unredacted, so attach it only to the private run report, never to a public PR or issue.
 - On Windows a turn whose command resolves to a native `.exe` is spawned directly; any other command (a pnpm `.cmd` shim) runs through `cmd.exe` with every argument but a plain command name double-quoted, so a prompt must not contain `%`.
-- Windows has no process group, so after each turn the runner kills, by PID, every process started since the turn began from an executable under `--cache` or `--out`; hermes starts a gateway daemon that would otherwise outlive its cell.
 - On Windows an `installOs.windows.ps1` installer runs in PowerShell from the script home, the bin dirs it adds to the user PATH in the registry move to `vendor-path.json` in `--cache`, which joins the run's PATH, and the operator's user PATH is restored; a CLI whose `--version` fails or times out there is `not-installed`.
-- jcode ignores `USERPROFILE` on Windows and resolves its store from `JCODE_HOME`, which the manifest points at the cell home.
+- jcode ignores `USERPROFILE` on Windows and resolves its store from `JCODE_HOME`, which the manifest points at `<cell home>/.jcode`.
+- On Windows each turn also gets `PYTHONUTF8=1` and `PYTHONIOENCODING=utf-8`, so a Python CLI printing non-ASCII does not crash on the `cp1252` console code page.

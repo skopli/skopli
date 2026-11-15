@@ -1152,7 +1152,7 @@
       "installOs": {
         "windows": {
           "ps1": "https://hermes-agent.nousresearch.com/install.ps1",
-          "args": ["-NonInteractive"]
+          "args": ["-NonInteractive", "-SkipBrowser", "-SkipComputerUse"]
         }
       },
       "store": [".hermes/sessions", ".hermes/state.db"],
