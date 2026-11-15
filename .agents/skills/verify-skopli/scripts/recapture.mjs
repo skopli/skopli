@@ -300,8 +300,10 @@ async function env() {
     mkdirSync(bin, { recursive: true });
     const x = sh(TAR, ["xf", archive, "-C", bin]);
     if (x.status !== 0) {
-      // Without the API there is no size to check, so a bad archive is dropped for the next env run.
+      // Without the API there is no size to check, so a bad archive and its partial extraction are
+      // dropped for the next env run.
       rmSync(archive, { force: true });
+      rmSync(bin, { recursive: true, force: true });
       fail(`extract ${asset.name}: ${x.stderr}`);
     }
     server = findFile(bin, OS === "windows" ? "llama-server.exe" : "llama-server");
