@@ -115,11 +115,15 @@ const vendorPath = () => {
 // before the install is written back, in case the installer turned REG_EXPAND_SZ into REG_SZ.
 // Vendor installers scan PATH (kimi's migrates kimi shims it finds there, mimo's skips the install
 // when a mimo already runs), so they see only the cache dirs, System32 and Git.
+// Case-insensitive, because Windows and default macOS volumes ignore case.
+const under = (p, root) =>
+  resolve(p)
+    .toLowerCase()
+    .startsWith(resolve(root).toLowerCase() + sep);
 const installerPath = () => {
   const sys = join(process.env.SystemRoot ?? process.env.windir ?? "", "System32");
-  const root = resolve(cache).toLowerCase() + sep;
   return [
-    ...process.env.PATH.split(delimiter).filter((d) => resolve(d).toLowerCase().startsWith(root)),
+    ...process.env.PATH.split(delimiter).filter((d) => under(d, cache)),
     sys,
     join(sys, "Wbem"),
     join(sys, "WindowsPowerShell", "v1.0"),
@@ -149,16 +153,15 @@ const moveVendorPath = (id, before, ienv = {}, post = false) => {
     ...pre.flatMap((e) => [expand(e, lower), expand(e, real)].map((x) => [norm(x), e])),
     ...pre.map((e) => [norm(e), e]),
   ]);
-  const root = resolve(scriptHome).toLowerCase() + sep;
   // Empty segments (the stock value ends in ";") are kept, so an untouched value is not rewritten.
   const segs = (cur.raw ?? "").split(";");
   const mine = segs.filter(
-    (d) => d.trim() && !spelling.has(norm(d)) && resolve(norm(expand(d, lower))).startsWith(root),
+    (d) => d.trim() && !spelling.has(norm(d)) && under(norm(expand(d, lower)), scriptHome),
   );
   // A bin dir under the script home goes on the run PATH even when its expansion matches an operator
   // entry (an operator %LOCALAPPDATA%\jcode\bin), since the installer put the binary there.
   const vend = post
-    ? segs.filter((d) => d.trim() && resolve(norm(expand(d, lower))).startsWith(root))
+    ? segs.filter((d) => d.trim() && under(norm(expand(d, lower)), scriptHome))
     : mine;
   let keep = segs
     .filter((d) => !mine.includes(d))
@@ -288,10 +291,11 @@ const LLAMA = {
 };
 const origin = `http://127.0.0.1:${LLAMA.gateway}`;
 const KEY = "sk-local";
-// Parent variables that would point a harness at a real home, account or provider are never passed to a cell.
+// Parent variables that would point a harness at a real home, store, account or provider are never
+// passed to a cell: the store overrides src/detect.ts honours, and each harness's own prefix.
 // The match ignores case because Windows variable names do.
 const LEAKY =
-  /^(XDG_\w+|AWS_\w+|\w+_API_KEY|\w+_API_BASE|\w+_BASE_URL|\w+_TOKEN|GOOGLE_APPLICATION_CREDENTIALS|CLAUDE_CONFIG_DIR|CODEX_HOME|DSH_\w+|HERMES_\w+|JCODE_\w+|KIMI_\w+|GOOSE_\w+|PRIME_AGENT_\w+|GROK_\w+|CURSOR_CONFIG_DIR|MIMOCODE_\w+|MIMO_\w+|UV_INSTALL_DIR|UV_UNMANAGED_INSTALL)$/i;
+  /^(XDG_\w+|AWS_\w+|\w+_API_KEY|\w+_API_BASE|\w+_BASE_URL|\w+_TOKEN|\w+_(CONFIG|DATA|SESSIONS?|SESSION_DATA|CODING_AGENT|AGENT)_DIR|GOOGLE_APPLICATION_CREDENTIALS|CODEX_HOME|OPENCLAW_DIR|CLINE_\w+|CODEBUDDY_\w+|COPILOT_\w+|DSH_\w+|GJC_\w+|GOOSE_\w+|GROK_\w+|HERMES_\w+|JCODE_\w+|KILO_\w+|KIMI_\w+|MIMOCODE_\w+|MIMO_\w+|OPENCODE_\w+|PRIME_AGENT_\w+|QWEN_\w+|REASONIX_\w+|UV_INSTALL_DIR|UV_UNMANAGED_INSTALL)$/i;
 const cleanEnv = () =>
   Object.fromEntries(Object.entries(process.env).filter(([k]) => !LEAKY.test(k)));
 // Turns and probes get a temp dir under --out, so nothing they leave lands in the operator's temp.
@@ -410,7 +414,7 @@ const spawnedAt = (pid, what) => {
   if (t) return t;
   killTree(pid);
   return fail(
-    `env: cannot read the ${what}'s start time (needs ${OS === "windows" ? "PowerShell" : "ps"})`,
+    `env: cannot read the ${what}'s start time: it exited at once or ${OS === "windows" ? "PowerShell" : "ps"} failed, see the ${what} log`,
   );
 };
 const ours = (s, k) =>
@@ -562,11 +566,11 @@ async function env() {
   srv.unref();
   saveState({
     serverPid: srv.pid,
-    serverStart: srv.pid && spawnedAt(srv.pid, "server"),
     os: OS,
     target,
     llama: { ...LLAMA, asset: undefined, flags: flags.slice(2) },
   });
+  saveState({ serverStart: srv.pid && spawnedAt(srv.pid, "server") });
   if (!(await waitFor(`http://127.0.0.1:${LLAMA.port}/health`, 300, srv)))
     fail("llama-server exited or was not healthy after 300 s, see llama-server.txt");
   const gw = spawn(
@@ -589,10 +593,8 @@ async function env() {
   );
   gw.on("error", (e) => (gw.spawnError = e));
   gw.unref();
-  saveState({
-    gatewayPid: gw.pid,
-    gatewayStart: gw.pid && spawnedAt(gw.pid, "gateway"),
-  });
+  saveState({ gatewayPid: gw.pid });
+  saveState({ gatewayStart: gw.pid && spawnedAt(gw.pid, "gateway") });
   if (!(await waitFor(`${origin}/v1/models`, 60, gw)))
     fail("gateway exited or was not answering after 60 s, see gateway-stderr.txt");
   // Two turns with a shared prefix: turn two must report more cached prompt tokens than turn one.
@@ -666,14 +668,27 @@ const which = (bin) => {
   const p = sh(OS === "windows" ? "where" : "which", [bin], { noShell: true })
     .stdout?.split(/\r?\n/)[0]
     ?.trim();
-  return p &&
-    resolve(p)
-      .toLowerCase()
-      .startsWith(resolve(cache).toLowerCase() + sep)
-    ? p
-    : null;
+  return p && under(p, cache) ? p : null;
 };
 const binOf = (c) => (Array.isArray(c.first) ? c.first[0] : null);
+const INSTALL_LIMIT = 900;
+// spawnSync's timeout kills only its child, so on Linux and macOS the installer runs as the leader of
+// its own process group and the whole group goes when it ends or times out; Windows reaps what the
+// install started from the cache. Exit 124 means the limit was hit, as with timeout(1).
+const GROUP = `const [s, c, ...a] = process.argv.slice(1);
+const p = require("child_process").spawn(c, a, { stdio: "inherit", detached: true });
+const k = () => { try { process.kill(-p.pid, "SIGKILL"); } catch {} };
+const t = setTimeout(() => { k(); process.exit(124); }, s * 1000);
+p.on("error", () => process.exit(127));
+p.on("exit", (code) => { clearTimeout(t); k(); process.exit(code ?? 137); });`;
+const installSh = (cmd, a, o) => {
+  if (OS !== "windows")
+    return sh(process.execPath, ["-e", GROUP, String(INSTALL_LIMIT), cmd, ...a], o);
+  const t0 = new Date();
+  const r = sh(cmd, a, { ...o, timeout: INSTALL_LIMIT * 1000 });
+  reapSince(t0, [cache]);
+  return r.error?.code === "ETIMEDOUT" ? { ...r, status: 124 } : r;
+};
 function install() {
   mkdirSync(out, { recursive: true });
   const harnesses = [...new Set(cells.filter((x) => x.plan === "run").map((x) => x.harness))];
@@ -703,13 +718,16 @@ function install() {
         : [];
     const before = new Set(plists());
     // pnpm 10+ skips build scripts unless allowed; claude, opencode and kimchi fetch their binary in one.
+    const extra = Object.fromEntries(
+      Object.entries(how?.env ?? {}).map(([k, v]) => [
+        k,
+        fill(v, { home: scriptHome.replaceAll("\\", "/") }),
+      ]),
+    );
     if (how?.pnpm)
-      r = sh("pnpm", ["add", "-g", `--allow-build=${how.pnpm}`, how.pnpm], {
-        env,
-        timeout: 900000,
-      });
+      r = installSh("pnpm", ["add", "-g", `--allow-build=${how.pnpm}`, how.pnpm], { env });
     else if (how?.uv)
-      r = sh(
+      r = installSh(
         "uv",
         [
           "tool",
@@ -719,7 +737,7 @@ function install() {
           ...(how.with ?? []).flatMap((w) => ["--with", w]),
           how.uv,
         ],
-        { env, timeout: 900000 },
+        { env },
       );
     else if (how?.ps1 && OS === "windows") {
       const temp = join(scriptHome, "AppData", "Local", "Temp");
@@ -728,12 +746,7 @@ function install() {
         ...Object.fromEntries(Object.entries(env).filter(([k]) => k.toUpperCase() !== "PATH")),
         TEMP: temp,
         TMP: temp,
-        ...Object.fromEntries(
-          Object.entries(how.env ?? {}).map(([k, v]) => [
-            k,
-            fill(v, { home: scriptHome.replaceAll("\\", "/") }),
-          ]),
-        ),
+        ...extra,
         RECAPTURE_PS1: how.ps1,
         PATH: installerPath(),
       };
@@ -753,8 +766,7 @@ function install() {
           }),
         );
         renameSync(`${pathBeforeFile}.tmp`, pathBeforeFile);
-        const t0 = new Date();
-        r = sh(
+        r = installSh(
           "powershell",
           [
             "-NoProfile",
@@ -763,32 +775,18 @@ function install() {
             "-Command",
             `[Net.ServicePointManager]::SecurityProtocol = [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12; $ProgressPreference = "SilentlyContinue"; & ([scriptblock]::Create((irm $env:RECAPTURE_PS1))) ${(how.args ?? []).map((a) => (/^-\w+$/.test(a) ? a : `'${a.replace(/['\u2018\u2019\u201A\u201B]/g, (q) => q + q)}'`)).join(" ")}`,
           ],
-          {
-            noShell: true,
-            timeout: 900000,
-            cwd: scriptHome,
-            env: ienv,
-          },
+          { noShell: true, cwd: scriptHome, env: ienv },
         );
-        reapSince(t0, [cache]);
         if (moveVendorPath(id, pathBefore, ienv, true)) rmSync(pathBeforeFile, { force: true });
       }
     } else if (how?.script && OS !== "windows")
-      r = sh(
+      r = installSh(
         "bash",
         [
           "-c",
           `set -o pipefail; curl -fsSL ${how.script} | bash -s -- ${(how.args ?? []).join(" ")}`,
         ],
-        {
-          timeout: 900000,
-          env: {
-            ...env,
-            ...Object.fromEntries(
-              Object.entries(how.env ?? {}).map(([k, v]) => [k, fill(v, { home: scriptHome })]),
-            ),
-          },
-        },
+        { env: { ...env, ...extra } },
       );
     // launchd is per user, not per HOME: jcode's installer bootstraps a hotkey LaunchAgent from the
     // script home into the real login session. Unload only a job this install wrote and launchd
@@ -802,7 +800,10 @@ function install() {
           sh("launchctl", ["bootout", `gui/${userInfo().uid}/${label}`]);
       }
     toolPath();
-    if (r && r.status !== 0) say(`install ${id}: exit ${r.status}`);
+    if (r && r.status !== 0)
+      say(
+        `install ${id}: ${r.status === 124 ? `timed out after ${INSTALL_LIMIT} s` : `exit ${r.status}`}`,
+      );
     const path = bin && which(bin);
     const v = path ? versionOf(bin, manifest.harnesses[id]) : null;
     lines.push(
@@ -960,25 +961,30 @@ const spellings = (p) => {
   const all = [p, fwd, msys, p.replaceAll("\\", "\\\\")];
   return [...new Set([...all, ...all.map((x) => x.replace(/^[A-Z]:/, (d) => d.toLowerCase()))])];
 };
-// The origin remote's host, when it is a proxy or mirror rather than the public forge.
-const remoteHost = /^https?:\/\/(?:[^@/]+@)?([^/]+)/
-  .exec(
-    sh("git", ["-C", root, "remote", "get-url", "origin"], { noShell: true }).stdout?.trim() ?? "",
-  )?.[1]
-  ?.replace(/^github\.com$/, "");
+// The origin remote's host (https or scp-style), when it is a proxy or mirror rather than the public forge.
+let remoteHost;
+const originHost = () =>
+  (remoteHost ??=
+    /^(?:https?:\/\/(?:[^@/]+@)?|[^@/:]+@)([^/:]+)/
+      .exec(
+        sh("git", ["-C", root, "remote", "get-url", "origin"], { noShell: true }).stdout?.trim() ??
+          "",
+      )?.[1]
+      ?.replace(/^github\.com$/, "") ?? "");
 const scan = (home, cwd, paths) => {
   const needles = [
-    ["username", [userInfo().username]],
+    // A username that is a common store word ("user" in every chat role) would match everything.
+    ["username", [userInfo().username].filter((u) => !["user", "root", "admin"].includes(u))],
     ["hostname", [hostname()]],
     ["home-path", spellings(userInfo().homedir)],
     ["cell-home", spellings(home)],
     ["cell-cwd", [...spellings(cwd), slug(cwd)]],
     ["dummy-key", [KEY, "local-only-placeholder"]],
-    ["git-remote", [remoteHost]],
+    ["git-remote", [originHost()]],
   ].map(([k, v]) => [k, v.filter((n) => n && n.length > 2)]);
   const hits = new Set();
   for (const f of paths) {
-    const text = `${f}\n${readFileSync(join(home, f)).toString("latin1")}`;
+    const text = `${f}\n${readFileSync(join(home, f), "utf8")}`;
     for (const [k, v] of needles) if (v.some((n) => text.includes(n))) hits.add(k);
     if (/\b[A-Z0-9]{1,6}~\d\b/.test(text)) hits.add("8.3-alias");
   }
@@ -1019,13 +1025,12 @@ const versionOf = (bin, h) => {
     ...tempEnv(join(out, "tmp")),
     ...Object.fromEntries(homes),
     ...(OS === "windows" ? { PYTHONUTF8: "1", PYTHONIOENCODING: "utf-8" } : {}),
-    PATH: process.env.PATH,
   };
   // A native .exe is probed directly, so a timeout kills the CLI rather than only cmd.exe.
   const exe = OS === "windows" && winExe(bin, env);
   const t0 = new Date();
   const r = sh(exe || bin, ["--version"], { timeout: 25000, env, noShell: !!exe });
-  if (OS === "windows") reapSince(t0, [cache]);
+  if (OS === "windows") reapSince(t0, [cache, out]);
   // A failure is not cached, so a first launch slowed by a virus scan is probed again.
   if (r.status === 0) versions.set(bin, r);
   return r;
