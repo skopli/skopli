@@ -1,0 +1,11 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "provider": {
+    "llama": {
+      "npm": "@ai-sdk/openai-compatible",
+      "name": "llama",
+      "options": { "baseURL": "{origin}/v1", "apiKey": "sk-local" },
+      "models": { "qwen": { "name": "qwen" } }
+    }
+  }
+}

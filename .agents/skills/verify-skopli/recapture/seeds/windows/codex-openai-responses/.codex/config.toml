@@ -1,0 +1,7 @@
+model = "qwen"
+model_provider = "llama"
+[model_providers.llama]
+name = "llama"
+base_url = "{origin}/v1"
+env_key = "LLAMA_API_KEY"
+wire_api = "responses"

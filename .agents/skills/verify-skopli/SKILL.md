@@ -189,16 +189,19 @@ It checks every input in a small finite domain against the documented promises a
 
 ## Helpers
 
-| Script                  | Invocation                                                                          | Purpose                                                               |
-| ----------------------- | ----------------------------------------------------------------------------------- | --------------------------------------------------------------------- |
-| `scripts/launch.sh`     | `bash .agents/skills/verify-skopli/scripts/launch.sh`                               | build everything, serve both sites, write `state.sh`                  |
-| `scripts/doctor.sh`     | `bash .agents/skills/verify-skopli/scripts/doctor.sh`                               | read-only health check, exit `0` when worth driving                   |
-| `scripts/browser.mjs`   | `node .agents/skills/verify-skopli/scripts/browser.mjs --out <dir> <steps>`         | headless Chromium step runner with transcript, screenshots and bodies |
-| `scripts/golden.mjs`    | `node .agents/skills/verify-skopli/scripts/golden.mjs <harness>/<case> --out <dir>` | replay a golden case through the facade and compare                   |
-| `scripts/home.mjs`      | `node .agents/skills/verify-skopli/scripts/home.mjs <home-dir> --out <dir>`         | detect and read an arbitrary home directory through the facade        |
-| `scripts/gateway.ts`    | `node .agents/skills/verify-skopli/scripts/gateway.ts --port <n> --upstream <url>`  | usage-rewriting proxy in front of a local `llama-server` for captures |
-| `scripts/reconcile.mjs` | `node .agents/skills/verify-skopli/scripts/reconcile.mjs <home> <harness> <log>`    | compare a captured home's totals with the gateway log                 |
-| `scripts/promote.mjs`   | `node .agents/skills/verify-skopli/scripts/promote.mjs <home> <harness>/<case> ...` | redact and copy a capture into a golden case and regenerate expected  |
-| `scripts/cleanup.sh`    | `bash .agents/skills/verify-skopli/scripts/cleanup.sh`                              | stop the servers by PID, keep evidence                                |
+| Script                  | Invocation                                                                          | Purpose                                                                |
+| ----------------------- | ----------------------------------------------------------------------------------- | ---------------------------------------------------------------------- |
+| `scripts/launch.sh`     | `bash .agents/skills/verify-skopli/scripts/launch.sh`                               | build everything, serve both sites, write `state.sh`                   |
+| `scripts/doctor.sh`     | `bash .agents/skills/verify-skopli/scripts/doctor.sh`                               | read-only health check, exit `0` when worth driving                    |
+| `scripts/browser.mjs`   | `node .agents/skills/verify-skopli/scripts/browser.mjs --out <dir> <steps>`         | headless Chromium step runner with transcript, screenshots and bodies  |
+| `scripts/golden.mjs`    | `node .agents/skills/verify-skopli/scripts/golden.mjs <harness>/<case> --out <dir>` | replay a golden case through the facade and compare                    |
+| `scripts/home.mjs`      | `node .agents/skills/verify-skopli/scripts/home.mjs <home-dir> --out <dir>`         | detect and read an arbitrary home directory through the facade         |
+| `scripts/gateway.ts`    | `node .agents/skills/verify-skopli/scripts/gateway.ts --port <n> --upstream <url>`  | usage-rewriting proxy in front of a local `llama-server` for captures  |
+| `scripts/reconcile.mjs` | `node .agents/skills/verify-skopli/scripts/reconcile.mjs <home> <harness> <log>`    | compare a captured home's totals with the gateway log                  |
+| `scripts/promote.mjs`   | `node .agents/skills/verify-skopli/scripts/promote.mjs <home> <harness>/<case> ...` | redact and copy a capture into a golden case and regenerate expected   |
+| `scripts/cleanup.sh`    | `bash .agents/skills/verify-skopli/scripts/cleanup.sh`                              | stop the servers by PID, keep evidence                                 |
+| `scripts/recapture.mjs` | `node .agents/skills/verify-skopli/scripts/recapture.mjs all --out <dir>`           | rerun the harness matrix and report drift, see `features/recapture.md` |
+| `scripts/os-home.sh`    | `eval "$(bash .agents/skills/verify-skopli/scripts/os-home.sh <cell-home>)"`        | point a harness at an isolated home on Linux, macOS or Windows         |
 
-The scripts are executable and run on Linux only: they depend on `bash`, `curl`, `ss`, `/proc`, `git`, Node 24 and the repository's dev dependencies.
+Run by hand, the scripts other than `os-home.sh` and `recapture.mjs` work on Linux only, and they depend on `bash`, `curl`, `ss`, `/proc`, `git`, Node 24 and the repository's dev dependencies.
+`recapture.mjs` also runs `gateway.ts`, `home.mjs` and `reconcile.mjs` on macOS and Windows.

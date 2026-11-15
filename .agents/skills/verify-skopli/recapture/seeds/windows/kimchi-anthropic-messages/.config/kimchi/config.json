@@ -1,0 +1,4 @@
+{
+  "skillPaths": [".config\\kimchi\\harness\\skills", ".pi\\agent\\skills", ".claude\\skills"],
+  "migrationState": "done"
+}

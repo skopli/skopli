@@ -1,0 +1,10 @@
+{
+  "providers": {
+    "llama": {
+      "api": "anthropic-messages",
+      "baseURL": "{origin}",
+      "apiKey": false,
+      "models": { "qwen": { "name": "qwen", "contextWindow": 32768, "maxOutput": 2048 } }
+    }
+  }
+}

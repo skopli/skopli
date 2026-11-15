@@ -1,0 +1,20 @@
+{
+  "providers": {
+    "llama": {
+      "baseUrl": "{origin}/v1",
+      "api": "openai-completions",
+      "apiKey": "sk-local",
+      "models": [
+        {
+          "id": "qwen",
+          "name": "qwen",
+          "reasoning": false,
+          "input": ["text"],
+          "cost": { "input": 0, "output": 0, "cacheRead": 0, "cacheWrite": 0 },
+          "contextWindow": 32768,
+          "maxTokens": 1024
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "provider": "local",
+  "providers": {
+    "local": {
+      "protocol": "openai-chat-completions",
+      "base_url": "{origin}/v1",
+      "auth": { "type": "none" },
+      "model_metadata": {
+        "qwen": { "context_window": 32768, "max_output_tokens": 1024, "supports_tool_use": true }
+      }
+    }
+  },
+  "models": { "local": "qwen" }
+}

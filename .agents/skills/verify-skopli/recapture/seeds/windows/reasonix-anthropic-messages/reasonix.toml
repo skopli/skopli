@@ -1,0 +1,7 @@
+[[providers]]
+name = "llama"
+kind = "anthropic"
+base_url = "{origin}"
+model = "qwen"
+api_key_env = "LLAMA_API_KEY"
+models = ["qwen"]

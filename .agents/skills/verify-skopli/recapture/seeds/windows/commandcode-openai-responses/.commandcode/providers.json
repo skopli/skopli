@@ -1,0 +1,10 @@
+{
+  "providers": {
+    "llama": {
+      "api": "openai-responses",
+      "baseURL": "{origin}/v1",
+      "apiKey": false,
+      "models": { "qwen": { "name": "qwen", "contextWindow": 32768, "maxOutput": 2048 } }
+    }
+  }
+}

@@ -1,0 +1,16 @@
+- id: llm-pi-ai
+  config:
+    providers:
+      llama:
+        displayName: llama
+        apiKeyEnv: LLAMA_API_KEY
+        api: anthropic-messages
+        baseURL: {origin}
+        models:
+          - id: qwen
+            name: qwen
+            contextWindow: 32768
+- id: agent-default-model
+  config:
+    provider: llama
+    model: qwen

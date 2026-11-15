@@ -1,0 +1,9 @@
+default_model = "llama/qwen"
+[providers.llama]
+type = "anthropic"
+base_url = "{origin}"
+api_key = "sk-local"
+[models."llama/qwen"]
+provider = "llama"
+model = "qwen"
+max_context_size = 32768

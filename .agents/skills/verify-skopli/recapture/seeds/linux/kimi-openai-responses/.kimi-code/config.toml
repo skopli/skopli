@@ -1,0 +1,14 @@
+default_model = "llama/qwen"
+default_permission_mode = "auto"
+telemetry = false
+
+[providers."llama"]
+type = "openai_responses"
+base_url = "{origin}/v1"
+api_key = "sk-local"
+
+[models."llama/qwen"]
+provider = "llama"
+model = "qwen"
+max_context_size = 32768
+capabilities = ["tool_use"]
