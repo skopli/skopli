@@ -19,7 +19,7 @@ import { connect } from "node:net";
 import { hostname, platform, userInfo } from "node:os";
 import { Readable } from "node:stream";
 import { pipeline } from "node:stream/promises";
-import { delimiter, dirname, join, relative, resolve } from "node:path";
+import { delimiter, dirname, join, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { parseArgs } from "./cli.mjs";
 
@@ -103,6 +103,20 @@ const vendorPath = () => {
 // home are moved out (into vendor-path.json, put on PATH for turns), before and after each install,
 // so an interrupted install is undone by the next and edits made meanwhile are kept. The kind read
 // before the install is written back, in case the installer turned REG_EXPAND_SZ into REG_SZ.
+// Vendor installers scan PATH (kimi's migrates kimi shims it finds there, mimo's skips the install
+// when a mimo already runs), so they see only the cache dirs, System32 and Git.
+const installerPath = () => {
+  const sys = join(process.env.SystemRoot ?? process.env.windir ?? "", "System32");
+  const root = resolve(cache).toLowerCase() + sep;
+  return [
+    ...process.env.PATH.split(delimiter).filter((d) => resolve(d).toLowerCase().startsWith(root)),
+    sys,
+    join(sys, "Wbem"),
+    join(sys, "WindowsPowerShell", "v1.0"),
+    join(sys, "OpenSSH"),
+    dirname(BASH),
+  ].join(delimiter);
+};
 const moveVendorPath = (id, kind) => {
   const cur = readUserPath();
   if (!cur) {
@@ -202,7 +216,7 @@ const origin = `http://127.0.0.1:${LLAMA.gateway}`;
 const KEY = "sk-local";
 // Parent variables that would point a harness at a real home, account or provider are never passed to a cell.
 const LEAKY =
-  /^(XDG_\w+|AWS_\w+|\w+_API_KEY|\w+_API_BASE|\w+_BASE_URL|\w+_TOKEN|GOOGLE_APPLICATION_CREDENTIALS|CLAUDE_CONFIG_DIR|CODEX_HOME|DSH_HOME|HERMES_HOME|JCODE_HOME|KIMI_\w+|GOOSE_\w+|PRIME_AGENT_\w+|GROK_\w+|CURSOR_CONFIG_DIR)$/;
+  /^(XDG_\w+|AWS_\w+|\w+_API_KEY|\w+_API_BASE|\w+_BASE_URL|\w+_TOKEN|GOOGLE_APPLICATION_CREDENTIALS|CLAUDE_CONFIG_DIR|CODEX_HOME|DSH_HOME|HERMES_\w+|JCODE_HOME|KIMI_\w+|GOOSE_\w+|PRIME_AGENT_\w+|GROK_\w+|CURSOR_CONFIG_DIR)$/;
 const cleanEnv = () =>
   Object.fromEntries(Object.entries(process.env).filter(([k]) => !LEAKY.test(k)));
 
@@ -590,9 +604,14 @@ function install() {
           "-ExecutionPolicy",
           "Bypass",
           "-Command",
-          `$ProgressPreference = "SilentlyContinue"; & ([scriptblock]::Create((irm '${how.ps1}'))) ${(how.args ?? []).join(" ")}`,
+          `$ProgressPreference = "SilentlyContinue"; & ([scriptblock]::Create((irm $env:RECAPTURE_PS1))) ${(how.args ?? []).join(" ")}`,
         ],
-        { noShell: true, timeout: 900000, cwd: scriptHome, env: { ...env, ...how.env } },
+        {
+          noShell: true,
+          timeout: 900000,
+          cwd: scriptHome,
+          env: { ...env, ...how.env, RECAPTURE_PS1: how.ps1, PATH: installerPath() },
+        },
       );
       moveVendorPath(id, pathBefore?.kind);
     } else if (how?.script && OS !== "windows")
@@ -848,19 +867,16 @@ const versionOf = (bin, h) => {
     .flatMap((s) => Object.entries(s.env ?? {}))
     .filter(([k]) => k.endsWith("_HOME"))
     .map(([k, v]) => [k, fill(v, { home: scriptHome.replaceAll("\\", "/") })]);
+  const env = {
+    ...cleanEnv(),
+    ...homeEnv(scriptHome),
+    ...Object.fromEntries(homes),
+    PATH: process.env.PATH,
+  };
+  // A native .exe is probed directly, so a timeout kills the CLI rather than only cmd.exe.
+  const exe = OS === "windows" && winExe(bin, env);
   if (!versions.has(bin))
-    versions.set(
-      bin,
-      sh(bin, ["--version"], {
-        timeout: 25000,
-        env: {
-          ...cleanEnv(),
-          ...homeEnv(scriptHome),
-          ...Object.fromEntries(homes),
-          PATH: process.env.PATH,
-        },
-      }),
-    );
+    versions.set(bin, sh(exe || bin, ["--version"], { timeout: 25000, env, noShell: !!exe }));
   return versions.get(bin);
 };
 

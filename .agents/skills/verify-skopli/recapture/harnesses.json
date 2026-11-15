@@ -1074,7 +1074,12 @@
       "install": {
         "script": "https://code.kimi.com/kimi-code/install.sh"
       },
-      "installOs": { "windows": { "ps1": "https://code.kimi.com/kimi-code/install.ps1" } },
+      "installOs": {
+        "windows": {
+          "ps1": "https://code.kimi.com/kimi-code/install.ps1",
+          "env": { "KIMI_NO_MODIFY_PATH": "1" }
+        }
+      },
       "store": [".kimi-code/projects", ".kimi-code/sessions"],
       "shapes": {
         "openai-chat": {
