@@ -5,7 +5,7 @@
         displayName: llama
         apiKeyEnv: LLAMA_API_KEY
         api: anthropic-messages
-        baseURL: { origin }
+        baseURL: {origin}
         models:
           - id: qwen
             name: qwen
