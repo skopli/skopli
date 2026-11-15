@@ -145,7 +145,7 @@ const moveVendorPath = (id, before, ienv = {}, post = false) => {
   // Empty segments (the stock value ends in ";") are kept, so an untouched value is not rewritten.
   const segs = (cur.raw ?? "").split(";");
   const mine = segs.filter(
-    (d) => d.trim() && !spelling.has(norm(d)) && resolve(norm(d)).startsWith(root),
+    (d) => d.trim() && !spelling.has(norm(d)) && resolve(norm(expand(d, lower))).startsWith(root),
   );
   const keep = segs
     .filter((d) => !mine.includes(d))
@@ -164,7 +164,10 @@ const moveVendorPath = (id, before, ienv = {}, post = false) => {
     writeFileSync(
       `${vendorFile}.tmp`,
       JSON.stringify([
-        ...new Set([...vendorPath(), ...mine.map((d) => d.trim().replace(/^"|"$/g, ""))]),
+        ...new Set([
+          ...vendorPath(),
+          ...mine.map((d) => expand(d, lower).trim().replace(/^"|"$/g, "")),
+        ]),
       ]),
     );
     renameSync(`${vendorFile}.tmp`, vendorFile);
@@ -255,7 +258,7 @@ const origin = `http://127.0.0.1:${LLAMA.gateway}`;
 const KEY = "sk-local";
 // Parent variables that would point a harness at a real home, account or provider are never passed to a cell.
 const LEAKY =
-  /^(XDG_\w+|AWS_\w+|\w+_API_KEY|\w+_API_BASE|\w+_BASE_URL|\w+_TOKEN|GOOGLE_APPLICATION_CREDENTIALS|CLAUDE_CONFIG_DIR|CODEX_HOME|DSH_HOME|HERMES_\w+|JCODE_HOME|KIMI_\w+|GOOSE_\w+|PRIME_AGENT_\w+|GROK_\w+|CURSOR_CONFIG_DIR)$/;
+  /^(XDG_\w+|AWS_\w+|\w+_API_KEY|\w+_API_BASE|\w+_BASE_URL|\w+_TOKEN|GOOGLE_APPLICATION_CREDENTIALS|CLAUDE_CONFIG_DIR|CODEX_HOME|DSH_HOME|HERMES_\w+|JCODE_HOME|KIMI_\w+|GOOSE_\w+|PRIME_AGENT_\w+|GROK_\w+|CURSOR_CONFIG_DIR|MIMOCODE_\w+|MIMO_\w+|UV_INSTALL_DIR|UV_UNMANAGED_INSTALL)$/;
 const cleanEnv = () =>
   Object.fromEntries(Object.entries(process.env).filter(([k]) => !LEAKY.test(k)));
 
@@ -646,7 +649,10 @@ function install() {
       const temp = join(scriptHome, "AppData", "Local", "Temp");
       mkdirSync(temp, { recursive: true });
       const ienv = {
-        ...Object.fromEntries(Object.entries(env).filter(([k]) => k.toUpperCase() !== "PATH")),
+        // mimocode's installer reads a generic VERSION as a version pin.
+        ...Object.fromEntries(
+          Object.entries(env).filter(([k]) => !["PATH", "VERSION"].includes(k.toUpperCase())),
+        ),
         TEMP: temp,
         TMP: temp,
         ...Object.fromEntries(
@@ -776,7 +782,7 @@ const CONFIG = {
 // On Windows the helper needs Git Bash; a bare "bash" can resolve to the WSL launcher in System32,
 // which would report Linux paths. Git for Windows' bash.exe is found above git's own directories.
 const BASH =
-  OS === "windows"
+  HOST === "windows"
     ? ([
         spawnSync("git", ["--exec-path"], { encoding: "utf8" }).stdout,
         ...(spawnSync("where", ["git"], { encoding: "utf8" }).stdout?.split(/\r?\n/) ?? []),
