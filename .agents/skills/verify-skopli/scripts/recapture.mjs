@@ -528,7 +528,13 @@ function install() {
         { noShell: true, timeout: 900000, cwd: scriptHome, env: { ...env, ...how.env } },
       );
     else if (how?.script && OS !== "windows")
-      r = sh("bash", ["-c", `curl -fsSL ${how.script} | bash`], { env: { ...env, ...how.env } });
+      r = sh(
+        "bash",
+        ["-c", `curl -fsSL ${how.script} | bash -s -- ${(how.args ?? []).join(" ")}`],
+        {
+          env: { ...env, ...how.env },
+        },
+      );
     // launchd is per user, not per HOME: jcode's installer bootstraps a hotkey LaunchAgent from the
     // script home into the real login session. Unload only a job this install wrote and launchd
     // loaded from that plist, so an operator's own agent under the same label stays.
