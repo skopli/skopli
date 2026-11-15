@@ -130,21 +130,32 @@ Drift kinds and their lanes:
 
 ### Spawning the scheduled run
 
-Launch one cloud session per OS that clones `skopli/skopli`; it needs no attachments and no secrets.
-The brief, with `<os>` set to `linux`, `darwin` or `windows`:
+This section is the contract a scheduling orchestrator reads; it is the only place the platform list and the worker brief live.
+The orchestrator runs this section on a cadence (every three weeks is the intended one), launches one cloud worker per platform from current `main`, and never runs the matrix itself.
+Workers need no attachments and no secrets.
+
+```text
+platforms: linux, darwin, windows
+```
+
+The worker brief, with `<os>` set to the platform:
 
 ```text
 Run the Skopli harness recapture on <os>.
-Clone skopli/skopli, then run:
+Clone skopli/skopli at main; read CONTRIBUTING.md, .agents/skills/verify-skopli/SKILL.md and .agents/skills/verify-skopli/features/recapture.md before acting.
+Run:
   node .agents/skills/verify-skopli/scripts/recapture.mjs all --out .verify/recapture/<utc-stamp> --baseline <previous run directory if you have it>
-Attach the .tgz the package step prints and matrix.<os>.md to your final report.
-Exit 0: report no drift and stop.
-Exit 1: read the failing step's stderr, fix the environment, and rerun the same command with --resume.
-Exit 3: read drift.json and follow the lanes in .agents/skills/verify-skopli/features/recapture.md.
-Treat a mechanical finding as such only when reconcile is exact after the change; open a separate PR for it.
-Treat everything else as decision drift: open a draft PR or issue with the evidence, do not merge, and escalate.
-Never rewrite a golden case only to make a check pass.
 Run cells one at a time; never kill processes by name.
+Attach the .tgz the package step prints and matrix.<os>.md to your final report; publish nothing unredacted (homes, credentials, machine paths, auth-gated URLs).
+Exit 0: report no drift, open no PR, and stop.
+Exit 1: read the failing step's stderr, fix the environment, and rerun the same command with --resume; open a focused runner PR only if repository code must change.
+Exit 3: read drift.json and follow the three lanes above.
+  Mechanical drift: change only the required reader, core behaviour, runner, seed or golden case; prove exact reconciliation; run pnpm run check; converge review on this VM with local subagents (never a new cloud session); settle CI; merge only if branch protection permits.
+  Decision drift: open a draft PR or issue with the evidence, do not merge, and escalate.
+Never rewrite a golden case only to make a check pass.
+Keep generated runs, models, binaries, caches, isolated homes and node_modules out of git.
+Fix minor issues autonomously; stop only for a product decision, a security concern or an unsafe blocker.
+End with: exit code, cell counts by reason, cache-rise result, exact reconciliation examples, drift entries by lane, PR or issue links, review and CI results, and anything left unverified.
 ```
 
 ### Per-harness reference
