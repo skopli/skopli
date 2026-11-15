@@ -623,20 +623,28 @@ function install() {
         { env },
       );
     else if (how?.ps1 && OS === "windows") {
+      const temp = join(scriptHome, "AppData", "Local", "Temp");
+      mkdirSync(temp, { recursive: true });
       const ienv = {
         ...Object.fromEntries(Object.entries(env).filter(([k]) => k.toUpperCase() !== "PATH")),
+        TEMP: temp,
+        TMP: temp,
         ...how.env,
         RECAPTURE_PS1: how.ps1,
         PATH: installerPath(),
       };
-      const saved = existsSync(pathBeforeFile) && JSON.parse(readFileSync(pathBeforeFile, "utf8"));
+      const saved = readJson(pathBeforeFile, null);
       const pathBefore = saved
         ? moveVendorPath(id, saved, ienv) && saved
         : moveVendorPath(id, null);
       if (!pathBefore) {
         console.error(`install ${id}: skipped, the user PATH could not be read or restored`);
       } else {
-        if (!saved) writeFileSync(pathBeforeFile, JSON.stringify(pathBefore));
+        if (!saved) {
+          writeFileSync(`${pathBeforeFile}.tmp`, JSON.stringify(pathBefore));
+          renameSync(`${pathBeforeFile}.tmp`, pathBeforeFile);
+        }
+        const t0 = new Date();
         r = sh(
           "powershell",
           [
@@ -644,7 +652,7 @@ function install() {
             "-ExecutionPolicy",
             "Bypass",
             "-Command",
-            `$ProgressPreference = "SilentlyContinue"; & ([scriptblock]::Create((irm $env:RECAPTURE_PS1))) ${(how.args ?? []).map((a) => (a.startsWith("-") ? a : `'${a.replaceAll("'", "''")}'`)).join(" ")}`,
+            `$ProgressPreference = "SilentlyContinue"; & ([scriptblock]::Create((irm $env:RECAPTURE_PS1))) ${(how.args ?? []).map((a) => (/^-w+$/.test(a) ? a : `'${a.replaceAll("'", "''")}'`)).join(" ")}`,
           ],
           {
             noShell: true,
@@ -653,6 +661,7 @@ function install() {
             env: ienv,
           },
         );
+        reapSince(t0, [cache]);
         if (moveVendorPath(id, pathBefore, ienv)) rmSync(pathBeforeFile, { force: true });
       }
     } else if (how?.script && OS !== "windows")
@@ -904,6 +913,7 @@ const alive = async (s) => {
 const versions = new Map();
 // A CLI that ignores USERPROFILE (jcode) gets its manifest *_HOME pointed into the script home.
 const versionOf = (bin, h) => {
+  if (versions.has(bin)) return versions.get(bin);
   const homes = Object.values(h?.shapes ?? {})
     .flatMap((s) => Object.entries(s.env ?? {}))
     .filter(([k]) => k.endsWith("_HOME"))
@@ -917,8 +927,7 @@ const versionOf = (bin, h) => {
   };
   // A native .exe is probed directly, so a timeout kills the CLI rather than only cmd.exe.
   const exe = OS === "windows" && winExe(bin, env);
-  if (!versions.has(bin))
-    versions.set(bin, sh(exe || bin, ["--version"], { timeout: 25000, env, noShell: !!exe }));
+  versions.set(bin, sh(exe || bin, ["--version"], { timeout: 25000, env, noShell: !!exe }));
   return versions.get(bin);
 };
 
