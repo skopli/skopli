@@ -115,13 +115,13 @@ const installerPath = () => {
     join(sys, "Wbem"),
     join(sys, "WindowsPowerShell", "v1.0"),
     join(sys, "OpenSSH"),
-    dirname(BASH),
+    ...(BASH === "bash" ? [] : [dirname(BASH)]),
   ].join(delimiter);
 };
 // Installers rewrite the whole value read through .NET, which expands %VAR% with the script-home
 // USERPROFILE, so after an install each entry equal to an expansion of a pre-install entry gets its
 // raw spelling back, and only new entries under the script home count as the installer's.
-const moveVendorPath = (id, before, ienv = {}) => {
+const moveVendorPath = (id, before, ienv = {}, post = false) => {
   const cur = readUserPath();
   if (!cur) {
     console.error(`install ${id}: could not read the user PATH; check it for script-home entries`);
@@ -146,7 +146,7 @@ const moveVendorPath = (id, before, ienv = {}) => {
   const keep = entries
     .filter((d) => !mine.includes(d))
     .map((d) => spelling.get(d.toLowerCase()) ?? d);
-  const added = before ? keep.filter((d) => !spelling.has(d.toLowerCase())) : [];
+  const added = post ? keep.filter((d) => !spelling.has(d.toLowerCase())) : [];
   if (added.length)
     console.error(
       `install ${id}: left new user PATH entries outside the script home: ${added.join(";")}`,
@@ -652,7 +652,7 @@ function install() {
             "-ExecutionPolicy",
             "Bypass",
             "-Command",
-            `$ProgressPreference = "SilentlyContinue"; & ([scriptblock]::Create((irm $env:RECAPTURE_PS1))) ${(how.args ?? []).map((a) => (/^-w+$/.test(a) ? a : `'${a.replaceAll("'", "''")}'`)).join(" ")}`,
+            `$ProgressPreference = "SilentlyContinue"; & ([scriptblock]::Create((irm $env:RECAPTURE_PS1))) ${(how.args ?? []).map((a) => (/^-\w+$/.test(a) ? a : `'${a.replaceAll("'", "''")}'`)).join(" ")}`,
           ],
           {
             noShell: true,
@@ -662,7 +662,7 @@ function install() {
           },
         );
         reapSince(t0, [cache]);
-        if (moveVendorPath(id, pathBefore, ienv)) rmSync(pathBeforeFile, { force: true });
+        if (moveVendorPath(id, pathBefore, ienv, true)) rmSync(pathBeforeFile, { force: true });
       }
     } else if (how?.script && OS !== "windows")
       r = sh(
