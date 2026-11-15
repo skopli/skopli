@@ -92,9 +92,6 @@ const basePath = process.env.PATH;
 // Windows vendor installers append their bin dir to the user PATH in the registry; install() moves
 // the entries an installer added into this file and restores the operator's user PATH.
 const vendorFile = join(cache, "vendor-path.json");
-// The user PATH as it was before a ps1 installer, kept until it is restored, so an interrupted
-// install is undone by the next one.
-const userPathFile = join(cache, "user-path-before.json");
 const vendorPath = () => {
   try {
     return OS === "windows" ? JSON.parse(readFileSync(vendorFile, "utf8")) : [];
@@ -102,7 +99,34 @@ const vendorPath = () => {
     return [];
   }
 };
-// The raw value and its registry kind are restored as read, so %VAR% entries stay unexpanded;
+// A ps1 installer adds its bin dir to the operator's user PATH. Only the entries under the script
+// home are moved out (into vendor-path.json, put on PATH for turns), before and after each install,
+// so an interrupted install is undone by the next and edits made meanwhile are kept. The kind read
+// before the install is written back, in case the installer turned REG_EXPAND_SZ into REG_SZ.
+const moveVendorPath = (id, kind) => {
+  const cur = readUserPath();
+  if (!cur) {
+    console.error(`install ${id}: could not read the user PATH; check it for script-home entries`);
+    return null;
+  }
+  const root = `${resolve(scriptHome).toLowerCase()}\\`;
+  const raw = (cur.raw ?? "").split(";");
+  const mine = raw.filter((d) => d && resolve(d).toLowerCase().startsWith(root));
+  if (mine.length || (kind && kind !== cur.kind)) {
+    writeFileSync(`${vendorFile}.tmp`, JSON.stringify([...new Set([...vendorPath(), ...mine])]));
+    renameSync(`${vendorFile}.tmp`, vendorFile);
+    const keep = raw.filter((d) => !mine.includes(d));
+    if (
+      !restoreUserPath({
+        raw: cur.raw == null && !mine.length ? null : keep.join(";"),
+        kind: kind ?? cur.kind,
+      })
+    )
+      console.error(`install ${id}: could not remove ${mine.join(";")} from the user PATH`);
+  }
+  return cur;
+};
+// The raw value and its registry kind are written as given, so %VAR% entries stay unexpanded;
 // null means the read failed, and then nothing is moved or restored.
 const readUserPath = () => {
   const r = spawnSync(
@@ -178,7 +202,7 @@ const origin = `http://127.0.0.1:${LLAMA.gateway}`;
 const KEY = "sk-local";
 // Parent variables that would point a harness at a real home, account or provider are never passed to a cell.
 const LEAKY =
-  /^(XDG_\w+|AWS_\w+|\w+_API_KEY|\w+_API_BASE|\w+_BASE_URL|\w+_TOKEN|GOOGLE_APPLICATION_CREDENTIALS|CLAUDE_CONFIG_DIR|CODEX_HOME|HERMES_HOME|JCODE_HOME|KIMI_\w+|GOOSE_\w+|PRIME_AGENT_\w+|GROK_\w+|CURSOR_CONFIG_DIR)$/;
+  /^(XDG_\w+|AWS_\w+|\w+_API_KEY|\w+_API_BASE|\w+_BASE_URL|\w+_TOKEN|GOOGLE_APPLICATION_CREDENTIALS|CLAUDE_CONFIG_DIR|CODEX_HOME|DSH_HOME|HERMES_HOME|JCODE_HOME|KIMI_\w+|GOOSE_\w+|PRIME_AGENT_\w+|GROK_\w+|CURSOR_CONFIG_DIR)$/;
 const cleanEnv = () =>
   Object.fromEntries(Object.entries(process.env).filter(([k]) => !LEAKY.test(k)));
 
@@ -558,13 +582,7 @@ function install() {
         { env },
       );
     else if (how?.ps1 && OS === "windows") {
-      if (
-        existsSync(userPathFile) &&
-        restoreUserPath(JSON.parse(readFileSync(userPathFile, "utf8")))
-      )
-        rmSync(userPathFile, { force: true });
-      const pathBefore = readUserPath();
-      if (pathBefore) writeFileSync(userPathFile, JSON.stringify(pathBefore));
+      const pathBefore = moveVendorPath(id, null);
       r = sh(
         "powershell",
         [
@@ -576,23 +594,7 @@ function install() {
         ],
         { noShell: true, timeout: 900000, cwd: scriptHome, env: { ...env, ...how.env } },
       );
-      const pathAfter = readUserPath();
-      if (!pathBefore || !pathAfter)
-        console.error(
-          `install ${id}: could not read the user PATH; check it for script-home entries`,
-        );
-      else if (pathAfter.raw !== pathBefore.raw) {
-        const old = new Set((pathBefore.expanded ?? "").split(";"));
-        const added = (pathAfter.expanded ?? "").split(";").filter((d) => d && !old.has(d));
-        writeFileSync(
-          `${vendorFile}.tmp`,
-          JSON.stringify([...new Set([...vendorPath(), ...added])]),
-        );
-        renameSync(`${vendorFile}.tmp`, vendorFile);
-        if (!restoreUserPath(pathBefore))
-          console.error(`install ${id}: could not restore the user PATH`);
-      }
-      if (pathBefore) rmSync(userPathFile, { force: true });
+      moveVendorPath(id, pathBefore?.kind);
     } else if (how?.script && OS !== "windows")
       r = sh(
         "bash",

@@ -193,7 +193,7 @@ These rows describe what the November 2026 wave recorded; a recapture is what co
 ## Gotchas
 
 - Run cells one at a time: four concurrent sessions saturated the 1.5B model on 8 cores and turned real captures into timeouts.
-- Never stop a harness or server by process name; the runner kills only the PIDs and process groups it started (on Windows also the processes a turn started from an executable under `--cache` or `--out`), and `stop` reads them from `state.json`.
+- Never stop a harness or server by process name; the runner kills only the PIDs and process groups it started (on Windows also every process started since the turn began from an executable under `--cache` or `--out`), and `stop` reads them from `state.json`.
 - `env` records each server and gateway PID with its OS start time, and `stop` leaves a PID alone when its start time no longer matches, since the OS may have reused it.
 - A turn killed mid-flight leaves nothing in most stores, so a capture can report fewer turns than ran.
 - Codex rejects `wire_api = "chat"`, Reasonix has no Responses shape, Command Code's Responses client never completes a stream against the gateway, and Trae's Chat Completions client crashes on a null `completion_tokens_details`; the last two still run so a fix upstream shows up as drift.
@@ -208,6 +208,6 @@ These rows describe what the November 2026 wave recorded; a recapture is what co
 - Cells never inherit `XDG_*`, `AWS_*`, `*_API_KEY`, `*_API_BASE`, `*_BASE_URL`, `*_TOKEN`, `GOOGLE_APPLICATION_CREDENTIALS`, `CLAUDE_CONFIG_DIR`, `CODEX_HOME`, `HERMES_HOME`, `JCODE_HOME`, `KIMI_*`, `GOOSE_*`, `PRIME_AGENT_*`, `GROK_*` or `CURSOR_CONFIG_DIR` from the parent environment, and vendor installers do not see them either.
 - The package keeps every cell home unredacted, so attach it only to the private run report, never to a public PR or issue.
 - On Windows a turn whose command resolves to a native `.exe` is spawned directly; any other command (a pnpm `.cmd` shim) runs through `cmd.exe` with every argument but a plain command name double-quoted, so a prompt must not contain `%`.
-- On Windows an `installOs.windows.ps1` installer runs in PowerShell from the script home, the bin dirs it adds to the user PATH in the registry move to `vendor-path.json` in `--cache`, which joins the run's PATH, and the operator's user PATH is restored with its raw value and registry kind (an interrupted install is undone from `user-path-before.json` by the next one); a CLI whose `--version` fails or times out there is `not-installed`.
+- On Windows an `installOs.windows.ps1` installer runs in PowerShell from the script home, the bin dirs it adds to the user PATH in the registry move to `vendor-path.json` in `--cache`, which joins the run's PATH, and only those script-home entries are removed from the operator's user PATH, before and after each install (so an interrupted install is undone by the next one), keeping the registry kind and any other edits; a CLI whose `--version` fails or times out there is `not-installed`.
 - jcode ignores `USERPROFILE` on Windows and resolves its store from `JCODE_HOME`, which the manifest points at `<cell home>/.jcode`.
 - On Windows each turn also gets `PYTHONUTF8=1` and `PYTHONIOENCODING=utf-8`, so a Python CLI printing non-ASCII does not crash on the `cp1252` console code page.
