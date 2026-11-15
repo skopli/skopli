@@ -135,12 +135,12 @@ const moveVendorPath = (id, before, ienv = {}, post = false) => {
   );
   // Installers may trim and unquote entries when they rewrite the value.
   const norm = (e) => e.trim().replace(/^"|"$/g, "").toLowerCase();
-  const spelling = new Map(
-    (before?.raw ?? "")
-      .split(";")
-      .filter((e) => e.trim())
-      .flatMap((e) => [e, expand(e, lower), expand(e, real)].map((x) => [norm(x), e])),
-  );
+  const pre = (before?.raw ?? "").split(";").filter((e) => e.trim());
+  // An entry's own spelling wins over another entry's expansion to the same directory.
+  const spelling = new Map([
+    ...pre.flatMap((e) => [expand(e, lower), expand(e, real)].map((x) => [norm(x), e])),
+    ...pre.map((e) => [norm(e), e]),
+  ]);
   const root = resolve(scriptHome).toLowerCase() + sep;
   // Empty segments (the stock value ends in ";") are kept, so an untouched value is not rewritten.
   const segs = (cur.raw ?? "").split(";");
@@ -161,7 +161,12 @@ const moveVendorPath = (id, before, ienv = {}, post = false) => {
       ? keep.join(";")
       : null;
   if (mine.length) {
-    writeFileSync(`${vendorFile}.tmp`, JSON.stringify([...new Set([...vendorPath(), ...mine])]));
+    writeFileSync(
+      `${vendorFile}.tmp`,
+      JSON.stringify([
+        ...new Set([...vendorPath(), ...mine.map((d) => d.trim().replace(/^"|"$/g, ""))]),
+      ]),
+    );
     renameSync(`${vendorFile}.tmp`, vendorFile);
   }
   const changed = mine.length || kind !== cur.kind || (before && raw !== cur.raw);
@@ -810,13 +815,17 @@ const winExe = (bin, envv, cwd) => {
     .split(/\r?\n/)
     .map((l) => l.trim())
     .filter(Boolean);
-  if (!hits.length) return undefined;
-  const local = hits.filter((l) => dirname(l).toLowerCase() === dirname(hits[0]).toLowerCase());
   const exts = (process.env.PATHEXT ?? ".COM;.EXE;.BAT;.CMD").toLowerCase().split(";");
   const rank = (l) => {
     const i = exts.findIndex((e) => e && l.toLowerCase().endsWith(e));
     return i < 0 ? exts.length : i;
   };
+  // An extensionless POSIX shim is never what cmd.exe runs.
+  const runnable = hits.filter((l) => rank(l) < exts.length);
+  if (!runnable.length) return undefined;
+  const local = runnable.filter(
+    (l) => dirname(l).toLowerCase() === dirname(runnable[0]).toLowerCase(),
+  );
   const pick = local.reduce((a, l) => (rank(l) < rank(a) ? l : a));
   return /\.exe$/i.test(pick) ? pick : undefined;
 };
@@ -1017,7 +1026,7 @@ async function run() {
     if (probe.status !== 0) {
       write({
         status: "not-installed",
-        reason: `${binOf(cell.c)} --version ${probe.error?.code === "ETIMEDOUT" ? "timed out" : `exit ${probe.status}`}`,
+        reason: `${binOf(cell.c)} --version ${probe.error?.code === "ETIMEDOUT" ? "timed out" : (probe.error?.code ?? `exit ${probe.status}`)}`,
       });
       continue;
     }
