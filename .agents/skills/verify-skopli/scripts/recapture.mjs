@@ -25,7 +25,7 @@ import { parseArgs } from "./cli.mjs";
 
 const help = `usage: recapture.mjs <step> [options]
 
-steps (each idempotent; "all" runs them in order and always ends with stop):
+steps ("all" runs them in order and always ends with stop):
   list      print every cell with its planned outcome and exit
   env       download the pinned llama.cpp build and model (model byte-size checked), clone the
             target project, start llama-server and the usage gateway, prove the cache rises
@@ -51,7 +51,7 @@ options:
   --quiet            no progress lines on stderr
   --help             this text
 
-exit codes: 0 ok and no drift, 1 an invariant failed, 2 usage error, 3 drift or a TODO cell needs an agent
+exit codes: 0 ok and no new drift, 1 an invariant failed, 2 usage error, 3 new drift or a new TODO
   (cell outcomes are judged by report, so a standalone run exits 0 once its cells finish)
 
 examples:
@@ -81,6 +81,9 @@ const stamp = new Date().toISOString().replace(/[-:]/g, "").replace(/\.\d+/, "")
 if (["run", "report", "package", "stop"].includes(step) && !args.one("--out") && !args.dryRun)
   args.usage(`${step} needs --out <run directory>`);
 const out = resolve(args.one("--out", join(root, ".verify/recapture", stamp)));
+const base = args.one("--baseline");
+if (base && !existsSync(join(resolve(base), `matrix.${OS}.md`)))
+  args.usage(`--baseline ${base} has no ${OS} report`);
 const cache = resolve(args.one("--cache", join(root, ".verify/recapture/cache")));
 const timeout = Number(args.one("--timeout", "600"));
 if (!(timeout > 0)) args.usage("--timeout must be a positive number of seconds");
@@ -401,6 +404,15 @@ const started = (pid) =>
         env: { ...process.env, TZ: "UTC", LC_ALL: "C" },
       })
   ).stdout?.trim() || null;
+// A process whose start time cannot be read could never be stopped by identity, so kill it now.
+const spawnedAt = (pid, what) => {
+  const t = started(pid);
+  if (t) return t;
+  killTree(pid);
+  return fail(
+    `env: cannot read the ${what}'s start time (needs ${OS === "windows" ? "PowerShell" : "ps"})`,
+  );
+};
 const ours = (s, k) =>
   !!s[`${k}Pid`] && !!s[`${k}Start`] && started(s[`${k}Pid`]) === s[`${k}Start`];
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -550,7 +562,7 @@ async function env() {
   srv.unref();
   saveState({
     serverPid: srv.pid,
-    serverStart: srv.pid && (started(srv.pid) ?? fail("env: cannot read the server's start time")),
+    serverStart: srv.pid && spawnedAt(srv.pid, "server"),
     os: OS,
     target,
     llama: { ...LLAMA, asset: undefined, flags: flags.slice(2) },
@@ -579,7 +591,7 @@ async function env() {
   gw.unref();
   saveState({
     gatewayPid: gw.pid,
-    gatewayStart: gw.pid && (started(gw.pid) ?? fail("env: cannot read the gateway's start time")),
+    gatewayStart: gw.pid && spawnedAt(gw.pid, "gateway"),
   });
   if (!(await waitFor(`${origin}/v1/models`, 60, gw)))
     fail("gateway exited or was not answering after 60 s, see gateway-stderr.txt");
@@ -691,7 +703,11 @@ function install() {
         : [];
     const before = new Set(plists());
     // pnpm 10+ skips build scripts unless allowed; claude, opencode and kimchi fetch their binary in one.
-    if (how?.pnpm) r = sh("pnpm", ["add", "-g", `--allow-build=${how.pnpm}`, how.pnpm], { env });
+    if (how?.pnpm)
+      r = sh("pnpm", ["add", "-g", `--allow-build=${how.pnpm}`, how.pnpm], {
+        env,
+        timeout: 900000,
+      });
     else if (how?.uv)
       r = sh(
         "uv",
@@ -703,7 +719,7 @@ function install() {
           ...(how.with ?? []).flatMap((w) => ["--with", w]),
           how.uv,
         ],
-        { env },
+        { env, timeout: 900000 },
       );
     else if (how?.ps1 && OS === "windows") {
       const temp = join(scriptHome, "AppData", "Local", "Temp");
@@ -765,6 +781,7 @@ function install() {
           `set -o pipefail; curl -fsSL ${how.script} | bash -s -- ${(how.args ?? []).join(" ")}`,
         ],
         {
+          timeout: 900000,
           env: {
             ...env,
             ...Object.fromEntries(
@@ -943,6 +960,12 @@ const spellings = (p) => {
   const all = [p, fwd, msys, p.replaceAll("\\", "\\\\")];
   return [...new Set([...all, ...all.map((x) => x.replace(/^[A-Z]:/, (d) => d.toLowerCase()))])];
 };
+// The origin remote's host, when it is a proxy or mirror rather than the public forge.
+const remoteHost = /^https?:\/\/(?:[^@/]+@)?([^/]+)/
+  .exec(
+    sh("git", ["-C", root, "remote", "get-url", "origin"], { noShell: true }).stdout?.trim() ?? "",
+  )?.[1]
+  ?.replace(/^github\.com$/, "");
 const scan = (home, cwd, paths) => {
   const needles = [
     ["username", [userInfo().username]],
@@ -951,7 +974,7 @@ const scan = (home, cwd, paths) => {
     ["cell-home", spellings(home)],
     ["cell-cwd", [...spellings(cwd), slug(cwd)]],
     ["dummy-key", [KEY, "local-only-placeholder"]],
-    ["git-proxy", ["git-manager.devin.ai/proxy"]],
+    ["git-remote", [remoteHost]],
   ].map(([k, v]) => [k, v.filter((n) => n && n.length > 2)]);
   const hits = new Set();
   for (const f of paths) {
@@ -1103,7 +1126,7 @@ async function run() {
     const turns = [];
     for (const [i, prompt] of manifest.prompts.entries()) {
       const left = Math.floor((deadline - Date.now()) / 1000);
-      const timedOut = turns.at(-1)?.timedOut;
+      const timedOut = turns.some((t) => t.timedOut);
       if (setupFailed || timedOut || left < 20) {
         turns.push({
           skipped: setupFailed
@@ -1320,9 +1343,6 @@ function report() {
     if (r.status === "error")
       drift.push({ cell: r.cell, kind: "invariant", reason: r.reason, lane: "agent" });
   }
-  const base = args.one("--baseline");
-  if (base && !existsSync(join(resolve(base), `matrix.${OS}.md`)))
-    args.usage(`--baseline ${base} has no ${OS} report`);
   // A TODO or regression the baseline already reported with the same status and reason is listed
   // again but not counted, so an accepted gap (Hermes on Windows) does not escalate every run.
   const key = (d) =>
