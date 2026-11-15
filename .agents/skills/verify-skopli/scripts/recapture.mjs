@@ -569,13 +569,13 @@ async function env() {
   say(`env: ok, server ${srv.pid}, gateway ${gw.pid}, cache proof passed`);
 }
 
-// A recorded PID whose start time no longer matches belongs to someone else and is left alone.
 // Undo an install that never reached its post-install restore, expanding with the env it ran under.
 const recoverUserPath = () => {
   const saved = OS === "windows" && readJson(pathBeforeFile, null);
   if (saved && moveVendorPath(`${saved.id} (interrupted)`, saved, saved.vars ?? {}, true))
     rmSync(pathBeforeFile, { force: true });
 };
+// A recorded PID whose start time no longer matches belongs to someone else and is left alone.
 function stop() {
   const s = readJson(state, {});
   const done = ["server", "gateway"].map((k) => {
@@ -649,7 +649,9 @@ function install() {
       };
       const pathBefore = !existsSync(pathBeforeFile) && moveVendorPath(id, null);
       if (!pathBefore) {
-        console.error(`install ${id}: skipped, the user PATH could not be read or restored`);
+        console.error(
+          `install ${id}: skipped, the user PATH could not be read or restored (pending ${pathBeforeFile})`,
+        );
       } else {
         const vars = ["USERPROFILE", "APPDATA", "LOCALAPPDATA", "HOME", "TEMP", "TMP"];
         writeFileSync(
@@ -669,7 +671,7 @@ function install() {
             "-ExecutionPolicy",
             "Bypass",
             "-Command",
-            `$ProgressPreference = "SilentlyContinue"; & ([scriptblock]::Create((irm $env:RECAPTURE_PS1))) ${(how.args ?? []).map((a) => (/^-\w+$/.test(a) ? a : `'${a.replaceAll("'", "''")}'`)).join(" ")}`,
+            `[Net.ServicePointManager]::SecurityProtocol = [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12; $ProgressPreference = "SilentlyContinue"; & ([scriptblock]::Create((irm $env:RECAPTURE_PS1))) ${(how.args ?? []).map((a) => (/^-\w+$/.test(a) ? a : `'${a.replaceAll("'", "''")}'`)).join(" ")}`,
           ],
           {
             noShell: true,
