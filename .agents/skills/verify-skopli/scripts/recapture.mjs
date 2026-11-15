@@ -94,7 +94,7 @@ const toolPath = () => {
     : [];
   process.env.PATH = [
     process.env.PNPM_HOME,
-    // pnpm 10+ links global bins into PNPM_HOME/bin and refuses `add -g` unless it is on PATH.
+    // Newer pnpm links global bins into PNPM_HOME/bin and refuses `add -g` unless it is on PATH.
     join(process.env.PNPM_HOME, "bin"),
     process.env.UV_TOOL_BIN_DIR,
     join(scriptHome, ".local/bin"),
@@ -274,14 +274,12 @@ const waitFor = async (url, seconds, child) => {
 
 async function env() {
   // home.mjs and reconcile.mjs read through the built facade and native addon.
-  for (const a of [
-    ["install", "--frozen-lockfile"],
-    ["run", "build"],
+  // Without a TTY pnpm aborts instead of recreating node_modules; CI=true lets the install proceed.
+  for (const [a, env] of [
+    [["install", "--frozen-lockfile"], { ...hostEnv, CI: "true" }],
+    [["run", "build"], hostEnv],
   ])
-    // Without a TTY pnpm aborts instead of recreating node_modules; CI=true lets it proceed.
-    if (
-      sh("pnpm", a, { cwd: root, stdio: "inherit", env: { ...hostEnv, CI: "true" } }).status !== 0
-    )
+    if (sh("pnpm", a, { cwd: root, stdio: "inherit", env }).status !== 0)
       fail(`pnpm ${a.join(" ")} failed`);
   const bin = join(cache, `llama-${LLAMA.build}-${OS}`);
   let server =
@@ -345,7 +343,8 @@ async function env() {
     "--alias",
     "qwen",
     ...(OS === "windows" ? ["-n", "1024"] : []),
-    // A macOS VM's paravirtual Metal generates at about 1 token/s against about 70 on the CPU.
+    // Recapture runs macOS in a VM, whose paravirtual Metal generates at about 1 token/s against
+    // about 70 on the CPU, so darwin always infers on the CPU.
     ...(OS === "darwin" ? ["-ngl", "0"] : []),
   ];
   const slog = openSync(join(out, "llama-server.txt"), "w");
