@@ -117,27 +117,50 @@ const installerPath = () => {
     dirname(BASH),
   ].join(delimiter);
 };
-const moveVendorPath = (id, kind) => {
+// Installers rewrite the whole value read through .NET, which expands %VAR% with the script-home
+// USERPROFILE, so after an install each entry equal to an expansion of a pre-install entry gets its
+// raw spelling back, and only new entries under the script home count as the installer's.
+const moveVendorPath = (id, before, ienv = {}) => {
   const cur = readUserPath();
   if (!cur) {
     console.error(`install ${id}: could not read the user PATH; check it for script-home entries`);
     return null;
   }
-  const root = `${resolve(scriptHome).toLowerCase()}\\`;
-  const raw = (cur.raw ?? "").split(";");
-  const mine = raw.filter((d) => d && resolve(d).toLowerCase().startsWith(root));
-  if (mine.length || (kind && kind !== cur.kind)) {
+  const lower = Object.fromEntries(Object.entries(ienv).map(([k, v]) => [k.toLowerCase(), v]));
+  const expand = (e, vars) => e.replace(/%([^%;]+)%/g, (m, n) => vars[n.toLowerCase()] ?? m);
+  const real = Object.fromEntries(
+    Object.entries(process.env).map(([k, v]) => [k.toLowerCase(), v]),
+  );
+  const spelling = new Map(
+    (before?.raw ?? "")
+      .split(";")
+      .filter(Boolean)
+      .flatMap((e) => [e, expand(e, lower), expand(e, real)].map((x) => [x.toLowerCase(), e])),
+  );
+  const root = resolve(scriptHome).toLowerCase() + sep;
+  const entries = (cur.raw ?? "").split(";").filter(Boolean);
+  const mine = entries.filter(
+    (d) => !spelling.has(d.toLowerCase()) && resolve(d).toLowerCase().startsWith(root),
+  );
+  const keep = [
+    ...new Set(
+      entries.filter((d) => !mine.includes(d)).map((d) => spelling.get(d.toLowerCase()) ?? d),
+    ),
+  ];
+  const kind = before?.kind ?? cur.kind;
+  const raw =
+    keep.length || (before ? before.raw !== null : cur.raw !== null) ? keep.join(";") : null;
+  if (mine.length) {
     writeFileSync(`${vendorFile}.tmp`, JSON.stringify([...new Set([...vendorPath(), ...mine])]));
     renameSync(`${vendorFile}.tmp`, vendorFile);
-    const keep = raw.filter((d) => !mine.includes(d));
-    if (
-      !restoreUserPath({
-        raw: cur.raw == null && !mine.length ? null : keep.join(";"),
-        kind: kind ?? cur.kind,
-      })
-    )
-      console.error(`install ${id}: could not remove ${mine.join(";")} from the user PATH`);
   }
+  if (
+    (mine.length || kind !== cur.kind || (before && raw !== cur.raw)) &&
+    !restoreUserPath({ raw, kind })
+  )
+    console.error(
+      `install ${id}: could not restore the user PATH (script-home entries: ${mine.join(";")})`,
+    );
   return cur;
 };
 // The raw value and its registry kind are written as given, so %VAR% entries stay unexpanded;
@@ -168,7 +191,7 @@ const restoreUserPath = ({ raw, kind }) =>
       "-NoProfile",
       "-Command",
       "$k = [Microsoft.Win32.Registry]::CurrentUser.OpenSubKey('Environment', $true); " +
-        "if ($env:RECAPTURE_USER_PATH_SET -eq '1') { $k.SetValue('Path', $env:RECAPTURE_USER_PATH, [Microsoft.Win32.RegistryValueKind]$env:RECAPTURE_USER_PATH_KIND) } " +
+        "if ($env:RECAPTURE_USER_PATH_SET -eq '1') { $k.SetValue('Path', [string]$env:RECAPTURE_USER_PATH, [Microsoft.Win32.RegistryValueKind]$env:RECAPTURE_USER_PATH_KIND) } " +
         "else { $k.DeleteValue('Path', $false) }; " +
         // Setting and clearing a variable through .NET broadcasts WM_SETTINGCHANGE to Explorer.
         "[Environment]::SetEnvironmentVariable('RECAPTURE_PATH_SYNC', '1', 'User'); " +
@@ -197,7 +220,7 @@ const toolPath = () => {
       join(scriptHome, ".local/bin"),
       ...dots,
       ...vendorPath(),
-    ].filter((d) => existsSync(d)),
+    ].filter((d) => OS !== "windows" || existsSync(d)),
     basePath,
   ].join(delimiter);
 };
@@ -597,6 +620,7 @@ function install() {
       );
     else if (how?.ps1 && OS === "windows") {
       const pathBefore = moveVendorPath(id, null);
+      const ienv = { ...env, ...how.env, RECAPTURE_PS1: how.ps1, PATH: installerPath() };
       r = sh(
         "powershell",
         [
@@ -610,10 +634,10 @@ function install() {
           noShell: true,
           timeout: 900000,
           cwd: scriptHome,
-          env: { ...env, ...how.env, RECAPTURE_PS1: how.ps1, PATH: installerPath() },
+          env: ienv,
         },
       );
-      moveVendorPath(id, pathBefore?.kind);
+      if (pathBefore) moveVendorPath(id, pathBefore, ienv);
     } else if (how?.script && OS !== "windows")
       r = sh(
         "bash",
@@ -871,6 +895,7 @@ const versionOf = (bin, h) => {
     ...cleanEnv(),
     ...homeEnv(scriptHome),
     ...Object.fromEntries(homes),
+    ...(OS === "windows" ? { PYTHONUTF8: "1", PYTHONIOENCODING: "utf-8" } : {}),
     PATH: process.env.PATH,
   };
   // A native .exe is probed directly, so a timeout kills the CLI rather than only cmd.exe.
