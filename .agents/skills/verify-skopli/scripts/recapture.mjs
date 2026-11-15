@@ -44,7 +44,8 @@ options:
   --only <h[/shape]> restrict to a harness or one cell; repeatable
   --os <os>          plan for linux, darwin or windows; only list and --dry-run accept another OS
   --timeout <s>      wall-clock budget per cell across all turns, in seconds (default 600)
-  --resume           skip cells in --out that already ran; rerun error, not-installed and changed skips or TODOs
+  --resume           skip cells in --out that already ran; rerun error, not-installed and
+                     changed skips or TODOs
   --baseline <dir>   a previous run directory; report flags CLI version changes against it and
                      does not count a TODO or regression it already reported
   --dry-run          print the resolved plan as JSON and exit
@@ -187,6 +188,13 @@ const moveVendorPath = (id, before, ienv = {}, afterInstall = false) => {
     console.error(
       `install ${id}: left new user PATH entries outside the script home: ${added.join(";")}`,
     );
+  // A deleted entry is reported, not put back: it cannot be told apart from an edit made meanwhile.
+  const removed =
+    afterInstall && before
+      ? pre.filter((e) => e.trim() && !keep.some((d) => norm(d) === norm(e)))
+      : [];
+  if (removed.length)
+    console.error(`install ${id}: user PATH entries gone after the install: ${removed.join(";")}`);
   const kind = before?.kind ?? cur.kind;
   const kept = keep.filter((d) => d.trim());
   // With no other edit the saved value goes back verbatim, undoing an installer's ";" trimming too.
@@ -683,9 +691,10 @@ function stop() {
   const done = ["server", "gateway"].map((k) => {
     const pid = s[`${k}Pid`];
     if (!pid) return "-";
-    if (!ours(s, k)) {
+    const st = started(pid);
+    if (!s[`${k}Start`] || st !== s[`${k}Start`]) {
       if (!isAlive(pid)) return `${pid} (already gone)`;
-      return started(pid) === null
+      return st === null
         ? `${pid} (start time unreadable, left running)`
         : `${pid} (not ours, left alone)`;
     }
@@ -715,12 +724,13 @@ const INSTALL_LIMIT = 900;
 const homeFill = (v) => fill(v, { home: scriptHome.replaceAll("\\", "/") });
 // Python CLIs on Windows write to a pipe in the ANSI code page and crash on non-Latin-1 output.
 const PY_UTF8 = OS === "windows" ? { PYTHONUTF8: "1", PYTHONIOENCODING: "utf-8" } : {};
-// spawnSync's timeout kills only its child, so the installer runs under a small node wrapper that
+// A timeout on the spawn kills only its child, so the installer runs under a small node wrapper that
 // kills its whole tree when the limit is hit or the wrapper is interrupted: on Linux and macOS the
 // installer leads its own process group, which also goes when it exits; on Windows taskkill walks
 // the tree while the leader lives. Exit 124 means the limit was hit, as with timeout(1), and an
-// interrupt ends the wrapper by the same signal (exit 130 on Windows). The wrapper relays the output and exits with the leader, so a process that left the
-// tree but holds the output pipe cannot hold up the step; the spawnSync timeout is a backstop.
+// interrupt ends the wrapper by the same signal (exit 130 on Windows).
+// The wrapper relays the output and exits with the leader, so a process that left the tree but
+// holds the output pipe cannot hold up the step; the runner's own timer is a backstop.
 const GROUP = `const [s, shell, c, ...a] = process.argv.slice(1);
 const cp = require("child_process");
 const win = process.platform === "win32";
@@ -754,7 +764,7 @@ const installSh = async (cmd, a, o) => {
         shell ? "1" : "0",
         ...(shell ? [winLine([cmd, ...a])] : [cmd, ...a]),
       ],
-      { ...o, stdio: ["inherit", "pipe", "pipe"] },
+      { cwd: scriptHome, ...o, stdio: ["inherit", "pipe", "pipe"] },
     );
     installChild = c;
     let stdout = "";
@@ -786,17 +796,19 @@ async function install() {
   const harnesses = [...new Set(cells.filter((x) => x.plan === "run").map((x) => x.harness))];
   const lines = [];
   recoverUserPath();
+  // Every marker is written first, so an interrupted or skipped install keeps run off a copy an
+  // earlier run left in --cache, for the harness in progress and the ones not reached.
+  const failedFile = (id) => join(out, "install", `${id}.failed`);
+  mkdirSync(join(out, "install"), { recursive: true });
+  for (const id of harnesses)
+    if (installOf(manifest.harnesses[id])) writeFileSync(failedFile(id), "install did not finish");
   for (const id of harnesses) {
     const { shapes } = manifest.harnesses[id];
     const how = installOf(manifest.harnesses[id]);
     const bin = Object.values(shapes).map(binOf).find(Boolean);
     let r = null;
     let skipped = false;
-    // Written first, so an interrupted or skipped install also keeps run off a copy an earlier run
-    // left in --cache.
-    const failed = join(out, "install", `${id}.failed`);
-    mkdirSync(join(out, "install"), { recursive: true });
-    if (how) writeFileSync(failed, "install did not finish");
+    const failed = failedFile(id);
     mkdirSync(scriptHome, { recursive: true });
     // mimocode's installers read a generic VERSION as a version pin, goose's CANARY as a channel switch.
     const env = {
@@ -907,18 +919,21 @@ async function install() {
     if (r && r.status !== 0) writeFileSync(failed, `install failed: exit ${r.status}`);
     else if (skipped) writeFileSync(failed, "install skipped: the user PATH could not be read");
     else rmSync(failed, { force: true });
-    const path = bin && which(bin);
+    const broken = existsSync(failed);
+    const path = !broken && bin && which(bin);
     const v = path ? versionOf(bin, manifest.harnesses[id]) : null;
     lines.push(
       [
         id,
-        path ? path.replace(userInfo().homedir, "~") : "MISSING",
+        path ? path.replace(userInfo().homedir, "~") : broken ? "INSTALL-FAILED" : "MISSING",
         v ? (v.stdout || v.stderr || v.error?.code || "").trim().split(/\r?\n/)[0] : "-",
       ].join("\t"),
     );
   }
   writeFileSync(join(out, "cli-versions.txt"), lines.join("\n") + "\n");
-  say(`install: ${lines.filter((l) => !l.includes("MISSING")).length}/${lines.length} on PATH`);
+  say(
+    `install: ${lines.filter((l) => !/\t(MISSING|INSTALL-FAILED)\t/.test(l)).length}/${lines.length} on PATH`,
+  );
 }
 
 const fill = (s, v) => s.replace(/\{(\w+)\}/g, (m, k) => (k in v ? v[k] : m));
@@ -1594,6 +1609,7 @@ for (const sig of ["SIGINT", "SIGTERM", "SIGHUP"])
     // The wrapper is spared so its own handler can kill the installer's whole group.
     reap(T0, installChild ? [installChild.pid] : [], [cache, out]);
     if (startedEnv) stop();
+    else recoverUserPath();
     process.exit(1);
   });
 let code = 0;
