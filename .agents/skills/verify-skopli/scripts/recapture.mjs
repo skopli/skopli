@@ -262,7 +262,7 @@ const origin = `http://127.0.0.1:${LLAMA.gateway}`;
 const KEY = "sk-local";
 // Parent variables that would point a harness at a real home, account or provider are never passed to a cell.
 const LEAKY =
-  /^(XDG_\w+|AWS_\w+|\w+_API_KEY|\w+_API_BASE|\w+_BASE_URL|\w+_TOKEN|GOOGLE_APPLICATION_CREDENTIALS|CLAUDE_CONFIG_DIR|CODEX_HOME|DSH_HOME|HERMES_\w+|JCODE_HOME|KIMI_\w+|GOOSE_\w+|PRIME_AGENT_\w+|GROK_\w+|CURSOR_CONFIG_DIR|MIMOCODE_\w+|MIMO_\w+|UV_INSTALL_DIR|UV_UNMANAGED_INSTALL)$/;
+  /^(XDG_\w+|AWS_\w+|\w+_API_KEY|\w+_API_BASE|\w+_BASE_URL|\w+_TOKEN|GOOGLE_APPLICATION_CREDENTIALS|CLAUDE_CONFIG_DIR|CODEX_HOME|DSH_\w+|HERMES_\w+|JCODE_\w+|KIMI_\w+|GOOSE_\w+|PRIME_AGENT_\w+|GROK_\w+|CURSOR_CONFIG_DIR|MIMOCODE_\w+|MIMO_\w+|UV_INSTALL_DIR|UV_UNMANAGED_INSTALL)$/;
 const cleanEnv = () =>
   Object.fromEntries(Object.entries(process.env).filter(([k]) => !LEAKY.test(k)));
 
@@ -625,10 +625,12 @@ function install() {
     const bin = Object.values(shapes).map(binOf).find(Boolean);
     let r = null;
     mkdirSync(scriptHome, { recursive: true });
-    // mimocode's installers read a generic VERSION as a version pin.
+    // mimocode's installers read a generic VERSION as a version pin, goose's CANARY as a channel switch.
     const env = {
       ...Object.fromEntries(
-        Object.entries(cleanEnv()).filter(([k]) => k.toUpperCase() !== "VERSION"),
+        Object.entries(cleanEnv()).filter(
+          ([k]) => !["VERSION", "CANARY"].includes(k.toUpperCase()),
+        ),
       ),
       ...homeEnv(scriptHome),
     };

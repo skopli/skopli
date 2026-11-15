@@ -137,7 +137,9 @@
       "install": {
         "script": "https://mimo.xiaomi.com/install"
       },
-      "installOs": { "windows": { "ps1": "https://mimo.xiaomi.com/install.ps1" } },
+      "installOs": {
+        "windows": { "ps1": "https://mimo.xiaomi.com/install.ps1", "args": ["-NoModifyPath"] }
+      },
       "store": [".local/share/mimocode", ".mimocode/data"],
       "shapes": {
         "openai-chat": {
