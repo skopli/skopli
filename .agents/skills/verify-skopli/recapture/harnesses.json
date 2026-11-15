@@ -137,6 +137,9 @@
       "install": {
         "script": "https://mimo.xiaomi.com/install"
       },
+      "installOs": {
+        "windows": { "ps1": "https://mimo.xiaomi.com/install.ps1", "args": ["-NoModifyPath"] }
+      },
       "store": [".local/share/mimocode", ".mimocode/data"],
       "shapes": {
         "openai-chat": {
@@ -378,6 +381,7 @@
       "install": {
         "script": "https://app.factory.ai/cli"
       },
+      "installOs": { "windows": { "ps1": "https://app.factory.ai/cli/windows" } },
       "store": [".factory/logs", ".factory/sessions"],
       "shapes": {
         "openai-chat": {
@@ -628,6 +632,9 @@
     },
     "prime": {
       "install": { "script": "https://app.primeintellect.ai/prime-agent/install.sh" },
+      "installOs": {
+        "windows": { "ps1": "https://app.primeintellect.ai/prime-agent/install.ps1" }
+      },
       "store": [".prime/agent/sessions"],
       "shapes": {
         "openai-chat": {
@@ -737,6 +744,7 @@
       "install": {
         "script": "https://x.ai/cli/install.sh"
       },
+      "installOs": { "windows": { "ps1": "https://x.ai/cli/install.ps1" } },
       "store": [".grok", ".grok/logs", ".grok/sessions"],
       "shapes": {
         "openai-chat": {
@@ -849,6 +857,12 @@
       "install": {
         "script": "https://jcode.sh/install"
       },
+      "installOs": {
+        "windows": {
+          "ps1": "https://jcode.sh/install.ps1",
+          "env": { "JCODE_HOME": "{home}/.jcode", "JCODE_SKIP_SERVER_RELOAD": "1" }
+        }
+      },
       "store": [".jcode/sessions"],
       "shapes": {
         "openai-chat": {
@@ -865,6 +879,7 @@
             "{prompt}"
           ],
           "env": {
+            "JCODE_HOME": "{home}/.jcode",
             "JCODE_OPENAI_COMPAT_API_BASE": "{origin}/v1",
             "JCODE_OPENAI_COMPAT_DEFAULT_MODEL": "qwen",
             "JCODE_OPENAI_COMPAT_LOCAL_ENABLED": "1",
@@ -889,6 +904,7 @@
             "{prompt}"
           ],
           "env": {
+            "JCODE_HOME": "{home}/.jcode",
             "ANTHROPIC_BASE_URL": "{origin}",
             "ANTHROPIC_API_KEY": "sk-local"
           }
@@ -1065,6 +1081,12 @@
       "install": {
         "script": "https://code.kimi.com/kimi-code/install.sh"
       },
+      "installOs": {
+        "windows": {
+          "ps1": "https://code.kimi.com/kimi-code/install.ps1",
+          "env": { "KIMI_NO_MODIFY_PATH": "1" }
+        }
+      },
       "store": [".kimi-code/projects", ".kimi-code/sessions"],
       "shapes": {
         "openai-chat": {
@@ -1139,6 +1161,12 @@
         "script": "https://hermes-agent.nousresearch.com/install.sh",
         "args": ["--non-interactive", "--skip-browser", "--skip-computer-use"]
       },
+      "installOs": {
+        "windows": {
+          "ps1": "https://hermes-agent.nousresearch.com/install.ps1",
+          "args": ["-NonInteractive", "-SkipBrowser", "-SkipComputerUse"]
+        }
+      },
       "store": [".hermes/sessions", ".hermes/state.db"],
       "shapes": {
         "openai-chat": {
@@ -1191,6 +1219,12 @@
       "install": {
         "script": "https://github.com/aaif-goose/goose/releases/download/stable/download_cli.sh",
         "env": { "CONFIGURE": "false" }
+      },
+      "installOs": {
+        "windows": {
+          "ps1": "https://raw.githubusercontent.com/aaif-goose/goose/main/download_cli.ps1",
+          "env": { "CONFIGURE": "false" }
+        }
       },
       "store": [".local/share/goose"],
       "shapes": {

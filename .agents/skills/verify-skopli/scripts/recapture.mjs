@@ -19,7 +19,7 @@ import { connect } from "node:net";
 import { hostname, platform, userInfo } from "node:os";
 import { Readable } from "node:stream";
 import { pipeline } from "node:stream/promises";
-import { delimiter, dirname, join, relative, resolve } from "node:path";
+import { delimiter, dirname, join, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { parseArgs } from "./cli.mjs";
 
@@ -33,7 +33,8 @@ steps (each idempotent; "all" runs them in order and always ends with stop):
   run       run the selected cells one at a time with an isolated home each
   report    write cell-notes.<os>.tsv, matrix.<os>.md and drift.json from the cell results
   package   tar the run directory without target copies, model or server binaries
-  stop      stop the server and gateway this run started, by PID
+  stop      stop the server and gateway this run started, by PID, and on Windows undo the
+            user PATH of an install that was interrupted
   all       env, install, run, report, package, stop
 
 options:
@@ -89,6 +90,145 @@ const scriptHome = join(cache, "script-home");
 process.env.UV_TOOL_DIR = join(cache, "uv-tools");
 process.env.UV_TOOL_BIN_DIR = join(cache, "uv-bin");
 const basePath = process.env.PATH;
+// Windows vendor installers append their bin dir to the user PATH in the registry; install() moves
+// the entries an installer added into this file and restores the operator's user PATH.
+const vendorFile = join(cache, "vendor-path.json");
+const pathBeforeFile = join(cache, "user-path-before.json");
+const vendorPath = () => {
+  try {
+    return OS === "windows" ? JSON.parse(readFileSync(vendorFile, "utf8")) : [];
+  } catch {
+    return [];
+  }
+};
+// A ps1 installer adds its bin dir to the operator's user PATH. Only the entries under the script
+// home are moved out (into vendor-path.json, put on PATH for turns), before and after each install,
+// so an interrupted install is undone by the next and edits made meanwhile are kept. The kind read
+// before the install is written back, in case the installer turned REG_EXPAND_SZ into REG_SZ.
+// Vendor installers scan PATH (kimi's migrates kimi shims it finds there, mimo's skips the install
+// when a mimo already runs), so they see only the cache dirs, System32 and Git.
+const installerPath = () => {
+  const sys = join(process.env.SystemRoot ?? process.env.windir ?? "", "System32");
+  const root = resolve(cache).toLowerCase() + sep;
+  return [
+    ...process.env.PATH.split(delimiter).filter((d) => resolve(d).toLowerCase().startsWith(root)),
+    sys,
+    join(sys, "Wbem"),
+    join(sys, "WindowsPowerShell", "v1.0"),
+    join(sys, "OpenSSH"),
+    ...(BASH === "bash" ? [] : [dirname(BASH)]),
+  ].join(delimiter);
+};
+// Installers rewrite the whole value read through .NET, which expands %VAR% with the script-home
+// USERPROFILE, so after an install each entry equal to an expansion of a pre-install entry gets its
+// raw spelling back, and only new entries under the script home count as the installer's.
+const moveVendorPath = (id, before, ienv = {}, post = false) => {
+  const cur = readUserPath();
+  if (!cur) {
+    console.error(`install ${id}: could not read the user PATH; check it for script-home entries`);
+    return null;
+  }
+  const lower = Object.fromEntries(Object.entries(ienv).map(([k, v]) => [k.toLowerCase(), v]));
+  const expand = (e, vars) => e.replace(/%([^%;]+)%/g, (m, n) => vars[n.toLowerCase()] ?? m);
+  const real = Object.fromEntries(
+    Object.entries(process.env).map(([k, v]) => [k.toLowerCase(), v]),
+  );
+  // Installers may trim and unquote entries when they rewrite the value.
+  const norm = (e) => e.trim().replace(/^"|"$/g, "").toLowerCase();
+  const pre = (before?.raw ?? "").split(";").filter((e) => e.trim());
+  // An entry's own spelling wins over another entry's expansion to the same directory.
+  const spelling = new Map([
+    ...pre.flatMap((e) => [expand(e, lower), expand(e, real)].map((x) => [norm(x), e])),
+    ...pre.map((e) => [norm(e), e]),
+  ]);
+  const root = resolve(scriptHome).toLowerCase() + sep;
+  // Empty segments (the stock value ends in ";") are kept, so an untouched value is not rewritten.
+  const segs = (cur.raw ?? "").split(";");
+  const mine = segs.filter(
+    (d) => d.trim() && !spelling.has(norm(d)) && resolve(norm(expand(d, lower))).startsWith(root),
+  );
+  const keep = segs
+    .filter((d) => !mine.includes(d))
+    .map((d) => (d.trim() ? (spelling.get(norm(d)) ?? d) : d));
+  const added = post ? keep.filter((d) => d.trim() && !spelling.has(norm(d))) : [];
+  if (added.length)
+    console.error(
+      `install ${id}: left new user PATH entries outside the script home: ${added.join(";")}`,
+    );
+  const kind = before?.kind ?? cur.kind;
+  const kept = keep.filter((d) => d.trim());
+  // With no other edit the saved value goes back verbatim, undoing an installer's ";" trimming too.
+  const raw =
+    before && kept.length === pre.length && kept.every((d, i) => norm(d) === norm(pre[i]))
+      ? before.raw
+      : kept.length || (before ? before.raw !== null : cur.raw !== null)
+        ? keep.join(";")
+        : null;
+  if (mine.length) {
+    writeFileSync(
+      `${vendorFile}.tmp`,
+      JSON.stringify([
+        ...new Set([
+          ...vendorPath(),
+          ...mine.map((d) => expand(d, lower).trim().replace(/^"|"$/g, "")),
+        ]),
+      ]),
+    );
+    renameSync(`${vendorFile}.tmp`, vendorFile);
+  }
+  const changed = mine.length || kind !== cur.kind || (before && raw !== cur.raw);
+  if (changed && !restoreUserPath({ raw, kind })) {
+    console.error(
+      `install ${id}: could not restore the user PATH (script-home entries: ${mine.join(";")})`,
+    );
+    return null;
+  }
+  return { raw: changed ? raw : cur.raw, kind };
+};
+// The raw value and its registry kind are written as given, so %VAR% entries stay unexpanded;
+// null means the read failed, and then nothing is moved or restored.
+const readUserPath = () => {
+  const r = spawnSync(
+    "powershell",
+    [
+      "-NoProfile",
+      "-Command",
+      "$ErrorActionPreference = 'Stop'; [Console]::OutputEncoding = [Text.Encoding]::UTF8; $k = [Microsoft.Win32.Registry]::CurrentUser.OpenSubKey('Environment'); $raw = $k.GetValue('Path', $null, 'DoNotExpandEnvironmentNames'); " +
+        "ConvertTo-Json -Compress @{ raw = $raw; kind = $(if ($raw -ne $null) { [string]$k.GetValueKind('Path') } else { 'ExpandString' }); " +
+        "expanded = [Environment]::GetEnvironmentVariable('Path', 'User') }",
+    ],
+    { encoding: "utf8" },
+  );
+  try {
+    const v = r.status === 0 ? JSON.parse(r.stdout) : null;
+    return v && !`${v.raw}${v.expanded}`.includes("\uFFFD") ? v : null;
+  } catch {
+    return null;
+  }
+};
+const restoreUserPath = ({ raw, kind }) =>
+  spawnSync(
+    "powershell",
+    [
+      "-NoProfile",
+      "-Command",
+      "$ErrorActionPreference = 'Stop'; $k = [Microsoft.Win32.Registry]::CurrentUser.OpenSubKey('Environment', $true); " +
+        "if ($env:RECAPTURE_USER_PATH_SET -eq '1') { $k.SetValue('Path', [string]$env:RECAPTURE_USER_PATH, [Microsoft.Win32.RegistryValueKind]$env:RECAPTURE_USER_PATH_KIND) } " +
+        "else { $k.DeleteValue('Path', $false) }; " +
+        // Setting and clearing a variable through .NET broadcasts WM_SETTINGCHANGE to Explorer.
+        "[Environment]::SetEnvironmentVariable('RECAPTURE_PATH_SYNC', '1', 'User'); " +
+        "[Environment]::SetEnvironmentVariable('RECAPTURE_PATH_SYNC', $null, 'User')",
+    ],
+    {
+      encoding: "utf8",
+      env: {
+        ...process.env,
+        RECAPTURE_USER_PATH: raw ?? "",
+        RECAPTURE_USER_PATH_SET: raw === null || raw === undefined ? "0" : "1",
+        RECAPTURE_USER_PATH_KIND: kind,
+      },
+    },
+  ).status === 0;
 const toolPath = () => {
   const dots = existsSync(scriptHome)
     ? readdirSync(scriptHome).map((d) => join(scriptHome, d, "bin"))
@@ -97,9 +237,13 @@ const toolPath = () => {
     process.env.PNPM_HOME,
     // Newer pnpm links global bins into PNPM_HOME/bin and refuses `add -g` unless it is on PATH.
     join(process.env.PNPM_HOME, "bin"),
-    process.env.UV_TOOL_BIN_DIR,
-    join(scriptHome, ".local/bin"),
-    ...dots,
+    ...[
+      process.env.UV_TOOL_BIN_DIR,
+      join(scriptHome, ".local/bin"),
+      join(scriptHome, "bin"),
+      ...dots,
+      ...vendorPath(),
+    ].filter((d) => OS !== "windows" || existsSync(d)),
     basePath,
   ].join(delimiter);
 };
@@ -118,7 +262,7 @@ const origin = `http://127.0.0.1:${LLAMA.gateway}`;
 const KEY = "sk-local";
 // Parent variables that would point a harness at a real home, account or provider are never passed to a cell.
 const LEAKY =
-  /^(XDG_\w+|AWS_\w+|\w+_API_KEY|\w+_API_BASE|\w+_BASE_URL|\w+_TOKEN|GOOGLE_APPLICATION_CREDENTIALS|CLAUDE_CONFIG_DIR|CODEX_HOME)$/;
+  /^(XDG_\w+|AWS_\w+|\w+_API_KEY|\w+_API_BASE|\w+_BASE_URL|\w+_TOKEN|GOOGLE_APPLICATION_CREDENTIALS|CLAUDE_CONFIG_DIR|CODEX_HOME|DSH_\w+|HERMES_\w+|JCODE_\w+|KIMI_\w+|GOOSE_\w+|PRIME_AGENT_\w+|GROK_\w+|CURSOR_CONFIG_DIR|MIMOCODE_\w+|MIMO_\w+|UV_INSTALL_DIR|UV_UNMANAGED_INSTALL)$/;
 const cleanEnv = () =>
   Object.fromEntries(Object.entries(process.env).filter(([k]) => !LEAKY.test(k)));
 
@@ -136,15 +280,20 @@ const files = (dir, base = dir) =>
 // for the other unless the seed writes under Library/ or AppData/.
 const seedDir = (name) =>
   [OS, ...({ linux: ["darwin"], darwin: ["linux"] }[OS] ?? [])]
-    .map((o) => join(seeds, o, name))
-    .find((d) => existsSync(d) && !files(d).some((f) => /^(Library|AppData)\//.test(f)));
+    .map((o) => [o, join(seeds, o, name)])
+    .find(
+      ([o, d]) =>
+        existsSync(d) && (o === OS || !files(d).some((f) => /^(Library|AppData)\//.test(f))),
+    )?.[1];
 // A cell is TODO when a field still names a gap the recovered kit could not source on this OS.
+// An install channel can differ per OS (a PowerShell installer on Windows); installOs overrides install.
+const installOf = (h) => h.installOs?.[OS] ?? h.install;
 const todoOf = (h, c) =>
   c.first === "TODO" || c.next === "TODO"
     ? "command not recorded"
-    : !h.install || h.install.todo
-      ? `install: ${h.install?.todo ?? "channel not recorded"}`
-      : OS === "windows" && h.install.script
+    : !installOf(h) || installOf(h).todo
+      ? `install: ${installOf(h)?.todo ?? "channel not recorded"}`
+      : OS === "windows" && installOf(h).script
         ? "install: no Windows channel for the vendor script"
         : c.seed && !seedDir(c.seed) && !c.config?.kind
           ? `no ${OS} config seed`
@@ -173,7 +322,10 @@ if (unmatched.length) args.usage(`--only matched no cell: ${unmatched.join(" ")}
 
 // cmd.exe gets one command line with every argument double-quoted, because Node only joins
 // arguments when it spawns through a shell.
-const winLine = (argv) => argv.map((a) => `"${a.replaceAll('"', '""')}"`).join(" ");
+// The command itself stays bare when it can: cmd.exe resolves %~dp0 of a quoted .cmd shim found on
+// PATH against the working directory, so a quoted "pnpm" runs corepack from the wrong folder.
+const winLine = (argv) =>
+  argv.map((a, i) => (!i && /^[\w.-]+$/.test(a) ? a : `"${a.replaceAll('"', '""')}"`)).join(" ");
 const state = join(out, "state.json");
 // A file cut short by a kill mid-write reads as missing.
 const readJson = (f, fallback) => {
@@ -192,8 +344,8 @@ const saveState = (patch) =>
   writeFileSync(state, JSON.stringify({ ...readJson(state, {}), ...patch }, null, 2));
 const sh = (cmd, a, o = {}) =>
   OS === "windows" && !o.noShell
-    ? spawnSync(winLine([cmd, ...a]), { encoding: "utf8", shell: true, ...o })
-    : spawnSync(cmd, a, { encoding: "utf8", ...o });
+    ? spawnSync(winLine([cmd, ...a]), { encoding: "utf8", maxBuffer: 64 << 20, shell: true, ...o })
+    : spawnSync(cmd, a, { encoding: "utf8", maxBuffer: 64 << 20, ...o });
 const killTree = (pid) => {
   if (!pid) return;
   if (OS === "windows") sh("taskkill", ["/PID", String(pid), "/T", "/F"], { noShell: true });
@@ -435,6 +587,12 @@ async function env() {
   say(`env: ok, server ${srv.pid}, gateway ${gw.pid}, cache proof passed`);
 }
 
+// Undo an install that never reached its post-install restore, expanding with the env it ran under.
+const recoverUserPath = () => {
+  const saved = OS === "windows" && readJson(pathBeforeFile, null);
+  if (saved && moveVendorPath(`${saved.id} (interrupted)`, saved, saved.vars ?? {}, true))
+    rmSync(pathBeforeFile, { force: true });
+};
 // A recorded PID whose start time no longer matches belongs to someone else and is left alone.
 function stop() {
   const s = readJson(state, {});
@@ -447,6 +605,7 @@ function stop() {
   });
   if (existsSync(state))
     saveState({ serverPid: null, serverStart: null, gatewayPid: null, gatewayStart: null });
+  recoverUserPath();
   say(`stop: ${done.join(" ")}`);
 }
 
@@ -459,12 +618,22 @@ function install() {
   mkdirSync(out, { recursive: true });
   const harnesses = [...new Set(cells.filter((x) => x.plan === "run").map((x) => x.harness))];
   const lines = [];
+  recoverUserPath();
   for (const id of harnesses) {
-    const { install: how, shapes } = manifest.harnesses[id];
+    const { shapes } = manifest.harnesses[id];
+    const how = installOf(manifest.harnesses[id]);
     const bin = Object.values(shapes).map(binOf).find(Boolean);
     let r = null;
     mkdirSync(scriptHome, { recursive: true });
-    const env = { ...cleanEnv(), ...homeEnv(scriptHome) };
+    // mimocode's installers read a generic VERSION as a version pin, goose's CANARY as a channel switch.
+    const env = {
+      ...Object.fromEntries(
+        Object.entries(cleanEnv()).filter(
+          ([k]) => !["VERSION", "CANARY"].includes(k.toUpperCase()),
+        ),
+      ),
+      ...homeEnv(scriptHome),
+    };
     const agents = join(scriptHome, "Library/LaunchAgents");
     const plists = () =>
       existsSync(agents)
@@ -488,7 +657,59 @@ function install() {
         ],
         { env },
       );
-    else if (how?.script && OS !== "windows")
+    else if (how?.ps1 && OS === "windows") {
+      const temp = join(scriptHome, "AppData", "Local", "Temp");
+      mkdirSync(temp, { recursive: true });
+      const ienv = {
+        ...Object.fromEntries(Object.entries(env).filter(([k]) => k.toUpperCase() !== "PATH")),
+        TEMP: temp,
+        TMP: temp,
+        ...Object.fromEntries(
+          Object.entries(how.env ?? {}).map(([k, v]) => [
+            k,
+            fill(v, { home: scriptHome.replaceAll("\\", "/") }),
+          ]),
+        ),
+        RECAPTURE_PS1: how.ps1,
+        PATH: installerPath(),
+      };
+      const pathBefore = !existsSync(pathBeforeFile) && moveVendorPath(id, null);
+      if (!pathBefore) {
+        console.error(
+          `install ${id}: skipped, the user PATH could not be read or restored (pending ${pathBeforeFile})`,
+        );
+      } else {
+        const vars = ["USERPROFILE", "APPDATA", "LOCALAPPDATA", "HOME", "TEMP", "TMP"];
+        writeFileSync(
+          `${pathBeforeFile}.tmp`,
+          JSON.stringify({
+            ...pathBefore,
+            id,
+            vars: Object.fromEntries(vars.map((k) => [k, ienv[k]])),
+          }),
+        );
+        renameSync(`${pathBeforeFile}.tmp`, pathBeforeFile);
+        const t0 = new Date();
+        r = sh(
+          "powershell",
+          [
+            "-NoProfile",
+            "-ExecutionPolicy",
+            "Bypass",
+            "-Command",
+            `[Net.ServicePointManager]::SecurityProtocol = [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12; $ProgressPreference = "SilentlyContinue"; & ([scriptblock]::Create((irm $env:RECAPTURE_PS1))) ${(how.args ?? []).map((a) => (/^-\w+$/.test(a) ? a : `'${a.replace(/['\u2018\u2019\u201A\u201B]/g, (q) => q + q)}'`)).join(" ")}`,
+          ],
+          {
+            noShell: true,
+            timeout: 900000,
+            cwd: scriptHome,
+            env: ienv,
+          },
+        );
+        reapSince(t0, [cache]);
+        if (moveVendorPath(id, pathBefore, ienv, true)) rmSync(pathBeforeFile, { force: true });
+      }
+    } else if (how?.script && OS !== "windows")
       r = sh(
         "bash",
         ["-c", `curl -fsSL ${how.script} | bash -s -- ${(how.args ?? []).join(" ")}`],
@@ -510,14 +731,12 @@ function install() {
     toolPath();
     if (r && r.status !== 0) say(`install ${id}: exit ${r.status}`);
     const path = bin && which(bin);
-    const v = path
-      ? sh(bin, ["--version"], { timeout: 25000, env: { ...env, PATH: process.env.PATH } })
-      : null;
+    const v = path ? versionOf(bin, manifest.harnesses[id]) : null;
     lines.push(
       [
         id,
         path ? path.replace(userInfo().homedir, "~") : "MISSING",
-        v ? (v.stdout || v.stderr).trim().split(/\r?\n/)[0] : "-",
+        v ? (v.stdout || v.stderr || v.error?.code || "").trim().split(/\r?\n/)[0] : "-",
       ].join("\t"),
     );
   }
@@ -569,16 +788,28 @@ const CONFIG = {
     },
   }),
 };
-// On Windows the helper needs Git Bash; a WSL bash on PATH would report Linux paths.
+// On Windows the helper needs Git Bash; a bare "bash" can resolve to the WSL launcher in System32,
+// which would report Linux paths. Git for Windows' bash.exe is found above git's own directories.
+const BASH =
+  HOST === "windows"
+    ? ([
+        spawnSync("git", ["--exec-path"], { encoding: "utf8" }).stdout,
+        ...(spawnSync("where", ["git"], { encoding: "utf8" }).stdout?.split(/\r?\n/) ?? []),
+      ]
+        .map((p) => p?.trim())
+        .filter(Boolean)
+        .flatMap((p) => [1, 2, 3].map((n) => resolve(p, ...Array(n).fill(".."), "bin", "bash.exe")))
+        .find((b) => existsSync(b)) ?? "bash")
+    : "bash";
 let bashChecked = OS !== "windows";
 const homeEnv = (home) => {
   if (
     !bashChecked &&
-    !/MINGW|MSYS|CYGWIN/.test(sh("bash", ["-c", "uname -s"], { noShell: true }).stdout ?? "")
+    !/MINGW|MSYS|CYGWIN/.test(sh(BASH, ["-c", "uname -s"], { noShell: true }).stdout ?? "")
   )
-    fail("bash on PATH is not Git Bash; put Git for Windows' bash first");
+    fail(`${BASH} is not Git Bash; install Git for Windows`);
   bashChecked = true;
-  const r = sh("bash", [join(here, "os-home.sh"), "--plain", home], { noShell: true });
+  const r = sh(BASH, [join(here, "os-home.sh"), "--plain", home], { noShell: true });
   const env = Object.fromEntries(
     (r.stdout ?? "")
       .trim()
@@ -591,13 +822,65 @@ const homeEnv = (home) => {
 
 // A turn ends when its leader exits; on Linux and macOS whatever it left in its process group is
 // killed then, so no stray outlives the turn or keeps its output pipes open.
+// A native .exe is spawned directly: under cmd.exe a CLI that needs CREATE_BREAKAWAY_FROM_JOB
+// (hermes starts its gateway daemon that way) gets access denied.
+// `where` lists a directory's matches by name, so the one cmd.exe would run is picked by PATHEXT.
+const winExe = (bin, envv, cwd) => {
+  const hits = (spawnSync("where", [bin], { encoding: "utf8", env: envv, cwd }).stdout ?? "")
+    .split(/\r?\n/)
+    .map((l) => l.trim())
+    .filter(Boolean);
+  const exts = (process.env.PATHEXT ?? ".COM;.EXE;.BAT;.CMD").toLowerCase().split(";");
+  const rank = (l) => {
+    const i = exts.findIndex((e) => e && l.toLowerCase().endsWith(e));
+    return i < 0 ? exts.length : i;
+  };
+  // An extensionless POSIX shim is never what cmd.exe runs.
+  const runnable = hits.filter((l) => rank(l) < exts.length);
+  if (!runnable.length) return undefined;
+  const local = runnable.filter(
+    (l) => dirname(l).toLowerCase() === dirname(runnable[0]).toLowerCase(),
+  );
+  const pick = local.reduce((a, l) => (rank(l) < rank(a) ? l : a));
+  return /\.exe$/i.test(pick) ? pick : undefined;
+};
+// Windows has no process group to kill, so after a turn the processes started since its start from
+// an executable under the cache or run directory are killed by PID (hermes leaves a gateway daemon).
+const reapSince = (t0, roots) => {
+  const r = spawnSync(
+    "powershell",
+    [
+      "-NoProfile",
+      "-Command",
+      "$since = [datetime]::Parse($env:RECAPTURE_SINCE); $roots = $env:RECAPTURE_ROOTS -split ';'; " +
+        "Get-CimInstance Win32_Process | Where-Object { $e = $_.ExecutablePath; $_.CreationDate -ge $since -and $e -and " +
+        "($roots | Where-Object { $_ -and $e.StartsWith($_, 'OrdinalIgnoreCase') }) } | ForEach-Object { $_.ProcessId }",
+    ],
+    {
+      encoding: "utf8",
+      env: {
+        ...process.env,
+        RECAPTURE_SINCE: new Date(t0).toISOString(),
+        RECAPTURE_ROOTS: roots.map((d) => resolve(d) + "\\").join(";"),
+      },
+    },
+  );
+  for (const pid of (r.stdout ?? "").split(/\s+/).filter(Boolean)) killTree(Number(pid));
+};
 let turnPid = null;
 const runTurn = (argv, envv, cwd, log, limit) =>
   new Promise((done) => {
     const t0 = Date.now();
+    const exe = OS === "windows" && winExe(argv[0], envv, cwd);
     const child =
       OS === "windows"
-        ? spawn(winLine(argv), { cwd, env: envv, stdio: ["ignore", "pipe", "pipe"], shell: true })
+        ? exe
+          ? spawn(exe, argv.slice(1), {
+              cwd,
+              env: envv,
+              stdio: ["ignore", "pipe", "pipe"],
+            })
+          : spawn(winLine(argv), { cwd, env: envv, stdio: ["ignore", "pipe", "pipe"], shell: true })
         : spawn(argv[0], argv.slice(1), {
             cwd,
             env: envv,
@@ -626,9 +909,11 @@ const runTurn = (argv, envv, cwd, log, limit) =>
       done({ code, timedOut, text, seconds: Math.round((Date.now() - t0) / 1000) });
     };
     child.on("error", () => finish(127));
-    // Windows cannot walk the tree of an exited leader, so there only a timeout kills the tree.
+    // Windows cannot walk the tree of an exited leader: a timeout kills the tree, and after an exit
+    // reapSince kills what the turn started from the cache or run directory.
     child.on("exit", (code) => {
       if (OS !== "windows") killTree(child.pid);
+      else reapSince(t0, [cache, out]);
       setTimeout(() => {
         child.stdout.destroy();
         child.stderr.destroy();
@@ -684,6 +969,31 @@ const alive = async (s) => {
     if (!(await answers(url))) fail(`${url} stopped answering; rerun env`);
 };
 
+const versions = new Map();
+// A CLI that ignores USERPROFILE (jcode) gets its manifest *_HOME pointed into the script home.
+const versionOf = (bin, h) => {
+  if (versions.has(bin)) return versions.get(bin);
+  const homes = Object.values(h?.shapes ?? {})
+    .flatMap((s) => Object.entries(s.env ?? {}))
+    .filter(([k]) => k.endsWith("_HOME"))
+    .map(([k, v]) => [k, fill(v, { home: scriptHome.replaceAll("\\", "/") })]);
+  const env = {
+    ...cleanEnv(),
+    ...homeEnv(scriptHome),
+    ...Object.fromEntries(homes),
+    ...(OS === "windows" ? { PYTHONUTF8: "1", PYTHONIOENCODING: "utf-8" } : {}),
+    PATH: process.env.PATH,
+  };
+  // A native .exe is probed directly, so a timeout kills the CLI rather than only cmd.exe.
+  const exe = OS === "windows" && winExe(bin, env);
+  const t0 = new Date();
+  const r = sh(exe || bin, ["--version"], { timeout: 25000, env, noShell: !!exe });
+  if (OS === "windows") reapSince(t0, [cache]);
+  // A failure is not cached, so a first launch slowed by a virus scan is probed again.
+  if (r.status === 0) versions.set(bin, r);
+  return r;
+};
+
 async function run() {
   const s = readJson(state, {});
   if (!s.gatewayPid) fail("no gateway recorded; run the env step first");
@@ -724,6 +1034,17 @@ async function run() {
       write({ status: "not-installed", reason: binOf(cell.c) });
       continue;
     }
+    // A Windows shim can resolve on PATH yet fail to start (a skipped native postinstall, an
+    // unsupported binary), which would otherwise read as a capture gap.
+    const probe =
+      OS === "windows" ? versionOf(binOf(cell.c), manifest.harnesses[cell.harness]) : { status: 0 };
+    if (probe.status !== 0) {
+      write({
+        status: "not-installed",
+        reason: `${binOf(cell.c)} --version ${probe.error?.code === "ETIMEDOUT" ? "timed out" : (probe.error?.code ?? `exit ${probe.status}`)}`,
+      });
+      continue;
+    }
     const home = join(dir, "home");
     const cwd = join(dir, "work");
     cpSync(s.target, cwd, { recursive: true });
@@ -736,6 +1057,8 @@ async function run() {
     const envv = {
       ...Object.fromEntries(Object.entries(process.env).filter(([k]) => !LEAKY.test(k))),
       ...homeEnv(home),
+      // Python CLIs on Windows write to a pipe in the ANSI code page and crash on non-Latin-1 output.
+      ...(OS === "windows" ? { PYTHONUTF8: "1", PYTHONIOENCODING: "utf-8" } : {}),
       ...Object.fromEntries(Object.entries(cell.c.env ?? {}).map(([k, v]) => [k, fill(v, vars)])),
     };
     const seed = cell.c.seed && seedDir(cell.c.seed);
