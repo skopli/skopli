@@ -727,7 +727,7 @@ function install() {
       [
         id,
         path ? path.replace(userInfo().homedir, "~") : "MISSING",
-        v ? (v.stdout || v.stderr).trim().split(/\r?\n/)[0] : "-",
+        v ? (v.stdout || v.stderr || v.error?.code || "").trim().split(/\r?\n/)[0] : "-",
       ].join("\t"),
     );
   }
