@@ -77,7 +77,7 @@ Statuses in `result.json` and `cell-notes.<os>.tsv`:
 | `capture-gap`    | Setup exited non-zero, no request reached the gateway, or the harness wrote nothing under its store roots.                                            |
 | `hang`           | Setup ran out the budget, or a turn did and Skopli read nothing.                                                                                      |
 | `error`          | `home.mjs` crashed or `reconcile.mjs` exited with something other than agreement or a delta; `report` then exits `1`.                                 |
-| `not-installed`  | The harness binary is not on `PATH` after the install step.                                                                                           |
+| `not-installed`  | The harness binary is not on `PATH` after the install step, or on Windows its `--version` probe failed or timed out.                                  |
 | `skip`           | The manifest says the cell cannot run; the reason is one of `gui-only`, `no-byok-endpoint`, `wrong-wire-shape`, `interactive-config`, `not-an-agent`. |
 | `todo`           | The recovered kit could not source a field for this OS: the install channel, a command, or a config seed.                                             |
 
@@ -212,7 +212,7 @@ These rows describe what the November 2026 wave recorded; a recapture is what co
 - The package keeps every cell home unredacted, so attach it only to the private run report, never to a public PR or issue.
 - On Windows a turn whose command resolves to a native `.exe` is spawned directly; any other command (a pnpm `.cmd` shim) runs through `cmd.exe` with every argument but a plain command name double-quoted, so a prompt must not contain `%`.
 - On Windows an `installOs.windows.ps1` installer runs in PowerShell from the script home with a PATH of only the cache dirs, System32 and Git (installers scan PATH for an existing install), the bin dirs it adds to the user PATH in the registry move to `vendor-path.json` in `--cache`, which joins the run's PATH, and only those script-home entries are removed from the operator's user PATH, before and after each install keeping the registry kind and any other edits.
-  The pre-install value is saved to `user-path-before.json` in `--cache` until the post-install restore succeeds, so an interrupted install is undone by the next one, entries an installer wrote back expanded against the script home get their `%VAR%` spelling back, and an install is skipped when the user PATH cannot be read or restored.
+  The pre-install value is saved to `user-path-before.json` in `--cache` until the post-install restore succeeds, so an interrupted install is undone by the next install or by `stop`, entries an installer wrote back expanded against the script home get their `%VAR%` spelling back, and an install is skipped when the user PATH cannot be read or restored.
 - jcode ignores `USERPROFILE` on Windows and resolves its store from `JCODE_HOME`, which the manifest points at `<cell home>/.jcode` for cells and at `<script home>/.jcode` for its installer, which runs `jcode.exe` itself (with `JCODE_SKIP_SERVER_RELOAD=1`).
 - On Windows the run step probes each CLI with `--version` (reusing the install step's result within one process), and a cell whose probe fails or times out is `not-installed`.
 - An installer that adds a user PATH entry outside the script home is reported on stderr as `install <id>: left new user PATH entries outside the script home`; remove such an entry by hand.

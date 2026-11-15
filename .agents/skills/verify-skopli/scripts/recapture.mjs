@@ -222,6 +222,7 @@ const toolPath = () => {
     ...[
       process.env.UV_TOOL_BIN_DIR,
       join(scriptHome, ".local/bin"),
+      join(scriptHome, "bin"),
       ...dots,
       ...vendorPath(),
     ].filter((d) => OS !== "windows" || existsSync(d)),
@@ -325,8 +326,8 @@ const saveState = (patch) =>
   writeFileSync(state, JSON.stringify({ ...readJson(state, {}), ...patch }, null, 2));
 const sh = (cmd, a, o = {}) =>
   OS === "windows" && !o.noShell
-    ? spawnSync(winLine([cmd, ...a]), { encoding: "utf8", shell: true, ...o })
-    : spawnSync(cmd, a, { encoding: "utf8", ...o });
+    ? spawnSync(winLine([cmd, ...a]), { encoding: "utf8", maxBuffer: 64 << 20, shell: true, ...o })
+    : spawnSync(cmd, a, { encoding: "utf8", maxBuffer: 64 << 20, ...o });
 const killTree = (pid) => {
   if (!pid) return;
   if (OS === "windows") sh("taskkill", ["/PID", String(pid), "/T", "/F"], { noShell: true });
@@ -580,6 +581,8 @@ function stop() {
   });
   if (existsSync(state))
     saveState({ serverPid: null, serverStart: null, gatewayPid: null, gatewayStart: null });
+  const saved = OS === "windows" && readJson(pathBeforeFile, null);
+  if (saved && moveVendorPath("stop", saved, {}, true)) rmSync(pathBeforeFile, { force: true });
   say(`stop: ${done.join(" ")}`);
 }
 
