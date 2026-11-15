@@ -133,28 +133,33 @@ const moveVendorPath = (id, before, ienv = {}, post = false) => {
   const real = Object.fromEntries(
     Object.entries(process.env).map(([k, v]) => [k.toLowerCase(), v]),
   );
+  // Installers may trim and unquote entries when they rewrite the value.
+  const norm = (e) => e.trim().replace(/^"|"$/g, "").toLowerCase();
   const spelling = new Map(
     (before?.raw ?? "")
       .split(";")
-      .filter(Boolean)
-      .flatMap((e) => [e, expand(e, lower), expand(e, real)].map((x) => [x.toLowerCase(), e])),
+      .filter((e) => e.trim())
+      .flatMap((e) => [e, expand(e, lower), expand(e, real)].map((x) => [norm(x), e])),
   );
   const root = resolve(scriptHome).toLowerCase() + sep;
-  const entries = (cur.raw ?? "").split(";").filter(Boolean);
-  const mine = entries.filter(
-    (d) => !spelling.has(d.toLowerCase()) && resolve(d).toLowerCase().startsWith(root),
+  // Empty segments (the stock value ends in ";") are kept, so an untouched value is not rewritten.
+  const segs = (cur.raw ?? "").split(";");
+  const mine = segs.filter(
+    (d) => d.trim() && !spelling.has(norm(d)) && resolve(norm(d)).startsWith(root),
   );
-  const keep = entries
+  const keep = segs
     .filter((d) => !mine.includes(d))
-    .map((d) => spelling.get(d.toLowerCase()) ?? d);
-  const added = post ? keep.filter((d) => !spelling.has(d.toLowerCase())) : [];
+    .map((d) => (d.trim() ? (spelling.get(norm(d)) ?? d) : d));
+  const added = post ? keep.filter((d) => d.trim() && !spelling.has(norm(d))) : [];
   if (added.length)
     console.error(
       `install ${id}: left new user PATH entries outside the script home: ${added.join(";")}`,
     );
   const kind = before?.kind ?? cur.kind;
   const raw =
-    keep.length || (before ? before.raw !== null : cur.raw !== null) ? keep.join(";") : null;
+    keep.some((d) => d.trim()) || (before ? before.raw !== null : cur.raw !== null)
+      ? keep.join(";")
+      : null;
   if (mine.length) {
     writeFileSync(`${vendorFile}.tmp`, JSON.stringify([...new Set([...vendorPath(), ...mine])]));
     renameSync(`${vendorFile}.tmp`, vendorFile);
@@ -957,7 +962,9 @@ const versionOf = (bin, h) => {
   };
   // A native .exe is probed directly, so a timeout kills the CLI rather than only cmd.exe.
   const exe = OS === "windows" && winExe(bin, env);
+  const t0 = new Date();
   const r = sh(exe || bin, ["--version"], { timeout: 25000, env, noShell: !!exe });
+  if (OS === "windows") reapSince(t0, [cache]);
   // A failure is not cached, so a first launch slowed by a virus scan is probed again.
   if (r.status === 0) versions.set(bin, r);
   return r;
