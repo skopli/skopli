@@ -570,6 +570,12 @@ async function env() {
 }
 
 // A recorded PID whose start time no longer matches belongs to someone else and is left alone.
+// Undo an install that never reached its post-install restore, expanding with the env it ran under.
+const recoverUserPath = () => {
+  const saved = OS === "windows" && readJson(pathBeforeFile, null);
+  if (saved && moveVendorPath(`${saved.id} (interrupted)`, saved, saved.vars ?? {}, true))
+    rmSync(pathBeforeFile, { force: true });
+};
 function stop() {
   const s = readJson(state, {});
   const done = ["server", "gateway"].map((k) => {
@@ -581,8 +587,7 @@ function stop() {
   });
   if (existsSync(state))
     saveState({ serverPid: null, serverStart: null, gatewayPid: null, gatewayStart: null });
-  const saved = OS === "windows" && readJson(pathBeforeFile, null);
-  if (saved && moveVendorPath("stop", saved, {}, true)) rmSync(pathBeforeFile, { force: true });
+  recoverUserPath();
   say(`stop: ${done.join(" ")}`);
 }
 
@@ -595,6 +600,7 @@ function install() {
   mkdirSync(out, { recursive: true });
   const harnesses = [...new Set(cells.filter((x) => x.plan === "run").map((x) => x.harness))];
   const lines = [];
+  recoverUserPath();
   for (const id of harnesses) {
     const { shapes } = manifest.harnesses[id];
     const how = installOf(manifest.harnesses[id]);
@@ -641,17 +647,20 @@ function install() {
         RECAPTURE_PS1: how.ps1,
         PATH: installerPath(),
       };
-      const saved = readJson(pathBeforeFile, null);
-      const pathBefore = saved
-        ? moveVendorPath(id, saved, ienv) && saved
-        : moveVendorPath(id, null);
+      const pathBefore = !existsSync(pathBeforeFile) && moveVendorPath(id, null);
       if (!pathBefore) {
         console.error(`install ${id}: skipped, the user PATH could not be read or restored`);
       } else {
-        if (!saved) {
-          writeFileSync(`${pathBeforeFile}.tmp`, JSON.stringify(pathBefore));
-          renameSync(`${pathBeforeFile}.tmp`, pathBeforeFile);
-        }
+        const vars = ["USERPROFILE", "APPDATA", "LOCALAPPDATA", "HOME", "TEMP", "TMP"];
+        writeFileSync(
+          `${pathBeforeFile}.tmp`,
+          JSON.stringify({
+            ...pathBefore,
+            id,
+            vars: Object.fromEntries(vars.map((k) => [k, ienv[k]])),
+          }),
+        );
+        renameSync(`${pathBeforeFile}.tmp`, pathBeforeFile);
         const t0 = new Date();
         r = sh(
           "powershell",
