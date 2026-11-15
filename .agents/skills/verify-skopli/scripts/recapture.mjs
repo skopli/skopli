@@ -444,6 +444,13 @@ const spawnedAt = (pid, what) => {
 };
 const ours = (s, k) =>
   !!s[`${k}Pid`] && !!s[`${k}Start`] && started(s[`${k}Pid`]) === s[`${k}Start`];
+const isAlive = (pid) => {
+  try {
+    return process.kill(pid, 0);
+  } catch (e) {
+    return e.code === "EPERM";
+  }
+};
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 // fail throws so the top level can still stop what an `all` run started before exiting 1.
 const fail = (message) => {
@@ -677,15 +684,27 @@ const recoverUserPath = () => {
 // A recorded PID whose start time no longer matches belongs to someone else and is left alone.
 function stop() {
   const s = readJson(state, {});
+  const kept = {};
   const done = ["server", "gateway"].map((k) => {
     const pid = s[`${k}Pid`];
     if (!pid) return "-";
-    if (!ours(s, k)) return `${pid} (not ours, left alone)`;
+    if (!ours(s, k)) {
+      // A live PID whose start time could not be read stays recorded for the next stop.
+      if (started(pid) === null && isAlive(pid))
+        Object.assign(kept, { [`${k}Pid`]: pid, [`${k}Start`]: s[`${k}Start`] });
+      return `${pid} (not ours, left alone)`;
+    }
     killTree(pid);
     return String(pid);
   });
   if (existsSync(state))
-    saveState({ serverPid: null, serverStart: null, gatewayPid: null, gatewayStart: null });
+    saveState({
+      serverPid: null,
+      serverStart: null,
+      gatewayPid: null,
+      gatewayStart: null,
+      ...kept,
+    });
   recoverUserPath();
   say(`stop: ${done.join(" ")}`);
 }
@@ -740,7 +759,7 @@ const installSh = (cmd, a, o) => {
     ],
     { ...o, noShell: true, timeout: (INSTALL_LIMIT + 30) * 1000 },
   );
-  reap(t0, had, [cache]);
+  reap(t0, had, [cache, out]);
   return {
     ...r,
     status: r.error?.code === "ETIMEDOUT" ? 124 : r.status,
@@ -1035,6 +1054,7 @@ const runTurn = (argv, envv, cwd, log, limit) =>
     // Windows cannot walk the tree of an exited leader: a timeout kills the tree, and after an exit
     // reap kills what the turn started from the cache or run directory, as it does strays elsewhere.
     child.on("exit", (code) => {
+      clearTimeout(timer);
       if (OS !== "windows") killTree(child.pid);
       reap(t0, had, [cache, out]);
       setTimeout(() => {
@@ -1243,6 +1263,8 @@ async function run() {
       turns.push({ exit: t.code, timedOut: t.timedOut, seconds: t.seconds });
       if (!i && cell.h.session) vars.session = sessionId(cell.h.session, t.text, home) ?? "";
     }
+    // A server or gateway that died mid-cell leaves no result, so --resume runs the cell again.
+    await alive(s);
     // An aborted line is a reply no harness received, possibly from the previous cell's killed turn.
     const lines = (existsSync(gwlog) ? readFileSync(gwlog).subarray(from).toString() : "")
       .split("\n")
@@ -1498,6 +1520,12 @@ function report() {
   return drift.some((d) => d.kind === "invariant") ? 1 : open.length ? 3 : 0;
 }
 
+const subdirs = (d) =>
+  existsSync(d)
+    ? readdirSync(d, { withFileTypes: true })
+        .filter((e) => e.isDirectory())
+        .map((e) => e.name)
+    : [];
 function pack() {
   const r = sh(
     TAR,
@@ -1506,8 +1534,8 @@ function pack() {
       join(dirname(out), `${basename(out)}.tgz`),
       "--exclude=node_modules",
       // Every cell dir on disk, retried .attemptN copies and cells outside --only included.
-      ...(existsSync(join(out, "cells")) ? readdirSync(join(out, "cells")) : []).flatMap((h) =>
-        readdirSync(join(out, "cells", h)).map(
+      ...subdirs(join(out, "cells")).flatMap((h) =>
+        subdirs(join(out, "cells", h)).map(
           (d) => `--exclude=${basename(out)}/cells/${h}/${d}/work`,
         ),
       ),
@@ -1541,7 +1569,7 @@ for (const sig of ["SIGINT", "SIGTERM", "SIGHUP"])
   process.on(sig, () => {
     killTree(turnPid);
     reap(T0, [], [cache, out]);
-    if (step === "all" || startedEnv) stop();
+    if (startedEnv) stop();
     process.exit(1);
   });
 let code = 0;
@@ -1553,6 +1581,6 @@ try {
   code = 1;
 } finally {
   // A failed env would leave the server and gateway it started for the next env to trip over.
-  if (step === "all" || (startedEnv && code)) stop();
+  if (startedEnv && (step === "all" || code)) stop();
 }
 process.exit(code);

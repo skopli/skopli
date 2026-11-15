@@ -17,7 +17,7 @@ One command owns the whole wave, and an agent only steps in when the run exits w
 - `node .agents/skills/verify-skopli/scripts/recapture.mjs all --out .verify/recapture/<utc-stamp>` runs the whole wave and always ends by stopping what it started.
 - `node .agents/skills/verify-skopli/scripts/recapture.mjs list` prints every cell with its planned outcome on this OS.
 - The steps `env`, `install`, `run`, `report`, `package` and `stop` run one at a time against the same `--out`.
-  A failed or interrupted step stops the server and gateway when that invocation started them (`all`, or an `env` that got as far as starting the server), and an interrupt also kills the current turn and every process of the run that carries its `RECAPTURE_TAG`.
+  A failed or interrupted `all` or `env` stops the server and gateway only when that invocation got as far as starting them, so a pair an earlier `env` recorded is left alone, and an interrupt also kills the current turn and the run's strays: on Linux and macOS every process that carries its `RECAPTURE_TAG`, on Windows every process started since the invocation began from an executable under `--cache` or `--out`.
 - `--only <harness>` or `--only <harness>/<shape>` (repeatable) selects a subset, `--os` plans for another OS with `list` or `--dry-run` only, `--resume` skips cells that already ran, and reruns those whose `result.json` is missing, says `error` or `not-installed`, or holds a skip or TODO the manifest no longer plans, `--baseline <dir>` adds CLI version changes against an earlier run on the same OS (a directory without that OS's report is a usage error), `--dry-run` prints the resolved plan as JSON, and `--timeout <s>` changes the per-cell budget, a whole number of seconds from 60 to 86400.
 - Exit codes: `0` ran and found no new drift, `1` an invariant failed (download, byte size, a bound port, server or gateway readiness, cache proof, build, a crashed `home.mjs` or `reconcile.mjs`, a harness not installed, a planned cell with no result), `2` usage error, `3` new drift or a new TODO cell needs an agent.
   The cell outcomes (not installed, no result, drift, TODO) are judged by `report`, so a standalone `run` exits `0` once its cells have finished, and `all` exits with what `report` found.
@@ -34,7 +34,7 @@ Preconditions:
 - Nothing else listening on ports 8090 and 8091; `env` refuses a bound port, and readiness only counts while the server and gateway it started are alive.
 
 - **Plan.** Run `node .agents/skills/verify-skopli/scripts/recapture.mjs list`.
-  Each line is `<harness>/<shape>`, then `run`, `skip:<code>` or `todo`, then the reason.
+  Each line is `<harness>/<shape>`, then `run`, `skip:<code>` or `todo`, then for a `todo` the reason.
 - **Environment.** Run `node .agents/skills/verify-skopli/scripts/recapture.mjs env --out .verify/recapture/<run>`.
   Stderr ends with `env: ok, server <pid>, gateway <pid>, cache proof passed`, and `cache-proof.json` shows `prompt_tokens_details.cached_tokens` and `cache_read_input_tokens` higher on turn two than on turn one.
   The step runs `pnpm install --frozen-lockfile` and `pnpm run build` first, because the readers run through the built facade.
@@ -64,7 +64,7 @@ The cell procedure the runner follows:
 1. A rerun of a cell moves the earlier directory to `<shape>.attemptN` and starts with a fresh home; nothing resumes in place.
 2. The target project is copied into `cells/<harness>/<shape>/work`, and the home is `cells/<harness>/<shape>/home` with the `os-home.sh` redirects applied.
 3. The seed for this OS is copied into the home with placeholders filled; Linux and macOS seeds stand in for each other when the seed writes nothing under `Library/` or `AppData/`.
-4. The runner checks that the server and gateway from `env` are still alive and that the server's `/health` and the gateway's `/v1/models` answer, and fails with exit `1` otherwise.
+4. The runner checks that the server and gateway from `env` are still alive and that the server's `/health` and the gateway's `/v1/models` answer, and fails with exit `1` otherwise; it checks again after the turns, and a cell during which either died gets no `result.json`, so `--resume` runs it again.
 5. An optional setup command runs (for example `cline auth openai ...`), then the four prompts in `harnesses.json` run, the first with `first` and the rest with `next`, sharing one `--timeout` budget, 600 seconds by default.
    A setup that times out makes the cell a `hang`, and a setup that exits non-zero skips the turns and records `setup exit N` as the reason.
 6. A turn that outlives the budget is killed with its process group (`taskkill /T` by PID on Windows), and the turns after it are recorded as skipped.
