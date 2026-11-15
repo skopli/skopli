@@ -152,8 +152,11 @@ const files = (dir, base = dir) =>
 // for the other unless the seed writes under Library/ or AppData/.
 const seedDir = (name) =>
   [OS, ...({ linux: ["darwin"], darwin: ["linux"] }[OS] ?? [])]
-    .map((o) => join(seeds, o, name))
-    .find((d) => existsSync(d) && !files(d).some((f) => /^(Library|AppData)\//.test(f)));
+    .map((o) => [o, join(seeds, o, name)])
+    .find(
+      ([o, d]) =>
+        existsSync(d) && (o === OS || !files(d).some((f) => /^(Library|AppData)\//.test(f))),
+    )?.[1];
 // A cell is TODO when a field still names a gap the recovered kit could not source on this OS.
 // An install channel can differ per OS (a PowerShell installer on Windows); installOs overrides install.
 const installOf = (h) => h.installOs?.[OS] ?? h.install;
@@ -191,7 +194,10 @@ if (unmatched.length) args.usage(`--only matched no cell: ${unmatched.join(" ")}
 
 // cmd.exe gets one command line with every argument double-quoted, because Node only joins
 // arguments when it spawns through a shell.
-const winLine = (argv) => argv.map((a) => `"${a.replaceAll('"', '""')}"`).join(" ");
+// The command itself stays bare when it can: cmd.exe resolves %~dp0 of a quoted .cmd shim found on
+// PATH against the working directory, so a quoted "pnpm" runs corepack from the wrong folder.
+const winLine = (argv) =>
+  argv.map((a, i) => (!i && /^[\w.:\/-]+$/.test(a) ? a : `"${a.replaceAll('"', '""')}"`)).join(" ");
 const state = join(out, "state.json");
 const readJson = (f, fallback) => (existsSync(f) ? JSON.parse(readFileSync(f, "utf8")) : fallback);
 const saveState = (patch) =>
@@ -440,7 +446,8 @@ function install() {
     let r = null;
     mkdirSync(scriptHome, { recursive: true });
     const env = { ...cleanEnv(), ...homeEnv(scriptHome) };
-    if (how?.pnpm) r = sh("pnpm", ["add", "-g", how.pnpm], { env });
+    // pnpm 10 skips dependency build scripts unless allowed, and several CLIs fetch their native binary in postinstall.
+    if (how?.pnpm) r = sh("pnpm", ["add", "-g", `--allow-build=${how.pnpm}`, how.pnpm], { env });
     else if (how?.uv)
       r = sh(
         "uv",
@@ -462,20 +469,20 @@ function install() {
           "-ExecutionPolicy",
           "Bypass",
           "-Command",
-          `& ([scriptblock]::Create((irm ${how.ps1}))) ${(how.args ?? []).join(" ")}`,
+          `$ProgressPreference = "SilentlyContinue"; & ([scriptblock]::Create((irm ${how.ps1}))) ${(how.args ?? []).join(" ")}`,
         ],
-        { noShell: true, timeout: 900000, env: { ...env, ...how.env } },
+        { noShell: true, timeout: 900000, cwd: scriptHome, env: { ...env, ...how.env } },
       );
       toolPath();
     } else if (how?.script && OS !== "windows") {
       r = sh("bash", ["-c", `curl -fsSL ${how.script} | bash`], { env });
       toolPath();
     }
+    // The uv bin dir and the vendor bin dirs only exist once something is installed into them.
+    toolPath();
     if (r && r.status !== 0) say(`install ${id}: exit ${r.status}`);
     const path = bin && which(bin);
-    const v = path
-      ? sh(bin, ["--version"], { timeout: 25000, env: { ...env, PATH: process.env.PATH } })
-      : null;
+    const v = path ? versionOf(bin) : null;
     lines.push(
       [
         id,
@@ -654,6 +661,19 @@ const alive = async (s) => {
   if (!ok) fail("llama-server stopped answering /health; rerun env");
 };
 
+const versions = new Map();
+const versionOf = (bin) => {
+  if (!versions.has(bin))
+    versions.set(
+      bin,
+      sh(bin, ["--version"], {
+        timeout: 25000,
+        env: { ...cleanEnv(), ...homeEnv(scriptHome), PATH: process.env.PATH },
+      }),
+    );
+  return versions.get(bin);
+};
+
 async function run() {
   const s = readJson(state, {});
   if (!s.gatewayPid) fail("no gateway recorded; run the env step first");
@@ -687,6 +707,12 @@ async function run() {
     }
     if (!which(binOf(cell.c))) {
       write({ status: "not-installed", reason: binOf(cell.c) });
+      continue;
+    }
+    // A shim on PATH can still be unusable (a runtime it needs is missing, a skipped postinstall).
+    const probe = versionOf(binOf(cell.c));
+    if (probe.status !== 0) {
+      write({ status: "not-installed", reason: `${binOf(cell.c)} --version exit ${probe.status}` });
       continue;
     }
     const home = join(dir, "home");

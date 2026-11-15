@@ -873,6 +873,7 @@
             "{prompt}"
           ],
           "env": {
+            "JCODE_HOME": "{home}/.jcode",
             "JCODE_OPENAI_COMPAT_API_BASE": "{origin}/v1",
             "JCODE_OPENAI_COMPAT_DEFAULT_MODEL": "qwen",
             "JCODE_OPENAI_COMPAT_LOCAL_ENABLED": "1",
@@ -897,6 +898,7 @@
             "{prompt}"
           ],
           "env": {
+            "JCODE_HOME": "{home}/.jcode",
             "ANTHROPIC_BASE_URL": "{origin}",
             "ANTHROPIC_API_KEY": "sk-local"
           }
