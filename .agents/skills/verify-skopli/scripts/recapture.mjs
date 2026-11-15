@@ -32,7 +32,7 @@ steps ("all" runs them in order and always ends with stop):
   install   install every harness the manifest can install, write cli-versions.txt
   run       run the selected cells one at a time with an isolated home each
   report    write cell-notes.<os>.tsv, matrix.<os>.md and drift.json from the cell results
-  package   tar the run directory without target copies, model or server binaries
+  package   tar the run directory without target copies, node modules or the runner's tmp
   stop      stop the server and gateway this run started, by PID, and on Windows undo the
             user PATH of an install that was interrupted
   all       env, install, run, report, package, stop
@@ -444,11 +444,13 @@ const spawnedAt = (pid, what) => {
 };
 const ours = (s, k) =>
   !!s[`${k}Pid`] && !!s[`${k}Start`] && started(s[`${k}Pid`]) === s[`${k}Start`];
+// Signal 0 succeeds only for a live process this user may signal, which a reused PID of another
+// user or SYSTEM is not.
 const isAlive = (pid) => {
   try {
     return process.kill(pid, 0);
-  } catch (e) {
-    return e.code === "EPERM";
+  } catch {
+    return false;
   }
 };
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -474,14 +476,8 @@ const portBusy = (port) =>
     c.once("error", () => r(false));
   });
 const findFile = (dir, name) => {
-  for (const e of readdirSync(dir, { withFileTypes: true })) {
-    const p = join(dir, e.name);
-    if (e.isDirectory()) {
-      const f = findFile(p, name);
-      if (f) return f;
-    } else if (e.name === name) return p;
-  }
-  return null;
+  const f = files(dir).find((f) => basename(f) === name);
+  return f ? join(dir, f) : null;
 };
 const post = async (path, body, headers = {}) => {
   const res = await fetch(origin + path, {
@@ -690,8 +686,10 @@ function stop() {
     if (!pid) return "-";
     if (!ours(s, k)) {
       // A live PID whose start time could not be read stays recorded for the next stop.
-      if (started(pid) === null && isAlive(pid))
+      if (started(pid) === null && isAlive(pid)) {
         Object.assign(kept, { [`${k}Pid`]: pid, [`${k}Start`]: s[`${k}Start`] });
+        return `${pid} (start time unreadable, kept in state.json)`;
+      }
       return `${pid} (not ours, left alone)`;
     }
     killTree(pid);
@@ -744,25 +742,41 @@ p.on("exit", (code) => {
   p.on("close", end);
   setTimeout(end, 2000).unref();
 });`;
-const installSh = (cmd, a, o) => {
+// The wrapper runs asynchronously so a signal sent to the runner alone is handled mid-install.
+let installChild = null;
+const installSh = async (cmd, a, o) => {
   const shell = OS === "windows" && !o.noShell;
   const t0 = new Date();
   const had = tagged();
-  const r = sh(
-    process.execPath,
-    [
-      "-e",
-      GROUP,
-      String(INSTALL_LIMIT),
-      shell ? "1" : "0",
-      ...(shell ? [winLine([cmd, ...a])] : [cmd, ...a]),
-    ],
-    { ...o, noShell: true, timeout: (INSTALL_LIMIT + 30) * 1000 },
-  );
+  const r = await new Promise((done) => {
+    const c = spawn(
+      process.execPath,
+      [
+        "-e",
+        GROUP,
+        String(INSTALL_LIMIT),
+        shell ? "1" : "0",
+        ...(shell ? [winLine([cmd, ...a])] : [cmd, ...a]),
+      ],
+      { ...o, stdio: ["inherit", "pipe", "pipe"] },
+    );
+    installChild = c;
+    let stdout = "";
+    let stderr = "";
+    c.stdout.setEncoding("utf8").on("data", (d) => (stdout += d));
+    c.stderr.setEncoding("utf8").on("data", (d) => (stderr += d));
+    const t = setTimeout(() => c.kill("SIGKILL"), (INSTALL_LIMIT + 30) * 1000);
+    c.on("error", (error) => done({ error, stdout, stderr }));
+    c.on("close", (status, signal) => {
+      clearTimeout(t);
+      installChild = null;
+      done({ status: status ?? (signal === "SIGKILL" ? 124 : null), signal, stdout, stderr });
+    });
+  });
   reap(t0, had, [cache, out]);
   return {
     ...r,
-    status: r.error?.code === "ETIMEDOUT" ? 124 : r.status,
+    status: r.error ? 127 : r.status,
     // The wrapper re-raises the operator's signal on Linux and macOS, and says so on Windows.
     interrupted:
       (["SIGINT", "SIGTERM", "SIGHUP"].includes(r.signal) && !r.error) ||
@@ -771,7 +785,7 @@ const installSh = (cmd, a, o) => {
         (r.stderr ?? "").endsWith("recapture: interrupted\n")),
   };
 };
-function install() {
+async function install() {
   mkdirSync(out, { recursive: true });
   const harnesses = [...new Set(cells.filter((x) => x.plan === "run").map((x) => x.harness))];
   const lines = [];
@@ -805,9 +819,9 @@ function install() {
     );
     // pnpm 10+ skips build scripts unless allowed; claude, opencode and kimchi fetch their binary in one.
     if (how?.pnpm)
-      r = installSh("pnpm", ["add", "-g", `--allow-build=${how.pnpm}`, how.pnpm], { env });
+      r = await installSh("pnpm", ["add", "-g", `--allow-build=${how.pnpm}`, how.pnpm], { env });
     else if (how?.uv)
-      r = installSh(
+      r = await installSh(
         "uv",
         [
           "tool",
@@ -847,7 +861,7 @@ function install() {
           }),
         );
         renameSync(`${pathBeforeFile}.tmp`, pathBeforeFile);
-        r = installSh(
+        r = await installSh(
           "powershell",
           [
             "-NoProfile",
@@ -861,7 +875,7 @@ function install() {
         if (moveVendorPath(id, pathBefore, ienv, true)) rmSync(pathBeforeFile, { force: true });
       }
     } else if (how?.script && OS !== "windows")
-      r = installSh(
+      r = await installSh(
         "bash",
         [
           "-c",
@@ -890,6 +904,10 @@ function install() {
       say(
         `install ${id}: ${r.status === 124 ? `timed out after ${INSTALL_LIMIT} s` : `exit ${r.status}`}, see install/${id}.log`,
       );
+    // A failed update must not let the run test the copy an earlier run left in --cache.
+    const failed = join(out, "install", `${id}.failed`);
+    if (r && r.status !== 0) writeFileSync(failed, `install failed: exit ${r.status}`);
+    else if (r) rmSync(failed, { force: true });
     const path = bin && which(bin);
     const v = path ? versionOf(bin, manifest.harnesses[id]) : null;
     lines.push(
@@ -1055,6 +1073,7 @@ const runTurn = (argv, envv, cwd, log, limit) =>
     // reap kills what the turn started from the cache or run directory, as it does strays elsewhere.
     child.on("exit", (code) => {
       clearTimeout(timer);
+      turnPid = null;
       if (OS !== "windows") killTree(child.pid);
       reap(t0, had, [cache, out]);
       setTimeout(() => {
@@ -1107,7 +1126,8 @@ const scan = (home, cwd, paths) => {
 // A dead server or gateway would turn every later cell into a false capture-gap.
 const alive = async (s) => {
   for (const k of ["server", "gateway"])
-    if (!ours(s, k)) fail(`${k} process ${s[`${k}Pid`]} from the env step is gone; rerun env`);
+    if (!ours(s, k))
+      fail(`${k} process ${s[`${k}Pid`]} from the env step is gone; run stop, then env`);
   // On darwin the first probe after a long idle can reuse a pooled socket the server already closed.
   const answers = async (url) => {
     for (let i = 0; i < 3; i++) {
@@ -1121,7 +1141,7 @@ const alive = async (s) => {
     return false;
   };
   for (const url of [`http://127.0.0.1:${LLAMA.port}/health`, `${origin}/v1/models`])
-    if (!(await answers(url))) fail(`${url} stopped answering; rerun env`);
+    if (!(await answers(url))) fail(`${url} stopped answering; run stop, then env`);
 };
 
 const versions = new Map();
@@ -1186,8 +1206,9 @@ async function run() {
       });
       continue;
     }
-    if (!which(binOf(cell.c))) {
-      write({ status: "not-installed", reason: binOf(cell.c) });
+    const failedInstall = readOr(join(out, "install", `${cell.harness}.failed`)).trim();
+    if (failedInstall || !which(binOf(cell.c))) {
+      write({ status: "not-installed", reason: failedInstall || binOf(cell.c) });
       continue;
     }
     // A Windows shim can resolve on PATH yet fail to start (a skipped native postinstall, an
@@ -1568,6 +1589,9 @@ const steps = { env, install, run, report, package: pack, stop };
 for (const sig of ["SIGINT", "SIGTERM", "SIGHUP"])
   process.on(sig, () => {
     killTree(turnPid);
+    // The install wrapper kills its own group on a signal; on Windows only taskkill reaches the tree.
+    if (installChild && OS === "windows") killTree(installChild.pid);
+    else installChild?.kill(sig);
     reap(T0, [], [cache, out]);
     if (startedEnv) stop();
     process.exit(1);

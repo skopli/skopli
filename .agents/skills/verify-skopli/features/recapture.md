@@ -9,7 +9,7 @@ One command owns the whole wave, and an agent only steps in when the run exits w
 - `recapture-install` installs every harness a runnable cell needs into the cache (a pnpm home for packages, a separate HOME for vendor scripts) and writes `cli-versions.txt`.
 - `recapture-run` runs each harness and wire-shape cell serially, with an isolated home, four turns, a 600 second budget per cell, and on Linux and macOS the process group of every turn killed by PID when the turn ends.
 - `recapture-report` writes `cell-notes.<os>.tsv`, `matrix.<os>.md` and `drift.json`, and compares each cell with `golden/README.md`, the case directories under `golden/`, and an optional earlier run.
-- `recapture-package` tars the run directory, without the copied target project or node modules, for upload as one attachment.
+- `recapture-package` tars the run directory, without the copied target project, node modules or the runner's `tmp/`, for upload as one attachment.
 - `recapture-lanes` tags every drift entry with a `lane` of `mechanical-candidate`, `decision` or `agent`, which the agent maps onto the three outcomes below.
 
 ## How to get to it (user POV)
@@ -48,7 +48,8 @@ Preconditions:
   A `pnpm` channel runs `pnpm add -g --allow-build=<package>`, a `uv` channel runs `uv tool install` with the pinned Python and `--with` packages, and a `script` channel runs `curl -fsSL <url> | bash -s -- <args>`.
   Each install is bounded at 900 s and reported as `timed out after 900 s` when it hits the limit; a small node wrapper kills the installer's whole tree at the limit or on an interrupt (on Linux and macOS its process group, which also goes when the installer exits; on Windows `taskkill /T` while the leader lives), and the new processes that left the tree are killed afterwards, as described under the stray sweep below.
   As with timeout(1), an installer that itself exits 124 reads as a timeout.
-  The installer's output goes to `<out>/install/<id>.log`, and an interrupt stops the whole step.
+  The installer's output goes to `<out>/install/<id>.log`, and an interrupt or a signal sent to the runner alone stops the whole step.
+  A failed install leaves `<out>/install/<id>.failed`, and `run` records that harness's cells as `not-installed` with the failure as the reason instead of testing a copy an earlier run left in `--cache`, so `report` raises an `invariant`.
   A script installer runs with HOME set to the script home inside `--cache` and with the harness's `install.env` added to its environment, for example `CONFIGURE=false`, which stops goose's installer from starting its interactive configuration.
   On Windows a `script` channel does not run; an `installOs.windows.ps1` channel runs `irm <url>` in PowerShell from the script home with its `args` and `env`, and a harness with neither plans as `todo` there.
   On macOS, launchd is per user rather than per HOME, so after each install the runner boots out any LaunchAgent whose plist that install wrote under the script home and that launchd loaded from that plist; an agent the operator loaded under the same label is left alone.
@@ -201,6 +202,7 @@ These rows describe what the November 2026 wave recorded; a recapture is what co
 - Run cells one at a time: four concurrent sessions saturated the 1.5B model on 8 cores and turned real captures into timeouts.
 - Never stop a harness or server by process name; the runner kills only the PIDs and process groups it started, plus the strays below, and `stop` reads them from `state.json`.
 - `env` records each server and gateway PID with its OS start time (the start in clock ticks from `/proc/<pid>/stat` on Linux, which a clock step cannot move, `ps -o lstart=` on macOS, the PowerShell `StartTime` of the process on Windows), and `stop` leaves a PID alone when its start time no longer matches, since the OS may have reused it.
+  A live PID that this user may signal but whose start time cannot be read stays in `state.json` for the next `stop`, and `stop` says so.
 - A turn killed mid-flight leaves nothing in most stores, so a capture can report fewer turns than ran.
 - Codex rejects `wire_api = "chat"`, Reasonix has no Responses shape, Command Code's Responses client never completes a stream against the gateway, and Trae's Chat Completions client crashes on a null `completion_tokens_details`; the last two still run so a fix upstream shows up as drift.
 - Grok needs a real sign-in on macOS, so its cells skip there.
