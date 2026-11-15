@@ -52,6 +52,7 @@ options:
   --help             this text
 
 exit codes: 0 ok and no drift, 1 an invariant failed, 2 usage error, 3 drift or a TODO cell needs an agent
+  (cell outcomes are judged by report, so a standalone run exits 0 once its cells finish)
 
 examples:
   recapture.mjs list --only codex
@@ -292,7 +293,8 @@ const cleanEnv = () =>
   Object.fromEntries(Object.entries(process.env).filter(([k]) => !LEAKY.test(k)));
 // Turns and probes get a temp dir under --out, so nothing they leave lands in the operator's temp.
 // macOS keeps its per-user TMPDIR: a socket path under --out would pass the 104-byte sun_path limit.
-const tempEnv = (dir) => {
+const tempEnv = (dir, fresh = false) => {
+  if (fresh) rmSync(dir, { recursive: true, force: true });
   mkdirSync(dir, { recursive: true });
   return { TEMP: dir, TMP: dir, ...(OS === "darwin" ? {} : { TMPDIR: dir }) };
 };
@@ -548,7 +550,7 @@ async function env() {
   srv.unref();
   saveState({
     serverPid: srv.pid,
-    serverStart: srv.pid && started(srv.pid),
+    serverStart: srv.pid && (started(srv.pid) ?? fail("env: cannot read the server's start time")),
     os: OS,
     target,
     llama: { ...LLAMA, asset: undefined, flags: flags.slice(2) },
@@ -575,7 +577,10 @@ async function env() {
   );
   gw.on("error", (e) => (gw.spawnError = e));
   gw.unref();
-  saveState({ gatewayPid: gw.pid, gatewayStart: gw.pid && started(gw.pid) });
+  saveState({
+    gatewayPid: gw.pid,
+    gatewayStart: gw.pid && (started(gw.pid) ?? fail("env: cannot read the gateway's start time")),
+  });
   if (!(await waitFor(`${origin}/v1/models`, 60, gw)))
     fail("gateway exited or was not answering after 60 s, see gateway-stderr.txt");
   // Two turns with a shared prefix: turn two must report more cached prompt tokens than turn one.
@@ -1066,7 +1071,7 @@ async function run() {
     const envv = {
       ...cleanEnv(),
       ...homeEnv(home),
-      ...tempEnv(join(out, "tmp", String(cells.indexOf(cell)))),
+      ...tempEnv(join(out, "tmp", String(cells.indexOf(cell))), true),
       // Python CLIs on Windows write to a pipe in the ANSI code page and crash on non-Latin-1 output.
       ...(OS === "windows" ? { PYTHONUTF8: "1", PYTHONIOENCODING: "utf-8" } : {}),
       ...Object.fromEntries(Object.entries(cell.c.env ?? {}).map(([k, v]) => [k, fill(v, vars)])),
@@ -1316,6 +1321,8 @@ function report() {
       drift.push({ cell: r.cell, kind: "invariant", reason: r.reason, lane: "agent" });
   }
   const base = args.one("--baseline");
+  if (base && !existsSync(join(resolve(base), `matrix.${OS}.md`)))
+    args.usage(`--baseline ${base} has no ${OS} report`);
   // A TODO or regression the baseline already reported with the same status and reason is listed
   // again but not counted, so an accepted gap (Hermes on Windows) does not escalate every run.
   const key = (d) =>
