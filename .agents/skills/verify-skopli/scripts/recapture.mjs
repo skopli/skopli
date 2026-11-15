@@ -147,9 +147,24 @@ const moveVendorPath = (id, before, ienv = {}, post = false) => {
   const mine = segs.filter(
     (d) => d.trim() && !spelling.has(norm(d)) && resolve(norm(expand(d, lower))).startsWith(root),
   );
-  const keep = segs
+  let keep = segs
     .filter((d) => !mine.includes(d))
     .map((d) => (d.trim() ? (spelling.get(norm(d)) ?? d) : d));
+  // Pre-install entries keep their order, and an entry is appended only when it is absent, so an
+  // installer that moves or re-adds an operator entry (jcode) leaves the operator's PATH as it was.
+  if (before) {
+    const left = [...keep];
+    const take = (e) => {
+      const i = left.findIndex((d) => d.trim() && norm(d) === norm(e));
+      return i >= 0 && !!left.splice(i, 1);
+    };
+    const had = new Set(pre.map(norm));
+    keep = [
+      ...pre.filter(take),
+      ...left.filter((d) => d.trim() && !had.has(norm(d))),
+      ...(before.raw?.endsWith(";") ? [""] : []),
+    ];
+  }
   const added = post ? keep.filter((d) => d.trim() && !spelling.has(norm(d))) : [];
   if (added.length)
     console.error(
@@ -261,10 +276,17 @@ const LLAMA = {
 const origin = `http://127.0.0.1:${LLAMA.gateway}`;
 const KEY = "sk-local";
 // Parent variables that would point a harness at a real home, account or provider are never passed to a cell.
+// The match ignores case because Windows variable names do.
 const LEAKY =
-  /^(XDG_\w+|AWS_\w+|\w+_API_KEY|\w+_API_BASE|\w+_BASE_URL|\w+_TOKEN|GOOGLE_APPLICATION_CREDENTIALS|CLAUDE_CONFIG_DIR|CODEX_HOME|DSH_\w+|HERMES_\w+|JCODE_\w+|KIMI_\w+|GOOSE_\w+|PRIME_AGENT_\w+|GROK_\w+|CURSOR_CONFIG_DIR|MIMOCODE_\w+|MIMO_\w+|UV_INSTALL_DIR|UV_UNMANAGED_INSTALL)$/;
+  /^(XDG_\w+|AWS_\w+|\w+_API_KEY|\w+_API_BASE|\w+_BASE_URL|\w+_TOKEN|GOOGLE_APPLICATION_CREDENTIALS|CLAUDE_CONFIG_DIR|CODEX_HOME|DSH_\w+|HERMES_\w+|JCODE_\w+|KIMI_\w+|GOOSE_\w+|PRIME_AGENT_\w+|GROK_\w+|CURSOR_CONFIG_DIR|MIMOCODE_\w+|MIMO_\w+|UV_INSTALL_DIR|UV_UNMANAGED_INSTALL)$/i;
 const cleanEnv = () =>
   Object.fromEntries(Object.entries(process.env).filter(([k]) => !LEAKY.test(k)));
+// Turns and probes get a temp dir under --out, so nothing they leave lands in the operator's temp.
+// macOS keeps its per-user TMPDIR: a socket path under --out would pass the 104-byte sun_path limit.
+const tempEnv = (dir) => {
+  mkdirSync(dir, { recursive: true });
+  return { TEMP: dir, TMP: dir, ...(OS === "darwin" ? {} : { TMPDIR: dir }) };
+};
 
 const files = (dir, base = dir) =>
   existsSync(dir)
@@ -980,6 +1002,7 @@ const versionOf = (bin, h) => {
   const env = {
     ...cleanEnv(),
     ...homeEnv(scriptHome),
+    ...tempEnv(join(out, "tmp")),
     ...Object.fromEntries(homes),
     ...(OS === "windows" ? { PYTHONUTF8: "1", PYTHONIOENCODING: "utf-8" } : {}),
     PATH: process.env.PATH,
@@ -1055,8 +1078,9 @@ async function run() {
       session: "",
     };
     const envv = {
-      ...Object.fromEntries(Object.entries(process.env).filter(([k]) => !LEAKY.test(k))),
+      ...cleanEnv(),
       ...homeEnv(home),
+      ...tempEnv(join(dir, "tmp")),
       // Python CLIs on Windows write to a pipe in the ANSI code page and crash on non-Latin-1 output.
       ...(OS === "windows" ? { PYTHONUTF8: "1", PYTHONIOENCODING: "utf-8" } : {}),
       ...Object.fromEntries(Object.entries(cell.c.env ?? {}).map(([k, v]) => [k, fill(v, vars)])),
@@ -1369,6 +1393,8 @@ function pack() {
       join(dirname(out), `${relative(dirname(out), out)}.tgz`),
       "--exclude=node_modules",
       "--exclude=*/cells/*/*/work",
+      "--exclude=*/cells/*/*/tmp",
+      `--exclude=${relative(dirname(out), out)}/tmp`,
       "-C",
       dirname(out),
       relative(dirname(out), out),
