@@ -33,7 +33,8 @@ steps (each idempotent; "all" runs them in order and always ends with stop):
   run       run the selected cells one at a time with an isolated home each
   report    write cell-notes.<os>.tsv, matrix.<os>.md and drift.json from the cell results
   package   tar the run directory without target copies, model or server binaries
-  stop      stop the server and gateway this run started, by PID
+  stop      stop the server and gateway this run started, by PID, and on Windows undo the
+            user PATH of an install that was interrupted
   all       env, install, run, report, package, stop
 
 options:
@@ -175,7 +176,7 @@ const readUserPath = () => {
     [
       "-NoProfile",
       "-Command",
-      "[Console]::OutputEncoding = [Text.Encoding]::UTF8; $k = [Microsoft.Win32.Registry]::CurrentUser.OpenSubKey('Environment'); $raw = $k.GetValue('Path', $null, 'DoNotExpandEnvironmentNames'); " +
+      "$ErrorActionPreference = 'Stop'; [Console]::OutputEncoding = [Text.Encoding]::UTF8; $k = [Microsoft.Win32.Registry]::CurrentUser.OpenSubKey('Environment'); $raw = $k.GetValue('Path', $null, 'DoNotExpandEnvironmentNames'); " +
         "ConvertTo-Json -Compress @{ raw = $raw; kind = $(if ($raw -ne $null) { [string]$k.GetValueKind('Path') } else { 'ExpandString' }); " +
         "expanded = [Environment]::GetEnvironmentVariable('Path', 'User') }",
     ],
@@ -183,7 +184,7 @@ const readUserPath = () => {
   );
   try {
     const v = r.status === 0 ? JSON.parse(r.stdout) : null;
-    return v && !`${v.raw}${v.expanded}`.includes("�") ? v : null;
+    return v && !`${v.raw}${v.expanded}`.includes("\uFFFD") ? v : null;
   } catch {
     return null;
   }
@@ -194,7 +195,7 @@ const restoreUserPath = ({ raw, kind }) =>
     [
       "-NoProfile",
       "-Command",
-      "$k = [Microsoft.Win32.Registry]::CurrentUser.OpenSubKey('Environment', $true); " +
+      "$ErrorActionPreference = 'Stop'; $k = [Microsoft.Win32.Registry]::CurrentUser.OpenSubKey('Environment', $true); " +
         "if ($env:RECAPTURE_USER_PATH_SET -eq '1') { $k.SetValue('Path', [string]$env:RECAPTURE_USER_PATH, [Microsoft.Win32.RegistryValueKind]$env:RECAPTURE_USER_PATH_KIND) } " +
         "else { $k.DeleteValue('Path', $false) }; " +
         // Setting and clearing a variable through .NET broadcasts WM_SETTINGCHANGE to Explorer.
@@ -956,8 +957,10 @@ const versionOf = (bin, h) => {
   };
   // A native .exe is probed directly, so a timeout kills the CLI rather than only cmd.exe.
   const exe = OS === "windows" && winExe(bin, env);
-  versions.set(bin, sh(exe || bin, ["--version"], { timeout: 25000, env, noShell: !!exe }));
-  return versions.get(bin);
+  const r = sh(exe || bin, ["--version"], { timeout: 25000, env, noShell: !!exe });
+  // A failure is not cached, so a first launch slowed by a virus scan is probed again.
+  if (r.status === 0) versions.set(bin, r);
+  return r;
 };
 
 async function run() {
