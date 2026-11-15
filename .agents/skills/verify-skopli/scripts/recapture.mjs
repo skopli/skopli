@@ -92,6 +92,9 @@ const basePath = process.env.PATH;
 // Windows vendor installers append their bin dir to the user PATH in the registry; install() moves
 // the entries an installer added into this file and restores the operator's user PATH.
 const vendorFile = join(cache, "vendor-path.json");
+// The user PATH as it was before a ps1 installer, kept until it is restored, so an interrupted
+// install is undone by the next one.
+const userPathFile = join(cache, "user-path-before.json");
 const vendorPath = () => {
   try {
     return OS === "windows" ? JSON.parse(readFileSync(vendorFile, "utf8")) : [];
@@ -107,14 +110,15 @@ const readUserPath = () => {
     [
       "-NoProfile",
       "-Command",
-      "$k = Get-Item HKCU:\Environment; $raw = $k.GetValue('Path', $null, 'DoNotExpandEnvironmentNames'); " +
+      "[Console]::OutputEncoding = [Text.Encoding]::UTF8; $k = [Microsoft.Win32.Registry]::CurrentUser.OpenSubKey('Environment'); $raw = $k.GetValue('Path', $null, 'DoNotExpandEnvironmentNames'); " +
         "ConvertTo-Json -Compress @{ raw = $raw; kind = $(if ($raw -ne $null) { [string]$k.GetValueKind('Path') } else { 'ExpandString' }); " +
         "expanded = [Environment]::GetEnvironmentVariable('Path', 'User') }",
     ],
     { encoding: "utf8" },
   );
   try {
-    return r.status === 0 ? JSON.parse(r.stdout) : null;
+    const v = r.status === 0 ? JSON.parse(r.stdout) : null;
+    return v && !`${v.raw}${v.expanded}`.includes("�") ? v : null;
   } catch {
     return null;
   }
@@ -127,7 +131,10 @@ const restoreUserPath = ({ raw, kind }) =>
       "-Command",
       "$k = [Microsoft.Win32.Registry]::CurrentUser.OpenSubKey('Environment', $true); " +
         "if ($env:RECAPTURE_USER_PATH_SET -eq '1') { $k.SetValue('Path', $env:RECAPTURE_USER_PATH, [Microsoft.Win32.RegistryValueKind]$env:RECAPTURE_USER_PATH_KIND) } " +
-        "else { $k.DeleteValue('Path', $false) }",
+        "else { $k.DeleteValue('Path', $false) }; " +
+        // Setting and clearing a variable through .NET broadcasts WM_SETTINGCHANGE to Explorer.
+        "[Environment]::SetEnvironmentVariable('RECAPTURE_PATH_SYNC', '1', 'User'); " +
+        "[Environment]::SetEnvironmentVariable('RECAPTURE_PATH_SYNC', $null, 'User')",
     ],
     {
       encoding: "utf8",
@@ -551,7 +558,13 @@ function install() {
         { env },
       );
     else if (how?.ps1 && OS === "windows") {
+      if (
+        existsSync(userPathFile) &&
+        restoreUserPath(JSON.parse(readFileSync(userPathFile, "utf8")))
+      )
+        rmSync(userPathFile, { force: true });
       const pathBefore = readUserPath();
+      if (pathBefore) writeFileSync(userPathFile, JSON.stringify(pathBefore));
       r = sh(
         "powershell",
         [
@@ -559,7 +572,7 @@ function install() {
           "-ExecutionPolicy",
           "Bypass",
           "-Command",
-          `$ProgressPreference = "SilentlyContinue"; & ([scriptblock]::Create((irm ${how.ps1}))) ${(how.args ?? []).join(" ")}`,
+          `$ProgressPreference = "SilentlyContinue"; & ([scriptblock]::Create((irm '${how.ps1}'))) ${(how.args ?? []).join(" ")}`,
         ],
         { noShell: true, timeout: 900000, cwd: scriptHome, env: { ...env, ...how.env } },
       );
@@ -579,6 +592,7 @@ function install() {
         if (!restoreUserPath(pathBefore))
           console.error(`install ${id}: could not restore the user PATH`);
       }
+      if (pathBefore) rmSync(userPathFile, { force: true });
     } else if (how?.script && OS !== "windows")
       r = sh(
         "bash",
@@ -601,7 +615,7 @@ function install() {
     toolPath();
     if (r && r.status !== 0) say(`install ${id}: exit ${r.status}`);
     const path = bin && which(bin);
-    const v = path ? versionOf(bin) : null;
+    const v = path ? versionOf(bin, manifest.harnesses[id]) : null;
     lines.push(
       [
         id,
@@ -694,8 +708,8 @@ const homeEnv = (home) => {
 // killed then, so no stray outlives the turn or keeps its output pipes open.
 // A native .exe is spawned directly: under cmd.exe a CLI that needs CREATE_BREAKAWAY_FROM_JOB
 // (hermes starts its gateway daemon that way) gets access denied.
-const winExe = (bin, envv) =>
-  spawnSync("where", [bin], { encoding: "utf8", env: envv })
+const winExe = (bin, envv, cwd) =>
+  spawnSync("where", [bin], { encoding: "utf8", env: envv, cwd })
     .stdout?.split(/\r?\n/)
     .map((l) => l.trim())
     .find((l) => l)
@@ -727,7 +741,7 @@ let turnPid = null;
 const runTurn = (argv, envv, cwd, log, limit) =>
   new Promise((done) => {
     const t0 = Date.now();
-    const exe = OS === "windows" && winExe(argv[0], envv);
+    const exe = OS === "windows" && winExe(argv[0], envv, cwd);
     const child =
       OS === "windows"
         ? exe
@@ -826,13 +840,23 @@ const alive = async (s) => {
 };
 
 const versions = new Map();
-const versionOf = (bin) => {
+// A CLI that ignores USERPROFILE (jcode) gets its manifest *_HOME pointed into the script home.
+const versionOf = (bin, h) => {
+  const homes = Object.values(h?.shapes ?? {})
+    .flatMap((s) => Object.entries(s.env ?? {}))
+    .filter(([k]) => k.endsWith("_HOME"))
+    .map(([k, v]) => [k, fill(v, { home: scriptHome.replaceAll("\\", "/") })]);
   if (!versions.has(bin))
     versions.set(
       bin,
       sh(bin, ["--version"], {
         timeout: 25000,
-        env: { ...cleanEnv(), ...homeEnv(scriptHome), PATH: process.env.PATH },
+        env: {
+          ...cleanEnv(),
+          ...homeEnv(scriptHome),
+          ...Object.fromEntries(homes),
+          PATH: process.env.PATH,
+        },
       }),
     );
   return versions.get(bin);
@@ -880,7 +904,8 @@ async function run() {
     }
     // A Windows shim can resolve on PATH yet fail to start (a skipped native postinstall, an
     // unsupported binary), which would otherwise read as a capture gap.
-    const probe = OS === "windows" ? versionOf(binOf(cell.c)) : { status: 0 };
+    const probe =
+      OS === "windows" ? versionOf(binOf(cell.c), manifest.harnesses[cell.harness]) : { status: 0 };
     if (probe.status !== 0) {
       write({
         status: "not-installed",
