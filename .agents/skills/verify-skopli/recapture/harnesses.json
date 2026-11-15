@@ -101,10 +101,6 @@
           "env": {
             "OPENCODE_CONFIG": "{home}/.config/opencode/opencode.json"
           },
-          "config": {
-            "kind": "opencode",
-            "path": ".config/opencode/opencode.json"
-          },
           "seed": "opencode-openai-chat"
         },
         "openai-responses": {
@@ -113,10 +109,6 @@
           "env": {
             "OPENCODE_CONFIG": "{home}/.config/opencode/opencode.json"
           },
-          "config": {
-            "kind": "opencode",
-            "path": ".config/opencode/opencode.json"
-          },
           "seed": "opencode-openai-responses"
         },
         "anthropic-messages": {
@@ -124,10 +116,6 @@
           "next": ["opencode", "run", "--continue", "--model", "llama/qwen", "{prompt}"],
           "env": {
             "OPENCODE_CONFIG": "{home}/.config/opencode/opencode.json"
-          },
-          "config": {
-            "kind": "opencode",
-            "path": ".config/opencode/opencode.json"
           },
           "seed": "opencode-anthropic-messages"
         }
@@ -149,10 +137,6 @@
             "MIMOCODE_CONFIG": "{home}/.config/mimocode/mimocode.json",
             "OPENCODE_CONFIG": "{home}/.config/mimocode/mimocode.json"
           },
-          "config": {
-            "kind": "opencode",
-            "path": ".config/mimocode/mimocode.json"
-          },
           "seed": "mimocode-openai-chat"
         },
         "openai-responses": {
@@ -162,10 +146,6 @@
             "MIMOCODE_CONFIG": "{home}/.config/mimocode/mimocode.json",
             "OPENCODE_CONFIG": "{home}/.config/mimocode/mimocode.json"
           },
-          "config": {
-            "kind": "opencode",
-            "path": ".config/mimocode/mimocode.json"
-          },
           "seed": "mimocode-openai-responses"
         },
         "anthropic-messages": {
@@ -174,10 +154,6 @@
           "env": {
             "MIMOCODE_CONFIG": "{home}/.config/mimocode/mimocode.json",
             "OPENCODE_CONFIG": "{home}/.config/mimocode/mimocode.json"
-          },
-          "config": {
-            "kind": "opencode",
-            "path": ".config/mimocode/mimocode.json"
           },
           "seed": "mimocode-anthropic-messages"
         }
@@ -527,10 +503,6 @@
             "--no-skills",
             "{prompt}"
           ],
-          "config": {
-            "kind": "pi",
-            "path": ".pi/agent/models.json"
-          },
           "seed": "pi-openai-chat"
         },
         "openai-responses": {
@@ -557,10 +529,6 @@
             "--no-skills",
             "{prompt}"
           ],
-          "config": {
-            "kind": "pi",
-            "path": ".pi/agent/models.json"
-          },
           "seed": "pi-openai-responses"
         },
         "anthropic-messages": {
@@ -587,10 +555,6 @@
             "--no-skills",
             "{prompt}"
           ],
-          "config": {
-            "kind": "pi",
-            "path": ".pi/agent/models.json"
-          },
           "seed": "pi-anthropic-messages"
         }
       }
@@ -604,28 +568,16 @@
         "openai-chat": {
           "first": ["omp", "-p", "--provider", "llama", "--model", "qwen", "{prompt}"],
           "next": ["omp", "-p", "-c", "--provider", "llama", "--model", "qwen", "{prompt}"],
-          "config": {
-            "kind": "pi",
-            "path": ".omp/agent/models.json"
-          },
           "seed": "omp-openai-chat"
         },
         "openai-responses": {
           "first": ["omp", "-p", "--provider", "llama", "--model", "qwen", "{prompt}"],
           "next": ["omp", "-p", "-c", "--provider", "llama", "--model", "qwen", "{prompt}"],
-          "config": {
-            "kind": "pi",
-            "path": ".omp/agent/models.json"
-          },
           "seed": "omp-openai-responses"
         },
         "anthropic-messages": {
           "first": ["omp", "-p", "--provider", "llama", "--model", "qwen", "{prompt}"],
           "next": ["omp", "-p", "-c", "--provider", "llama", "--model", "qwen", "{prompt}"],
-          "config": {
-            "kind": "pi",
-            "path": ".omp/agent/models.json"
-          },
           "seed": "omp-anthropic-messages"
         }
       }
@@ -640,28 +592,16 @@
         "openai-chat": {
           "first": ["prime-agent", "-p", "--provider", "llama", "--model", "qwen", "{prompt}"],
           "next": ["prime-agent", "-p", "-c", "--provider", "llama", "--model", "qwen", "{prompt}"],
-          "config": {
-            "kind": "pi",
-            "path": ".prime/agent/models.json"
-          },
           "seed": "prime-openai-chat"
         },
         "openai-responses": {
           "first": ["prime-agent", "-p", "--provider", "llama", "--model", "qwen", "{prompt}"],
           "next": ["prime-agent", "-p", "-c", "--provider", "llama", "--model", "qwen", "{prompt}"],
-          "config": {
-            "kind": "pi",
-            "path": ".prime/agent/models.json"
-          },
           "seed": "prime-openai-responses"
         },
         "anthropic-messages": {
           "first": ["prime-agent", "-p", "--provider", "llama", "--model", "qwen", "{prompt}"],
           "next": ["prime-agent", "-p", "-c", "--provider", "llama", "--model", "qwen", "{prompt}"],
-          "config": {
-            "kind": "pi",
-            "path": ".prime/agent/models.json"
-          },
           "seed": "prime-anthropic-messages"
         }
       }
@@ -675,28 +615,16 @@
         "openai-chat": {
           "first": ["gjc", "-p", "--provider", "llama", "--model", "qwen", "{prompt}"],
           "next": ["gjc", "-p", "-c", "--provider", "llama", "--model", "qwen", "{prompt}"],
-          "config": {
-            "kind": "pi",
-            "path": ".gjc/agent/models.json"
-          },
           "seed": "gajae-openai-chat"
         },
         "openai-responses": {
           "first": ["gjc", "-p", "--provider", "llama", "--model", "qwen", "{prompt}"],
           "next": ["gjc", "-p", "-c", "--provider", "llama", "--model", "qwen", "{prompt}"],
-          "config": {
-            "kind": "pi",
-            "path": ".gjc/agent/models.json"
-          },
           "seed": "gajae-openai-responses"
         },
         "anthropic-messages": {
           "first": ["gjc", "-p", "--provider", "llama", "--model", "qwen", "{prompt}"],
           "next": ["gjc", "-p", "-c", "--provider", "llama", "--model", "qwen", "{prompt}"],
-          "config": {
-            "kind": "pi",
-            "path": ".gjc/agent/models.json"
-          },
           "seed": "gajae-anthropic-messages"
         }
       }
@@ -714,28 +642,16 @@
         "openai-chat": {
           "first": ["kimchi", "-p", "--provider", "llama", "--model", "qwen", "{prompt}"],
           "next": ["kimchi", "-p", "-c", "--provider", "llama", "--model", "qwen", "{prompt}"],
-          "config": {
-            "kind": "pi",
-            "path": ".config/kimchi/agent/models.json"
-          },
           "seed": "kimchi-openai-chat"
         },
         "openai-responses": {
           "first": ["kimchi", "-p", "--provider", "llama", "--model", "qwen", "{prompt}"],
           "next": ["kimchi", "-p", "-c", "--provider", "llama", "--model", "qwen", "{prompt}"],
-          "config": {
-            "kind": "pi",
-            "path": ".config/kimchi/agent/models.json"
-          },
           "seed": "kimchi-openai-responses"
         },
         "anthropic-messages": {
           "first": ["kimchi", "-p", "--provider", "llama", "--model", "qwen", "{prompt}"],
           "next": ["kimchi", "-p", "-c", "--provider", "llama", "--model", "qwen", "{prompt}"],
-          "config": {
-            "kind": "pi",
-            "path": ".config/kimchi/agent/models.json"
-          },
           "seed": "kimchi-anthropic-messages"
         }
       }
@@ -1005,10 +921,6 @@
             "KILO_CONFIG": "{home}/.config/kilo/kilo.json",
             "OPENCODE_CONFIG": "{home}/.config/kilo/kilo.json"
           },
-          "config": {
-            "kind": "opencode",
-            "path": ".config/kilo/kilo.json"
-          },
           "seed": "kilo-openai-chat"
         },
         "openai-responses": {
@@ -1018,10 +930,6 @@
             "KILO_CONFIG": "{home}/.config/kilo/kilo.json",
             "OPENCODE_CONFIG": "{home}/.config/kilo/kilo.json"
           },
-          "config": {
-            "kind": "opencode",
-            "path": ".config/kilo/kilo.json"
-          },
           "seed": "kilo-openai-responses"
         },
         "anthropic-messages": {
@@ -1030,10 +938,6 @@
           "env": {
             "KILO_CONFIG": "{home}/.config/kilo/kilo.json",
             "OPENCODE_CONFIG": "{home}/.config/kilo/kilo.json"
-          },
-          "config": {
-            "kind": "opencode",
-            "path": ".config/kilo/kilo.json"
           },
           "seed": "kilo-anthropic-messages"
         }

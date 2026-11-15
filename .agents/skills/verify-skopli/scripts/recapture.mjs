@@ -19,7 +19,7 @@ import { connect } from "node:net";
 import { hostname, platform, userInfo } from "node:os";
 import { Readable } from "node:stream";
 import { pipeline } from "node:stream/promises";
-import { delimiter, dirname, join, relative, resolve, sep } from "node:path";
+import { basename, delimiter, dirname, join, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { parseArgs } from "./cli.mjs";
 
@@ -38,14 +38,15 @@ steps (each idempotent; "all" runs them in order and always ends with stop):
   all       env, install, run, report, package, stop
 
 options:
-  --out <dir>        run directory (default .verify/recapture/<utc-stamp>; reuse it to resume)
+  --out <dir>        run directory (env, install and all default to .verify/recapture/<utc-stamp>;
+                     run, report, package and stop need it; reuse it to resume)
   --cache <dir>      download cache shared across runs (default .verify/recapture/cache)
   --only <h[/shape]> restrict to a harness or one cell; repeatable
   --os <os>          plan for linux, darwin or windows; only list and --dry-run accept another OS
   --timeout <s>      wall-clock budget per cell across all turns, in seconds (default 600)
   --resume           skip cells in --out that already ran; rerun error, not-installed and changed skips
   --baseline <dir>   a previous run directory; report flags CLI version changes against it and
-                     does not count a TODO it already reported
+                     does not count a TODO or regression it already reported
   --dry-run          print the resolved plan as JSON and exit
   --quiet            no progress lines on stderr
   --help             this text
@@ -75,6 +76,9 @@ if (!["linux", "darwin", "windows"].includes(OS)) args.usage(`unsupported os ${O
 if (OS !== HOST && step !== "list" && !args.dryRun)
   args.usage(`--os ${OS} only plans; ${step} has to run on ${OS}`);
 const stamp = new Date().toISOString().replace(/[-:]/g, "").replace(/\.\d+/, "");
+// A fresh stamp only makes sense for a step that starts a run; the others read an existing one.
+if (["run", "report", "package", "stop"].includes(step) && !args.one("--out") && !args.dryRun)
+  args.usage(`${step} needs --out <run directory>`);
 const out = resolve(args.one("--out", join(root, ".verify/recapture", stamp)));
 const cache = resolve(args.one("--cache", join(root, ".verify/recapture/cache")));
 const timeout = Number(args.one("--timeout", "600"));
@@ -147,6 +151,11 @@ const moveVendorPath = (id, before, ienv = {}, post = false) => {
   const mine = segs.filter(
     (d) => d.trim() && !spelling.has(norm(d)) && resolve(norm(expand(d, lower))).startsWith(root),
   );
+  // A bin dir under the script home goes on the run PATH even when its expansion matches an operator
+  // entry (an operator %LOCALAPPDATA%\jcode\bin), since the installer put the binary there.
+  const vend = post
+    ? segs.filter((d) => d.trim() && resolve(norm(expand(d, lower))).startsWith(root))
+    : mine;
   let keep = segs
     .filter((d) => !mine.includes(d))
     .map((d) => (d.trim() ? (spelling.get(norm(d)) ?? d) : d));
@@ -179,13 +188,13 @@ const moveVendorPath = (id, before, ienv = {}, post = false) => {
       : kept.length || (before ? before.raw !== null : cur.raw !== null)
         ? keep.join(";")
         : null;
-  if (mine.length) {
+  if (vend.length) {
     writeFileSync(
       `${vendorFile}.tmp`,
       JSON.stringify([
         ...new Set([
           ...vendorPath(),
-          ...mine.map((d) => expand(d, lower).trim().replace(/^"|"$/g, "")),
+          ...vend.map((d) => expand(d, lower).trim().replace(/^"|"$/g, "")),
         ]),
       ]),
     );
@@ -317,7 +326,7 @@ const todoOf = (h, c) =>
       ? `install: ${installOf(h)?.todo ?? "channel not recorded"}`
       : OS === "windows" && installOf(h).script
         ? "install: no Windows channel for the vendor script"
-        : c.seed && !seedDir(c.seed) && !c.config?.kind
+        : c.seed && !seedDir(c.seed)
           ? `no ${OS} config seed`
           : null;
 const storeOf = (h) => h.storeOs?.[OS] ?? h.store ?? [];
@@ -385,7 +394,10 @@ const started = (pid) =>
         ["-NoProfile", "-Command", `(Get-Process -Id ${pid}).StartTime.ToFileTimeUtc()`],
         { noShell: true },
       )
-    : sh("ps", ["-o", "lstart=", "-p", String(pid)], { noShell: true })
+    : sh("ps", ["-o", "lstart=", "-p", String(pid)], {
+        noShell: true,
+        env: { ...process.env, TZ: "UTC", LC_ALL: "C" },
+      })
   ).stdout?.trim() || null;
 const ours = (s, k) =>
   !!s[`${k}Pid`] && !!s[`${k}Start`] && started(s[`${k}Pid`]) === s[`${k}Start`];
@@ -433,6 +445,7 @@ const post = async (path, body, headers = {}) => {
     },
     body: JSON.stringify(body),
   });
+  if (!res.ok) fail(`cache proof: POST ${path} returned ${res.status}`);
   return res.json();
 };
 // Ready means the process we started is still alive and the URL answers.
@@ -631,10 +644,18 @@ function stop() {
   say(`stop: ${done.join(" ")}`);
 }
 
-const which = (bin) =>
-  sh(OS === "windows" ? "where" : "which", [bin], { noShell: true })
+// Only a binary under --cache counts, so a failed install never falls through to the operator's copy.
+const which = (bin) => {
+  const p = sh(OS === "windows" ? "where" : "which", [bin], { noShell: true })
     .stdout?.split(/\r?\n/)[0]
-    ?.trim() || null;
+    ?.trim();
+  return p &&
+    resolve(p)
+      .toLowerCase()
+      .startsWith(resolve(cache).toLowerCase() + sep)
+    ? p
+    : null;
+};
 const binOf = (c) => (Array.isArray(c.first) ? c.first[0] : null);
 function install() {
   mkdirSync(out, { recursive: true });
@@ -734,9 +755,17 @@ function install() {
     } else if (how?.script && OS !== "windows")
       r = sh(
         "bash",
-        ["-c", `curl -fsSL ${how.script} | bash -s -- ${(how.args ?? []).join(" ")}`],
+        [
+          "-c",
+          `set -o pipefail; curl -fsSL ${how.script} | bash -s -- ${(how.args ?? []).join(" ")}`,
+        ],
         {
-          env: { ...env, ...how.env },
+          env: {
+            ...env,
+            ...Object.fromEntries(
+              Object.entries(how.env ?? {}).map(([k, v]) => [k, fill(v, { home: scriptHome })]),
+            ),
+          },
         },
       );
     // launchd is per user, not per HOME: jcode's installer bootstraps a hotkey LaunchAgent from the
@@ -767,49 +796,6 @@ function install() {
 }
 
 const fill = (s, v) => s.replace(/\{(\w+)\}/g, (m, k) => (k in v ? v[k] : m));
-const CONFIG = {
-  opencode: (shape) => ({
-    $schema: "https://opencode.ai/config.json",
-    model: "llama/qwen",
-    permission: { "*": "allow" },
-    provider: {
-      llama: {
-        npm: {
-          "openai-chat": "@ai-sdk/openai-compatible",
-          "openai-responses": "@ai-sdk/openai",
-          "anthropic-messages": "@ai-sdk/anthropic",
-        }[shape],
-        name: "llama.cpp",
-        options: { baseURL: `${origin}/v1`, apiKey: KEY },
-        models: { qwen: { name: "qwen", limit: { context: 32768, output: 1024 } } },
-      },
-    },
-  }),
-  pi: (shape) => ({
-    providers: {
-      llama: {
-        baseUrl: `${origin}/v1`,
-        apiKey: KEY,
-        api: {
-          "openai-chat": "openai-completions",
-          "openai-responses": "openai-responses",
-          "anthropic-messages": "anthropic-messages",
-        }[shape],
-        models: [
-          {
-            id: "qwen",
-            name: "qwen",
-            reasoning: false,
-            input: ["text"],
-            cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
-            contextWindow: 32768,
-            maxTokens: 1024,
-          },
-        ],
-      },
-    },
-  }),
-};
 // On Windows the helper needs Git Bash; a bare "bash" can resolve to the WSL launcher in System32,
 // which would report Linux paths. Git for Windows' bash.exe is found above git's own directories.
 const BASH =
@@ -1080,7 +1066,7 @@ async function run() {
     const envv = {
       ...cleanEnv(),
       ...homeEnv(home),
-      ...tempEnv(join(dir, "tmp")),
+      ...tempEnv(join(out, "tmp", String(cells.indexOf(cell)))),
       // Python CLIs on Windows write to a pipe in the ANSI code page and crash on non-Latin-1 output.
       ...(OS === "windows" ? { PYTHONUTF8: "1", PYTHONIOENCODING: "utf-8" } : {}),
       ...Object.fromEntries(Object.entries(cell.c.env ?? {}).map(([k, v]) => [k, fill(v, vars)])),
@@ -1092,11 +1078,6 @@ async function run() {
         mkdirSync(dirname(t), { recursive: true });
         writeFileSync(t, fill(readFileSync(join(seed, f), "utf8"), vars));
       }
-    else if (cell.c.config?.kind) {
-      const f = join(home, cell.c.config.path);
-      mkdirSync(dirname(f), { recursive: true });
-      writeFileSync(f, JSON.stringify(CONFIG[cell.c.config.kind](cell.shape), null, 2));
-    }
     await alive(s);
     const gwlog = join(out, "gateway-usage.jsonl");
     const from = existsSync(gwlog) ? statSync(gwlog).size : 0;
@@ -1117,15 +1098,21 @@ async function run() {
     const turns = [];
     for (const [i, prompt] of manifest.prompts.entries()) {
       const left = Math.floor((deadline - Date.now()) / 1000);
-      if (setupFailed || left < 20) {
-        turns.push({ skipped: setupFailed ? "setup failed" : "cell budget spent" });
+      const timedOut = turns.at(-1)?.timedOut;
+      if (setupFailed || timedOut || left < 20) {
+        turns.push({
+          skipped: setupFailed
+            ? "setup failed"
+            : timedOut
+              ? "earlier turn timed out"
+              : "cell budget spent",
+        });
         continue;
       }
       const argv = (i ? cell.c.next : cell.c.first).map((a) => fill(a, { ...vars, prompt }));
       const t = await runTurn(argv, envv, cwd, join(dir, `run-${i + 1}.txt`), left);
       turns.push({ exit: t.code, timedOut: t.timedOut, seconds: t.seconds });
       if (!i && cell.h.session) vars.session = sessionId(cell.h.session, t.text, home) ?? "";
-      if (t.timedOut) break;
     }
     // An aborted line is a reply no harness received, possibly from the previous cell's killed turn.
     const lines = (existsSync(gwlog) ? readFileSync(gwlog).subarray(from).toString() : "")
@@ -1307,6 +1294,7 @@ function report() {
         cell: r.cell,
         kind: "regressed",
         status: r.status,
+        reason: r.reason,
         lane: r.status === "reader-gap" ? "mechanical-candidate" : "decision",
       });
     if (r.status === "captured-delta")
@@ -1328,14 +1316,14 @@ function report() {
       drift.push({ cell: r.cell, kind: "invariant", reason: r.reason, lane: "agent" });
   }
   const base = args.one("--baseline");
-  // A TODO the baseline already reported with the same reason is listed again but not counted.
-  const knownTodo = new Set(
-    (base ? readJson(join(resolve(base), "drift.json"), []) : [])
-      .filter((d) => d.kind === "todo")
-      .map((d) => `${d.cell}\t${d.reason}`),
+  // A TODO or regression the baseline already reported with the same status and reason is listed
+  // again but not counted, so an accepted gap (Hermes on Windows) does not escalate every run.
+  const key = (d) =>
+    ["todo", "regressed"].includes(d.kind) && [d.cell, d.kind, d.status, d.reason].join("\t");
+  const known = new Set(
+    (base ? readJson(join(resolve(base), "drift.json"), []) : []).map(key).filter(Boolean),
   );
-  for (const d of drift)
-    if (d.kind === "todo" && knownTodo.has(`${d.cell}\t${d.reason}`)) d.known = true;
+  for (const d of drift) if (key(d) && known.has(key(d))) d.known = true;
   if (base) {
     const a = versions(resolve(base)),
       b = versions(out);
@@ -1390,14 +1378,13 @@ function pack() {
     TAR,
     [
       "czf",
-      join(dirname(out), `${relative(dirname(out), out)}.tgz`),
+      join(dirname(out), `${basename(out)}.tgz`),
       "--exclude=node_modules",
       "--exclude=*/cells/*/*/work",
-      "--exclude=*/cells/*/*/tmp",
-      `--exclude=${relative(dirname(out), out)}/tmp`,
+      `--exclude=${basename(out)}/tmp`,
       "-C",
       dirname(out),
-      relative(dirname(out), out),
+      basename(out),
     ],
     { noShell: true },
   );
