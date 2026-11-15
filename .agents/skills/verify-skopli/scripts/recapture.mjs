@@ -637,13 +637,28 @@ const homeEnv = (home) => {
 
 // A turn ends when its leader exits; on Linux and macOS whatever it left in its process group is
 // killed then, so no stray outlives the turn or keeps its output pipes open.
+// A native .exe is spawned directly: under cmd.exe a CLI that needs CREATE_BREAKAWAY_FROM_JOB
+// (hermes starts its gateway daemon that way) gets access denied.
+const winExe = (bin, envv) =>
+  spawnSync("where", [bin], { encoding: "utf8", env: envv })
+    .stdout?.split(/\r?\n/)
+    .map((l) => l.trim())
+    .find((l) => l)
+    ?.match(/^.+\.exe$/i)?.[0];
 let turnPid = null;
 const runTurn = (argv, envv, cwd, log, limit) =>
   new Promise((done) => {
     const t0 = Date.now();
+    const exe = OS === "windows" && winExe(argv[0], envv);
     const child =
       OS === "windows"
-        ? spawn(winLine(argv), { cwd, env: envv, stdio: ["ignore", "pipe", "pipe"], shell: true })
+        ? exe
+          ? spawn(exe, argv.slice(1), {
+              cwd,
+              env: envv,
+              stdio: ["ignore", "pipe", "pipe"],
+            })
+          : spawn(winLine(argv), { cwd, env: envv, stdio: ["ignore", "pipe", "pipe"], shell: true })
         : spawn(argv[0], argv.slice(1), {
             cwd,
             env: envv,
@@ -801,6 +816,8 @@ async function run() {
     const envv = {
       ...Object.fromEntries(Object.entries(process.env).filter(([k]) => !LEAKY.test(k))),
       ...homeEnv(home),
+      // Python CLIs on Windows write to a pipe in the ANSI code page and crash on non-Latin-1 output.
+      ...(OS === "windows" ? { PYTHONUTF8: "1", PYTHONIOENCODING: "utf-8" } : {}),
       ...Object.fromEntries(Object.entries(cell.c.env ?? {}).map(([k, v]) => [k, fill(v, vars)])),
     };
     const seed = cell.c.seed && seedDir(cell.c.seed);
