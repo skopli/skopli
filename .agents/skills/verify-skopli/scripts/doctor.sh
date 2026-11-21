@@ -11,10 +11,24 @@ pass() { echo "ok   $*"; }
 # shellcheck source=/dev/null
 . "$state"
 
+port_owner() {
+  local pid=$1 port=$2
+  if command -v ss >/dev/null 2>&1; then
+    ss -ltnp 2>/dev/null | grep ":$port " | grep -q "pid=$pid," && return 0
+  elif command -v netstat >/dev/null 2>&1; then
+    # msys/Cygwin state.sh pids are msys pids; netstat lists Windows pids
+    local winpid
+    winpid=$(ps -W 2>/dev/null | awk -v p="$pid" '$1==p {print $4}')
+    [ -n "$winpid" ] || winpid=$pid
+    netstat -ano | grep "LISTENING" | grep ":$port " | grep -q " $winpid\$" && return 0
+  fi
+  return 1
+}
+
 server() {
   local name=$1 pid=$2 port=$3
   if kill -0 "$pid" 2>/dev/null; then pass "$name pid $pid alive"; else fail "$name pid $pid not running"; fi
-  if ss -ltnp | grep ":$port " | grep -q "pid=$pid,"; then
+  if port_owner "$pid" "$port"; then
     pass "$name port $port owned by pid $pid"
   else
     fail "$name port $port not owned by pid $pid"
@@ -40,7 +54,7 @@ for built in "$root/web/docs/dist/skopli/index.html" "$root/web/site/dist/index.
     fail "$name missing; rebuild via launch"
     continue
   fi
-  stale=$(find "$root/web/docs/src" "$root/web/ui/src" "$root/web/site/src" -type f -newer "$built" | head -1)
+  stale=$(git -C "$root" ls-files 'web/docs/src' 'web/ui/src' 'web/site/src' | while read -r f; do [ "$root/$f" -nt "$built" ] && { echo "$f"; break; }; done)
   if [ -n "$stale" ]; then fail "$name is older than ${stale#"$root"/}; rebuild via launch"; else pass "$name newer than site sources"; fi
 done
 
