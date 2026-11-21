@@ -11,8 +11,16 @@ if [ -f "$run/state.sh" ]; then
   echo "launch: $run/state.sh exists; run scripts/cleanup.sh first" >&2
   exit 1
 fi
+port_bound() {
+  if command -v ss >/dev/null 2>&1; then
+    ss -ltn 2>/dev/null | grep -q ":$1 " && return 0
+  elif command -v netstat >/dev/null 2>&1; then
+    netstat -ano | grep "LISTENING" | grep -q ":$1 " && return 0
+  fi
+  return 1
+}
 for port in "$site_port" "$docs_port"; do
-  if ss -ltn | grep -q ":$port "; then
+  if port_bound "$port"; then
     echo "launch: port $port is already bound by a process this run did not start" >&2
     exit 1
   fi
