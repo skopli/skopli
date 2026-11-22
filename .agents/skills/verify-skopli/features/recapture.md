@@ -39,10 +39,11 @@ Preconditions:
   Stderr ends with `env: ok, server <pid>, gateway <pid>, cache proof passed`, and `cache-proof.json` shows `prompt_tokens_details.cached_tokens` and `cache_read_input_tokens` higher on turn two than on turn one.
   The step runs `pnpm install --frozen-lockfile` and `pnpm run build` first, because the readers run through the built facade.
   The llama.cpp archive comes from the fixed release asset URL `https://github.com/ggml-org/llama.cpp/releases/download/b11720/llama-b11720-bin-<asset>`, where `<asset>` is `ubuntu-x64.tar.gz`, `macos-arm64.tar.gz` or `win-cpu-x64.zip`, so no GitHub API call is made and its anonymous rate limit cannot fail the step.
+  Those assets pin the supported hosts to linux-x64, macOS arm64 and windows-x64; `env` refuses any other platform-arch pair with a usage error before downloading (an Intel Mac would otherwise fetch an ARM-only binary that cannot start).
   On Windows the zip is extracted with `%SystemRoot%\System32\tar.exe`, because the GNU tar that Git Bash puts first on PATH reads a drive-letter path as a remote host.
   The server runs with `-c 131072 -np 2 --rope-scaling yarn --rope-scale 2 --yarn-orig-ctx 32768 --alias qwen`, which gives each slot the 64K window Hermes requires.
   Windows adds `-n 1024` to cap each reply.
-  macOS adds `-ngl 0`, because in a macOS VM the paravirtual Metal device generates about 1 token per second against about 70 on the CPU.
+  macOS adds `-ngl 0`, because in a macOS VM the paravirtual Metal device is far slower than CPU inference.
 - **Install.** Run `node .agents/skills/verify-skopli/scripts/recapture.mjs install --out .verify/recapture/<run>`.
   `cli-versions.txt` has one line per harness: id, binary path, `MISSING` or `INSTALL-FAILED`, first line of `--version`; `--baseline` compares only the versions of harnesses installed in both runs.
   A `pnpm` channel runs `pnpm add -g --allow-build=<package>`, a `uv` channel runs `uv tool install` with the pinned Python and `--with` packages, and a `script` channel runs `curl -fsSL <url> | bash -s -- <args>`.
@@ -76,17 +77,18 @@ The cell procedure the runner follows:
 
 Statuses in `result.json` and `cell-notes.<os>.tsv`:
 
-| status           | meaning                                                                                                                                                                                                       |
-| ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `captured`       | Skopli read events and they reconcile exactly with the gateway.                                                                                                                                               |
-| `captured-delta` | Skopli read events but the totals differ from the gateway.                                                                                                                                                    |
-| `reader-gap`     | Requests reached the gateway and the harness wrote its store, but Skopli read zero events.                                                                                                                    |
-| `capture-gap`    | Setup exited non-zero, no request reached the gateway, or the harness wrote nothing under its store roots.                                                                                                    |
-| `hang`           | Setup ran out the budget, or a turn did and Skopli read nothing.                                                                                                                                              |
-| `error`          | `home.mjs` crashed or `reconcile.mjs` exited with something other than agreement or a delta; `report` then exits `1`.                                                                                         |
-| `not-installed`  | The harness binary is not under `--cache` after the install step, its install failed, timed out, was interrupted or skipped (`install/<id>.failed`), or on Windows its `--version` probe failed or timed out. |
-| `skip`           | The manifest says the cell cannot run; the reason is one of `gui-only`, `no-byok-endpoint`, `wrong-wire-shape`, `interactive-config`, `not-an-agent`.                                                         |
-| `todo`           | The recovered kit could not source a field for this OS: the install channel, a command, or a config seed.                                                                                                     |
+| status           | meaning                                                                                                                                                                                                             |
+| ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `captured`       | Skopli read events and they reconcile exactly with the gateway.                                                                                                                                                     |
+| `captured-delta` | Skopli read events but the totals differ from the gateway.                                                                                                                                                          |
+| `partial`        | Requests reached the gateway and Skopli read events, but at least one turn failed, timed out or was skipped, so the cell did not complete its prompt sequence; `report` treats it as a regression for golden cases. |
+| `reader-gap`     | Requests reached the gateway and the harness wrote its store, but Skopli read zero events.                                                                                                                          |
+| `capture-gap`    | Setup exited non-zero, no request reached the gateway, or the harness wrote nothing under its store roots.                                                                                                          |
+| `hang`           | Setup ran out the budget, or a turn did and Skopli read nothing.                                                                                                                                                    |
+| `error`          | `home.mjs` crashed or `reconcile.mjs` exited with something other than agreement or a delta; `report` then exits `1`.                                                                                               |
+| `not-installed`  | The harness binary is not under `--cache` after the install step, its install failed, timed out, was interrupted or skipped (`install/<id>.failed`), or on Windows its `--version` probe failed or timed out.       |
+| `skip`           | The manifest says the cell cannot run; the reason is one of `gui-only`, `no-byok-endpoint`, `wrong-wire-shape`, `interactive-config`, `not-an-agent`.                                                               |
+| `todo`           | The recovered kit could not source a field for this OS: the install channel, a command, or a config seed.                                                                                                           |
 
 Run outputs, all under `--out` and never committed:
 
@@ -101,7 +103,7 @@ Drift kinds and their lanes:
 | ------------------ | ------------------------------------------------------------------------------------------------ | ------------------------------------------------------------- |
 | `newly-capturable` | A cell captured with no golden case for it.                                                      | decision                                                      |
 | `unread-store`     | A cell with no golden case wrote its store and reached the gateway, but Skopli read zero events. | decision                                                      |
-| `regressed`        | A cell with a golden case now ends in `capture-gap`, `reader-gap`, `hang` or `error`.            | `mechanical-candidate` for `reader-gap`, `decision` otherwise |
+| `regressed`        | A cell with a golden case now ends in `capture-gap`, `reader-gap`, `hang`, `partial` or `error`. | `mechanical-candidate` for `reader-gap`, `decision` otherwise |
 | `reconcile-delta`  | Skopli's totals differ from the gateway's.                                                       | decision                                                      |
 | `layout-changed`   | The store holds path shapes the golden case does not.                                            | `mechanical-candidate`                                        |
 | `version-changed`  | A CLI version differs from `--baseline`.                                                         | `mechanical-candidate`                                        |
