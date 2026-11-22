@@ -16,7 +16,7 @@ import {
   writeFileSync,
 } from "node:fs";
 import { connect } from "node:net";
-import { hostname, platform, userInfo } from "node:os";
+import { arch, hostname, platform, userInfo } from "node:os";
 import { Readable } from "node:stream";
 import { pipeline } from "node:stream/promises";
 import { basename, delimiter, dirname, join, relative, resolve, sep } from "node:path";
@@ -515,6 +515,14 @@ const waitFor = async (url, seconds, child) => {
 
 let startedEnv = false;
 async function env() {
+  // The pinned llama.cpp builds cover linux-x64, darwin-arm64 and windows-x64 only: on any other
+  // arch (an Intel Mac, ARM Windows or ARM Linux) the downloaded llama-server could never start,
+  // so refuse before any install or download.
+  const pair = `${OS}-${arch()}`;
+  if (!["linux-x64", "darwin-arm64", "windows-x64"].includes(pair))
+    args.usage(
+      `unsupported platform ${pair}; recapture env supports linux-x64, darwin-arm64 and windows-x64`,
+    );
   // home.mjs and reconcile.mjs read through the built facade and native addon.
   // Without a TTY pnpm aborts instead of recreating node_modules; CI=true lets the install proceed.
   for (const [a, e] of [
@@ -588,8 +596,8 @@ async function env() {
     "--alias",
     "qwen",
     ...(OS === "windows" ? ["-n", "1024"] : []),
-    // Recapture runs macOS in a VM, whose paravirtual Metal generates at about 1 token/s against
-    // about 70 on the CPU, so darwin always infers on the CPU.
+    // Recapture runs macOS in a VM, where the paravirtual Metal device is far slower than the
+    // CPU, so darwin always infers on the CPU.
     ...(OS === "darwin" ? ["-ngl", "0"] : []),
   ];
   const slog = openSync(join(out, "llama-server.txt"), "w");
@@ -1332,6 +1340,7 @@ async function run() {
         : rc.status !== 0 && rc.status !== 1
           ? `reconcile.mjs exit ${rc.status}`
           : null;
+    const partialTurn = turns.findIndex((t) => t.skipped || t.timedOut || t.exit !== 0);
     const status = broken
       ? "error"
       : setupFailed
@@ -1346,9 +1355,11 @@ async function run() {
               ? written.length
                 ? "reader-gap"
                 : "capture-gap"
-              : rc.status === 0
-                ? "captured"
-                : "captured-delta";
+              : partialTurn >= 0
+                ? "partial"
+                : rc.status === 0
+                  ? "captured"
+                  : "captured-delta";
     write({
       status,
       reason:
@@ -1359,7 +1370,13 @@ async function run() {
             : `setup exit ${setup.code}`
           : status === "capture-gap" && !lines.length
             ? "no request reached the gateway"
-            : undefined),
+            : status === "partial"
+              ? turns[partialTurn].skipped
+                ? `turn ${partialTurn + 1} skipped: ${turns[partialTurn].skipped}`
+                : turns[partialTurn].timedOut
+                  ? `turn ${partialTurn + 1} timed out`
+                  : `turn ${partialTurn + 1} exit ${turns[partialTurn].exit}`
+              : undefined),
       setup: setup
         ? { exit: setup.code, timedOut: setup.timedOut, seconds: setup.seconds }
         : undefined,
