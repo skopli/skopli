@@ -40,6 +40,7 @@ export type Harness =
   | "kiro"
   | "fx";
 
+// Token counters are non-negative integers, matching the u64 wire contract.
 export type TokenCounts = {
   input: number;
   output: number;

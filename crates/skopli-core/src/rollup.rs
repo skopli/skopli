@@ -1,5 +1,5 @@
-//! Aggregation of [`UsageEvent`]s into keyed [`Rollup`]s; the twin of
-//! `src/rollup.ts`.
+//! Aggregation of [`UsageEvent`]s into keyed [`Rollup`]s. The TypeScript
+//! facade delegates here through the wire instead of keeping a twin implementation.
 //!
 //! Keyed rollups group events by one dimension and come back sorted by key,
 //! bytewise. Day keys are the calendar date in the requested IANA zone via the

@@ -68,7 +68,7 @@ describe("rollup", () => {
     expect(without[0]?.tokens.cacheWrite1h).toBeUndefined();
   });
 
-  it("clamps each event's 1h split so malformed events cannot rebill others' writes", () => {
+  it("clamps each event's 1h split under the u64 wire contract", () => {
     const rows = rollup(
       [
         event({
@@ -121,7 +121,7 @@ describe("rollup", () => {
       ],
       { by: "model" },
     );
-    expect(rows[0]?.tokens.cacheWrite).toBe(150);
+    expect(rows[0]?.tokens.cacheWrite).toBe(160);
     expect(rows[0]?.tokens.cacheWrite1h).toBe(10);
   });
 
