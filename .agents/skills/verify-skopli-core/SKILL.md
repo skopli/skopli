@@ -15,6 +15,7 @@ This skill checks the rollup for every input in a small finite domain and parity
 From the repository root, with the pinned Rust toolchain and Node 24 on `PATH`:
 
 ```sh
+pnpm run build:native
 cargo test --release --manifest-path .agents/skills/verify-skopli-core/Cargo.toml
 ```
 

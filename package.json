@@ -59,6 +59,7 @@
   "devDependencies": {
     "@napi-rs/cli": "^3.8.6",
     "@types/node": "^26.1.2",
+    "oxc-parser": "0.159.0",
     "oxfmt": "^0.67.0",
     "oxlint": "^1.77.0",
     "playwright-core": "1.63.0",

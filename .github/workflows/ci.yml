@@ -55,6 +55,7 @@ jobs:
       - uses: ./.github/actions/node
       - run: cargo fmt --all --manifest-path $MANIFEST -- --check
       - run: cargo clippy --manifest-path $MANIFEST --all-targets -- -D warnings
+      - run: pnpm run build:native
       - run: cargo test --release --manifest-path $MANIFEST
 
   typescript:

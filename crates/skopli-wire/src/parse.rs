@@ -95,16 +95,13 @@ fn parse_event(value: &Value) -> Result<UsageEvent, String> {
 /// core counters as the readers do.
 pub fn parse_tokens(value: &Value) -> Result<TokenCounts, String> {
     let obj = value.as_object().ok_or("tokens must be an object")?;
-    let u = |k: &str| obj.get(k).and_then(Value::as_i64).unwrap_or(0).max(0) as u64;
+    let u = |k: &str| obj.get(k).and_then(Value::as_u64).unwrap_or(0);
     Ok(TokenCounts {
         input: u("input"),
         output: u("output"),
         cache_read: u("cacheRead"),
         cache_write: u("cacheWrite"),
-        cache_write1h: obj
-            .get("cacheWrite1h")
-            .and_then(Value::as_i64)
-            .map(|v| v.max(0) as u64),
+        cache_write1h: obj.get("cacheWrite1h").and_then(Value::as_u64),
         reasoning: u("reasoning"),
     })
 }
