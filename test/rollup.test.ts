@@ -138,6 +138,8 @@ describe("rollup", () => {
       { by: "model" },
     );
     expect(rows[0]?.calls).toBe(10);
+    const saturated = rollup([event({ calls: 2 ** 64 })], { by: "model" });
+    expect(saturated[0]?.calls).toBe(2 ** 64);
   });
 
   it("preserves unsigned token counters above the signed ceiling", () => {

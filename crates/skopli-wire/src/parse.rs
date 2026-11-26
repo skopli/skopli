@@ -83,7 +83,7 @@ fn parse_event(value: &Value) -> Result<UsageEvent, String> {
             .unwrap_or(false),
         model: req_str("model")?.to_owned(),
         tokens,
-        calls: obj.get("calls").and_then(Value::as_u64),
+        calls: obj.get("calls").and_then(wire_u64),
         cost_usd: obj.get("costUsd").and_then(Value::as_f64),
         workspace: get_str("workspace").map(str::to_owned),
         title: get_str("title").map(str::to_owned),
