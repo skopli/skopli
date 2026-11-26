@@ -48,7 +48,7 @@
     "build:native": "napi build --platform --release -o native --js index.cjs --package skopli-node --manifest-path crates/skopli-node/Cargo.toml",
     "build": "napi build --platform --release -o native --js index.cjs --package skopli-node --manifest-path crates/skopli-node/Cargo.toml && pnpm run clean && tsc -p tsconfig.build.json",
     "prepare": "pnpm run clean && tsc -p tsconfig.build.json",
-    "lint": "oxlint && node scripts/check-prose.mjs",
+    "lint": "oxlint && node scripts/check-prose.mjs && node scripts/check-architecture.mjs",
     "format": "oxfmt --check .",
     "format:write": "oxfmt .",
     "typecheck": "tsc --noEmit && pnpm -r run typecheck",
@@ -59,6 +59,7 @@
   "devDependencies": {
     "@napi-rs/cli": "^3.8.6",
     "@types/node": "^26.1.2",
+    "oxc-parser": "0.159.0",
     "oxfmt": "^0.67.0",
     "oxlint": "^1.77.0",
     "playwright-core": "1.63.0",

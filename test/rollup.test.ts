@@ -68,7 +68,7 @@ describe("rollup", () => {
     expect(without[0]?.tokens.cacheWrite1h).toBeUndefined();
   });
 
-  it("clamps each event's 1h split so malformed events cannot rebill others' writes", () => {
+  it("clamps each event's 1h split under the u64 wire contract", () => {
     const rows = rollup(
       [
         event({
@@ -121,21 +121,47 @@ describe("rollup", () => {
       ],
       { by: "model" },
     );
-    expect(rows[0]?.tokens.cacheWrite).toBe(150);
+    expect(rows[0]?.tokens.cacheWrite).toBe(160);
     expect(rows[0]?.tokens.cacheWrite1h).toBe(10);
   });
 
-  it("uses reported finite calls and defaults to 1 otherwise", () => {
+  it("uses reported integer calls and defaults malformed counts to 1", () => {
     const rows = rollup(
       [
         event({ calls: 5 }),
         event({ messageId: "m2" }),
         event({ messageId: "m3", calls: Number.NaN }),
         event({ messageId: "m4", calls: Number.POSITIVE_INFINITY }),
+        event({ messageId: "m5", calls: -5 }),
+        event({ messageId: "m6", calls: 2.5 }),
       ],
       { by: "model" },
     );
-    expect(rows[0]?.calls).toBe(8);
+    expect(rows[0]?.calls).toBe(10);
+    const saturated = rollup([event({ calls: 2 ** 64 })], { by: "model" });
+    expect(saturated[0]?.calls).toBe(2 ** 64);
+  });
+
+  it("preserves unsigned token counters above the signed ceiling", () => {
+    const count = 2 ** 63;
+    const rows = rollup(
+      [
+        event({
+          tokens: {
+            input: count,
+            output: 0,
+            cacheRead: 0,
+            cacheWrite: count,
+            cacheWrite1h: count,
+            reasoning: 0,
+          },
+        }),
+      ],
+      { by: "model" },
+    );
+    expect(rows[0]?.tokens.input).toBe(count);
+    expect(rows[0]?.tokens.cacheWrite).toBe(count);
+    expect(rows[0]?.tokens.cacheWrite1h).toBe(count);
   });
 
   it("groups by session and harness", () => {

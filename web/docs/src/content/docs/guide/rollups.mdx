@@ -149,10 +149,10 @@ Every event still belongs to exactly one block and lies in its block's `[key, ke
 
 `events` counts rows.
 `turns` counts rows where `turn` is true.
-`calls` sums each event's reported `calls` when that value is finite, else counts 1, so a Hermes Agent row that aggregates eight calls adds eight.
+`calls` sums each event's reported `calls` when that value is a non-negative integer, else counts 1, so a Hermes Agent row that aggregates eight calls adds eight.
 Token and call counters never wrap.
 The Rust core, and every facade that reaches it, saturates a counter at 2^64 - 1.
-The TypeScript facade sums JavaScript numbers, which stay exact up to 2^53 - 1 and then keep growing with rounding to the nearest double, so both agree on every realistic total and neither can shrink one.
+The TypeScript facade delegates to the same core, so every facade agrees at the ceiling as well as below it.
 `costUsd` is only the recorded cost, present only when at least one event in the group recorded one.
 It is not a price.
 For prices, hand the rollups to [`priceRollups`](/skopli/guide/pricing-basics/), or use [`priceEvents`](/skopli/pricing/rollups-vs-events/) when any model has long-context tiers.

@@ -67,6 +67,13 @@ describe("rollup billing blocks (omitted blockMs uses the default)", () => {
       { key: "1970-01-01T00:00:00.000Z", events: 2 },
     ]);
   });
+
+  it("an integer blockMs beyond the signed ceiling still widens the block", () => {
+    const events = [event("2026-01-01T09:00:00.000Z"), event("2026-01-01T14:30:00.000Z")];
+    const rows = rollup(events, { by: "block", tz: "UTC", blockMs: 1e19 });
+    expect(rows).toHaveLength(1);
+    expect(rows[0]?.events).toBe(2);
+  });
 });
 
 // An omitted tz must resolve the system zone (matching the Rust core, which

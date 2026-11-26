@@ -40,6 +40,7 @@ export type Harness =
   | "kiro"
   | "fx";
 
+// Token counters are non-negative integers.
 export type TokenCounts = {
   input: number;
   output: number;
@@ -62,7 +63,7 @@ export type UsageEvent = {
   model: string;
   tokens: TokenCounts;
   // number of underlying model calls this event aggregates, when the source
-  // reports it (e.g. hermes message_count). Absent means a single call.
+  // reports a non-negative integer count. Absent means a single call.
   calls?: number;
   costUsd?: number;
   workspace?: string;

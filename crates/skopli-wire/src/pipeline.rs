@@ -13,7 +13,7 @@ use skopli_core::pricing::Pricing;
 use skopli_core::rollup::{RollupBy, RollupOptions, rollup};
 use skopli_core::types::UsageEvent;
 
-use crate::wire;
+use crate::{parse, wire};
 
 /// Parse the shared `{ by, tz?, blockMs? }` rollup options into typed
 /// [`RollupOptions`]. `blockMs` applies only to `by == "block"`.
@@ -25,7 +25,10 @@ fn rollup_options(opts: &Value) -> Result<RollupOptions, String> {
     let by =
         RollupBy::parse(by_name).ok_or_else(|| format!("unknown rollup dimension: {by_name}"))?;
     let tz = opts.get("tz").and_then(Value::as_str).map(str::to_owned);
-    let block_ms = opts.get("blockMs").and_then(Value::as_i64);
+    let block_ms = opts
+        .get("blockMs")
+        .and_then(parse::wire_u64)
+        .map(|ms| ms.min(i64::MAX as u64) as i64);
     Ok(RollupOptions { by, tz, block_ms })
 }
 

@@ -57,7 +57,7 @@ pub fn default_cache_dir() -> String {
 }
 
 /// Roll up a batch of events. `events_json` is a `UsageEvent[]`; `options_json`
-/// is `{ by, tz? }`. Returns a `Rollup[]` JSON string.
+/// is `{ by, tz?, blockMs? }`. Returns a `Rollup[]` JSON string.
 #[napi(js_name = "rollup")]
 pub fn rollup(events_json: String, options_json: String) -> Result<String> {
     let events = domain(parse::parse_events(&parse_json(&events_json)?))?;

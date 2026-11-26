@@ -8,13 +8,14 @@ description: Bounded exhaustive checks of the Rust core in crates/skopli-core - 
 `rollup()` is the one function every Skopli number passes through: the CLI, the wire format and all nine facades hand it a list of usage events and print what comes back.
 If it drops an event, counts a token twice, lets a cache split exceed its parent counter, or files an event in the wrong row, every report built on Skopli is wrong and nothing downstream can tell.
 The events come from forty readers in `crates/skopli-core/src/readers/`, each parsing a harness's own session files, and the harnesses come from two detectors that must agree on which homes hold which harness.
-This skill checks the rollup for every input in a small finite domain and parity with the TypeScript twin in `src/rollup.ts`, every reader against every single-cell and byte-level damage of its golden input, and both detectors against every layout of zero, one or two markers.
+This skill checks the rollup for every input in a small finite domain and parity with the TypeScript facade in `src/rollup.ts`, every reader against every single-cell and byte-level damage of its golden input, and both detectors against every layout of zero, one or two markers.
 
 ## Run
 
 From the repository root, with the pinned Rust toolchain and Node 24 on `PATH`:
 
 ```sh
+pnpm run build:native
 cargo test --release --manifest-path .agents/skills/verify-skopli-core/Cargo.toml
 ```
 
@@ -68,7 +69,7 @@ Not covered: workspace fallback to a non-workspace key, an omitted `tz` (the sys
 ## Assumptions
 
 - The repository's `rust-toolchain.toml` is honoured and Node is version 24 or newer.
-- `src/rollup.ts` is the behavioural twin of `rollup.rs`; a disagreement is a finding in one of them, and the skill does not say which.
+- `src/rollup.ts` delegates to `rollup.rs` through the wire; parity validates the facade's event/options serialization and result shape rather than an independent implementation.
 - The block spec in `src/lib.rs` is a faithful reading of `golden/rollup-block/README.md`; when the two disagree, read the README first.
 
 ## Real bug or modeling error
