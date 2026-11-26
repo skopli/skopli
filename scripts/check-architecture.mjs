@@ -48,6 +48,10 @@ export const rollupFindings = (text) => {
   if (functions.length !== 1 || !rollupFunction) {
     findings.push("src/rollup.ts must contain rollup as its only function implementation");
   } else {
+    const eventParam =
+      rollupFunction.params[0]?.type === "Identifier" ? rollupFunction.params[0].name : "events";
+    const optionsParam =
+      rollupFunction.params[1]?.type === "Identifier" ? rollupFunction.params[1].name : "options";
     const body = rollupFunction.body?.body ?? [];
     const argument =
       body.length === 1 && body[0].type === "ReturnStatement" ? body[0].argument : undefined;
@@ -60,8 +64,8 @@ export const rollupFindings = (text) => {
       identifier(argument.arguments[0].callee.property, "rollup") &&
       zeroArgumentCall(argument.arguments[0].callee.object, nativeName) &&
       argument.arguments[0].arguments.length === 2 &&
-      jsonStringifyOf(argument.arguments[0].arguments[0], "events") &&
-      jsonStringifyOf(argument.arguments[0].arguments[1], "options");
+      jsonStringifyOf(argument.arguments[0].arguments[0], eventParam) &&
+      jsonStringifyOf(argument.arguments[0].arguments[1], optionsParam);
     if (!valid) {
       findings.push(
         "rollup must be only return fromWire(native().rollup(JSON.stringify(events), JSON.stringify(options)))",

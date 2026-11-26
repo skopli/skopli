@@ -93,15 +93,24 @@ fn parse_event(value: &Value) -> Result<UsageEvent, String> {
 /// Parse a `TokenCounts` from a wire object. Token counters may arrive negative
 /// from malformed sources (the TS math is f64-tolerant); clamp to 0 for the u64
 /// core counters as the readers do.
+pub fn wire_u64(value: &Value) -> Option<u64> {
+    value.as_u64().or_else(|| {
+        value
+            .as_f64()
+            .filter(|v| v.is_finite() && *v >= 0.0 && v.fract() == 0.0)
+            .map(|v| v as u64)
+    })
+}
+
 pub fn parse_tokens(value: &Value) -> Result<TokenCounts, String> {
     let obj = value.as_object().ok_or("tokens must be an object")?;
-    let u = |k: &str| obj.get(k).and_then(Value::as_u64).unwrap_or(0);
+    let u = |k: &str| obj.get(k).and_then(wire_u64).unwrap_or(0);
     Ok(TokenCounts {
         input: u("input"),
         output: u("output"),
         cache_read: u("cacheRead"),
         cache_write: u("cacheWrite"),
-        cache_write1h: obj.get("cacheWrite1h").and_then(Value::as_u64),
+        cache_write1h: obj.get("cacheWrite1h").and_then(wire_u64),
         reasoning: u("reasoning"),
     })
 }
@@ -120,7 +129,7 @@ pub fn parse_rollup(value: &Value) -> Result<Rollup, String> {
         .ok_or_else(|| "a rollup needs a string \"key\"".to_owned())?
         .to_owned();
     let tokens = parse_tokens(obj.get("tokens").ok_or("rollup needs tokens")?)?;
-    let u = |k: &str| obj.get(k).and_then(Value::as_u64).unwrap_or(0);
+    let u = |k: &str| obj.get(k).and_then(wire_u64).unwrap_or(0);
     let cost_usd = obj
         .get("costUsd")
         .and_then(Value::as_f64)

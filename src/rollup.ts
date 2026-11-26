@@ -22,7 +22,7 @@ export type Rollup = {
   events: number;
   turns: number;
   // underlying model calls; may exceed events for session-aggregate sources
-  // (each event contributes its reported finite count, else 1)
+  // (each event contributes its reported non-negative integer count, else 1)
   calls: number;
   costUsd?: number;
 };

@@ -23,6 +23,11 @@ describe("check-architecture", () => {
     expect(rollupFindings(facade("coreNative", "parseWire"))).toEqual([]);
   });
 
+  it("accepts renamed parameters when references are renamed with them", () => {
+    const source = facade().replaceAll("events", "usage").replaceAll("options", "opts");
+    expect(rollupFindings(source)).toEqual([]);
+  });
+
   it("rejects a facade that does not return the native result", () => {
     const source = `${facade().replace("return fromWire(native().rollup", "return [] ?? fromWire(native().rollup")}`;
     expect(rollupFindings(source)).not.toEqual([]);
